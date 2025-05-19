@@ -71,7 +71,7 @@ Example of a single anime object:
 
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // or "gpt-4.1-nano"
+        model: "gpt-4.1-nano", // or "gpt-4.1-nano"
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: args.prompt }
