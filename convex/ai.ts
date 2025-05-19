@@ -1,13 +1,62 @@
+// File: convex/ai.ts
 "use node";
 import OpenAI from "openai";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { api, internal } from "./_generated/api"; // internal might be used later
 
+// Initialize OpenAI client to use the proxy via CONVEX_OPENAI_BASE_URL
+// This will be used by all actions in this file.
 const openai = new OpenAI({
-  baseURL: process.env.CONVEX_OPENAI_BASE_URL,
-  apiKey: process.env.CONVEX_OPENAI_API_KEY,
+  baseURL: process.env.CONVEX_OPENAI_BASE_URL, // Your proxy URL
+  apiKey: process.env.CONVEX_OPENAI_API_KEY,   // This key is for the proxy to use
 });
+
+// Optional: Test function to verify the proxy connection to OpenAI
+export const testOpenAIProxyConnection = action({
+  args: {},
+  handler: async (_ctx) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { success: false, error: "API key not found in environment variables for proxy." };
+    }
+    if (!process.env.CONVEX_OPENAI_BASE_URL) {
+      return { success: false, error: "CONVEX_OPENAI_BASE_URL not configured." };
+    }
+
+    try {
+      console.log(`Testing OpenAI connection via proxy: ${process.env.CONVEX_OPENAI_BASE_URL}`);
+      // This call will go through your Convex HTTP proxy
+      const result = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo", // Or "gpt-4o-mini"
+        messages: [
+          { role: "user", content: "Say hello from the proxy test" }
+        ],
+        max_tokens: 10
+      });
+
+      return {
+        success: true,
+        message: result.choices[0].message.content,
+        modelUsed: result.model // The actual model that responded
+      };
+    } catch (err) {
+      const error = err as any; // OpenAI errors can have more details
+      console.error("OpenAI proxy test failed:", error);
+      return {
+        success: false,
+        error: "OpenAI proxy connection test failed",
+        details: {
+          message: error.message || "Unknown error",
+          status: error.status,       // HTTP status code if available
+          type: error.type,         // OpenAI error type
+          code: error.code,         // OpenAI error code
+          rawError: error.toString(), // Raw error string
+        }
+      };
+    }
+  }
+});
+
 
 export const getAnimeRecommendation = action({
   args: {
@@ -20,7 +69,13 @@ export const getAnimeRecommendation = action({
     })),
   },
   handler: async (ctx, args) => {
-    // Construct a more detailed prompt for the AI
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { recommendations: [], error: "OpenAI API key is not configured for the proxy." };
+    }
+    if (!process.env.CONVEX_OPENAI_BASE_URL) {
+      return { recommendations: [], error: "CONVEX_OPENAI_BASE_URL not configured." };
+    }
+
     let systemPrompt = `You are AniMuse, an AI anime concierge.
 Your goal is to recommend anime based on the user's request.
 Provide recommendations as a JSON array of objects. Each object should represent an anime and include:
@@ -49,13 +104,13 @@ Consider the user's profile if provided:`;
             systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
         }
     }
-     systemPrompt += `\nUser's request: "${args.prompt}"
-Return ONLY the JSON array. Do not include any other text before or after the JSON.
+    systemPrompt += `\nUser's request: "${args.prompt}"
+Return ONLY the JSON array of objects. Do not include any other text, markdown, or explanations before or after the JSON.
 If you cannot find suitable anime, return an empty array [].
 Limit to 3-5 recommendations.
 For posterUrl, if you don't have a real one, use "https://via.placeholder.com/200x300.png?text=[ANIME_TITLE]". Replace [ANIME_TITLE] with the actual anime title, URL encoded.
-For trailerUrl, if you don't have a real one, use "https://www.youtube.com/results?search_query=[ANIME_TITLE]+trailer". Replace [ANIME_TITLE] with the actual anime title, URL encoded.
-Example of a single anime object:
+For trailerUrl, if you don't have a real one, use "https://www.youtube.com/results?search_query=[ANIME_TITLE]+trailer".
+Example of a single anime object in the array:
 {
   "title": "Kimi no Na wa.",
   "description": "Two teenagers share a profound, magical connection upon discovering they are swapping bodies. Things manage to become even more complicated when the boy and girl decide to meet in person.",
@@ -68,70 +123,72 @@ Example of a single anime object:
 }
 `;
 
-
     try {
+      console.log(`Calling OpenAI via proxy: ${process.env.CONVEX_OPENAI_BASE_URL}/chat/completions for prompt: ${args.prompt}`);
+      // This call will go through your Convex HTTP proxy
       const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-nano", // or "gpt-4.1-nano"
+        model: "gpt-4o-mini", // Or your preferred model
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: args.prompt }
         ],
-        response_format: { type: "json_object" }, // Request JSON output
+        response_format: { type: "json_object" },
       });
 
       const content = completion.choices[0].message.content;
       if (!content) {
+        console.error("No content received from AI via proxy.");
         return { recommendations: [], error: "No content from AI." };
       }
 
-      // The AI should return a string that is a JSON array.
-      // Sometimes the model wraps the array in a top-level object like {"recommendations": [...] }
-      // We need to parse it carefully.
       let parsedRecommendations = [];
       try {
         const jsonResponse = JSON.parse(content);
+        // Check if the response itself is the array (as requested from gpt-4o-mini with json_object)
+        // or if it's nested under a "recommendations" key (less likely with strict prompting)
         if (Array.isArray(jsonResponse)) {
             parsedRecommendations = jsonResponse;
         } else if (jsonResponse && typeof jsonResponse === 'object' && Array.isArray(jsonResponse.recommendations)) {
+             // Handle if model wraps output in { "recommendations": [...] } despite instructions
             parsedRecommendations = jsonResponse.recommendations;
-        } else {
-            console.error("AI response is not a JSON array or expected object:", content);
-            return { recommendations: [], error: "AI response format error. Expected an array or {recommendations: []}." };
+        }
+        else {
+            console.error("AI response via proxy is not a JSON array or expected object:", content);
+            // Attempt to extract array if it's a string containing JSON array like "{ \"recommendations\": [] }"
+             if (typeof jsonResponse === 'object' && jsonResponse !== null) {
+                // Look for any key that might contain the array
+                const potentialArrayKey = Object.keys(jsonResponse).find(key => Array.isArray((jsonResponse as any)[key]));
+                if (potentialArrayKey) {
+                    parsedRecommendations = (jsonResponse as any)[potentialArrayKey];
+                } else {
+                     return { recommendations: [], error: "AI response format error. Expected an array or {recommendations: []}." };
+                }
+            } else {
+                 return { recommendations: [], error: "AI response format error. Expected an array or {recommendations: []}." };
+            }
         }
       } catch (e) {
-        console.error("Failed to parse AI response:", e, content);
-        return { recommendations: [], error: "Failed to parse AI response." };
+        const parseError = e as Error;
+        console.error("Failed to parse AI response from proxy:", parseError.message, "\nContent:", content);
+        return { recommendations: [], error: `Failed to parse AI response: ${parseError.message}` };
       }
-      
-      // Optional: Save these AI generated anime to our database if they don't exist
-      // This makes them searchable and available for others later.
-      // For simplicity, we'll skip this step for now but it's a good enhancement.
-      // const animeIds = [];
-      // for (const anime of parsedRecommendations) {
-      //   const existing = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title: anime.title });
-      //   if (existing) {
-      //     animeIds.push(existing._id);
-      //   } else {
-      //     // Ensure all required fields are present or have defaults
-      //     const newId = await ctx.runMutation(internal.anime.addAnimeInternal, {
-      //       title: anime.title,
-      //       description: anime.description || "No description available.",
-      //       posterUrl: anime.posterUrl || \`https://via.placeholder.com/200x300.png?text=\${encodeURIComponent(anime.title)}\`,
-      //       genres: anime.genres || [],
-      //       year: anime.year,
-      //       rating: anime.rating,
-      //       emotionalTags: anime.emotionalTags || [],
-      //       trailerUrl: anime.trailerUrl || \`https://www.youtube.com/results?search_query=\${encodeURIComponent(anime.title)}+trailer\`
-      //     });
-      //     animeIds.push(newId);
-      //   }
-      // }
-      // For now, just return the AI's direct output
+
       return { recommendations: parsedRecommendations, error: null };
 
     } catch (error) {
-      console.error("Error calling OpenAI:", error);
-      return { recommendations: [], error: "Failed to get recommendations from AI." };
+      const err = error as any; // OpenAI errors can have more details
+      console.error("Error calling OpenAI via proxy:", err);
+      // Provide more detailed error if available from the SDK (which talks to your proxy)
+      return {
+        recommendations: [],
+        error: `Failed to get recommendations from AI via proxy: ${err.message || "Unknown error"}`,
+        details: { // Include details from the error object if they exist
+            status: err.status,
+            type: err.type,
+            code: err.code,
+            rawError: err.toString(),
+        }
+      };
     }
   },
 });
