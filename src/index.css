@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-brand-dark text-brand-text font-sans;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for a more modern feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-brand-surface;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-electric-blue;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neon-cyan;
+}
+
+.accent-text {
+  @apply text-neon-cyan; /* Or cycle through accents */
+}
+
+/* Basic neumorphic card style */
+.neumorphic-card {
+  @apply bg-brand-surface rounded-xl p-4 shadow-neumorphic-light;
+}
+
+.neumorphic-button {
+  @apply bg-brand-surface rounded-lg px-4 py-2 shadow-neumorphic-light text-brand-text transition-all duration-200 ease-in-out;
+}
+.neumorphic-button:hover {
+  @apply shadow-neumorphic-light-inset;
+}
+.neumorphic-button:active {
+  @apply shadow-neumorphic-light-inset scale-95;
+}
+
+.neumorphic-input {
+  @apply bg-brand-dark text-brand-text placeholder-brand-text-secondary rounded-lg px-4 py-2 shadow-neumorphic-light-inset focus:outline-none focus:ring-2 focus:ring-neon-cyan;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-orbitron;
+}
