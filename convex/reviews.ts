@@ -1,51 +1,71 @@
-// convex/reviews.ts
+// convex/reviews.ts - Optimized
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
-// Import PaginationResult if you're using it explicitly for return types for paginated queries
 import { PaginationResult } from "convex/server";
 
 // --- Queries ---
 
-// Get all reviews for a specific anime, optionally paginated and sorted
+// Get all reviews for a specific anime, optionally paginated and sorted (Optimized N+1)
 export const getReviewsForAnime = query({
   args: {
     animeId: v.id("anime"),
-    // paginationOpts now required by usePaginatedQuery.
-    // The hook will pass the correct PaginationOptions object.
     paginationOpts: v.any(),
   },
   handler: async (ctx, args) => {
-    // The type for reviews will be PaginationResult<{ review_fields..., userName, userAvatarUrl }>
     const reviewsPaginated = await ctx.db
       .query("reviews")
       .withIndex("by_animeId_createdAt", (q) => q.eq("animeId", args.animeId))
       .order("desc") // Show newest reviews first
-      .paginate(args.paginationOpts); // Pass the paginationOpts directly
+      .paginate(args.paginationOpts);
 
-    const reviewsWithUserDetails = await Promise.all(
-      reviewsPaginated.page.map(async (review) => {
-        const userProfile = await ctx.db
-          .query("userProfiles")
-          .withIndex("by_userId", (q) => q.eq("userId", review.userId))
-          .unique();
-        return {
-          ...review,
-          userName: userProfile?.name || "Anonymous",
-          userAvatarUrl: userProfile?.avatarUrl,
-        };
-      })
+    const reviewsOnPage = reviewsPaginated.page;
+
+    if (reviewsOnPage.length === 0) {
+      return {
+        ...reviewsPaginated,
+        page: [], // Ensure page is an empty array
+      };
+    }
+
+    // Collect unique user IDs from the current page of reviews
+    const userIds = Array.from(new Set(reviewsOnPage.map(review => review.userId)));
+
+    // Fetch user profiles for these user IDs in a more batched way
+    const userProfilesPromises = userIds.map(userId =>
+      ctx.db
+        .query("userProfiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">)) // Cast needed if userId from map isn't Id<"users">
+        .unique()
     );
+    const userProfilesArray = await Promise.all(userProfilesPromises);
+    
+    const userProfilesMap = new Map<string, Doc<"userProfiles"> | null>();
+    userProfilesArray.forEach(profile => {
+      if (profile) {
+        userProfilesMap.set(profile.userId.toString(), profile);
+      }
+    });
+
+    const reviewsWithUserDetails = reviewsOnPage.map((review) => {
+      const userProfile = userProfilesMap.get(review.userId.toString());
+      return {
+        ...review,
+        userName: userProfile?.name || "Anonymous",
+        userAvatarUrl: userProfile?.avatarUrl, // Or a default avatar
+      };
+    });
+
     return {
-      ...reviewsPaginated, // includes page, isDone, continueCursor
-      page: reviewsWithUserDetails, // replace original page with enriched one
+      ...reviewsPaginated,
+      page: reviewsWithUserDetails,
     };
   },
 });
 
-// Get a specific review by a user for an anime (to check if they've already reviewed)
+// Get a specific review by a user for an anime
 export const getUserReviewForAnime = query({
   args: { animeId: v.id("anime") },
   handler: async (ctx, args) => {
@@ -63,11 +83,11 @@ export const getUserReviewForAnime = query({
 });
 
 
-// --- Mutations --- (addReview, editReview, deleteReview remain the same)
+// --- Mutations ---
 export const addReview = mutation({
   args: {
     animeId: v.id("anime"),
-    rating: v.number(),
+    rating: v.number(), // Ensure rating is within 1-5 or 1-10 based on your frontend ReviewForm
     reviewText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -75,7 +95,8 @@ export const addReview = mutation({
     if (!userId) {
       throw new Error("User not authenticated");
     }
-    if (args.rating < 1 || args.rating > 5) {
+    // Validate rating, e.g., if your system is 1-5
+    if (args.rating < 1 || args.rating > 5) { // Adjusted based on ReviewForm using MAX_RATING = 5
         throw new Error("Rating must be between 1 and 5.");
     }
     const existingReview = await ctx.db
@@ -104,7 +125,7 @@ export const addReview = mutation({
 export const editReview = mutation({
   args: {
     reviewId: v.id("reviews"),
-    rating: v.number(),
+    rating: v.number(), // Ensure rating is within 1-5 or 1-10
     reviewText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -119,8 +140,9 @@ export const editReview = mutation({
     if (existingReview.userId !== userId) {
       throw new Error("You can only edit your own reviews.");
     }
-    if (args.rating < 1 || args.rating > 10) {
-        throw new Error("Rating must be between 1 and 10.");
+    // Validate rating, e.g., if your system is 1-5
+    if (args.rating < 1 || args.rating > 5) { // Adjusted based on ReviewForm using MAX_RATING = 5
+        throw new Error("Rating must be between 1 and 5.");
     }
     await ctx.db.patch(args.reviewId, {
       rating: args.rating,

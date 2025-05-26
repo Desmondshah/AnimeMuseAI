@@ -1,10 +1,11 @@
+// convex/auth.ts
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
+// import { Anonymous } from "@convex-dev/auth/providers/Anonymous"; // Removed
 import { query } from "./_generated/server";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password, Anonymous],
+  providers: [Password], // Only Password provider remains
 });
 
 export const loggedInUser = query({

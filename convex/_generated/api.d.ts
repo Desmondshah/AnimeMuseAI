@@ -13,11 +13,15 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as anime from "../anime.js";
 import type * as auth from "../auth.js";
+import type * as authActions from "../authActions.js";
+import type * as crons from "../crons.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
+import type * as notifications from "../notifications.js";
 import type * as openaiProxy from "../openaiProxy.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
@@ -32,11 +36,15 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   ai: typeof ai;
   anime: typeof anime;
   auth: typeof auth;
+  authActions: typeof authActions;
+  crons: typeof crons;
   externalApis: typeof externalApis;
   http: typeof http;
+  notifications: typeof notifications;
   openaiProxy: typeof openaiProxy;
   reviews: typeof reviews;
   router: typeof router;

@@ -1,42 +1,38 @@
-// src/components/animuse/ReviewCard.tsx
-import React from "react";
+// src/components/animuse/onboarding/ReviewCard.tsx - Memoized
+import React, { memo } from "react"; // Import memo
 import { Id } from "../../../../convex/_generated/dataModel";
-import { formatDistanceToNow } from 'date-fns'; // For displaying relative time
+import { formatDistanceToNow } from 'date-fns';
 
 // Assuming the structure from getReviewsForAnime query in convex/reviews.ts
 export interface ReviewProps {
   _id: Id<"reviews">;
-  _creationTime: number; // Convex automatically adds this
+  _creationTime: number;
   animeId: Id<"anime">;
   userId: Id<"users">;
   rating: number;
   reviewText?: string;
-  createdAt: number; // Timestamp you're storing
+  createdAt: number;
   updatedAt?: number;
-  userName: string; // Added from enrichment in getReviewsForAnime
-  userAvatarUrl?: string; // Added from enrichment
-  // Add any other fields you might pass to the card
+  userName: string;
+  userAvatarUrl?: string;
 }
 
 interface ReviewCardProps {
   review: ReviewProps;
-  currentUserId?: Id<"users"> | null; // To enable edit/delete buttons for own reviews
+  currentUserId?: Id<"users"> | null;
   onEdit?: (review: ReviewProps) => void;
   onDelete?: (reviewId: Id<"reviews">) => void;
 }
 
-const StarRating: React.FC<{ rating: number; maxStars?: number }> = ({ rating, maxStars = 5 }) => {
+const StarRatingComponent: React.FC<{ rating: number; maxStars?: number }> = ({ rating, maxStars = 5 }) => {
   const fullStars = Math.floor(rating);
-  const halfStar = rating % 1 !== 0; // Check for half star if your rating system supports it (e.g., 8.5)
-                                     // For integer ratings 1-10, halfStar will be false.
-  const emptyStars = maxStars - fullStars - (halfStar ? 1 : 0);
+  const emptyStars = maxStars - fullStars;
 
   return (
     <div className="flex items-center">
       {[...Array(fullStars)].map((_, i) => (
         <span key={`full-${i}`} className="text-yellow-400 text-lg">★</span>
       ))}
-      {/* Add half-star rendering if applicable to your rating system */}
       {[...Array(emptyStars)].map((_, i) => (
         <span key={`empty-${i}`} className="text-gray-400 text-lg">☆</span>
       ))}
@@ -44,9 +40,9 @@ const StarRating: React.FC<{ rating: number; maxStars?: number }> = ({ rating, m
     </div>
   );
 };
+const StarRating = memo(StarRatingComponent); // Memoize StarRating as well if it's complex or re-renders often
 
-
-export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCardProps) {
+const ReviewCardComponent: React.FC<ReviewCardProps> = ({ review, currentUserId, onEdit, onDelete }) => {
   const displayDate = review.updatedAt ? review.updatedAt : review.createdAt;
   const timeAgo = formatDistanceToNow(new Date(displayDate), { addSuffix: true });
 
@@ -76,13 +72,13 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: 
       {currentUserId && review.userId === currentUserId && onEdit && onDelete && (
         <div className="mt-3 pt-3 border-t border-brand-dark flex justify-end space-x-2">
           <button
-            onClick={() => onEdit(review)}
+            onClick={() => onEdit(review)} // If onEdit is stable (e.g., via useCallback), this is fine
             className="text-xs text-electric-blue hover:underline"
           >
             Edit
           </button>
           <button
-            onClick={() => onDelete(review._id)}
+            onClick={() => onDelete(review._id)} // If onDelete is stable, this is fine
             className="text-xs text-sakura-pink hover:underline"
           >
             Delete
@@ -91,4 +87,6 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: 
       )}
     </div>
   );
-}
+};
+
+export default memo(ReviewCardComponent);
