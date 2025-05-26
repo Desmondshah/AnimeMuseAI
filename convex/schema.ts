@@ -1,4 +1,4 @@
-// convex/schema.ts
+// convex/schema.ts - Updated with verification tracking
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
@@ -17,6 +17,7 @@ const applicationTables = {
     dislikedTags: v.optional(v.array(v.string())),
     isAdmin: v.optional(v.boolean()), // For Admin Features
     emailVerified: v.optional(v.boolean()), // For Email Verification flow
+    verifiedAt: v.optional(v.number()), // Timestamp when email was verified
   }).index("by_userId", ["userId"]),
 
   anime: defineTable({
@@ -90,16 +91,17 @@ const applicationTables = {
     lastUpdatedAt: v.number(),
   }).index("by_identifier", ["identifier"]),
 
-  emailVerifications: defineTable({ // For Email Verification flow
+  emailVerifications: defineTable({ // Enhanced Email Verification flow
     email: v.string(), // The email being verified
     userId: v.id("users"), // The user this verification is for
     hashedCode: v.string(), // Store hashed codes, not plain text
     expiresAt: v.number(), // Timestamp for code expiration
     attempts: v.optional(v.number()), // To track verification attempts
-    // isUsed: v.boolean(), // No longer needed if we delete upon successful verification or rely on emailVerified flag on userProfile
+    requestedAt: v.optional(v.number()), // When the code was requested (for rate limiting)
   })
   .index("by_userId", ["userId"]) // To find a user's pending verification
-  .index("by_email_expiresAt", ["email", "expiresAt"]), // For cleanup or lookup
+  .index("by_email_expiresAt", ["email", "expiresAt"]) // For cleanup or lookup
+  .index("by_expiresAt", ["expiresAt"]), // For efficient cleanup of expired codes
 };
 
 export default defineSchema({
