@@ -16,8 +16,10 @@ import type {
 import type * as ai from "../ai.js";
 import type * as anime from "../anime.js";
 import type * as auth from "../auth.js";
+import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
 import type * as openaiProxy from "../openaiProxy.js";
+import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as users from "../users.js";
 
@@ -33,8 +35,10 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   anime: typeof anime;
   auth: typeof auth;
+  externalApis: typeof externalApis;
   http: typeof http;
   openaiProxy: typeof openaiProxy;
+  reviews: typeof reviews;
   router: typeof router;
   users: typeof users;
 }>;

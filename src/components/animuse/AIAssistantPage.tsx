@@ -3,7 +3,7 @@ import { useAction, useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "./shared/StyledButton";
-import AnimeCard from "./AnimeCard";
+// AnimeCard is now used on other pages, so we don't import it here for the AI rec display
 import { toast } from "sonner";
 
 // Define a type for the AI's recommendation structure
@@ -11,12 +11,15 @@ export interface AnimeRecommendation {
   _id?: Id<"anime">; // Optional: if we decide to store and link them
   title: string;
   description: string;
+  reasoning?: string; // Added for Phase 1
   posterUrl: string;
   genres: string[];
   year?: number;
   rating?: number;
   emotionalTags?: string[];
   trailerUrl?: string;
+  studios?: string[]; // Added for Phase 1
+  themes?: string[]; // Added for Phase 1
 }
 
 interface ChatMessage {
@@ -37,7 +40,7 @@ export default function AIAssistantPage() {
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Example prompts for the user to try
   const examplePrompts = [
     "Suggest me something to watch tonight",
@@ -57,10 +60,10 @@ export default function AIAssistantPage() {
 
   const handleSubmit = async (e: FormEvent | string) => {
     if (e instanceof Object) e.preventDefault();
-    
+
     // Extract prompt text from either event or string
     const promptText = typeof e === 'string' ? e : prompt;
-    
+
     if (!promptText.trim()) return;
 
     const messageId = generateMessageId();
@@ -85,19 +88,19 @@ export default function AIAssistantPage() {
       } else if (result.recommendations && result.recommendations.length > 0) {
         setChatHistory((prev) => [
           ...prev,
-          { 
-            id: generateMessageId(), 
-            type: "ai", 
-            content: "Here are some recommendations for you:", 
+          {
+            id: generateMessageId(),
+            type: "ai",
+            content: "Here are some recommendations for you:",
             recommendations: result.recommendations as AnimeRecommendation[],
             feedback: null
           },
         ]);
         toast.success("AniMuse found some anime for you!");
       } else {
-        setChatHistory((prev) => [...prev, { 
-          id: generateMessageId(), 
-          type: "ai", 
+        setChatHistory((prev) => [...prev, {
+          id: generateMessageId(),
+          type: "ai",
           content: "I couldn't find any specific recommendations for that, but I'm always learning! Try another prompt?",
           feedback: null
         }]);
@@ -113,64 +116,69 @@ export default function AIAssistantPage() {
   };
 
   const handleFeedback = (messageId: string, feedback: "up" | "down") => {
-    setChatHistory(prev => 
-      prev.map(msg => 
+    setChatHistory(prev =>
+      prev.map(msg =>
         msg.id === messageId ? { ...msg, feedback } : msg
       )
     );
-    
-    toast.success(feedback === "up" 
-      ? "Thanks for the positive feedback!" 
+
+    toast.success(feedback === "up"
+      ? "Thanks for the positive feedback!"
       : "Thanks for your feedback. I'll try to do better next time.");
-      
+
     // In a real app, you might want to store this feedback in your database
     // to improve recommendations over time
   };
 
-  const handleAddToWatchlist = async (anime: AnimeRecommendation) => {
+  const handleAddToWatchlistAndDB = async (animeRec: AnimeRecommendation) => {
+    // This function now primarily focuses on adding the recommended anime to the DB
+    // and then adding it to the watchlist. AnimeCard handles its own watchlist interactions
+    // once an anime is in the DB.
     try {
-      toast.loading("Adding to watchlist...", { id: `add-watchlist-${anime.title}` });
-      
-      // First, check if we need to add this anime to the database
-      let animeId: Id<"anime">;
-      
-      // If it's a new anime not in our DB, add it first
-      const result = await addAnimeByUser({
-        title: anime.title,
-        description: anime.description || "No description available.",
-        posterUrl: anime.posterUrl || `https://via.placeholder.com/200x300.png?text=${encodeURIComponent(anime.title)}`,
-        genres: anime.genres || [],
-        year: anime.year,
-        rating: anime.rating,
-        emotionalTags: anime.emotionalTags || [],
-        trailerUrl: anime.trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(anime.title)}+trailer`
+      toast.loading(`Adding ${animeRec.title} to database...`, { id: `add-db-${animeRec.title}` });
+
+      const newAnimeId = await addAnimeByUser({
+        title: animeRec.title,
+        description: animeRec.description || "No description available.",
+        posterUrl: animeRec.posterUrl || `https://via.placeholder.com/200x300.png?text=${encodeURIComponent(animeRec.title)}`,
+        genres: animeRec.genres || [],
+        year: animeRec.year,
+        rating: animeRec.rating,
+        emotionalTags: animeRec.emotionalTags || [],
+        trailerUrl: animeRec.trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(animeRec.title)}+trailer`,
+        studios: animeRec.studios || [], // Added for Phase 1
+        themes: animeRec.themes || [],   // Added for Phase 1
       });
-      
-      animeId = result;
-      
-      // Now add to watchlist
+
+      if (!newAnimeId) {
+        throw new Error("Failed to get ID for new anime.");
+      }
+      toast.success(`${animeRec.title} added to database!`, { id: `add-db-${animeRec.title}` });
+
+      toast.loading(`Adding ${animeRec.title} to watchlist...`, { id: `add-watchlist-${newAnimeId}` });
       await upsertToWatchlist({
-        animeId: animeId,
+        animeId: newAnimeId,
         status: "Plan to Watch"
       });
-      
-      toast.success("Added to your watchlist!", { id: `add-watchlist-${anime.title}` });
+      toast.success(`${animeRec.title} added to your watchlist!`, { id: `add-watchlist-${newAnimeId}` });
+
     } catch (error) {
-      console.error("Error adding to watchlist:", error);
-      toast.error("Failed to add to watchlist", { id: `add-watchlist-${anime.title}` });
+      console.error("Error adding recommended anime to DB/watchlist:", error);
+      toast.error(`Failed to add ${animeRec.title}.`, { id: `add-db-${animeRec.title}` });
     }
   };
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] max-w-2xl w-full mx-auto neumorphic-card p-4 sm:p-6">
       <h2 className="text-2xl font-orbitron text-sakura-pink mb-4 text-center">AniMuse AI Concierge</h2>
-      
+
       {chatHistory.length === 0 && (
         <div className="mb-4 p-4 bg-brand-dark rounded-lg shadow-neumorphic-light-inset">
           <h3 className="text-lg font-orbitron text-neon-cyan mb-2">Try asking me:</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {examplePrompts.map((exPrompt, idx) => (
-              <button 
+              <button
                 key={idx}
                 onClick={() => handleSubmit(exPrompt)}
                 className="text-left p-2 bg-brand-surface text-brand-text rounded hover:bg-electric-blue hover:text-white transition-colors"
@@ -181,28 +189,28 @@ export default function AIAssistantPage() {
           </div>
         </div>
       )}
-      
+
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto mb-4 space-y-4 p-2 bg-brand-dark shadow-neumorphic-light-inset rounded-lg">
         {chatHistory.map((msg) => (
           <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-lg p-3 rounded-xl ${
-                msg.type === "user" ? "bg-electric-blue text-white shadow-neumorphic-light" : 
+                msg.type === "user" ? "bg-electric-blue text-white shadow-neumorphic-light" :
                 msg.type === "ai" ? "bg-brand-surface text-brand-text shadow-neumorphic-light" :
                 "bg-red-500 text-white shadow-neumorphic-light"
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
-              
+
               {msg.type === "ai" && msg.recommendations && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
                   {msg.recommendations.map((anime, idx) => (
                     <div key={idx} className="bg-brand-dark rounded-lg p-3 shadow-neumorphic-light">
                       <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-shrink-0">
-                          <img 
-                            src={anime.posterUrl} 
-                            alt={anime.title} 
+                          <img
+                            src={anime.posterUrl || `https://via.placeholder.com/200x300.png?text=${encodeURIComponent(anime.title)}`}
+                            alt={anime.title}
                             className="w-full sm:w-32 h-48 object-cover rounded-md shadow-md"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = `https://via.placeholder.com/200x300.png?text=${encodeURIComponent(anime.title)}`;
@@ -213,7 +221,8 @@ export default function AIAssistantPage() {
                           <h3 className="text-lg font-orbitron text-neon-cyan mb-1">{anime.title}</h3>
                           {anime.year && <p className="text-xs text-brand-text-secondary mb-1">{anime.year}</p>}
                           <p className="text-sm text-brand-text line-clamp-3 mb-2">{anime.description}</p>
-                          
+                          {anime.reasoning && <p className="text-xs italic text-electric-blue/90 mt-1 mb-2">Why it's for you: {anime.reasoning}</p>} {/* Display Reasoning */}
+
                           {anime.genres && anime.genres.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-2">
                               {anime.genres.slice(0, 3).map(genre => (
@@ -228,7 +237,17 @@ export default function AIAssistantPage() {
                               )}
                             </div>
                           )}
-                          
+                           {anime.themes && anime.themes.length > 0 && (
+                            <div className="mb-2">
+                                <p className="text-xs text-brand-text-secondary">Themes: {anime.themes.join(", ")}</p>
+                            </div>
+                           )}
+                           {anime.studios && anime.studios.length > 0 && (
+                            <div className="mb-2">
+                                <p className="text-xs text-brand-text-secondary">Studios: {anime.studios.join(", ")}</p>
+                            </div>
+                           )}
+
                           {anime.emotionalTags && anime.emotionalTags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-2">
                               {anime.emotionalTags.map(tag => (
@@ -238,15 +257,15 @@ export default function AIAssistantPage() {
                               ))}
                             </div>
                           )}
-                          
+
                           <div className="flex flex-wrap gap-2 mt-3">
-                            <StyledButton 
-                              onClick={() => handleAddToWatchlist(anime)} 
+                            <StyledButton
+                              onClick={() => handleAddToWatchlistAndDB(anime)}
                               variant="primary_small"
                             >
-                              Add to Watchlist
+                              Add to DB & Watchlist
                             </StyledButton>
-                            
+
                             {anime.trailerUrl && (
                               <a href={anime.trailerUrl} target="_blank" rel="noopener noreferrer">
                                 <StyledButton variant="secondary_small">
@@ -261,10 +280,10 @@ export default function AIAssistantPage() {
                   ))}
                 </div>
               )}
-              
+
               {msg.type === "ai" && msg.feedback !== undefined && (
                 <div className="mt-3 flex justify-end gap-2">
-                  <button 
+                  <button
                     onClick={() => handleFeedback(msg.id, "up")}
                     className={`p-1 rounded ${msg.feedback === "up" ? "bg-green-500 text-white" : "bg-brand-dark text-green-500 hover:bg-green-500 hover:text-white"}`}
                     aria-label="Thumbs up"
@@ -273,7 +292,7 @@ export default function AIAssistantPage() {
                       <path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2.144 2.144 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a9.84 9.84 0 0 0-.443.05 9.365 9.365 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111L8.864.046zM11.5 14.721H8c-.51 0-.863-.069-1.14-.164-.281-.097-.506-.228-.776-.393l-.04-.024c-.555-.339-1.198-.731-2.49-.868-.333-.036-.554-.29-.554-.55V8.72c0-.254.226-.543.62-.65 1.095-.3 1.977-.996 2.614-1.708.635-.71 1.064-1.475 1.238-1.978.243-.7.407-1.768.482-2.85.025-.362.36-.594.667-.518l.262.066c.16.04.258.143.288.255a8.34 8.34 0 0 1-.145 4.725.5.5 0 0 0 .595.644l.003-.001.014-.003.058-.014a8.908 8.908 0 0 1 1.036-.157c.663-.06 1.457-.054 2.11.164.175.058.45.3.57.65.107.308.087.67-.266 1.022l-.353.353.353.354c.043.043.105.141.154.315.048.167.075.37.075.581 0 .212-.027.414-.075.582-.05.174-.111.272-.154.315l-.353.353.353.354c.047.047.109.177.005.488a2.224 2.224 0 0 1-.505.805l-.353.353.353.354c.006.005.041.05.041.17a.866.866 0 0 1-.121.416c-.165.288-.503.56-1.066.56z"/>
                     </svg>
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleFeedback(msg.id, "down")}
                     className={`p-1 rounded ${msg.feedback === "down" ? "bg-red-500 text-white" : "bg-brand-dark text-red-500 hover:bg-red-500 hover:text-white"}`}
                     aria-label="Thumbs down"
@@ -298,7 +317,7 @@ export default function AIAssistantPage() {
           </div>
         )}
       </div>
-      
+
       <form onSubmit={handleSubmit} className="flex gap-2 items-center">
         <input
           type="text"
@@ -312,7 +331,7 @@ export default function AIAssistantPage() {
           {isLoading ? "Thinking..." : "Send"}
         </StyledButton>
       </form>
-      
+
       <p className="text-xs text-brand-text-secondary mt-2 text-center">
         AniMuse uses AI to recommend anime based on your preferences and query.
       </p>

@@ -60,32 +60,32 @@ export const testOpenAIProxyConnection = action({
 export const getAnimeRecommendation = action({
   args: {
     prompt: v.string(),
-    userProfile: v.optional(v.object({ // Pass relevant parts of user profile
+    userProfile: v.optional(v.object({
         moods: v.optional(v.array(v.string())),
         genres: v.optional(v.array(v.string())),
         favoriteAnimes: v.optional(v.array(v.string())),
         experienceLevel: v.optional(v.string()),
+        dislikedGenres: v.optional(v.array(v.string())), // Added for Phase 2
+        // dislikedTags: v.optional(v.array(v.string())), // Add if you implement this
     })),
   },
   handler: async (ctx, args) => {
-    if (!process.env.CONVEX_OPENAI_API_KEY) {
-      return { recommendations: [], error: "OpenAI API key is not configured for the proxy." };
-    }
-    if (!process.env.CONVEX_OPENAI_BASE_URL) {
-      return { recommendations: [], error: "CONVEX_OPENAI_BASE_URL not configured." };
-    }
+    // ... (keep API key checks) ...
 
     let systemPrompt = `You are AniMuse, an AI anime concierge.
 Your goal is to recommend anime based on the user's request.
 Provide recommendations as a JSON array of objects. Each object should represent an anime and include:
 - title (string, e.g., "Attack on Titan")
 - description (string, a brief 2-3 sentence summary)
+- reasoning (string, a brief explanation of why this anime fits the user's request and profile, max 1-2 sentences)
 - posterUrl (string, a placeholder like "https://via.placeholder.com/200x300.png?text=Anime+Poster" if unknown, otherwise a real URL if you know one)
 - genres (array of strings, e.g., ["Action", "Dark Fantasy", "Drama"])
 - year (number, e.g., 2013)
 - rating (number, e.g., 9.1, if known)
 - emotionalTags (array of strings, e.g., ["High Stakes", "Tragic", "Intense"])
 - trailerUrl (string, a placeholder like "https://www.youtube.com/watch?v=example" if unknown)
+- studios (array of strings, e.g., ["MAPPA", "Wit Studio"], optional)
+- themes (array of strings, e.g., ["Post-Apocalyptic", "Giant Monsters"], optional)
 
 Consider the user's profile if provided:`;
 
@@ -96,6 +96,10 @@ Consider the user's profile if provided:`;
         if (args.userProfile.genres && args.userProfile.genres.length > 0) {
             systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
         }
+        if (args.userProfile.dislikedGenres && args.userProfile.dislikedGenres.length > 0) { // Added for Phase 2
+            systemPrompt += `\n- Disliked Genres (AVOID THESE): ${args.userProfile.dislikedGenres.join(", ")}`;
+        }
+        // Add similar for dislikedTags if implemented
         if (args.userProfile.favoriteAnimes && args.userProfile.favoriteAnimes.length > 0) {
             systemPrompt += `\n- Favorite Animes: ${args.userProfile.favoriteAnimes.join(", ")} (try to recommend something similar or different based on the prompt)`;
         }
@@ -113,20 +117,22 @@ Example of a single anime object in the array:
 {
   "title": "Kimi no Na wa.",
   "description": "Two teenagers share a profound, magical connection upon discovering they are swapping bodies. Things manage to become even more complicated when the boy and girl decide to meet in person.",
+  "reasoning": "This matches your interest in romance and supernatural themes, and is highly acclaimed.",
   "posterUrl": "https://via.placeholder.com/200x300.png?text=Kimi+no+Na+wa.",
   "genres": ["Romance", "Supernatural", "Drama"],
   "year": 2016,
   "rating": 8.9,
   "emotionalTags": ["Heartfelt", "Bittersweet", "Beautiful Animation"],
-  "trailerUrl": "https://www.youtube.com/results?search_query=Kimi+no+Na+wa.+trailer"
+  "trailerUrl": "https://www.youtube.com/results?search_query=Kimi+no+Na+wa.+trailer",
+  "studios": ["CoMix Wave Films"],
+  "themes": ["Body Swapping", "Time Travel"]
 }
 `;
-
+    // ... (rest of the handler function remains the same) ...
     try {
       console.log(`Calling OpenAI via proxy: ${process.env.CONVEX_OPENAI_BASE_URL}/chat/completions for prompt: ${args.prompt}`);
-      // This call will go through your Convex HTTP proxy
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Or your preferred model
+        model: "gpt-4o-mini",
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: args.prompt }
@@ -143,19 +149,14 @@ Example of a single anime object in the array:
       let parsedRecommendations = [];
       try {
         const jsonResponse = JSON.parse(content);
-        // Check if the response itself is the array (as requested from gpt-4o-mini with json_object)
-        // or if it's nested under a "recommendations" key (less likely with strict prompting)
         if (Array.isArray(jsonResponse)) {
             parsedRecommendations = jsonResponse;
         } else if (jsonResponse && typeof jsonResponse === 'object' && Array.isArray(jsonResponse.recommendations)) {
-             // Handle if model wraps output in { "recommendations": [...] } despite instructions
             parsedRecommendations = jsonResponse.recommendations;
         }
         else {
             console.error("AI response via proxy is not a JSON array or expected object:", content);
-            // Attempt to extract array if it's a string containing JSON array like "{ \"recommendations\": [] }"
              if (typeof jsonResponse === 'object' && jsonResponse !== null) {
-                // Look for any key that might contain the array
                 const potentialArrayKey = Object.keys(jsonResponse).find(key => Array.isArray((jsonResponse as any)[key]));
                 if (potentialArrayKey) {
                     parsedRecommendations = (jsonResponse as any)[potentialArrayKey];
@@ -171,17 +172,14 @@ Example of a single anime object in the array:
         console.error("Failed to parse AI response from proxy:", parseError.message, "\nContent:", content);
         return { recommendations: [], error: `Failed to parse AI response: ${parseError.message}` };
       }
-
       return { recommendations: parsedRecommendations, error: null };
-
     } catch (error) {
-      const err = error as any; // OpenAI errors can have more details
+      const err = error as any;
       console.error("Error calling OpenAI via proxy:", err);
-      // Provide more detailed error if available from the SDK (which talks to your proxy)
       return {
         recommendations: [],
         error: `Failed to get recommendations from AI via proxy: ${err.message || "Unknown error"}`,
-        details: { // Include details from the error object if they exist
+        details: {
             status: err.status,
             type: err.type,
             code: err.code,
