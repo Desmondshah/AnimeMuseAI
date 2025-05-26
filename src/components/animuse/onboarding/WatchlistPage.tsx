@@ -1,3 +1,4 @@
+// src/components/animuse/onboarding/WatchlistPage.tsx
 import React, { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -8,13 +9,14 @@ import { toast } from "sonner";
 
 interface WatchlistPageProps {
   onViewDetails: (animeId: Id<"anime">) => void;
+  onBack?: () => void; // ADD THIS LINE - Make onBack optional
 }
 
 type WatchlistStatusFilter = "All" | "Watching" | "Completed" | "Plan to Watch" | "Dropped";
 
-export default function WatchlistPage({ onViewDetails }: WatchlistPageProps) {
-  const watchlistDataFull = useQuery(api.anime.getMyWatchlist); // This fetches { ..., anime: Doc<"anime"> }
-  const upsertToWatchlist = useMutation(api.anime.upsertToWatchlist); // Though AnimeCard might handle its own
+export default function WatchlistPage({ onViewDetails, onBack }: WatchlistPageProps) {
+  const watchlistDataFull = useQuery(api.anime.getMyWatchlist);
+  const upsertToWatchlist = useMutation(api.anime.upsertToWatchlist);
   const [filterStatus, setFilterStatus] = useState<WatchlistStatusFilter>("All");
 
   // This handleStatusChange might not be directly used if AnimeCard handles its own status changes.
@@ -47,9 +49,11 @@ export default function WatchlistPage({ onViewDetails }: WatchlistPageProps) {
     <div className="p-4 sm:p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-orbitron text-sakura-pink">My Watchlist</h2>
-         <StyledButton onClick={() => {/* Potentially navigate back or to dashboard */}} variant="secondary_small">
+        {onBack && (
+          <StyledButton onClick={onBack} variant="secondary_small">
             &larr; Dashboard
-        </StyledButton>
+          </StyledButton>
+        )}
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -61,6 +65,14 @@ export default function WatchlistPage({ onViewDetails }: WatchlistPageProps) {
             className="text-xs sm:text-sm"
           >
             {status}
+            {/* Show count for each status */}
+            {watchlistDataFull && (
+              <span className="ml-1">
+                ({status === "All" 
+                  ? watchlistDataFull.length 
+                  : watchlistDataFull.filter(item => item.status === status).length})
+              </span>
+            )}
           </StyledButton>
         ))}
       </div>
@@ -88,7 +100,7 @@ export default function WatchlistPage({ onViewDetails }: WatchlistPageProps) {
           <p className="text-brand-text-secondary text-lg">
             {filterStatus === "All" ? "Your watchlist is empty." : `No anime found with status: "${filterStatus}".`}
           </p>
-          <StyledButton onClick={() => {/* Navigate to Discover Page */}} variant="primary" className="mt-4">
+          <StyledButton onClick={onBack} variant="primary" className="mt-4">
             Discover Anime
           </StyledButton>
         </div>

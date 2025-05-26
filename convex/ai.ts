@@ -1,9 +1,9 @@
-// File: convex/ai.ts
+// File: convex/ai.ts - Enhanced with Similar Anime Feature
 "use node";
 import OpenAI from "openai";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api"; // internal might be used later
+import { api, internal } from "./_generated/api";
 
 // Initialize OpenAI client to use the proxy via CONVEX_OPENAI_BASE_URL
 // This will be used by all actions in this file.
@@ -55,7 +55,6 @@ export const testOpenAIProxyConnection = action({
     }
   }
 });
-
 
 export const getAnimeRecommendation = action({
   args: {
@@ -184,6 +183,195 @@ Example of a single anime object in the array:
             type: err.type,
             code: err.code,
             rawError: err.toString(),
+        }
+      };
+    }
+  },
+});
+
+// NEW: Get similar anime recommendations based on a specific anime
+export const getSimilarAnimeRecommendations = action({
+  args: {
+    animeId: v.optional(v.id("anime")), // Either provide animeId
+    animeTitle: v.optional(v.string()),  // Or provide anime title
+    animeDetails: v.optional(v.object({  // Or provide full anime details
+      title: v.string(),
+      description: v.optional(v.string()),
+      genres: v.optional(v.array(v.string())),
+      themes: v.optional(v.array(v.string())),
+      emotionalTags: v.optional(v.array(v.string())),
+      year: v.optional(v.number()),
+    })),
+    userProfile: v.optional(v.object({
+      moods: v.optional(v.array(v.string())),
+      genres: v.optional(v.array(v.string())),
+      favoriteAnimes: v.optional(v.array(v.string())),
+      experienceLevel: v.optional(v.string()),
+      dislikedGenres: v.optional(v.array(v.string())),
+    })),
+    count: v.optional(v.number()), // Number of recommendations (default 5)
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { recommendations: [], error: "OpenAI API key not configured." };
+    }
+
+    let targetAnime: any = null;
+
+    // Get anime details from database if animeId is provided
+    if (args.animeId) {
+      targetAnime = await ctx.runQuery(api.anime.getAnimeById, { animeId: args.animeId });
+      if (!targetAnime) {
+        return { recommendations: [], error: "Anime not found in database." };
+      }
+    } else if (args.animeDetails) {
+      targetAnime = args.animeDetails;
+    } else if (args.animeTitle) {
+      // Try to find anime by title in database first
+      targetAnime = await ctx.runQuery(api.anime.getAnimeByTitle, { title: args.animeTitle });
+      if (!targetAnime) {
+        // If not found, create a minimal object with just the title
+        targetAnime = { title: args.animeTitle };
+      }
+    } else {
+      return { recommendations: [], error: "Must provide either animeId, animeTitle, or animeDetails." };
+    }
+
+    const count = args.count || 5;
+
+    let systemPrompt = `You are AniMuse, an expert anime recommendation AI.
+Your task is to find anime similar to the one provided and recommend them to the user.
+
+TARGET ANIME:
+- Title: "${targetAnime.title}"`;
+
+    if (targetAnime.description) {
+      systemPrompt += `\n- Description: "${targetAnime.description}"`;
+    }
+    if (targetAnime.genres && targetAnime.genres.length > 0) {
+      systemPrompt += `\n- Genres: ${targetAnime.genres.join(", ")}`;
+    }
+    if (targetAnime.themes && targetAnime.themes.length > 0) {
+      systemPrompt += `\n- Themes: ${targetAnime.themes.join(", ")}`;
+    }
+    if (targetAnime.emotionalTags && targetAnime.emotionalTags.length > 0) {
+      systemPrompt += `\n- Emotional Tags: ${targetAnime.emotionalTags.join(", ")}`;
+    }
+    if (targetAnime.year) {
+      systemPrompt += `\n- Year: ${targetAnime.year}`;
+    }
+
+    systemPrompt += `\n\nFind ${count} anime that are similar to this one. Consider:
+- Similar genres, themes, and emotional tones
+- Similar storytelling style or narrative structure
+- Similar target audience or demographic
+- Similar visual style or production quality
+- Anime that fans of the target anime would likely enjoy
+
+`;
+
+    if (args.userProfile) {
+      systemPrompt += `\nUser preferences to consider:`;
+      if (args.userProfile.genres && args.userProfile.genres.length > 0) {
+        systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
+      }
+      if (args.userProfile.dislikedGenres && args.userProfile.dislikedGenres.length > 0) {
+        systemPrompt += `\n- Disliked Genres (try to avoid): ${args.userProfile.dislikedGenres.join(", ")}`;
+      }
+      if (args.userProfile.favoriteAnimes && args.userProfile.favoriteAnimes.length > 0) {
+        systemPrompt += `\n- User's Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
+      }
+      if (args.userProfile.experienceLevel) {
+        systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
+      }
+    }
+
+    systemPrompt += `\n\nProvide recommendations as a JSON array of objects. Each object should include:
+- title (string)
+- description (string, brief 2-3 sentence summary)
+- reasoning (string, explain WHY this anime is similar to "${targetAnime.title}", max 2 sentences)
+- posterUrl (string, use placeholder "https://via.placeholder.com/200x300.png?text=[ANIME_TITLE]" if unknown)
+- genres (array of strings)
+- year (number, if known)
+- rating (number, if known, scale 1-10)
+- emotionalTags (array of strings)
+- trailerUrl (string, use placeholder "https://www.youtube.com/results?search_query=[ANIME_TITLE]+trailer" if unknown)
+- studios (array of strings, optional)
+- themes (array of strings, optional)
+- similarityScore (number, 1-10, how similar is this to the target anime?)
+
+Return ONLY the JSON array. No additional text or formatting.
+Avoid recommending the exact same anime that was provided as the target.`;
+
+    try {
+      console.log(`Getting similar anime recommendations for: ${targetAnime.title}`);
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Find anime similar to "${targetAnime.title}"` }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const content = completion.choices[0].message.content;
+      if (!content) {
+        console.error("No content received from AI for similar anime recommendations.");
+        return { recommendations: [], error: "No content from AI." };
+      }
+
+      let parsedRecommendations = [];
+      try {
+        const jsonResponse = JSON.parse(content);
+        if (Array.isArray(jsonResponse)) {
+          parsedRecommendations = jsonResponse;
+        } else if (jsonResponse && typeof jsonResponse === 'object' && Array.isArray(jsonResponse.recommendations)) {
+          parsedRecommendations = jsonResponse.recommendations;
+        } else {
+          console.error("AI response for similar anime is not a JSON array or expected object:", content);
+          if (typeof jsonResponse === 'object' && jsonResponse !== null) {
+            const potentialArrayKey = Object.keys(jsonResponse).find(key => Array.isArray((jsonResponse as any)[key]));
+            if (potentialArrayKey) {
+              parsedRecommendations = (jsonResponse as any)[potentialArrayKey];
+            } else {
+              return { recommendations: [], error: "AI response format error. Expected an array or {recommendations: []}." };
+            }
+          } else {
+            return { recommendations: [], error: "AI response format error. Expected an array or {recommendations: []}." };
+          }
+        }
+      } catch (e) {
+        const parseError = e as Error;
+        console.error("Failed to parse AI response for similar anime:", parseError.message, "\nContent:", content);
+        return { recommendations: [], error: `Failed to parse AI response: ${parseError.message}` };
+      }
+
+      // Sort by similarity score if available
+      parsedRecommendations.sort((a: any, b: any) => {
+        const scoreA = a.similarityScore || 0;
+        const scoreB = b.similarityScore || 0;
+        return scoreB - scoreA; // Descending order
+      });
+
+      return { 
+        recommendations: parsedRecommendations.slice(0, count), // Limit to requested count
+        targetAnime: {
+          title: targetAnime.title,
+          _id: args.animeId || null,
+        },
+        error: null 
+      };
+    } catch (error) {
+      const err = error as any;
+      console.error("Error getting similar anime recommendations:", err);
+      return {
+        recommendations: [],
+        error: `Failed to get similar anime recommendations: ${err.message || "Unknown error"}`,
+        details: {
+          status: err.status,
+          type: err.type,
+          code: err.code,
+          rawError: err.toString(),
         }
       };
     }

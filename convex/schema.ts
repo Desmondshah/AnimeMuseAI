@@ -33,6 +33,12 @@ const applicationTables = {
     reviewCount: v.optional(v.number()),     // Total number of user reviews
   })
   .index("by_title", ["title"])
+  .index("by_year", ["year"]) // New: For year filtering
+  .index("by_rating", ["rating"]) // New: For external rating sorting
+  .index("by_averageUserRating", ["averageUserRating"]) // New: For user rating sorting
+  .index("by_year_rating", ["year", "rating"]) // New: Compound index for year + rating sorting
+  .index("by_year_averageUserRating", ["year", "averageUserRating"]) // New: Compound index
+  .index("by_reviewCount", ["reviewCount"]) // New: For popularity sorting
   .searchIndex("search_title", { searchField: "title" })
   .searchIndex("search_description", { searchField: "description" })
   .searchIndex("search_genres", { searchField: "genres", filterFields: ["title"] }),
