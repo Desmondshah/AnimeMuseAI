@@ -8,7 +8,6 @@ import { api, internal } from "./_generated/api"; // internal might be used late
 // Initialize OpenAI client to use the proxy via CONVEX_OPENAI_BASE_URL
 // This will be used by all actions in this file.
 const openai = new OpenAI({
-  baseURL: process.env.CONVEX_OPENAI_BASE_URL, // Your proxy URL
   apiKey: process.env.CONVEX_OPENAI_API_KEY,   // This key is for the proxy to use
 });
 

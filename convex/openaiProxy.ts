@@ -1,5 +1,4 @@
 // File: convex/openaiProxy.ts
-"use node"; // Required for using fetch and environment variables securely
 
 import { httpAction } from "./_generated/server";
 

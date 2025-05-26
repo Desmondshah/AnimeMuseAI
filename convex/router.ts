@@ -1,23 +1,32 @@
 // File: convex/router.ts
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server"; // Ensure httpAction is imported
-import { internal } from "./_generated/api"; // If you need internal actions/queries
-
-// Import the proxy action (we'll create this file next)
-import { openaiProxyChatCompletions } from "../convex/openaiProxy";
+// Import the proxy action
+import { openaiProxyChatCompletions } from "./openaiProxy"; //
 
 const http = httpRouter();
 
 // Define the route for the OpenAI proxy.
-// This will handle requests from your `convex/ai.ts` file
-// when it uses the CONVEX_OPENAI_BASE_URL.
-// The OpenAI client library, when given a baseURL like "https://.../openai-proxy",
-// will append specific paths like "/chat/completions" to it.
 http.route({
   path: "/openai-proxy/chat/completions", // Matches the path the SDK will request
   method: "POST",
-  handler: openaiProxyChatCompletions, // The HTTP action we'll define next
+  handler: openaiProxyChatCompletions, // The HTTP action
 });
+
+// **** START: New Hello Route ****
+// Define a new simple GET route at /hello
+http.route({
+  path: "/hello",
+  method: "GET",
+  handler: httpAction(async (_ctx, _request) => {
+    return new Response(JSON.stringify({ message: "Hello from Convex!" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+  }),
+});
+// **** END: New Hello Route ****
+
 
 // Note: auth routes are typically added in convex/http.ts
 // If you have other routes, define them here as well.
