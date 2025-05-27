@@ -1,26 +1,30 @@
 // src/App.tsx
 import React, { useState } from "react";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { SignInForm } from "./SignInForm";
-import { SignOutButton } from "./SignOutButton";
+import { api } from "../convex/_generated/api"; // Adjust path if needed
+import { SignInForm } from "./SignInForm"; // Adjust path if needed
+import { SignOutButton } from "./SignOutButton"; // Adjust path if needed
 import { Toaster } from "sonner";
-import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow";
-import MainApp from "./components/animuse/MainApp";
-import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt";
+import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow"; // Adjust path if needed
+import MainApp from "./components/animuse/MainApp"; // Adjust path if needed
+import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt"; // Adjust path if needed
 
-import NotificationsBell from "./components/animuse/onboarding/NotificationsBell";
-import NotificationsPanel from "./components/animuse/onboarding/NotificationsPanel";
+import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
+import NotificationsPanel from "./components/animuse/onboarding/NotificationsPanel"; // Adjust path if needed
 
 export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
+  // Key to help React differentiate states if PhoneVerificationPrompt needs a full reset
   const [verificationFlowKey, setVerificationFlowKey] = useState(0);
 
   const toggleNotificationsPanel = () => {
     setIsNotificationsPanelOpen(prev => !prev);
   };
 
+  // This function is called by PhoneVerificationPrompt upon successful verification
   const handleVerified = () => {
+    // Incrementing the key will cause the Content component (or its children)
+    // to re-evaluate or re-mount, helping to pick up the new verification status.
     setVerificationFlowKey(prev => prev + 1);
   };
 
@@ -44,7 +48,7 @@ export default function App() {
       <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 w-full">
         <div className="w-full max-w-lg mx-auto">
           <Content
-            key={verificationFlowKey}
+            key={verificationFlowKey} // Use key to help with re-rendering after verification
             onPhoneVerified={handleVerified}
           />
         </div>
@@ -61,8 +65,10 @@ interface ContentProps {
 function Content({ onPhoneVerified }: ContentProps) {
   const loggedInUser = useQuery(api.auth.loggedInUser);
   const userProfile = useQuery(api.users.getMyUserProfile);
+  // verificationStatus now reflects phone verification and handles anonymous users
   const verificationStatus = useQuery(api.users.checkVerificationStatus);
 
+  // Loading state for authentication data and initial verification status
   if (loggedInUser === undefined || verificationStatus === undefined) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -75,7 +81,7 @@ function Content({ onPhoneVerified }: ContentProps) {
   return (
     <div className="w-full">
       <Unauthenticated>
-         <div className="text-center mb-8">
+        <div className="text-center mb-8">
           <h1 className="text-5xl font-orbitron text-sakura-pink mb-4">Welcome to AniMuse</h1>
           <p className="text-xl text-brand-text-secondary">Sign in to discover your next favorite anime.</p>
         </div>
@@ -83,50 +89,72 @@ function Content({ onPhoneVerified }: ContentProps) {
       </Unauthenticated>
 
       <Authenticated>
-        {verificationStatus.isAnonymous && (
-          <>
-            {userProfile === undefined && !loggedInUser?.isAnonymous && (
-               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-                <p className="ml-3 text-brand-text-secondary">Loading profile...</p>
-              </div>
-            )}
-            {/* If user is anonymous, MainApp should handle this.
-                It might create a default profile on first load if userProfile is null,
-                or offer limited functionality.
-            */}
-            {(userProfile === null && loggedInUser?.isAnonymous) ? <OnboardingFlow /> : null }
-            {(userProfile && !userProfile.onboardingCompleted && loggedInUser?.isAnonymous) ? <OnboardingFlow /> : null}
-            {(userProfile && userProfile.onboardingCompleted && loggedInUser?.isAnonymous) ? <MainApp /> : null }
+        {(() => {
+          // Case 1: Anonymous User
+          if (verificationStatus.isAnonymous) {
+            // Anonymous users are considered "verified" for immediate app access.
+            // They might go through a simplified onboarding or directly to MainApp.
+            // MainApp needs to handle a potentially null userProfile for anonymous users
+            // or OnboardingFlow should create a basic profile.
 
-            {/* Fallback to MainApp if profile is somehow loaded for anonymous, but onboarding not done (edge case) */}
-            { (userProfile !== null && userProfile !== undefined && !userProfile.onboardingCompleted && loggedInUser?.isAnonymous) && <OnboardingFlow/> }
-            { (userProfile !== null && userProfile !== undefined && userProfile.onboardingCompleted && loggedInUser?.isAnonymous) && <MainApp/> }
+            // If userProfile is still loading for an anonymous user (less common scenario,
+            // as profile creation might be tied to onboarding)
+            if (userProfile === undefined) {
+               return (
+                 <div className="flex justify-center items-center h-64">
+                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
+                   <p className="ml-3 text-brand-text-secondary">Loading profile for guest...</p>
+                 </div>
+               );
+            }
+            // If anonymous user has no profile yet, or profile exists but onboarding not done
+            if (userProfile === null || !userProfile.onboardingCompleted) {
+              return <OnboardingFlow />; // OnboardingFlow should handle creating profile for anon user
+            }
+            // If anonymous user has completed onboarding
+            if (userProfile.onboardingCompleted) {
+              return <MainApp />;
+            }
+          }
 
+          // Case 2: Non-Anonymous User - Needs Phone Verification
+          if (!verificationStatus.isVerified) {
+            return (
+              <PhoneVerificationPrompt
+                onVerified={onPhoneVerified}
+                userIdForLog={loggedInUser?._id.toString()}
+              />
+            );
+          }
 
-          </>
-        )}
+          // Case 3: Non-Anonymous User - Phone Verified - Check Onboarding
+          if (verificationStatus.isVerified) {
+            // Profile is still loading for the verified user
+            if (userProfile === undefined) {
+              return (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
+                  <p className="ml-3 text-brand-text-secondary">Loading profile...</p>
+                </div>
+              );
+            }
+            // Profile loaded, check if onboarding is complete
+            if (userProfile === null || !userProfile.onboardingCompleted) {
+              return <OnboardingFlow />;
+            }
+            // Onboarding complete, show the main application
+            if (userProfile.onboardingCompleted) {
+              return <MainApp />;
+            }
+          }
 
-        {!verificationStatus.isAnonymous && !verificationStatus.isVerified && (
-          <PhoneVerificationPrompt
-            onVerified={onPhoneVerified}
-            userIdForLog={loggedInUser?._id.toString()}
-          />
-        )}
-
-        {!verificationStatus.isAnonymous && verificationStatus.isVerified && (
-          <>
-            {userProfile === undefined && (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-                <p className="ml-3 text-brand-text-secondary">Loading profile...</p>
-              </div>
-            )}
-            {userProfile === null && <OnboardingFlow />}
-            {userProfile && !userProfile.onboardingCompleted && <OnboardingFlow />}
-            {userProfile && userProfile.onboardingCompleted && <MainApp />}
-          </>
-        )}
+          // Fallback: Should ideally not be reached if logic is exhaustive
+          return (
+            <div className="text-center text-brand-text-secondary">
+              Determining application state...
+            </div>
+          );
+        })()}
       </Authenticated>
     </div>
   );
