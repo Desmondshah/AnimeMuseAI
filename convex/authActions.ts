@@ -1,32 +1,55 @@
-// convex/authActions.ts - Fixed references
-"use node";
-
+// convex/authActions.ts
 import { v } from "convex/values";
-import { mutation, internalAction } from "./_generated/server";
+import { mutation } from "./_generated/server"; 
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Resend } from 'resend';
-import bcrypt from 'bcryptjs';
 
 const CODE_EXPIRATION_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 3;
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM_EMAIL_ADDRESS = process.env.RESEND_FROM_EMAIL || "noreply@animuse.app";
-
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-async function hashVerificationCode(code: string): Promise<string> {
-  const salt = await bcrypt.genSalt(12);
-  return await bcrypt.hash(code, salt);
+// Generate a random salt
+function generateSalt(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
+// Simple hash function using Web Crypto API
+async function hashVerificationCode(dataToHash: string): Promise<string> {
+  const salt = generateSalt();
+  const encoder = new TextEncoder();
+  const data = encoder.encode(dataToHash + salt);
+  
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return `${salt}:${hashHex}`;
+}
+
+// Compare verification code with hashed version
 async function compareVerificationCode(code: string, hashedCode: string): Promise<boolean> {
-  return await bcrypt.compare(code, hashedCode);
+  try {
+    const [salt, hash] = hashedCode.split(':');
+    if (!salt || !hash) return false;
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(code + salt);
+    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex === hash;
+  } catch (error) {
+    return false;
+  }
 }
 
 function isValidEmail(email: string): boolean {
@@ -95,8 +118,7 @@ export const requestEmailVerificationCode = mutation({
       attempts: 0,
     });
 
-    // Schedule email sending as internal action
-    await ctx.scheduler.runAfter(0, internal.authActions.sendVerificationEmailAction, {
+    await ctx.scheduler.runAfter(0, internal.emailSender.sendVerificationEmail, {
       email: user.email,
       code: verificationCode,
       userName: user.name || "User",
@@ -173,7 +195,7 @@ export const submitVerificationCode = mutation({
         emailVerified: true,
         verifiedAt: Date.now(),
         onboardingCompleted: false,
-        name: undefined,
+        name: undefined, 
         moods: [],
         genres: [],
         favoriteAnimes: [],
@@ -188,10 +210,10 @@ export const submitVerificationCode = mutation({
       if (userAuthRecord && !userAuthRecord.emailVerificationTime) {
         await ctx.db.patch(userId, { 
           emailVerificationTime: Date.now()
-        } as any);
+        } as any); 
       }
     } catch (e) {
-      console.warn("Could not patch main user record:", e);
+      console.warn("Could not patch main user record with emailVerificationTime:", e);
     }
 
     await ctx.db.delete(verificationEntry._id);
@@ -211,7 +233,6 @@ export const resendVerificationCode = mutation({
     expiresIn: v.optional(v.number()),
   }),
   handler: async (ctx) => {
-    // Duplicate the logic from requestEmailVerificationCode to avoid circular references
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("User not authenticated.");
@@ -265,7 +286,7 @@ export const resendVerificationCode = mutation({
       attempts: 0,
     });
 
-    await ctx.scheduler.runAfter(0, internal.authActions.sendVerificationEmailAction, {
+    await ctx.scheduler.runAfter(0, internal.emailSender.sendVerificationEmail, {
       email: user.email,
       code: verificationCode,
       userName: user.name || "User",
@@ -276,56 +297,5 @@ export const resendVerificationCode = mutation({
       message: "New verification code sent to your email.",
       expiresIn: Math.floor(CODE_EXPIRATION_MS / 1000 / 60) 
     };
-  },
-});
-
-export const sendVerificationEmailAction = internalAction({
-  args: {
-    email: v.string(),
-    code: v.string(),
-    userName: v.string(),
-  },
-  returns: v.object({
-    success: v.boolean(),
-    error: v.optional(v.string()),
-    details: v.optional(v.string()),
-  }),
-  handler: async (_ctx, args) => {
-    if (!resend) {
-      return { success: false, error: "Email service not configured." };
-    }
-
-    if (!isValidEmail(args.email)) {
-      return { success: false, error: "Invalid email address." };
-    }
-
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL_ADDRESS,
-        to: args.email,
-        subject: 'AniMuse - Verify Your Email Address',
-        html: `
-          <div style="font-family: sans-serif; padding: 20px; color: #333;">
-            <h2>Hello ${args.userName},</h2>
-            <p>Thanks for signing up for AniMuse!</p>
-            <p>Your email verification code is: <strong style="font-size: 24px; color: #3B82F6;">${args.code}</strong></p>
-            <p>This code will expire in 10 minutes.</p>
-            <p>If you did not request this, please ignore this email.</p>
-            <br/>
-            <p>Thanks,</p>
-            <p>The AniMuse Team</p>
-          </div>
-        `,
-        text: `Hello ${args.userName}!\n\nYour email verification code is: ${args.code}\n\nThis code expires in 10 minutes.\n\nThanks,\nThe AniMuse Team`,
-      });
-
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: "Failed to send email.",
-        details: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
   },
 });

@@ -19,6 +19,7 @@ import type * as anime from "../anime.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
 import type * as crons from "../crons.js";
+import type * as emailSender from "../emailSender.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authActions: typeof authActions;
   crons: typeof crons;
+  emailSender: typeof emailSender;
   externalApis: typeof externalApis;
   http: typeof http;
   notifications: typeof notifications;
