@@ -1,4 +1,4 @@
-// convex/schema.ts - Updated with verification tracking
+// convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
@@ -7,6 +7,13 @@ const applicationTables = {
   userProfiles: defineTable({
     userId: v.id("users"),
     name: v.optional(v.string()),
+    // Email field from auth.users table can be used if needed, but primary verification is now phone
+    // Consider if you still want to store email for other purposes (e.g. account recovery if phone is lost)
+    // For now, focusing on phone verification as primary:
+    phoneNumber: v.optional(v.string()), // Store in E.164 format e.g., +12223334444
+    phoneNumberVerified: v.optional(v.boolean()),
+    verifiedAt: v.optional(v.number()), // Timestamp when phone was verified
+
     moods: v.optional(v.array(v.string())),
     genres: v.optional(v.array(v.string())),
     favoriteAnimes: v.optional(v.array(v.string())),
@@ -15,10 +22,10 @@ const applicationTables = {
     avatarUrl: v.optional(v.string()),
     dislikedGenres: v.optional(v.array(v.string())),
     dislikedTags: v.optional(v.array(v.string())),
-    isAdmin: v.optional(v.boolean()), // For Admin Features
-    emailVerified: v.optional(v.boolean()), // For Email Verification flow
-    verifiedAt: v.optional(v.number()), // Timestamp when email was verified
-  }).index("by_userId", ["userId"]),
+    isAdmin: v.optional(v.boolean()),
+  })
+  .index("by_userId", ["userId"])
+  .index("by_phoneNumber", ["phoneNumber"]), // Index for looking up users by phone if needed
 
   anime: defineTable({
     title: v.string(),
@@ -26,7 +33,7 @@ const applicationTables = {
     posterUrl: v.string(),
     genres: v.array(v.string()),
     year: v.optional(v.number()),
-    rating: v.optional(v.number()), // External rating
+    rating: v.optional(v.number()),
     emotionalTags: v.optional(v.array(v.string())),
     trailerUrl: v.optional(v.string()),
     studios: v.optional(v.array(v.string())),
@@ -79,8 +86,8 @@ const applicationTables = {
   .index("by_userId_createdAt", ["userId", "createdAt"])
   .index("by_userId_isRead", ["userId", "isRead"]),
 
-  filterMetadata: defineTable({ // For "caching" filter options
-    identifier: v.string(), // For singleton identification, e.g., "singleton_options"
+  filterMetadata: defineTable({
+    identifier: v.string(),
     genres: v.array(v.string()),
     studios: v.array(v.string()),
     themes: v.array(v.string()),
@@ -91,17 +98,20 @@ const applicationTables = {
     lastUpdatedAt: v.number(),
   }).index("by_identifier", ["identifier"]),
 
-  emailVerifications: defineTable({ // Enhanced Email Verification flow
-    email: v.string(), // The email being verified
-    userId: v.id("users"), // The user this verification is for
-    hashedCode: v.string(), // Store hashed codes, not plain text
-    expiresAt: v.number(), // Timestamp for code expiration
+  // New table for phone verifications
+  phoneVerifications: defineTable({
+    phoneNumber: v.string(), // The phone number being verified (E.164 format)
+    userId: v.id("users"),   // The user this verification is for
+    hashedCode: v.string(),  // Store hashed codes
+    expiresAt: v.number(),   // Timestamp for code expiration
     attempts: v.optional(v.number()), // To track verification attempts
-    requestedAt: v.optional(v.number()), // When the code was requested (for rate limiting)
+    requestedAt: v.optional(v.number()), // When the code was requested
   })
-  .index("by_userId", ["userId"]) // To find a user's pending verification
-  .index("by_email_expiresAt", ["email", "expiresAt"]) // For cleanup or lookup
-  .index("by_expiresAt", ["expiresAt"]), // For efficient cleanup of expired codes
+  .index("by_userId", ["userId"])
+  .index("by_phoneNumber_expiresAt", ["phoneNumber", "expiresAt"])
+  .index("by_expiresAt", ["expiresAt"]),
+
+  
 };
 
 export default defineSchema({

@@ -19,13 +19,13 @@ import type * as anime from "../anime.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
 import type * as crons from "../crons.js";
-import type * as emailSender from "../emailSender.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
 import type * as openaiProxy from "../openaiProxy.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
+import type * as twilioSender from "../twilioSender.js";
 import type * as users from "../users.js";
 
 /**
@@ -43,13 +43,13 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authActions: typeof authActions;
   crons: typeof crons;
-  emailSender: typeof emailSender;
   externalApis: typeof externalApis;
   http: typeof http;
   notifications: typeof notifications;
   openaiProxy: typeof openaiProxy;
   reviews: typeof reviews;
   router: typeof router;
+  twilioSender: typeof twilioSender;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

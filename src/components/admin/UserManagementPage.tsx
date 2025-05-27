@@ -1,20 +1,20 @@
 // src/components/admin/UserManagementPage.tsx
 import React from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Doc, Id } from "../../../convex/_generated/dataModel";
-import StyledButton from "../animuse/shared/StyledButton";
+import { api } from "../../../convex/_generated/api"; // Adjusted path
+import { Doc, Id } from "../../../convex/_generated/dataModel"; // Adjusted path
+import StyledButton from "../animuse/shared/StyledButton"; // Adjusted path
 import { toast } from "sonner";
-import { format } from 'date-fns'; // For formatting dates
+// import { format } from 'date-fns'; // Keep if you need to format dates
 
 const UserManagementPage: React.FC = () => {
+  // Assuming api.admin.getAllUserProfilesForAdmin fetches the updated userProfiles schema
   const userProfiles = useQuery(api.admin.getAllUserProfilesForAdmin);
   const setUserAdminStatus = useMutation(api.admin.adminSetUserAdminStatus);
-  const loggedInUser = useQuery(api.auth.loggedInUser); // To prevent admin from un-admining self if only admin
+  const loggedInUser = useQuery(api.auth.loggedInUser);
 
   const handleSetAdminStatus = async (targetUserId: Id<"users">, isAdmin: boolean) => {
     if (loggedInUser?._id === targetUserId && !isAdmin) {
-        // Add more robust check if multiple admins exist
         const currentAdmins = userProfiles?.filter(p => p.isAdmin && p.userId !== targetUserId);
         if (!currentAdmins || currentAdmins.length === 0) {
             toast.error("Cannot remove admin status from the only admin.");
@@ -42,8 +42,6 @@ const UserManagementPage: React.FC = () => {
   }
 
   if (userProfiles === null) {
-    // This usually means the query skipped or user is not an admin / not authenticated
-    // However, this component should only be rendered if user is admin.
     return <p className="text-brand-text-secondary p-4">Could not load user profiles. Ensure you are logged in as an admin.</p>;
   }
 
@@ -60,9 +58,10 @@ const UserManagementPage: React.FC = () => {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">User ID</th>
+                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Phone Number</th>
+                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Phone Verified</th>
                 <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Onboarded</th>
                 <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Is Admin</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Email Verified</th>
                 <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -70,7 +69,15 @@ const UserManagementPage: React.FC = () => {
               {userProfiles.map((profile) => (
                 <tr key={profile._id} className="hover:bg-brand-surface/20 transition-colors">
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text">{profile.name || "N/A"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-brand-text-secondary">{profile.userId}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-xs text-brand-text-secondary" title={profile.userId.toString()}>{profile.userId.substring(0,10)}...</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text-secondary">{profile.phoneNumber || "N/A"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    {profile.phoneNumberVerified ? (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-700 text-green-100">Yes</span>
+                    ) : (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-700 text-yellow-100">No</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm">
                     {profile.onboardingCompleted ? (
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-700 text-green-100">Yes</span>
@@ -85,19 +92,12 @@ const UserManagementPage: React.FC = () => {
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-100">User</span>
                     )}
                   </td>
-                   <td className="px-4 py-3 whitespace-nowrap text-sm">
-                    {profile.emailVerified ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-700 text-green-100">Yes</span>
-                    ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-700 text-yellow-100">No</span>
-                    )}
-                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                     <StyledButton
                       onClick={() => handleSetAdminStatus(profile.userId, !profile.isAdmin)}
                       variant={profile.isAdmin ? "secondary_small" : "primary_small"}
                       className="text-xs"
-                      disabled={loggedInUser?._id === profile.userId && profile.isAdmin && userProfiles.filter(p=>p.isAdmin).length === 1} // Prevent self-unadmin if only admin
+                      disabled={loggedInUser?._id === profile.userId && profile.isAdmin && userProfiles.filter(p=>p.isAdmin).length === 1}
                     >
                       {profile.isAdmin ? "Revoke Admin" : "Make Admin"}
                     </StyledButton>
