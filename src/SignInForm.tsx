@@ -1,4 +1,4 @@
-// src/SignInForm.tsx - Enhanced (Anonymous sign-in removed)
+// src/SignInForm.tsx
 "use client";
 import { useAuthActions } from "@convex-dev/auth/react";
 import React, { useState, FormEvent } from "react";
@@ -15,7 +15,6 @@ export function SignInForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
-
     const formData = new FormData(e.target as HTMLFormElement);
     const email = formData.get("email") as string;
     const currentPassword = formData.get("password") as string;
@@ -40,13 +39,10 @@ export function SignInForm() {
 
     try {
       await signIn("password", convexFormData);
-      // Success is handled by auth state change
     } catch (error: any) {
-      console.error("Sign-in/Sign-up error:", error);
       let errorMessage = flow === "signIn"
         ? "Could not sign in. Please check your credentials."
         : "Could not sign up. The email might already be taken or the password is too weak.";
-
       if (error.data && typeof error.data.message === 'string') {
         errorMessage = error.data.message;
       } else if (error.data && typeof error.data.error === 'string') {
@@ -60,8 +56,21 @@ export function SignInForm() {
             }
       }
       toast.error(errorMessage);
-    } finally { // Ensure submitting is always set to false
+    } finally {
         setSubmitting(false);
+    }
+  };
+
+  const handleAnonymousSignIn = async () => {
+    setSubmitting(true);
+    try {
+      await signIn("anonymous");
+      toast.success("Signed in anonymously!");
+    } catch (error: any) {
+      console.error("Anonymous sign-in error:", error);
+      toast.error("Could not sign in anonymously. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -71,7 +80,7 @@ export function SignInForm() {
         {flow === "signIn" ? "Welcome Back!" : "Create Account"}
       </h2>
       <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-        <input
+         <input
           className="neumorphic-input w-full"
           type="email"
           name="email"
@@ -105,9 +114,9 @@ export function SignInForm() {
           type="submit"
           variant="primary"
           className="w-full py-3 text-lg"
-          disabled={submitting}
+          disabled={submitting && (flow === "signIn" || flow === "signUp") }
         >
-          {submitting
+          {submitting && (flow === "signIn" || flow === "signUp")
             ? (flow === "signIn" ? "Signing In..." : "Signing Up...")
             : (flow === "signIn" ? "Sign In" : "Sign Up")
           }
@@ -131,7 +140,21 @@ export function SignInForm() {
           </button>
         </div>
       </form>
-      {/* "OR" divider and Anonymous Sign In button removed */}
+
+      <div className="my-6 flex items-center">
+        <hr className="flex-grow border-t border-brand-dark" />
+        <span className="mx-4 text-xs text-brand-text-secondary">OR</span>
+        <hr className="flex-grow border-t border-brand-dark" />
+      </div>
+
+      <StyledButton
+        variant="secondary"
+        className="w-full py-3 text-lg"
+        onClick={handleAnonymousSignIn}
+        disabled={submitting}
+      >
+        {submitting ? "Processing..." : "Sign In Anonymously"}
+      </StyledButton>
     </div>
   );
 }

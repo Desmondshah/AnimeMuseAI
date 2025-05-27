@@ -1,17 +1,14 @@
 // src/components/animuse/onboarding/PhoneVerificationPrompt.tsx
 import React, { useState, useEffect, FormEvent } from "react";
 import { useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api"; // Adjust path as needed
+import { api } from "../../../../convex/_generated/api";
 import { toast } from "sonner";
-import StyledButton from "../shared/StyledButton"; // Adjust path as needed
+import StyledButton from "../shared/StyledButton";
 
 interface PhoneVerificationPromptProps {
-  // You might pass the initial phone number if collected elsewhere (e.g. during signup)
-  // or if the user has a primary phone on their auth record.
-  // For now, we'll include an input for it.
   initialPhoneNumber?: string;
-  onVerified: () => void; // Callback when verification is successful
-  userIdForLog?: string; // For logging, not strictly needed for logic
+  onVerified: () => void;
+  userIdForLog?: string;
 }
 
 export default function PhoneVerificationPrompt({
@@ -24,13 +21,12 @@ export default function PhoneVerificationPrompt({
   const [isRequestingCode, setIsRequestingCode] = useState(false);
   const [isSubmittingCode, setIsSubmittingCode] = useState(false);
   const [timeUntilResend, setTimeUntilResend] = useState(0);
-  const [hasRequestedOnce, setHasRequestedOnce] = useState(false); // To control initial message
+  const [hasRequestedOnce, setHasRequestedOnce] = useState(false);
 
   const requestSmsCodeMutation = useMutation(api.authActions.requestSmsVerificationCode);
   const submitSmsCodeMutation = useMutation(api.authActions.submitSmsVerificationCode);
   const resendSmsCodeMutation = useMutation(api.authActions.resendSmsVerificationCode);
 
-  // Countdown timer for resend
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timeUntilResend > 0) {
@@ -48,27 +44,20 @@ export default function PhoneVerificationPrompt({
       toast.error("Please enter your phone number.");
       return;
     }
-    // Basic E.164 format check (align with backend) - a library like 'libphonenumber-js' is better for prod
     if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
       toast.error("Invalid phone number format. Please use E.164 (e.g., +12223334444).");
       return;
     }
-
     setIsRequestingCode(true);
     const toastId = `sms-request-${Date.now()}`;
     toast.loading(isResend ? "Resending code..." : "Sending verification code...", { id: toastId });
     setHasRequestedOnce(true);
-
     try {
       const mutationToCall = isResend ? resendSmsCodeMutation : requestSmsCodeMutation;
       const result = await mutationToCall({ phoneNumber });
-
       if (result.success) {
         toast.success(result.message, { id: toastId });
-        setTimeUntilResend(60); // 60 second cooldown
-        if (result.expiresIn) {
-          // toast.info(`Code expires in ${result.expiresIn} minutes.`, { duration: 5000 });
-        }
+        setTimeUntilResend(60);
       } else {
         toast.error(result.message || "Failed to send code.", { id: toastId });
       }
@@ -89,21 +78,15 @@ export default function PhoneVerificationPrompt({
       toast.error("Please enter the 6-digit verification code.");
       return;
     }
-
     setIsSubmittingCode(true);
     const toastId = `sms-submit-${Date.now()}`;
     toast.loading("Verifying code...", { id: toastId });
-
     try {
-      // The `phoneNumber` isn't explicitly sent to `submitSmsVerificationCode`
-      // as the backend function `submitSmsVerificationCode` retrieves it
-      // from the latest `phoneVerifications` entry for the authenticated user.
       const result = await submitSmsCodeMutation({ code: verificationCode });
-
       if (result.success) {
         toast.success(result.message || "Phone number verified successfully!", { id: toastId });
         setVerificationCode("");
-        onVerified(); // Trigger callback
+        onVerified();
       } else {
         toast.error(result.message || "Verification failed.", { id: toastId });
       }
@@ -111,7 +94,7 @@ export default function PhoneVerificationPrompt({
       console.error("Submit code error:", error);
       toast.error(error.data?.message || error.message || "Could not verify code.", { id: toastId });
       if (error.data?.message?.includes("Invalid") || error.data?.message?.includes("expired")) {
-        setVerificationCode(""); // Clear invalid/expired code
+        setVerificationCode("");
       }
     } finally {
       setIsSubmittingCode(false);
@@ -132,7 +115,6 @@ export default function PhoneVerificationPrompt({
     <div className="w-full max-w-md mx-auto p-6 sm:p-8 neumorphic-card bg-brand-surface">
       <div className="text-center mb-6">
         <div className="w-16 h-16 mx-auto mb-4 bg-electric-blue rounded-full flex items-center justify-center">
-          {/* Phone Icon */}
           <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.308 1.154a11.034 11.034 0 005.378 5.378l1.154-2.308a1 1 0 011.21-.502l4.493 1.498A1 1 0 0119 12.72V16a2 2 0 01-2 2h-1C6.04 18 2 13.96 2 7.5V5z"></path>
           </svg>
@@ -149,8 +131,7 @@ export default function PhoneVerificationPrompt({
           </p>
         )}
       </div>
-
-      {!hasRequestedOnce || timeUntilResend > 0 ? ( // Show phone input until first code is sent or if resend timer is active for changes
+      {!hasRequestedOnce || timeUntilResend > 0 ? (
         <div className="mb-6">
           <label htmlFor="phone-number" className="block text-sm font-medium text-brand-text-secondary mb-2">
             Phone Number (e.g., +14155552671)
@@ -163,12 +144,10 @@ export default function PhoneVerificationPrompt({
             onChange={(e) => setPhoneNumber(e.target.value)}
             className="neumorphic-input w-full"
             autoComplete="tel"
-            disabled={isRequestingCode || (hasRequestedOnce && timeUntilResend === 0 && verificationCode !== "")} // Disable if code sent and no resend active unless verifying
+            disabled={isRequestingCode || (hasRequestedOnce && timeUntilResend === 0 && verificationCode !== "")}
           />
         </div>
       ) : null}
-
-
       {hasRequestedOnce && (
         <form onSubmit={handleSubmitCode} className="space-y-6 mt-4">
           <div>
@@ -191,7 +170,6 @@ export default function PhoneVerificationPrompt({
               Enter the 6-digit code from your SMS.
             </p>
           </div>
-
           <StyledButton
             type="submit"
             variant="primary"
@@ -202,10 +180,9 @@ export default function PhoneVerificationPrompt({
           </StyledButton>
         </form>
       )}
-
       <div className="mt-6 text-center">
         <StyledButton
-          onClick={() => handleRequestCode(!hasRequestedOnce ? false : true)} // isResend is true if already requested once
+          onClick={() => handleRequestCode(!hasRequestedOnce ? false : true)}
           variant={hasRequestedOnce ? "secondary_small" : "primary"}
           disabled={isRequestingCode || timeUntilResend > 0 || !phoneNumber.trim()}
           className="text-sm"
@@ -221,7 +198,6 @@ export default function PhoneVerificationPrompt({
           <p className="text-xs text-yellow-400 mt-1">Enter phone number to enable Send Code.</p>
         }
       </div>
-
       <div className="mt-6 p-4 bg-brand-dark rounded-lg shadow-neumorphic-light-inset">
         <h4 className="text-sm font-orbitron text-electric-blue mb-2">💡 Tips:</h4>
         <ul className="text-xs text-brand-text-secondary space-y-1">

@@ -7,13 +7,9 @@ const applicationTables = {
   userProfiles: defineTable({
     userId: v.id("users"),
     name: v.optional(v.string()),
-    // Email field from auth.users table can be used if needed, but primary verification is now phone
-    // Consider if you still want to store email for other purposes (e.g. account recovery if phone is lost)
-    // For now, focusing on phone verification as primary:
-    phoneNumber: v.optional(v.string()), // Store in E.164 format e.g., +12223334444
+    phoneNumber: v.optional(v.string()), 
     phoneNumberVerified: v.optional(v.boolean()),
-    verifiedAt: v.optional(v.number()), // Timestamp when phone was verified
-
+    verifiedAt: v.optional(v.number()), 
     moods: v.optional(v.array(v.string())),
     genres: v.optional(v.array(v.string())),
     favoriteAnimes: v.optional(v.array(v.string())),
@@ -25,7 +21,7 @@ const applicationTables = {
     isAdmin: v.optional(v.boolean()),
   })
   .index("by_userId", ["userId"])
-  .index("by_phoneNumber", ["phoneNumber"]), // Index for looking up users by phone if needed
+  .index("by_phoneNumber", ["phoneNumber"]),
 
   anime: defineTable({
     title: v.string(),
@@ -33,7 +29,7 @@ const applicationTables = {
     posterUrl: v.string(),
     genres: v.array(v.string()),
     year: v.optional(v.number()),
-    rating: v.optional(v.number()),
+    rating: v.optional(v.number()), 
     emotionalTags: v.optional(v.array(v.string())),
     trailerUrl: v.optional(v.string()),
     studios: v.optional(v.array(v.string())),
@@ -98,23 +94,20 @@ const applicationTables = {
     lastUpdatedAt: v.number(),
   }).index("by_identifier", ["identifier"]),
 
-  // New table for phone verifications
   phoneVerifications: defineTable({
-    phoneNumber: v.string(), // The phone number being verified (E.164 format)
-    userId: v.id("users"),   // The user this verification is for
-    hashedCode: v.string(),  // Store hashed codes
-    expiresAt: v.number(),   // Timestamp for code expiration
-    attempts: v.optional(v.number()), // To track verification attempts
-    requestedAt: v.optional(v.number()), // When the code was requested
+    phoneNumber: v.string(),
+    userId: v.id("users"),
+    hashedCode: v.string(),
+    expiresAt: v.number(),
+    attempts: v.optional(v.number()),
+    requestedAt: v.optional(v.number()),
   })
   .index("by_userId", ["userId"])
   .index("by_phoneNumber_expiresAt", ["phoneNumber", "expiresAt"])
   .index("by_expiresAt", ["expiresAt"]),
-
-  
 };
 
 export default defineSchema({
-  ...authTables, // Includes the 'users' table managed by @convex-dev/auth
+  ...authTables,
   ...applicationTables,
 });
