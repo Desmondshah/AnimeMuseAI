@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import { Resend } from 'resend';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM_EMAIL_ADDRESS = process.env.RESEND_FROM_EMAIL || "onboarding@goanimuse.com"; // Ensure this matches your domain on Resend
+const FROM_EMAIL_ADDRESS = process.env.RESEND_FROM_EMAIL || "opeoluwaseyi76@goanimuse.com"; // Ensure this matches your domain on Resend
 
 // Helper function for email validation (can be moved to a shared util if used elsewhere)
 function isValidEmail(email: string): boolean {
