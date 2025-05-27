@@ -1,14 +1,33 @@
 // convex/emailSender.ts
-"use node"; // This action needs Node.js environment for Resend and process.env
+"use node";
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { Resend } from 'resend';
+import formData from "form-data";
+import Mailgun from "mailgun.js"; // Standard import for the Mailgun class
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM_EMAIL_ADDRESS = process.env.RESEND_FROM_EMAIL || "AniMuse noreply@goanimuse.com"; // Ensure this matches your domain on Resend
+// --- Mailgun Configuration ---
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+const MAILGUN_FROM_EMAIL_USER = process.env.MAILGUN_FROM_EMAIL_USER || "noreply";
+const FROM_EMAIL_ADDRESS_NAME = "AniMuse Team";
 
-// Helper function for email validation (can be moved to a shared util if used elsewhere)
+// Initialize mg with a more general type or let it be inferred upon assignment
+let mg: ReturnType<InstanceType<typeof Mailgun>['client']> | null = null;
+
+if (MAILGUN_API_KEY && MAILGUN_DOMAIN) {
+  const mailgunInstance = new Mailgun(formData); // Create an instance of the Mailgun service class
+  mg = mailgunInstance.client({ // Assign the client object to mg
+    username: "api",
+    key: MAILGUN_API_KEY,
+  });
+} else {
+  console.warn(
+    "Mailgun API Key or Domain not found in environment variables. Email sending will be disabled."
+  );
+}
+
+// Helper function for email validation
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -20,25 +39,44 @@ export const sendVerificationEmail = internalAction({
     code: v.string(),
     userName: v.string(),
   },
-  handler: async (_ctx, args): Promise<{ success: boolean; error?: string; details?: string }> => {
-    if (!resend) {
-      console.error("Resend client not initialized. RESEND_API_KEY might be missing.");
-      return { success: false, error: "Email service (Resend) not configured on the server." };
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{ success: boolean; error?: string; details?: string }> => {
+    if (!mg || !MAILGUN_DOMAIN) {
+      console.error(
+        "Mailgun client not initialized or domain not set. MAILGUN_API_KEY or MAILGUN_DOMAIN might be missing."
+      );
+      return {
+        success: false,
+        error: "Email service (Mailgun) not configured on the server.",
+      };
     }
 
     if (!isValidEmail(args.email)) {
       console.error(`Invalid email format attempt: ${args.email}`);
-      return { success: false, error: "Invalid email address provided to email sender." };
+      return {
+        success: false,
+        error: "Invalid email address provided to email sender.",
+      };
     }
 
-    try {
-      const data = await resend.emails.send({
-        from: FROM_EMAIL_ADDRESS,
-        to: args.email,
-        subject: 'AniMuse - Verify Your Email Address',
-        html: `
+    const fromEmail = `${FROM_EMAIL_ADDRESS_NAME} <${MAILGUN_FROM_EMAIL_USER}@${MAILGUN_DOMAIN}>`;
+
+    const emailData = {
+      from: fromEmail,
+      to: args.email,
+      subject: "AniMuse - Verify Your Email Address",
+      text: `Hello ${
+        args.userName || "User"
+      }!\n\nThanks for signing up for AniMuse!\nYour email verification code is: ${
+        args.code
+      }\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nThe AniMuse Team`,
+      html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <h2 style="color: #3B82F6; text-align: center;">Hello ${args.userName || 'User'},</h2>
+            <h2 style="color: #3B82F6; text-align: center;">Hello ${
+              args.userName || "User"
+            },</h2>
             <p style="font-size: 16px;">Thanks for signing up for AniMuse! We're excited to have you.</p>
             <p style="font-size: 16px;">Please use the following verification code to complete your registration:</p>
             <p style="text-align: center; margin: 25px 0;">
@@ -54,19 +92,23 @@ export const sendVerificationEmail = internalAction({
             </p>
           </div>
         `,
-        text: `Hello ${args.userName || 'User'}!\n\nThanks for signing up for AniMuse!\nYour email verification code is: ${args.code}\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nThe AniMuse Team`,
-      });
+    };
 
-      // console.log("Email sent successfully via Resend:", data); // Optional: log success
+    try {
+      // TypeScript should now correctly infer the type of 'mg'
+      // and recognize the 'messages.create' method.
+      const result = await mg.messages.create(MAILGUN_DOMAIN, emailData);
+      // console.log("Email sent successfully via Mailgun:", result);
       return { success: true };
     } catch (error) {
-      console.error("Failed to send verification email via Resend:", error);
-      // Consider logging more specific error details from Resend if available
-      const resendError = error as any;
-      return { 
-        success: false, 
+      console.error("Failed to send verification email via Mailgun:", error);
+      const mailgunError = error as any;
+      return {
+        success: false,
         error: "Failed to send verification email.",
-        details: resendError.message || (resendError.toString ? resendError.toString() : "Unknown Resend error")
+        details:
+          mailgunError.message ||
+          (mailgunError.toString ? mailgunError.toString() : "Unknown Mailgun error"),
       };
     }
   },
