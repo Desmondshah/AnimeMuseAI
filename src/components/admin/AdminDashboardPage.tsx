@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
-import AnimeManagementPage from "C:/Users/desmo/AnimeMuseAI/src/components/animuse/onboarding/AnimeManagementPage.tsx";
+import AnimeManagementPage from "../animuse/onboarding/AnimeManagementPage"; // FIXED: Use relative path
 import ReviewModerationPage from "./ReviewModerationPage"; // Import ReviewModerationPage
 
 interface AdminDashboardPageProps {
