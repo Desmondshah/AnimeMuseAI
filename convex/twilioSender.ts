@@ -6,12 +6,13 @@ import { v } from "convex/values";
 import Twilio from "twilio";
 
 // Twilio Configuration - These MUST be set in your Convex Environment Variables
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER; // Your Twilio phone number
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID; // Reads at deploy/analysis time
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN; // Reads at deploy/analysis time
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER; // Reads at deploy/analysis time
 
 let twilioClient: Twilio.Twilio | null = null;
 if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER) {
+  // This line is executed when Convex analyzes the file during deployment
   twilioClient = Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 } else {
   console.warn(
