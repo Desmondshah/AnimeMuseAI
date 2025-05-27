@@ -6,9 +6,14 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
-const openai = new OpenAI({
-  apiKey: process.env.CONVEX_OPENAI_API_KEY,
-});
+// Don't initialize OpenAI at module level - do it in functions
+const getOpenAIClient = () => {
+  const apiKey = process.env.CONVEX_OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("CONVEX_OPENAI_API_KEY environment variable is not set");
+  }
+  return new OpenAI({ apiKey });
+};
 
 const watchlistActivityValidator = v.optional(v.array(v.object({
     animeTitle: v.string(),
@@ -39,6 +44,7 @@ export const testOpenAIProxyConnection = action({
 
     try {
       console.log(`Testing OpenAI connection via proxy: ${process.env.CONVEX_OPENAI_BASE_URL}`);
+      const openai = getOpenAIClient();
       const result = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [
@@ -143,6 +149,7 @@ Example of a single anime object in the array:
 `;
     try {
       console.log(`Calling OpenAI via proxy for prompt: ${args.prompt}`);
+      const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -291,6 +298,7 @@ Avoid recommending the exact same anime that was provided as the target.`;
 
     try {
       console.log(`Getting similar anime recommendations for: ${targetAnime.title}`);
+      const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -437,6 +445,7 @@ Prioritize unique recommendations that are not explicitly in their 'favoriteAnim
 
     try {
       console.log(`Generating personalized "For You" recommendations for user: ${args.userProfile.name || 'anonymous'}`);
+      const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -542,6 +551,7 @@ Ensure the recommendations are distinct and genuinely reflect the selected cues.
 
     try {
       console.log(`Getting Mood Board recommendations for cues: ${args.selectedCues.join(", ")}`);
+      const openai = getOpenAIClient();
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
