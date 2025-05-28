@@ -22,7 +22,8 @@ export default function StyledButton({
     case "primary":
       variantClasses = `
         bg-brand-primary-action text-brand-surface
-        hover:bg-opacity-90 active:bg-opacity-80 active:text-brand-surface  // Ensure text stays cream on active
+        hover:bg-brand-primary-action/90 hover:text-brand-surface
+        active:bg-brand-primary-action/70 active:text-brand-surface
         focus:ring-brand-primary-action
         px-5 py-2.5 text-sm sm:text-base shadow-md hover:shadow-lg active:shadow-sm
         disabled:!bg-brand-accent-peach disabled:!text-brand-surface/70 disabled:!shadow-none
@@ -32,7 +33,7 @@ export default function StyledButton({
       variantClasses = `
         bg-brand-surface text-brand-primary-action border border-brand-primary-action
         hover:bg-brand-primary-action hover:text-brand-surface
-        active:bg-brand-primary-action/80 active:text-brand-surface // Ensure text contrasts with active coral
+        active:bg-brand-primary-action/90 active:text-brand-surface
         focus:ring-brand-primary-action
         px-5 py-2.5 text-sm sm:text-base shadow-sm hover:shadow-md active:shadow-none
         disabled:!bg-brand-surface/70 disabled:!text-brand-primary-action/50 disabled:!border-brand-accent-peach disabled:!shadow-none
@@ -41,7 +42,8 @@ export default function StyledButton({
     case "primary_small":
       variantClasses = `
         bg-brand-primary-action text-brand-surface
-        hover:bg-opacity-90 active:bg-opacity-80 active:text-brand-surface
+        hover:bg-brand-primary-action/90 hover:text-brand-surface
+        active:bg-brand-primary-action/70 active:text-brand-surface
         focus:ring-brand-primary-action
         px-3 py-1.5 text-xs sm:text-sm shadow active:shadow-sm
         disabled:!bg-brand-accent-peach disabled:!text-brand-surface/70 disabled:!shadow-none
@@ -51,7 +53,7 @@ export default function StyledButton({
       variantClasses = `
         bg-brand-surface text-brand-primary-action border border-brand-primary-action
         hover:bg-brand-primary-action hover:text-brand-surface
-        active:bg-brand-primary-action/80 active:text-brand-surface
+        active:bg-brand-primary-action/90 active:text-brand-surface
         focus:ring-brand-primary-action
         px-3 py-1.5 text-xs sm:text-sm shadow-sm active:shadow-none
         disabled:!bg-brand-surface/70 disabled:!text-brand-primary-action/50 disabled:!border-brand-accent-peach disabled:!shadow-none
@@ -61,7 +63,7 @@ export default function StyledButton({
       variantClasses = `
         bg-transparent text-brand-accent-gold
         hover:bg-brand-accent-gold/10 hover:text-brand-primary-action
-        active:bg-brand-accent-gold/20 active:text-brand-primary-action // Ensure text visible on active ghost
+        active:bg-brand-accent-gold/20 active:text-brand-primary-action
         focus:ring-brand-accent-gold
         px-3 py-1.5 text-xs sm:text-sm
         disabled:!text-brand-accent-gold/50
@@ -71,16 +73,13 @@ export default function StyledButton({
 
   if (selected) {
     if (variant.includes("primary")) {
-      variantClasses += " bg-opacity-70 ring-2 ring-brand-primary-action ring-offset-1 ring-offset-brand-background !shadow-inner";
+      variantClasses += " ring-2 ring-brand-primary-action/50 ring-offset-1 ring-offset-brand-background shadow-inner";
     } else if (variant.includes("secondary")) {
-      variantClasses += " bg-brand-primary-action/10 ring-2 ring-brand-primary-action ring-offset-1 ring-offset-brand-surface !shadow-inner";
+      variantClasses += " bg-brand-primary-action/10 ring-2 ring-brand-primary-action/50 ring-offset-1 ring-offset-brand-surface shadow-inner";
     } else { // ghost selected
         variantClasses += " bg-brand-accent-gold/20 !text-brand-primary-action";
     }
   }
-
-  // Add active:scale-95 for a subtle press effect if desired, but ensure it doesn't cause layout shifts.
-  // variantClasses += " active:scale-[0.98]";
 
   return (
     <button

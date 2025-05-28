@@ -330,7 +330,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     }
   };
 
-  const renderAnalysisResult = (analysis: any) => (
+const renderAnalysisResult = (analysis: any) => (
     <div className="mt-2 space-y-1.5 text-xs leading-normal">
       {(Object.keys(analysis) as Array<keyof typeof analysis>).map(key_ => {
         const key = String(key_);

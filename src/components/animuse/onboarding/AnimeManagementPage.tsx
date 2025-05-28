@@ -39,7 +39,7 @@ const AnimeManagementPageComponent: React.FC = () => {
   const [editingAnime, setEditingAnime] = useState<Doc<"anime"> | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
-  const handleDeleteAnime = useCallback(async (animeId: Id<"anime">, animeTitle: string) => {
+   const handleDeleteAnime = useCallback(async (animeId: Id<"anime">, animeTitle: string) => {
     if (window.confirm(`PERMANENTLY DELETE "${animeTitle}" and all its reviews/watchlist entries? This cannot be undone.`)) {
       try {
         toast.loading(`Deleting ${animeTitle}...`, { id: `delete-anime-${animeId}` });

@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import StyledButton from "../shared/StyledButton";
 import UserManagementPage from "../../admin/UserManagementPage"; // We'll create this next
+import AnimeManagementPage from "../onboarding/AnimeManagementPage";
+import ReviewModerationPage from "@/components/admin/ReviewModerationPage";
 
 interface AdminDashboardPageProps {
   onNavigateBack: () => void; // To go back to the main user dashboard
@@ -17,10 +19,10 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNavigateBack 
       case "user_management":
         return <UserManagementPage />;
       // Add cases for other admin sections later
-      // case "anime_management":
-      //   return <AnimeManagementPage />;
-      // case "review_moderation":
-      //   return <ReviewModerationPage />;
+       case "anime_management":
+         return <AnimeManagementPage />;
+       case "review_moderation":
+        return <ReviewModerationPage />;
       case "overview":
       default:
         return (
