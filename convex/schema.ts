@@ -150,7 +150,7 @@ const applicationTables = {
   .index("by_expiresAt", ["expiresAt"]),
 
   aiInteractionFeedback: defineTable({
-    userId: v.id("users"),
+    userId: v.union(v.id("users"), v.literal("system")),
     prompt: v.optional(v.string()),
     aiAction: v.string(),
     aiResponseRecommendations: v.optional(v.array(v.any())),
