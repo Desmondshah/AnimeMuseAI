@@ -1,40 +1,35 @@
 // src/components/animuse/AnimeCard.tsx
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useRef } from "react"; // Added useRef
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import { AnimeRecommendation } from "../../../convex/types";
 import StyledButton from "./shared/StyledButton";
-import styles from '../../AnimeCard.module.css'; // Import the CSS module
+import styles from '../../AnimeCard.module.css';
 
 interface AnimeCardProps {
   anime: AnimeRecommendation | Doc<"anime">;
-  onAddToWatchlist?: (animeId: Id<"anime">, status: string) => void; // Keep if used by parent
+  onAddToWatchlist?: (animeId: Id<"anime">, status: string) => void;
   onViewDetails?: (animeId: Id<"anime">) => void;
   isRecommendation?: boolean;
-  // 'variant' prop can be used if you need different styles, but this focuses on one advanced look.
-  // For simplicity, this example will render one main advanced style.
-  // If you had 'compact' or 'featured' before, you'd re-add that logic.
 }
 
 const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   anime,
-  onAddToWatchlist, // Kept for compatibility if parent uses it
+  onAddToWatchlist,
   onViewDetails,
   isRecommendation = false,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null); // Ref for the image element
 
   const upsertToWatchlist = useMutation(api.anime.upsertToWatchlist);
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
 
-  // Determine if the anime object from props has an _id (meaning it's likely from DB)
   const animeIdFromProp = (anime as Doc<"anime">)._id;
 
-  // Fetch existing anime from DB only if it's a recommendation and doesn't have an _id,
-  // or to get the latest watchlist status.
   const existingAnimeInDB = useQuery(
     api.anime.getAnimeByTitle,
     anime.title && !animeIdFromProp ? { title: anime.title } : "skip"
@@ -48,26 +43,54 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   );
   
   const getPlaceholderUrl = (title: string) => {
-    const bgColor = "ECB091"; // brand-accent-peach
-    const textColor = "321D0B"; // brand-text-primary
+    const bgColor = "ECB091"; 
+    const textColor = "321D0B"; 
     const titleText = title.length > 15 ? title.substring(0, 12) + "..." : title;
     return `https://placehold.co/400x600/${bgColor}/${textColor}/png?text=${encodeURIComponent(titleText)}&font=poppins`;
   };
 
   const placeholderUrl = getPlaceholderUrl(anime.title);
+  // posterToDisplay will be the source for the image, and its changes will trigger the useEffect
   const posterToDisplay = imageError ? placeholderUrl : anime.posterUrl || placeholderUrl;
 
   useEffect(() => {
-    // Reset image status if anime prop changes
     setImageLoaded(false);
     setImageError(false);
-  }, [anime.posterUrl]);
 
+    const imageElement = imgRef.current;
+    if (imageElement) {
+      // If the src is already the one we want to display
+      if (imageElement.src === posterToDisplay) {
+        if (imageElement.complete) {
+          if (imageElement.naturalHeight > 0) {
+            setImageLoaded(true);
+          } else {
+            setImageError(true);
+            setImageLoaded(true); // Still hide placeholder
+          }
+        }
+        // If not complete, onLoad/onError will handle it.
+      } else {
+        // If src is different, React will update it, and then onLoad/onError should fire.
+        // This path is less common if posterToDisplay is stable for the effect.
+      }
+    }
+  }, [posterToDisplay]); // Key dependency: re-run when the image source changes
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoaded(true); // Set loaded true to hide placeholder & show fallback
+  };
 
   const handleAddToWatchlistInternal = async (status: string) => {
     let animeIdToUse = animeDocumentId;
 
-    if (isRecommendation && !animeIdToUse) { // If it's a recommendation and we couldn't find it in DB by title initially
+    if (isRecommendation && !animeIdToUse) {
       try {
         toast.loading("Adding to collection...", { id: `add-${anime.title}` });
         const newAnimeId = await addAnimeByUser({
@@ -96,12 +119,10 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     }
     
     if (!animeIdToUse) {
-      // Final check, if still no ID, maybe the recommendation's title also didn't match an existing one.
-      // This scenario implies it's a new anime.
       if (isRecommendation) {
          try {
             toast.loading("Adding to collection (final attempt)...", { id: `add-final-${anime.title}` });
-            const newAnimeId = await addAnimeByUser({ /* ...anime data... */
+            const newAnimeId = await addAnimeByUser({
               title: anime.title, description: anime.description || "No description.",
               posterUrl: anime.posterUrl || placeholderUrl, genres: anime.genres || [],
               year: anime.year, rating: anime.rating,
@@ -121,10 +142,9 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
       }
     }
 
-
-    if (onAddToWatchlist) { // If parent component wants to handle it
+    if (onAddToWatchlist) {
       onAddToWatchlist(animeIdToUse, status);
-    } else { // Default internal handling
+    } else {
       try {
         toast.loading("Updating watchlist...", { id: `watchlist-${animeIdToUse}` });
         await upsertToWatchlist({ animeId: animeIdToUse, status });
@@ -139,13 +159,13 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   const currentWatchlistStatus = watchlistEntry?.status;
 
   const renderWatchlistButton = () => {
-    const commonButtonClasses = "w-full !text-xs !py-[7px]"; // Slightly adjusted padding for new design
+    const commonButtonClasses = "w-full !text-xs !py-[7px]";
 
-    if (isRecommendation && !animeDocumentId) { // Truly new anime not yet in DB
+    if (isRecommendation && !animeDocumentId) {
       return (
         <StyledButton
           onClick={() => handleAddToWatchlistInternal("Plan to Watch")}
-          variant="primary" // More prominent for new additions
+          variant="primary"
           className={commonButtonClasses}
         >
           Add to Collection
@@ -180,7 +200,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
             ✓ Completed
           </div>
         );
-      } else { // Not on watchlist or other status
+      } else { 
         return (
           <StyledButton
             onClick={() => handleAddToWatchlistInternal("Plan to Watch")}
@@ -192,22 +212,20 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
         );
       }
     }
-    // Fallback or if animeDocumentId is somehow not available for a non-recommendation
     return (
         <StyledButton
             onClick={() => handleAddToWatchlistInternal("Plan to Watch")}
             variant="primary"
             className={commonButtonClasses}
-            disabled={!animeDocumentId && !isRecommendation} // Disable if it's not a rec and has no ID
+            disabled={!animeDocumentId && !isRecommendation}
         >
             Add to Watchlist
         </StyledButton>
     );
   };
 
-  const displayRating = anime.rating !== undefined && anime.rating !== null ? (anime.rating / 2).toFixed(1) : null; // Assuming 0-10 scale -> 0-5
+  const displayRating = anime.rating !== undefined && anime.rating !== null ? (anime.rating / 2).toFixed(1) : null;
   const ribbonText = displayRating ? `⭐ ${displayRating}` : anime.year ? String(anime.year) : "New";
-
 
   return (
     <div className={styles.card}>
@@ -216,18 +234,15 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
           <div className={styles.imageLoadingPlaceholder} />
         )}
         <img
+          ref={imgRef} // Assign the ref
+          key={posterToDisplay} // Keep key, good for forcing re-render if src identity changes
           src={posterToDisplay}
           alt={anime.title}
           className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => {
-            setImageError(true);
-            setImageLoaded(true); // Ensure loading placeholder hides
-          }}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
         />
         <div className={styles.imageOverlay}></div>
-        {/* Choose one ribbon style */}
-        {/* <div className={styles.ribbon}>{ribbonText}</div> */}
          <div className={styles.cornerRibbon}>
           <span className={styles.cornerRibbonText}>{ribbonText}</span>
         </div>
@@ -259,7 +274,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
         {anime.genres && anime.genres.length > 0 && (
           <div className={styles.genres}>
-            {anime.genres.slice(0, 2).map((genre) => ( // Show max 2 genres for space
+            {anime.genres.slice(0, 2).map((genre) => ( 
               <span key={genre} className={styles.genreTag}>
                 {genre}
               </span>
@@ -274,7 +289,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
           {onViewDetails && animeDocumentId && (
             <StyledButton
               onClick={() => onViewDetails(animeDocumentId)}
-              variant="secondary" // Main view button
+              variant="secondary"
               className="w-full !text-xs !py-[7px]"
             >
               View Details
