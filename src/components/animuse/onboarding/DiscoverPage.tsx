@@ -104,7 +104,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   } = usePaginatedQuery(
     api.anime.getFilteredAnime,
     {
-      // TODO: Add searchQuery parameter when backend supports it
+      // TODO: Add searchQuery support to backend API
       // searchQuery: debouncedSearchQuery || undefined,
       filters: Object.values(filters).some(value => {
         if (Array.isArray(value)) return value.length > 0;
@@ -116,17 +116,16 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     { initialNumItems: 12 }
   );
 
-  // Client-side search filtering until backend supports searchQuery
+  // Client-side search filtering until backend supports it
   const filteredAnimeList = React.useMemo(() => {
-    if (!debouncedSearchQuery || !animeList) return animeList;
+    if (!animeList || !debouncedSearchQuery) return animeList;
     
-    const searchLower = debouncedSearchQuery.toLowerCase();
+    const searchTerm = debouncedSearchQuery.toLowerCase();
     return animeList.filter(anime => 
-      anime.title.toLowerCase().includes(searchLower) ||
-      anime.description?.toLowerCase().includes(searchLower) ||
-      anime.genres?.some(genre => genre.toLowerCase().includes(searchLower)) ||
-      anime.studios?.some(studio => studio.toLowerCase().includes(searchLower)) ||
-      anime.themes?.some(theme => theme.toLowerCase().includes(searchLower))
+      anime.title?.toLowerCase().includes(searchTerm) ||
+      anime.description?.toLowerCase().includes(searchTerm) ||
+      anime.genres?.some(genre => genre.toLowerCase().includes(searchTerm)) ||
+      anime.studios?.some(studio => studio.toLowerCase().includes(searchTerm))
     );
   }, [animeList, debouncedSearchQuery]);
 
@@ -411,16 +410,11 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </StyledButton>
             </div>
           )}
-          {hasActiveSearch && (
-            <div className="mt-5 sm:mt-6 text-center">
-              <p className="text-xs sm:text-sm text-brand-text-primary/70">
-                Search results are limited to currently loaded anime. Load more anime to see additional results.
+          {hasActiveSearch && animeList && filteredAnimeList.length < animeList.length && (
+            <div className="mt-4 text-center">
+              <p className="text-xs text-brand-text-primary/70">
+                Showing {filteredAnimeList.length} of {animeList.length} total anime
               </p>
-              {status === "CanLoadMore" && (
-                <StyledButton onClick={() => loadMore(12)} disabled={isLoading && status === "LoadingMore"} variant="secondary_small" className="mt-2">
-                  {isLoading && status === "LoadingMore" ? "Loading..." : "Load More Anime"}
-                </StyledButton>
-              )}
             </div>
           )}
           {!hasActiveSearch && status === "Exhausted" && filteredAnimeList.length > 0 && (

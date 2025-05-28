@@ -6,8 +6,8 @@ import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "./shared/StyledButton";
 import { toast } from "sonner";
-import { AnimeRecommendation } from "../../../convex/types"; // Assuming this type is correctly defined
-import AnimeCard from "./AnimeCard"; // Themed AnimeCard
+import { AnimeRecommendation } from "../../../convex/types"; 
+import AnimeCard from "./AnimeCard"; 
 
 // Define the possible return types from AI actions
 type RecommendationResult = {
@@ -16,12 +16,12 @@ type RecommendationResult = {
 };
 
 type AnalysisResult = {
-  analysis: any; // Consider defining a more specific type
+  analysis: any; 
   error?: string;
 };
 
 type GuideResult = {
-  guide: any; // Consider defining a more specific type
+  guide: any; 
   error?: string;
 };
 
@@ -66,6 +66,14 @@ const LocalSpinner: React.FC<{ size?: string; colorClass?: string }> = memo(({ s
     <div className={`animate-spin rounded-full ${size} border-b-2 ${colorClass}`}></div>
 ));
 
+interface AnimeCardProps {
+  anime: AnimeRecommendation | Doc<"anime">;
+  onAddToWatchlist?: (animeId: Id<"anime">, status: string) => void;
+  onViewDetails?: (animeId: Id<"anime">) => void;
+  isRecommendation?: boolean;
+  variant?: "default" | "featured" | "compact"; // Make sure this line exists
+}
+
 
 const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> = ({ navigateToDetail }) => {
   const [prompt, setPrompt] = useState("");
@@ -87,8 +95,12 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
 
   const userProfileQuery = useQuery(api.users.getMyUserProfile);
-  const storeAiFeedback = useMutation(api.ai.storeAiFeedback); // Assuming this is for logging/feedback
+  const storeAiFeedback = useMutation(api.ai.storeAiFeedback); 
   const { isAuthenticated, isLoading: authIsLoading } = useConvexAuth();
+
+  // Mutations for adding to watchlist
+  const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
+  const upsertToWatchlistMutation = useMutation(api.anime.upsertToWatchlist);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -167,7 +179,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     }
 
     const aiMessageId = generateMessageId();
-    let responseToLog: Partial<ChatMessage> = { // For feedback logging
+    let responseToLog: Partial<ChatMessage> = { 
         recommendations: undefined,
         analysis: undefined,
         guide: undefined,
@@ -177,7 +189,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
     try {
       const result = await executeAIAction(currentPromptText, aiMessageId);
-      let aiResponseMessage!: ChatMessage; // Definite assignment assertion, as all paths assign it
+      let aiResponseMessage!: ChatMessage; 
 
       if (result.error) {
         aiResponseMessage = { id: aiMessageId, type: "error", content: `Error: ${result.error.substring(0,150)}`, rawAiText: result.error, feedback: null, actionType: aiMode };
@@ -197,15 +209,13 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         const modeLabels: Record<AIMode, string> = { general: "recommendations", character: "character picks", trope: "plot/trope ideas", art_style: "visual suggestions", compare: "comparisons", hidden_gems: "hidden gems", franchise: "franchise guides" };
         aiResponseMessage = { id: aiMessageId, type: "ai", content: `Here are some ${modeLabels[aiMode] || "recommendations"}:`, recommendations: result.recommendations, rawAiResponse: result.recommendations, feedback: null, actionType: aiMode };
         responseToLog.recommendations = result.recommendations;
-        // responseToLog.rawAiText = JSON.stringify(result.recommendations); // Or keep separate from structured data
         toast.success(`Found some ${modeLabels[aiMode] || "ideas"}!`);
-      } else { // This branch handles cases where AI action was successful but returned no specific data (e.g. empty recommendations array)
+      } else { 
         const noRecContent = "I couldn't find specific matches for that request. Try adjusting your criteria or switching modes!";
         aiResponseMessage = { id: aiMessageId, type: "ai", content: noRecContent, rawAiText: noRecContent, feedback: null, actionType: aiMode };
         responseToLog.rawAiText = noRecContent;
         toast.info("No matches found - try a different approach!");
       }
-      // This line should be fine now because aiResponseMessage is always assigned.
       setChatHistory((prev) => [...prev, aiResponseMessage]);
 
     } catch (error: any) {
@@ -217,7 +227,6 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       toast.error("An error occurred processing your request.");
     } finally {
       setIsLoading(false);
-      // Log feedback to Convex
       try {
         await storeAiFeedback({
             prompt: currentPromptText,
@@ -225,7 +234,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
             aiResponseRecommendations: responseToLog.recommendations,
             aiResponseText: responseToLog.rawAiText,
             feedbackType: "none",
-            messageId: aiMessageId, // Use aiMessageId which is the ID of the AI's response
+            messageId: aiMessageId, 
         });
       } catch (feedbackError) {
           console.error("Failed to store AI feedback:", feedbackError);
@@ -239,7 +248,6 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     const message = chatHistory.find(msg => msg.id === messageId);
 
     if(message && (message.type === "ai" || message.type === "analysis" || message.type === "guide" || message.type === "error")) {
-        // Determine the user prompt that led to this AI message
         let relatedUserPrompt = "N/A";
         const messageIndex = chatHistory.findIndex(m => m.id === messageId);
         if (messageIndex > 0) {
@@ -253,22 +261,60 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
         try {
             await storeAiFeedback({
-                prompt: relatedUserPrompt, // The user prompt
-                aiAction: message.actionType || aiMode, // The AI mode/action used
-                // For recommendations, analysis, guide, provide the structured data if available
-                aiResponseRecommendations: message.recommendations, // This is correct if message is ChatMessage
-                // For aiResponseText, provide any raw text or stringified structured data
+                prompt: relatedUserPrompt, 
+                aiAction: message.actionType || aiMode, 
+                aiResponseRecommendations: message.recommendations, 
                 aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || message.content,
                 feedbackType: feedbackScore,
-                messageId: message.id, // The ID of the AI's message that received feedback
+                messageId: message.id, 
             });
             toast.success("Thanks for your feedback!");
         } catch (error) {
             console.error("Error storing feedback:", error);
-            // Revert optimistic UI update for feedback if API call fails
             setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: null } : msg));
             toast.error("Could not save feedback at this time.");
         }
+    }
+  };
+
+  const handleAiRecommendationAddToWatchlist = async (recommendedAnime: AnimeRecommendation, status: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to add to watchlist.");
+      return;
+    }
+  
+    const toastId = `ai-watchlist-${recommendedAnime.title}-${Date.now()}`;
+    toast.loading(`Adding "${recommendedAnime.title}" to watchlist...`, { id: toastId });
+  
+    try {
+      const animeDbId = await addAnimeByUserMutation({
+        title: recommendedAnime.title,
+        description: recommendedAnime.description || "No description available.",
+        posterUrl: recommendedAnime.posterUrl || `https://placehold.co/300x450/ECB091/321D0B/png?text=${encodeURIComponent(recommendedAnime.title.substring(0,10))}&font=poppins`,
+        genres: recommendedAnime.genres || [],
+        year: recommendedAnime.year,
+        rating: recommendedAnime.rating,
+        emotionalTags: recommendedAnime.emotionalTags || [],
+        trailerUrl: recommendedAnime.trailerUrl || undefined,
+        studios: recommendedAnime.studios || [],
+        themes: recommendedAnime.themes || [],
+        // anilistId: recommendedAnime.anilistId, // Add if your AnimeRecommendation type and addAnimeByUser mutation support it
+      });
+  
+      if (!animeDbId) {
+        throw new Error("Failed to add or find the anime in the database.");
+      }
+  
+      await upsertToWatchlistMutation({
+        animeId: animeDbId,
+        status: status, 
+      });
+  
+      toast.success(`"${recommendedAnime.title}" added to ${status}!`, { id: toastId });
+  
+    } catch (error: any) {
+      console.error("Failed to add AI recommendation to watchlist:", error);
+      toast.error(error.data?.message || error.message || `Could not add "${recommendedAnime.title}" to watchlist.`, { id: toastId });
     }
   };
 
@@ -335,7 +381,7 @@ const renderAnalysisResult = (analysis: any) => (
       {(Object.keys(analysis) as Array<keyof typeof analysis>).map(key_ => {
         const key = String(key_);
         return analysis[key] && typeof analysis[key] === 'string' && (
-          <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded"> {/* Light background for analysis sections */}
+          <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded"> 
             <h4 className="font-heading text-brand-accent-gold font-semibold capitalize text-[11px] mb-0.5">{key.replace(/([A-Z]|\d+)/g, ' $1').trim()}:</h4>
             <p className="text-brand-text-primary/90 whitespace-pre-wrap">{analysis[key]}</p>
           </div>
@@ -360,7 +406,7 @@ const renderAnalysisResult = (analysis: any) => (
         <div>
           <h4 className="font-heading text-brand-accent-gold font-semibold my-1 text-[11px]">Recommended Order:</h4>
           {guide.recommendedOrder.map((item: any, idx: number) => (
-            <div key={idx} className="p-1 my-0.5 bg-brand-accent-peach/10 rounded"> {/* Slightly lighter for individual items */}
+            <div key={idx} className="p-1 my-0.5 bg-brand-accent-peach/10 rounded"> 
               <p className="font-semibold text-brand-primary-action/90 text-[11px]">{idx + 1}. {item.title} <span className="text-[10px] opacity-70">({item.type}, {item.year})</span></p>
               <p className="text-[10px] opacity-80">{item.description}</p>
               <p className="text-[9px] opacity-70 mt-0.5">Importance: {item.importance} | Access: {item.accessibilityRating}/5</p>
@@ -434,9 +480,9 @@ const renderAnalysisResult = (analysis: any) => (
                         {animeRec.surpriseFactors && animeRec.surpriseFactors.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Surprise:</span> {animeRec.surpriseFactors.join(", ")}</p>}
                         <div className="mt-2 flex gap-1.5">
                           <StyledButton
-                              onClick={() => { toast.info(`Add "${animeRec.title}" to watchlist (stub)`); }}
+                              onClick={() => handleAiRecommendationAddToWatchlist(animeRec, "Plan to Watch")}
                               variant="primary_small" className="!text-[10px] !px-1.5 !py-0.5"
-                              disabled={!isAuthenticated}
+                              disabled={!isAuthenticated || isLoading}
                           > Add to Watchlist </StyledButton>
                           {animeRec.trailerUrl && (
                               <a href={animeRec.trailerUrl} target="_blank" rel="noopener noreferrer">
@@ -449,7 +495,7 @@ const renderAnalysisResult = (analysis: any) => (
                   ))}
                 </div>
               )}
-              {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && ( // Allow feedback on error messages too
+              {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && ( 
                 <div className="mt-2 flex justify-end gap-1">
                   <StyledButton onClick={() => handleFeedback(msg.id, "up")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "up" ? "!text-brand-primary-action !bg-brand-primary-action/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👍</StyledButton>
                   <StyledButton onClick={() => handleFeedback(msg.id, "down")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "down" ? "!text-red-500 !bg-red-500/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👎</StyledButton>
