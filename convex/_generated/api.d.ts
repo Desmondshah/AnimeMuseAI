@@ -26,6 +26,7 @@ import type * as openaiProxy from "../openaiProxy.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as twilioSender from "../twilioSender.js";
+import type * as types from "../types.js";
 import type * as users from "../users.js";
 
 /**
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   router: typeof router;
   twilioSender: typeof twilioSender;
+  types: typeof types;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

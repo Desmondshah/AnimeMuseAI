@@ -5,7 +5,7 @@ import StyledButton from "./shared/StyledButton";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
-import { AnimeRecommendation } from "./AIAssistantPage";
+import { AnimeRecommendation } from "../../../convex/types";
 
 interface AnimeCardProps {
   anime: AnimeRecommendation | Doc<"anime">;
@@ -49,7 +49,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
           year: anime.year, // Ensure year is passed if available
           rating: anime.rating, // Ensure rating is passed if available
           emotionalTags: anime.emotionalTags || [],
-          trailerUrl: anime.trailerUrl || `https://www.youtube.com/results?search_query=$${encodeURIComponent(anime.title)}+trailer`, // Corrected placeholder
+          trailerUrl: anime.trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(anime.title)}+trailer`, // Corrected placeholder
           studios: anime.studios || [],
           themes: anime.themes || []
         });

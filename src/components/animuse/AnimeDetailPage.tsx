@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import ReviewCard, { ReviewProps as ClientReviewProps } from "./onboarding/ReviewCard";
 import ReviewForm from "./onboarding/ReviewForm";
 import AnimeCard from "./AnimeCard";
-import { AnimeRecommendation } from "./AIAssistantPage";
+import { AnimeRecommendation } from "../../../convex/types";
 import { GenericId } from "convex/values";
 
 interface BackendReviewProps extends Doc<"reviews"> {
@@ -300,7 +300,43 @@ export default function AnimeDetailPage({ animeId, onBack }: AnimeDetailPageProp
        <div className="flex flex-col sm:flex-row gap-3 mb-6">
          {isAuthenticated ? (<>{watchlistEntry?.status === "Plan to Watch" ? <StyledButton onClick={()=>handleWatchlistAction("Watching")}>Start Watching</StyledButton> : watchlistEntry?.status === "Watching" ? <StyledButton onClick={()=>handleWatchlistAction("Completed")}>Mark Completed</StyledButton> : watchlistEntry?.status === "Completed" ? <p className="text-green-400">✓ Completed</p> : <StyledButton onClick={()=>handleWatchlistAction("Plan to Watch")}>Add to Watchlist</StyledButton>}</>) : (<p>Login to manage watchlist</p>)}
          {anime.trailerUrl && <a href={anime.trailerUrl} target="_blank" rel="noopener noreferrer"><StyledButton variant="secondary">Watch Trailer</StyledButton></a>}
+         
+         {/* Similar Anime Section */}
+         <StyledButton 
+           onClick={loadSimilarAnime} 
+           variant="secondary" 
+           disabled={loadingSimilar}
+         >
+           {loadingSimilar ? "Loading..." : "Find Similar"}
+         </StyledButton>
       </div>
+
+      {/* Similar Anime Results */}
+      {showSimilarAnime && (
+        <div className="mb-6 p-4 neumorphic-card bg-brand-dark shadow-neumorphic-light-inset">
+          <h3 className="text-lg font-orbitron text-electric-blue mb-3">Similar Anime</h3>
+          {similarAnimeError ? (
+            <p className="text-red-400">{similarAnimeError}</p>
+          ) : similarAnime.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {similarAnime.map((rec, idx) => (
+                <AnimeCard 
+                  key={`similar-${idx}`} 
+                  anime={rec} 
+                  isRecommendation={true} 
+                  onViewDetails={(animeId) => {
+                    // You could navigate to the detail page here
+                    console.log("Navigate to anime:", animeId);
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-brand-text-secondary">No similar anime found.</p>
+          )}
+        </div>
+      )}
+
       {isAuthenticated && watchlistEntry && (
         <div className="mb-6 p-4 neumorphic-card bg-brand-dark shadow-neumorphic-light-inset">
             <div className="flex justify-between items-center mb-2">

@@ -9,7 +9,7 @@ import StyledButton from "./shared/StyledButton";
 import WatchlistPage from "./onboarding/WatchlistPage";
 import DiscoverPage from "./onboarding/DiscoverPage";
 import ProfileStats from "./onboarding/ProfileStats";
-import { AnimeRecommendation } from "./AIAssistantPage";
+import { AnimeRecommendation } from "../../../convex/types";
 import { toast } from "sonner";
 import AnimeCard from "./AnimeCard";
 import AdminDashboardPage from "../admin/AdminDashboardPage";
