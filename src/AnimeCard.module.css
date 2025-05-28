@@ -22,7 +22,7 @@
   width: 100%;
   padding-top: 150%; /* Aspect ratio 2:3 */
   position: relative;
-  background-color: #ECB091; /* --brand-accent-peach (Soft Peach) - Fallback */
+  background-color: #ECB091; /* --brand-accent-peach (Soft Peach) - Base background for image area */
   overflow: hidden;
 }
 
@@ -33,12 +33,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease-out, opacity 0.5s ease-in-out;
-  opacity: 0;
+  /* MODIFIED: Removed opacity transition for instant appearance */
+  transition: transform 0.4s ease-out;
+  opacity: 0; /* Initially hidden */
 }
 
 .imageLoaded {
-  opacity: 1;
+  opacity: 1; /* Instantly visible when class is added */
 }
 
 .card:hover .image {
@@ -51,7 +52,7 @@
   left: 0;
   right: 0;
   height: 60%;
-  background: linear-gradient(to top, rgba(50, 29, 11, 0.85) 0%, rgba(50, 29, 11, 0.6) 40%, transparent 100%); /* Dark brown gradient (#321D0B) */
+  background: linear-gradient(to top, rgba(50, 29, 11, 0.85) 0%, rgba(50, 29, 11, 0.6) 40%, transparent 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -60,8 +61,8 @@
   position: absolute;
   top: 12px;
   right: -1px;
-  background-color: #FF6939; /* --brand-primary-action (Vibrant Coral) */
-  color: #F7EBE1; /* --brand-surface (Cream) */
+  background-color: #FF6939; /* --brand-primary-action */
+  color: #F7EBE1; /* --brand-surface */
   padding: 4px 10px 4px 12px;
   font-size: 0.7rem;
   font-weight: 700;
@@ -109,7 +110,7 @@
   flex-grow: 1;
   position: relative;
   z-index: 2;
-  background-color: #F7EBE1; /* Explicitly set --brand-surface (Cream) */
+  background-color: #F7EBE1; /* Explicitly --brand-surface (Cream) */
 }
 
 .title {
@@ -137,7 +138,7 @@
 .description {
   font-size: 0.8rem;
   color: #321D0B; /* --brand-text-primary (Dark Brown) */
-  opacity: 1; /* Full opacity */
+  opacity: 1;
   line-height: 1.5;
   margin-bottom: 8px;
   display: -webkit-box;
@@ -145,7 +146,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: calc(1.5em * 3); /* Should be 3 * 1.2rem = 3.6rem */
+  min-height: calc(1.5em * 3);
 }
 
 .genres {
@@ -156,8 +157,8 @@
 }
 
 .genreTag {
-  background-color: rgba(176, 137, 104, 0.2); /* --brand-accent-gold with 20% opacity */
-  color: #B08968; /* --brand-accent-gold (Muted Gold) */
+  background-color: rgba(176, 137, 104, 0.2);
+  color: #B08968; /* --brand-accent-gold */
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 0.65rem;
@@ -180,11 +181,11 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  background-color: rgba(20, 10, 0, 0.95); /* Even darker, more opaque brown/black */
+  background-color: rgba(20, 10, 0, 0.95);
   backdrop-filter: blur(4px);
   padding: 5px 10px;
   border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border for definition */
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ratingStars {
@@ -195,15 +196,15 @@
 .star {
   width: 13px;
   height: 13px;
-  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8); /* Stronger shadow for pop */
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
 }
 
 .starFilled {
-  color: #FFC107; /* Bright Amber/Yellow - very standard for stars */
+  color: #FFC107; /* Bright Amber/Yellow */
 }
 
 .starEmpty {
-  color: rgba(255, 255, 255, 0.5); /* Semi-transparent White for empty stars */
+  color: rgba(255, 255, 255, 0.5); /* Semi-transparent White */
 }
 
 .ratingText {
@@ -211,7 +212,7 @@
   font-weight: 700;
   color: #FFFFFF; /* Pure White */
   margin-left: 6px;
-  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8); /* Stronger shadow */
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
 }
 
 .compactCard {
@@ -219,7 +220,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  background-color: #F7EBE1; /* --brand-surface */
+  background-color: #F7EBE1;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.07);
 }
@@ -229,7 +230,7 @@
   flex-shrink: 0;
   border-radius: 6px;
   overflow: hidden;
-  background-color: #ECB091; /* --brand-accent-peach */
+  background-color: #ECB091;
 }
 .compactDetails {
   flex: 1;
@@ -239,7 +240,7 @@
   font-family: 'Poppins', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #FF6939; /* --brand-primary-action */
+  color: #FF6939;
   line-height: 1.2;
   margin-bottom: 2px;
   white-space: nowrap;
@@ -248,18 +249,21 @@
 }
 .compactYear {
   font-size: 0.7rem;
-  color: #321D0B; /* --brand-text-primary */
+  color: #321D0B;
   opacity: 0.7;
 }
+
 .imageLoadingPlaceholder {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #ECB091; /* --brand-accent-peach */
-  opacity: 0.5;
+  /* MODIFIED: Match the placeholder image background and make opaque */
+  background-color: #ECB091; /* --brand-accent-peach, same as placehold.co background color */
+  opacity: 1; /* Full opacity */
   display: flex;
   align-items: center;
   justify-content: center;
+  /* You could add a very subtle spinner here if you want one *before* the placeholder.co image loads */
 }

@@ -1,5 +1,5 @@
 // src/components/animuse/AnimeCard.tsx
-import React, { memo, useState, useEffect, useRef } from "react"; // Added useRef
+import React, { memo, useState, useEffect, useRef, useMemo } from "react"; // Added useMemo
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -23,59 +23,57 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null); // Ref for the image element
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const upsertToWatchlist = useMutation(api.anime.upsertToWatchlist);
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
 
   const animeIdFromProp = (anime as Doc<"anime">)._id;
-
   const existingAnimeInDB = useQuery(
     api.anime.getAnimeByTitle,
     anime.title && !animeIdFromProp ? { title: anime.title } : "skip"
   );
-
   const animeDocumentId = animeIdFromProp || existingAnimeInDB?._id;
-
   const watchlistEntry = useQuery(
     api.anime.getWatchlistItem,
     animeDocumentId ? { animeId: animeDocumentId } : "skip"
   );
-  
-  const getPlaceholderUrl = (title: string) => {
-    const bgColor = "ECB091"; 
-    const textColor = "321D0B"; 
+
+  // Memoize placeholderUrl
+  const placeholderUrl = useMemo(() => {
+    const bgColor = "ECB091"; // brand-accent-peach
+    const textColor = "321D0B"; // brand-text-primary
+    const title = anime.title || "Untitled"; // Fallback for title
     const titleText = title.length > 15 ? title.substring(0, 12) + "..." : title;
     return `https://placehold.co/400x600/${bgColor}/${textColor}/png?text=${encodeURIComponent(titleText)}&font=poppins`;
-  };
+  }, [anime.title]);
 
-  const placeholderUrl = getPlaceholderUrl(anime.title);
-  // posterToDisplay will be the source for the image, and its changes will trigger the useEffect
-  const posterToDisplay = imageError ? placeholderUrl : anime.posterUrl || placeholderUrl;
+  // Memoize posterToDisplay
+  const posterToDisplay = useMemo(() => {
+    return imageError ? placeholderUrl : anime.posterUrl || placeholderUrl;
+  }, [imageError, placeholderUrl, anime.posterUrl]);
 
   useEffect(() => {
+    // This effect runs if posterToDisplay string value actually changes, or on mount.
     setImageLoaded(false);
     setImageError(false);
 
     const imageElement = imgRef.current;
     if (imageElement) {
-      // If the src is already the one we want to display
-      if (imageElement.src === posterToDisplay) {
-        if (imageElement.complete) {
-          if (imageElement.naturalHeight > 0) {
-            setImageLoaded(true);
-          } else {
-            setImageError(true);
-            setImageLoaded(true); // Still hide placeholder
-          }
+      // Check if the image (even placeholder) is already loaded by the browser
+      if (imageElement.src === posterToDisplay && imageElement.complete) {
+        if (imageElement.naturalHeight > 0) {
+          setImageLoaded(true);
+        } else {
+          // Complete but no height, likely an error with the image source
+          setImageError(true);
+          setImageLoaded(true); // Still set loaded true to hide the initial placeholder div
         }
-        // If not complete, onLoad/onError will handle it.
-      } else {
-        // If src is different, React will update it, and then onLoad/onError should fire.
-        // This path is less common if posterToDisplay is stable for the effect.
       }
+      // If not complete, or src isn't set yet / different, the <img /> tag's onLoad/onError will handle it.
+      // The key={posterToDisplay} on img helps ensure it re-evaluates if posterToDisplay truly changes.
     }
-  }, [posterToDisplay]); // Key dependency: re-run when the image source changes
+  }, [posterToDisplay]);
 
   const handleImageLoad = () => {
     setImageLoaded(true);
@@ -84,9 +82,9 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
   const handleImageError = () => {
     setImageError(true);
-    setImageLoaded(true); // Set loaded true to hide placeholder & show fallback
+    setImageLoaded(true); // Set loaded to true to hide the .imageLoadingPlaceholder and show the fallback (posterToDisplay will be placeholderUrl)
   };
-
+  
   const handleAddToWatchlistInternal = async (status: string) => {
     let animeIdToUse = animeDocumentId;
 
@@ -94,7 +92,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
       try {
         toast.loading("Adding to collection...", { id: `add-${anime.title}` });
         const newAnimeId = await addAnimeByUser({
-          title: anime.title,
+          title: anime.title || "Unknown Title",
           description: anime.description || "No description available.",
           posterUrl: anime.posterUrl || placeholderUrl,
           genres: anime.genres || [],
@@ -123,7 +121,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
          try {
             toast.loading("Adding to collection (final attempt)...", { id: `add-final-${anime.title}` });
             const newAnimeId = await addAnimeByUser({
-              title: anime.title, description: anime.description || "No description.",
+              title: anime.title || "Unknown Title", description: anime.description || "No description.",
               posterUrl: anime.posterUrl || placeholderUrl, genres: anime.genres || [],
               year: anime.year, rating: anime.rating,
               emotionalTags: anime.emotionalTags || [], trailerUrl: anime.trailerUrl || undefined,
@@ -223,30 +221,33 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
         </StyledButton>
     );
   };
-
+  
   const displayRating = anime.rating !== undefined && anime.rating !== null ? (anime.rating / 2).toFixed(1) : null;
-  const ribbonText = displayRating ? `⭐ ${displayRating}` : anime.year ? String(anime.year) : "New";
+  const ribbonText = displayRating ? `⭐ ${displayRating}` : anime.year ? String(anime.year) : (anime.title ? "Info" : "New");
+
 
   return (
     <div className={styles.card}>
       <div className={styles.imageContainer}>
+        {/* This placeholder is shown if neither imageLoaded nor imageError is true yet for the src */}
         {!imageLoaded && !imageError && (
           <div className={styles.imageLoadingPlaceholder} />
         )}
         <img
-          ref={imgRef} // Assign the ref
-          key={posterToDisplay} // Keep key, good for forcing re-render if src identity changes
+          ref={imgRef}
+          key={posterToDisplay} // Helps React re-evaluate if the actual image URL string changes
           src={posterToDisplay}
-          alt={anime.title}
+          alt={anime.title || "Anime Poster"}
           className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
         />
         <div className={styles.imageOverlay}></div>
-         <div className={styles.cornerRibbon}>
+        <div className={styles.cornerRibbon}>
           <span className={styles.cornerRibbonText}>{ribbonText}</span>
         </div>
-         {imageLoaded && displayRating && (
+        {/* Only render rating container if image (even placeholder) is loaded and there's a rating */}
+        {imageLoaded && displayRating && (
            <div className={styles.ratingContainer}>
              <div className={styles.ratingStars}>
                {[...Array(5)].map((_, i) => (
@@ -261,8 +262,8 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
       </div>
 
       <div className={styles.details}>
-        <h3 className={styles.title} title={anime.title}>
-          {anime.title}
+        <h3 className={styles.title} title={anime.title || "Untitled Anime"}>
+          {anime.title || "Untitled Anime"}
         </h3>
         {anime.year && <p className={styles.year}>{anime.year}</p>}
         
