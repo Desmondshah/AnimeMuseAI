@@ -1,37 +1,73 @@
 // src/components/animuse/AIAssistantPage.tsx
-import React, { useState, FormEvent, useRef, useEffect, useCallback } from "react";
-import { useAction, useQuery, useConvexAuth } from "convex/react";
+// Full refactor based on user's original code and new UI theme.
+import React, { useState, FormEvent, useRef, useEffect, useCallback, memo } from "react";
+import { useAction, useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "./shared/StyledButton";
 import { toast } from "sonner";
-import { AnimeRecommendation } from "../../../convex/types";
-import AnimeCard from "./AnimeCard";
+import { AnimeRecommendation } from "../../../convex/types"; // Assuming this type is correctly defined
+import AnimeCard from "./AnimeCard"; // Themed AnimeCard
 
-// Type definitions
-type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
-type AnalysisResult = { analysis: any; error?: string; };
-type GuideResult = { guide: any; error?: string; };
+// Define the possible return types from AI actions
+type RecommendationResult = {
+  recommendations: AnimeRecommendation[];
+  error?: string;
+};
+
+type AnalysisResult = {
+  analysis: any; // Consider defining a more specific type
+  error?: string;
+};
+
+type GuideResult = {
+  guide: any; // Consider defining a more specific type
+  error?: string;
+};
+
 type AIActionResult = RecommendationResult | AnalysisResult | GuideResult;
 
-interface ChatMessage {
-  id: string; type: "user" | "ai" | "error" | "analysis" | "guide"; content: string;
-  recommendations?: AnimeRecommendation[]; analysis?: any; guide?: any;
-  feedback?: "up" | "down" | null; rawAiResponse?: any[]; rawAiText?: string; actionType?: string;
+// Type guard functions
+function isRecommendationResult(result: AIActionResult): result is RecommendationResult {
+  return 'recommendations' in result;
 }
-type AIMode = "general" | "character" | "trope" | "art_style" | "compare" | "hidden_gems" | "franchise";
 
-// Simplified Loading Spinner for this page
-const LocalSpinner: React.FC<{ size?: string; colorClass?: string }> = ({ size = "h-5 w-5", colorClass = "border-brand-primary-action" }) => (
-    <div className={`animate-spin rounded-full ${size} border-b-2 ${colorClass}`}></div>
-);
+function isAnalysisResult(result: AIActionResult): result is AnalysisResult {
+  return 'analysis' in result;
+}
+
+function isGuideResult(result: AIActionResult): result is GuideResult {
+  return 'guide' in result;
+}
+
+// Enhanced interface for different types of AI responses
+interface ChatMessage {
+  id: string;
+  type: "user" | "ai" | "error" | "analysis" | "guide";
+  content: string;
+  recommendations?: AnimeRecommendation[];
+  analysis?: any;
+  guide?: any;
+  feedback?: "up" | "down" | null;
+  rawAiResponse?: any[];
+  rawAiText?: string;
+  actionType?: string;
+}
+
+type AIMode = "general" | "character" | "trope" | "art_style" | "compare" | "hidden_gems" | "franchise";
 
 // Props for AIAssistantPage, including navigateToDetail
 interface EnhancedAIAssistantPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
 }
 
-export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAIAssistantPageProps) {
+// Simplified Loading Spinner for this page
+const LocalSpinner: React.FC<{ size?: string; colorClass?: string }> = memo(({ size = "h-5 w-5", colorClass = "border-brand-primary-action" }) => (
+    <div className={`animate-spin rounded-full ${size} border-b-2 ${colorClass}`}></div>
+));
+
+
+const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> = ({ navigateToDetail }) => {
   const [prompt, setPrompt] = useState("");
   const [aiMode, setAiMode] = useState<AIMode>("general");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -51,11 +87,26 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
   const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
 
   const userProfileQuery = useQuery(api.users.getMyUserProfile);
+  const storeAiFeedback = useMutation(api.ai.storeAiFeedback); // Assuming this is for logging/feedback
   const { isAuthenticated, isLoading: authIsLoading } = useConvexAuth();
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const getModeExamples = useCallback(() => {
+    switch (aiMode) {
+      case "character": return ["Characters like L from Death Note", "Strong female protagonists", "Anti-heroes with complex morals"];
+      case "trope": return ["Time loop stories done right", "Found family but make it heartbreaking", "Tournament arcs that serve plot"];
+      case "art_style": return ["Retro 90s aesthetic like Cowboy Bebop", "Studio Ghibli-esque art", "Dark, gritty animation"];
+      case "hidden_gems": return ["Surprise me!", "Hidden gems from the 2000s", "Weird but wonderful anime"];
+      case "franchise": return ["How do I watch Fate series?", "Monogatari series order", "Gundam guide"];
+      default: return ["Suggest something to watch", "Similar to Your Name?", "Anime that'll make me cry"];
+    }
+  }, [aiMode]);
+
   useEffect(() => {
-    chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
+    }
   }, [chatHistory]);
 
   const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -86,10 +137,14 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
         default: // general
           return await getAnimeRecommendationAction({ prompt: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
       }
-  }, [aiMode, userProfileQuery, animeA, animeB, surpriseLevel, avoidPopular, getCharacterBasedRecommendationsAction, getTropeBasedRecommendationsAction, getArtStyleRecommendationsAction, getComparativeAnalysisAction, getHiddenGemRecommendationsAction, getFranchiseGuideAction, getAnimeRecommendationAction]);
+  }, [
+    aiMode, userProfileQuery, animeA, animeB, surpriseLevel, avoidPopular,
+    getCharacterBasedRecommendationsAction, getTropeBasedRecommendationsAction,
+    getArtStyleRecommendationsAction, getComparativeAnalysisAction,
+    getHiddenGemRecommendationsAction, getFranchiseGuideAction, getAnimeRecommendationAction
+  ]);
 
-
-  const handleSubmit = useCallback(async (e: FormEvent | string) => {
+ const handleSubmit = useCallback(async (e: FormEvent | string) => {
     if (e instanceof Object && typeof e.preventDefault === 'function') e.preventDefault();
 
     const currentPromptText = typeof e === 'string' ? e :
@@ -107,64 +162,129 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
     };
     setChatHistory((prev) => [...prev, newUserMessage]);
     setIsLoading(true);
-    setPrompt("");
+    if (typeof e !== 'string') {
+        setPrompt("");
+    }
 
     const aiMessageId = generateMessageId();
+    let responseToLog: Partial<ChatMessage> = { // For feedback logging
+        recommendations: undefined,
+        analysis: undefined,
+        guide: undefined,
+        rawAiText: undefined,
+    };
+
 
     try {
       const result = await executeAIAction(currentPromptText, aiMessageId);
-      let aiResponseMessage: ChatMessage;
+      let aiResponseMessage!: ChatMessage; // Definite assignment assertion, as all paths assign it
 
       if (result.error) {
         aiResponseMessage = { id: aiMessageId, type: "error", content: `Error: ${result.error.substring(0,150)}`, rawAiText: result.error, feedback: null, actionType: aiMode };
+        responseToLog.rawAiText = result.error;
         toast.error("AniMuse had trouble with that request.");
-      } else if ('analysis' in result && result.analysis) {
+      } else if (isAnalysisResult(result) && result.analysis) {
         aiResponseMessage = { id: aiMessageId, type: "analysis", content: "Here's the comparative analysis:", analysis: result.analysis, feedback: null, actionType: aiMode };
+        responseToLog.analysis = result.analysis;
+        responseToLog.rawAiText = JSON.stringify(result.analysis);
         toast.success("Analysis complete!");
-      } else if ('guide' in result && result.guide) {
+      } else if (isGuideResult(result) && result.guide) {
         aiResponseMessage = { id: aiMessageId, type: "guide", content: `Your guide to ${result.guide.franchiseName || 'the franchise'}:`, guide: result.guide, feedback: null, actionType: aiMode };
+        responseToLog.guide = result.guide;
+        responseToLog.rawAiText = JSON.stringify(result.guide);
         toast.success("Franchise guide ready!");
-      } else if ('recommendations' in result && result.recommendations && result.recommendations.length > 0) {
+      } else if (isRecommendationResult(result) && result.recommendations && result.recommendations.length > 0) {
         const modeLabels: Record<AIMode, string> = { general: "recommendations", character: "character picks", trope: "plot/trope ideas", art_style: "visual suggestions", compare: "comparisons", hidden_gems: "hidden gems", franchise: "franchise guides" };
         aiResponseMessage = { id: aiMessageId, type: "ai", content: `Here are some ${modeLabels[aiMode] || "recommendations"}:`, recommendations: result.recommendations, rawAiResponse: result.recommendations, feedback: null, actionType: aiMode };
+        responseToLog.recommendations = result.recommendations;
+        // responseToLog.rawAiText = JSON.stringify(result.recommendations); // Or keep separate from structured data
         toast.success(`Found some ${modeLabels[aiMode] || "ideas"}!`);
-      } else {
-        const noRecContent = "I couldn't find specific matches. Try adjusting your criteria or switching modes!";
+      } else { // This branch handles cases where AI action was successful but returned no specific data (e.g. empty recommendations array)
+        const noRecContent = "I couldn't find specific matches for that request. Try adjusting your criteria or switching modes!";
         aiResponseMessage = { id: aiMessageId, type: "ai", content: noRecContent, rawAiText: noRecContent, feedback: null, actionType: aiMode };
+        responseToLog.rawAiText = noRecContent;
         toast.info("No matches found - try a different approach!");
       }
+      // This line should be fine now because aiResponseMessage is always assigned.
       setChatHistory((prev) => [...prev, aiResponseMessage]);
+
     } catch (error: any) {
       console.error("Failed to get AI response:", error);
       const errorContent = error.message || "Something went wrong on my end.";
-      const errorResponseMessage: ChatMessage = { id: aiMessageId, type: "error", content: errorContent.substring(0,150), rawAiText: errorContent, feedback: null, actionType: aiMode };
-      setChatHistory((prev) => [...prev, errorResponseMessage]);
+      const errorMsg: ChatMessage = { id: aiMessageId, type: "error", content: errorContent.substring(0,150), rawAiText: errorContent, feedback: null, actionType: aiMode };
+      responseToLog.rawAiText = errorContent;
+      setChatHistory((prev) => [...prev, errorMsg]);
       toast.error("An error occurred processing your request.");
     } finally {
       setIsLoading(false);
+      // Log feedback to Convex
+      try {
+        await storeAiFeedback({
+            prompt: currentPromptText,
+            aiAction: aiMode,
+            aiResponseRecommendations: responseToLog.recommendations,
+            aiResponseText: responseToLog.rawAiText,
+            feedbackType: "none",
+            messageId: aiMessageId, // Use aiMessageId which is the ID of the AI's response
+        });
+      } catch (feedbackError) {
+          console.error("Failed to store AI feedback:", feedbackError);
+      }
     }
-  }, [prompt, aiMode, animeA, animeB, executeAIAction]);
+  }, [prompt, aiMode, animeA, animeB, executeAIAction, storeAiFeedback]);
 
-  const getModeExamples = useCallback((): string[] => {
-    switch (aiMode) {
-      case "character": return ["Characters like L from Death Note", "Strong female protagonists", "Anti-heroes with complex morals"];
-      case "trope": return ["Time loop stories done right", "Found family but make it heartbreaking", "Tournament arcs that serve plot"];
-      case "art_style": return ["Retro 90s aesthetic like Cowboy Bebop", "Studio Ghibli-esque art", "Dark, gritty animation"];
-      case "hidden_gems": return ["Surprise me!", "Hidden gems from the 2000s", "Weird but wonderful anime"];
-      case "franchise": return ["How do I watch Fate series?", "Monogatari series order", "Gundam guide"];
-      default: return ["Suggest something to watch", "Similar to Your Name?", "Anime that'll make me cry"];
+
+  const handleFeedback = async (messageId: string, feedbackScore: "up" | "down") => {
+    setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: feedbackScore } : msg));
+    const message = chatHistory.find(msg => msg.id === messageId);
+
+    if(message && (message.type === "ai" || message.type === "analysis" || message.type === "guide" || message.type === "error")) {
+        // Determine the user prompt that led to this AI message
+        let relatedUserPrompt = "N/A";
+        const messageIndex = chatHistory.findIndex(m => m.id === messageId);
+        if (messageIndex > 0) {
+            for (let i = messageIndex - 1; i >= 0; i--) {
+                if (chatHistory[i].type === "user") {
+                    relatedUserPrompt = chatHistory[i].content;
+                    break;
+                }
+            }
+        }
+
+        try {
+            await storeAiFeedback({
+                prompt: relatedUserPrompt, // The user prompt
+                aiAction: message.actionType || aiMode, // The AI mode/action used
+                // For recommendations, analysis, guide, provide the structured data if available
+                aiResponseRecommendations: message.recommendations, // This is correct if message is ChatMessage
+                // For aiResponseText, provide any raw text or stringified structured data
+                aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || message.content,
+                feedbackType: feedbackScore,
+                messageId: message.id, // The ID of the AI's message that received feedback
+            });
+            toast.success("Thanks for your feedback!");
+        } catch (error) {
+            console.error("Error storing feedback:", error);
+            // Revert optimistic UI update for feedback if API call fails
+            setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: null } : msg));
+            toast.error("Could not save feedback at this time.");
+        }
     }
-  }, [aiMode]);
+  };
+
 
   const renderModeSelector = () => (
     <div className="mb-3 p-3 bg-brand-background/10 rounded-lg">
       <h3 className="text-xs font-heading text-brand-accent-gold mb-1.5">AI Mode:</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
         {[
-          { id: "general", label: "🎯 General" }, { id: "character", label: "👤 Character" },
-          { id: "trope", label: "📖 Plot/Trope" }, { id: "art_style", label: "🎨 Art Style" },
-          { id: "compare", label: "⚖️ Compare" }, { id: "hidden_gems", label: "💎 Hidden Gems" },
-          { id: "franchise", label: "📚 Franchise" },
+          { id: "general", label: "🎯 General", desc: "Standard recommendations" },
+          { id: "character", label: "👤 Character", desc: "Character-focused finds" },
+          { id: "trope", label: "📖 Plot/Trope", desc: "Story structure based" },
+          { id: "art_style", label: "🎨 Art Style", desc: "Visual aesthetics focused" },
+          { id: "compare", label: "⚖️ Compare", desc: "Analyze two anime" },
+          { id: "hidden_gems", label: "💎 Hidden Gems", desc: "Surprise discoveries" },
+          { id: "franchise", label: "📚 Franchise", desc: "Series watch guides" },
         ].map((mode) => (
           <StyledButton
             key={mode.id}
@@ -172,6 +292,7 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
             variant={aiMode === mode.id ? "primary_small" : "secondary_small"}
             selected={aiMode === mode.id}
             className={`w-full !text-[10px] sm:!text-xs !py-1.5 !px-1 sm:!px-2 ${aiMode !== mode.id ? '!border-brand-accent-peach/50 !text-brand-text-primary/80 hover:!bg-brand-accent-peach/20' : ''}`}
+            title={mode.desc}
           >
             {mode.label}
           </StyledButton>
@@ -212,9 +333,9 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
   const renderAnalysisResult = (analysis: any) => (
     <div className="mt-2 space-y-1.5 text-xs leading-normal">
       {(Object.keys(analysis) as Array<keyof typeof analysis>).map(key_ => {
-        const key = String(key_); // Ensure key is a string for React key and .replace
+        const key = String(key_);
         return analysis[key] && typeof analysis[key] === 'string' && (
-          <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded">
+          <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded"> {/* Light background for analysis sections */}
             <h4 className="font-heading text-brand-accent-gold font-semibold capitalize text-[11px] mb-0.5">{key.replace(/([A-Z]|\d+)/g, ' $1').trim()}:</h4>
             <p className="text-brand-text-primary/90 whitespace-pre-wrap">{analysis[key]}</p>
           </div>
@@ -239,7 +360,7 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
         <div>
           <h4 className="font-heading text-brand-accent-gold font-semibold my-1 text-[11px]">Recommended Order:</h4>
           {guide.recommendedOrder.map((item: any, idx: number) => (
-            <div key={idx} className="p-1 my-0.5 bg-brand-accent-peach/10 rounded">
+            <div key={idx} className="p-1 my-0.5 bg-brand-accent-peach/10 rounded"> {/* Slightly lighter for individual items */}
               <p className="font-semibold text-brand-primary-action/90 text-[11px]">{idx + 1}. {item.title} <span className="text-[10px] opacity-70">({item.type}, {item.year})</span></p>
               <p className="text-[10px] opacity-80">{item.description}</p>
               <p className="text-[9px] opacity-70 mt-0.5">Importance: {item.importance} | Access: {item.accessibilityRating}/5</p>
@@ -280,17 +401,58 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
           <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] sm:max-w-[80%] p-2 sm:p-2.5 rounded-lg shadow-sm text-xs sm:text-sm ${
               msg.type === "user" ? "bg-brand-primary-action text-brand-surface rounded-br-none" :
-              msg.type === "error" ? "bg-red-500/10 text-red-700 border border-red-500/20 rounded-bl-none" : // Adjusted error color
+              msg.type === "error" ? "bg-red-500/10 text-red-700 border border-red-500/20 rounded-bl-none" :
               "bg-brand-surface text-brand-text-primary border border-brand-accent-peach/30 rounded-bl-none"
             }`}>
               <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               {msg.type === "analysis" && msg.analysis && renderAnalysisResult(msg.analysis)}
               {msg.type === "guide" && msg.guide && renderFranchiseGuide(msg.guide)}
               {msg.type === "ai" && msg.recommendations && msg.recommendations.length > 0 && (
-                <div className="mt-1.5 space-y-1.5">
+                <div className="mt-2 space-y-2.5">
                   {msg.recommendations.map((animeRec, idx) => (
-                    <AnimeCard key={`${msg.id}-rec-${idx}`} anime={animeRec} variant="compact" onViewDetails={(id) => navigateToDetail(id as Id<"anime">)} />
+                    <div key={`${msg.id}-rec-${idx}`} className="p-2 bg-brand-accent-peach/10 rounded-md border border-brand-accent-peach/20">
+                      <AnimeCard
+                          anime={animeRec}
+                          variant="compact"
+                          onViewDetails={(id) => navigateToDetail(id as Id<"anime">)}
+                      />
+                      <div className="mt-1.5 pt-1.5 border-t border-brand-accent-peach/30 text-brand-text-primary">
+                        <h4 className="font-heading text-sm text-brand-primary-action font-semibold">{animeRec.title}</h4>
+                        {animeRec.year && <p className="text-[10px] text-brand-text-primary/70 mb-0.5">{animeRec.year}</p>}
+                        {animeRec.description && <p className="text-xs text-brand-text-primary/85 my-1 leading-snug line-clamp-3">{animeRec.description}</p>}
+                        {animeRec.reasoning && <p className="text-xs italic text-brand-accent-gold my-1 leading-snug">💡 {animeRec.reasoning}</p>}
+                        {animeRec.genres && animeRec.genres.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1 mb-1.5">
+                            {animeRec.genres.slice(0, 3).map(g => (
+                              <span key={g} className="text-[9px] bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-1.5 py-0.5 rounded-full">{g}</span>
+                            ))}
+                          </div>
+                        )}
+                        {animeRec.characterHighlights && animeRec.characterHighlights.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Chars:</span> {animeRec.characterHighlights.join(", ")}</p>}
+                        {animeRec.plotTropes && animeRec.plotTropes.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Tropes:</span> {animeRec.plotTropes.join(", ")}</p>}
+                        {animeRec.artStyleTags && animeRec.artStyleTags.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Art:</span> {animeRec.artStyleTags.join(", ")}</p>}
+                        {animeRec.surpriseFactors && animeRec.surpriseFactors.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Surprise:</span> {animeRec.surpriseFactors.join(", ")}</p>}
+                        <div className="mt-2 flex gap-1.5">
+                          <StyledButton
+                              onClick={() => { toast.info(`Add "${animeRec.title}" to watchlist (stub)`); }}
+                              variant="primary_small" className="!text-[10px] !px-1.5 !py-0.5"
+                              disabled={!isAuthenticated}
+                          > Add to Watchlist </StyledButton>
+                          {animeRec.trailerUrl && (
+                              <a href={animeRec.trailerUrl} target="_blank" rel="noopener noreferrer">
+                                  <StyledButton variant="secondary_small" className="!text-[10px] !px-1.5 !py-0.5"> Trailer </StyledButton>
+                              </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
+                </div>
+              )}
+              {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && ( // Allow feedback on error messages too
+                <div className="mt-2 flex justify-end gap-1">
+                  <StyledButton onClick={() => handleFeedback(msg.id, "up")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "up" ? "!text-brand-primary-action !bg-brand-primary-action/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👍</StyledButton>
+                  <StyledButton onClick={() => handleFeedback(msg.id, "down")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "down" ? "!text-red-500 !bg-red-500/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👎</StyledButton>
                 </div>
               )}
             </div>
@@ -330,4 +492,5 @@ export default function EnhancedAIAssistantPage({ navigateToDetail }: EnhancedAI
       )}
     </div>
   );
-}
+};
+export default memo(EnhancedAIAssistantPageComponent);
