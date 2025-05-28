@@ -2,11 +2,11 @@
 import React from "react";
 import StyledButton from "../shared/StyledButton";
 
-const GENRES_FOR_DISLIKE = ["Shonen", "Shojo", "Seinen", "Josei", "Slice of Life", "Mecha", "Isekai", "Fantasy", "Sci-Fi", "Romance", "Comedy", "Horror", "Mystery", "Ecchi", "Harem"];
+// Using the same expanded genre list, or a slightly modified one if needed for dislikes
+const GENRES_FOR_DISLIKE = ["Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Harem", "Horror", "Isekai", "Josei", "Mecha", "Mystery", "Psychological", "Romance", "Sci-Fi", "Seinen", "Shojo", "Shonen", "Slice of Life", "Sports", "Supernatural", "Thriller"];
 
 interface DislikedStepProps {
-  // Assuming dislikedTags might be added to schema and onboarding data
-  data: { dislikedGenres: string[]; dislikedTags?: string[] }; 
+  data: { dislikedGenres: string[]; dislikedTags?: string[] };
   updateData: (data: { dislikedGenres: string[]; dislikedTags?: string[] }) => void;
 }
 
@@ -18,48 +18,28 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
     updateData({ ...data, dislikedGenres: newDislikedGenres });
   };
 
-  // Placeholder for disliked tags if you add it
-  // const handleDislikedTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
-  //   updateData({ ...data, dislikedTags: tags });
-  // };
-
   return (
-    <div>
-      <h3 className="text-xl font-orbitron text-neon-cyan mb-2 text-center">Any Genres to Avoid?</h3>
-      {/* PHASE 1: Added subtext for clarity */}
-      <p className="text-xs text-brand-text-secondary mb-4 text-center">
-        Telling us what you *don't* like is just as important! This helps AniMuse avoid showing you things you'd rather skip.
+    <div className="text-center">
+      <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-2">
+        Any Genres to Avoid?
+      </h3>
+      <p className="text-xs sm:text-sm text-brand-text-primary/70 mb-4 sm:mb-6">
+        Knowing what you *don't* like is just as important for filtering your recommendations.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 max-h-[200px] sm:max-h-[240px] overflow-y-auto pr-1">
         {GENRES_FOR_DISLIKE.map((genre) => (
           <StyledButton
             key={genre}
             onClick={() => toggleDislikedGenre(genre)}
+            selected={data.dislikedGenres.includes(genre)}
             variant={data.dislikedGenres.includes(genre) ? "primary_small" : "secondary_small"}
-            className="w-full"
+            className="w-full py-2 text-xs" // Smaller text
           >
             {genre}
           </StyledButton>
         ))}
       </div>
-      {/* Placeholder for disliked tags input
-      <div className="mt-4">
-        <label htmlFor="dislikedTags" className="block text-sm font-medium text-brand-text-secondary mb-1">
-            Specific Tags to Avoid (comma-separated, e.g., excessive gore, jump scares)
-        </label>
-        <input
-            type="text"
-            id="dislikedTags"
-            name="dislikedTags"
-            value={(data.dislikedTags || []).join(", ")}
-            onChange={handleDislikedTagsChange}
-            className="neumorphic-input w-full"
-            placeholder="e.g., time loops, isekai (if not already a genre)"
-        />
-        <p className="text-xs text-brand-text-secondary mt-1">Helps filter out specific elements you don't enjoy.</p>
-      </div>
-      */}
+      {/* Placeholder for disliked tags input - consider if this UI is needed or too complex for mobile onboarding */}
     </div>
   );
 }

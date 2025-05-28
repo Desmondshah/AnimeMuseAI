@@ -2,7 +2,7 @@
 import React from "react";
 import StyledButton from "../shared/StyledButton";
 
-const MOODS = ["Happy", "Sad", "Chill", "Dark", "Excited", "Nostalgic", "Thought-Provoking"];
+const MOODS = ["Happy", "Sad", "Chill", "Dark", "Excited", "Nostalgic", "Thought-Provoking", "Intense", "Mysterious"]; // Added more options
 
 interface MoodStepProps {
   data: { moods: string[] };
@@ -18,19 +18,22 @@ export default function MoodStep({ data, updateData }: MoodStepProps) {
   };
 
   return (
-    <div>
-      <h3 className="text-xl font-orbitron text-neon-cyan mb-2 text-center">What's your current vibe?</h3>
-      {/* PHASE 1: Added subtext for clarity */}
-      <p className="text-xs text-brand-text-secondary mb-4 text-center">
-        This helps AniMuse understand the kind of atmosphere or emotional tone you're looking for in an anime right now.
+    <div className="text-center">
+      <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-2">
+        What's your current vibe?
+      </h3>
+      <p className="text-xs sm:text-sm text-brand-text-primary/70 mb-4 sm:mb-6">
+        Select one or more moods. This helps AniMuse understand the emotional tone you're looking for.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-[200px] sm:max-h-[240px] overflow-y-auto pr-1">
         {MOODS.map((mood) => (
           <StyledButton
             key={mood}
             onClick={() => toggleMood(mood)}
-            variant={data.moods.includes(mood) ? "primary" : "secondary"}
-            className="w-full"
+            // Use the 'selected' prop for clear visual distinction
+            selected={data.moods.includes(mood)}
+            variant={data.moods.includes(mood) ? "primary_small" : "secondary_small"}
+            className="w-full py-2" // Ensure consistent padding
           >
             {mood}
           </StyledButton>

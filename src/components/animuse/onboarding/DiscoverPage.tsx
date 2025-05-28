@@ -1,49 +1,34 @@
-// src/components/animuse/onboarding/DiscoverPage.tsx - Optimized with useCallback
-import React, { useState, useEffect, useCallback } from "react";
+// src/components/animuse/onboarding/DiscoverPage.tsx
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
-import AnimeCard from "../AnimeCard"; // Assumed to be memoized
+import AnimeCard from "../AnimeCard"; // Already refactored
 import StyledButton from "../shared/StyledButton";
 
 interface FilterState {
   genres: string[];
   yearRange: { min?: number; max?: number };
-  ratingRange: { min?: number; max?: number }; // External API rating
-  userRatingRange: { min?: number; max?: number }; // AniMuse user average rating
-  minReviews?: number; // Minimum number of AniMuse user reviews
+  ratingRange: { min?: number; max?: number };
+  userRatingRange: { min?: number; max?: number };
+  minReviews?: number;
   studios: string[];
   themes: string[];
   emotionalTags: string[];
 }
 
 type SortOption =
-  | "newest"
-  | "oldest"
-  | "title_asc"
-  | "title_desc"
-  | "year_desc"
-  | "year_asc"
-  | "rating_desc"
-  | "rating_asc"
-  | "user_rating_desc"
-  | "user_rating_asc"
-  | "most_reviewed"
-  | "least_reviewed";
+  | "newest" | "oldest" | "title_asc" | "title_desc" | "year_desc" | "year_asc"
+  | "rating_desc" | "rating_asc" | "user_rating_desc" | "user_rating_asc"
+  | "most_reviewed" | "least_reviewed";
 
 const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "Newest First (Added)" },
-  { value: "oldest", label: "Oldest First (Added)" },
-  { value: "title_asc", label: "Title A-Z" },
-  { value: "title_desc", label: "Title Z-A" },
-  { value: "year_desc", label: "Year (Newest)" },
-  { value: "year_asc", label: "Year (Oldest)" },
-  { value: "rating_desc", label: "Rating (High to Low)" },
-  { value: "rating_asc", label: "Rating (Low to High)" },
-  { value: "user_rating_desc", label: "User Rating (High to Low)" },
-  { value: "user_rating_asc", label: "User Rating (Low to High)" },
-  { value: "most_reviewed", label: "Most Reviewed" },
-  { value: "least_reviewed", label: "Least Reviewed" },
+  { value: "newest", label: "Newest Added" }, { value: "oldest", label: "Oldest Added" },
+  { value: "title_asc", label: "Title A-Z" }, { value: "title_desc", label: "Title Z-A" },
+  { value: "year_desc", label: "Release Year (Newest)" }, { value: "year_asc", label: "Release Year (Oldest)" },
+  { value: "rating_desc", label: "External Rating (High-Low)" }, { value: "rating_asc", label: "External Rating (Low-High)" },
+  { value: "user_rating_desc", label: "User Rating (High-Low)" }, { value: "user_rating_asc", label: "User Rating (Low-High)" },
+  { value: "most_reviewed", label: "Most Reviewed" }, { value: "least_reviewed", label: "Least Reviewed" },
 ];
 
 interface DiscoverPageProps {
@@ -51,21 +36,27 @@ interface DiscoverPageProps {
   onBack?: () => void;
 }
 
-export default function DiscoverPage({
-  onViewDetails: onViewDetailsProp, // Renaming to clarify it's a prop
-  onBack,
-}: DiscoverPageProps) {
+const DiscoverLoadingSpinner: React.FC<{ message?: string }> = ({ message = "Loading anime..." }) => (
+  <div className="flex flex-col justify-center items-center h-64 py-10 text-brand-text-primary/80"> {/* Adjusted for light background page */}
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
+    <p className="mt-3 text-sm">{message}</p>
+  </div>
+);
+
+const FilterPanelSection: React.FC<{title: string; children: React.ReactNode}> = ({title, children}) => (
+    <div className="py-2.5 sm:py-3 border-b border-brand-accent-peach/20 last:border-b-0">
+        <h4 className="text-xs sm:text-sm font-semibold text-brand-text-primary/90 mb-1.5">{title}</h4>
+        {children}
+    </div>
+);
+
+
+export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProps) {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    genres: [],
-    yearRange: {},
-    ratingRange: {},
-    userRatingRange: {},
-    minReviews: undefined,
-    studios: [],
-    themes: [],
-    emotionalTags: [],
+    genres: [], yearRange: {}, ratingRange: {}, userRatingRange: {},
+    minReviews: undefined, studios: [], themes: [], emotionalTags: [],
   });
 
   const filterOptions = useQuery(api.anime.getFilterOptions);
@@ -78,417 +69,170 @@ export default function DiscoverPage({
   } = usePaginatedQuery(
     api.anime.getFilteredAnime,
     {
-      filters: Object.values(filters).some((value) => {
+      filters: Object.values(filters).some(value => {
         if (Array.isArray(value)) return value.length > 0;
-        if (typeof value === "object" && value !== null)
-          return Object.values(value).some((v) => v !== undefined);
+        if (typeof value === "object" && value !== null) return Object.values(value).some(v => v !== undefined);
         return value !== undefined;
-      })
-        ? filters
-        : undefined,
+      }) ? filters : undefined,
       sortBy,
     },
-    { initialNumItems: 12 }
+    { initialNumItems: 10 }
   );
 
-  const updateFilter = useCallback(
-    <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-      setFilters((prev) => ({ ...prev, [key]: value }));
-    },
-    []
-  ); // No dependencies as setFilters from useState is stable
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const handleResize = (e: MediaQueryListEvent) => setShowFilters(e.matches);
+    setShowFilters(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
-  const toggleArrayFilter = useCallback(
-    (
-      key: keyof Pick<
-        FilterState,
-        "genres" | "studios" | "themes" | "emotionalTags"
-      >,
-      value: string
-    ) => {
-      setFilters((prev) => ({
-        ...prev,
-        [key]: prev[key].includes(value)
-          ? prev[key].filter((item) => item !== value)
-          : [...prev[key], value],
-      }));
-    },
-    []
-  ); // No dependencies as setFilters from useState is stable
+  const updateFilter = useCallback(<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const toggleArrayFilter = useCallback((key: keyof Pick<FilterState, "genres" | "studios" | "themes" | "emotionalTags">, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter(item => item !== value)
+        : [...prev[key], value],
+    }));
+  }, []);
 
   const clearFilters = useCallback(() => {
     setFilters({
-      genres: [],
-      yearRange: {},
-      ratingRange: {},
-      userRatingRange: {},
-      minReviews: undefined,
-      studios: [],
-      themes: [],
-      emotionalTags: [],
+      genres: [], yearRange: {}, ratingRange: {}, userRatingRange: {},
+      minReviews: undefined, studios: [], themes: [], emotionalTags: [],
     });
-    // Optionally reset sortBy as well if desired
-    // setSortBy("newest");
-  }, []); // No dependencies as setFilters from useState is stable
+  }, []);
 
   const activeFilterCount = Object.values(filters).reduce((acc, value) => {
     if (Array.isArray(value)) return acc + value.length;
-    if (typeof value === "object" && value !== null)
-      return acc + Object.values(value).filter((v) => v !== undefined).length;
+    if (typeof value === "object" && value !== null) return acc + Object.values(value).filter(v => v !== undefined).length;
     if (value !== undefined) return acc + 1;
     return acc;
   }, 0);
   const hasActiveFilters = activeFilterCount > 0;
 
+  const filterInputClass = "form-input !text-xs !py-1.5 !px-2 w-full";
+  const filterLabelClass = "block text-xs font-medium text-brand-text-primary/70 mb-0.5";
+
   return (
-    <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-orbitron text-electric-blue">
-          Discover Anime
-        </h2>
+    <div className="p-3 sm:p-4 md:p-0 text-brand-text-primary"> {/* Page is on brand-surface, text primary is dark brown. No extra card needed if MainApp provides one. If standalone, add card classes. */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-5 gap-2">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-heading text-brand-primary-action">Discover Anime</h2>
         {onBack && (
-          <StyledButton onClick={onBack} variant="secondary_small">
-            &larr; Dashboard
+          <StyledButton onClick={onBack} variant="ghost" className="text-sm text-brand-accent-gold hover:text-brand-primary-action self-start sm:self-center">
+            ← Dashboard
           </StyledButton>
         )}
       </div>
 
-      {/* Controls */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30">
         <div className="flex flex-wrap gap-2 items-center">
           <StyledButton
             onClick={() => setShowFilters(!showFilters)}
             variant={showFilters ? "primary_small" : "secondary_small"}
+            className="!text-xs sm:!text-sm"
+            aria-expanded={showFilters}
+            aria-controls="filter-panel"
           >
-            {showFilters ? "Hide Filters" : "Show Filters"}
-            {hasActiveFilters && (
-              <span className="ml-1 text-xs">({activeFilterCount})</span>
-            )}
+            {showFilters ? "Hide Filters" : "Filters"} {/* Simpler text */}
+            {hasActiveFilters && (<span className="ml-1.5 inline-block bg-brand-primary-action text-brand-surface text-[10px] font-bold px-1.5 py-0.5 rounded-full">{activeFilterCount}</span>)}
           </StyledButton>
-
-          {hasActiveFilters && (
-            <StyledButton
-              onClick={clearFilters}
-              variant="secondary_small"
-              className="text-xs"
-            >
-              Clear All
-            </StyledButton>
+          {hasActiveFilters && showFilters && ( // Show Clear All only if filters are visible and active
+            <StyledButton onClick={clearFilters} variant="ghost" className="!text-xs sm:!text-sm text-brand-accent-gold hover:!text-brand-primary-action">Clear All</StyledButton>
           )}
         </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-brand-text-secondary">Sort by:</label>
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          <label htmlFor="discoverSort" className="text-xs sm:text-sm text-brand-text-primary/80">Sort by:</label>
           <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="neumorphic-input text-sm"
+            id="discoverSort" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="form-input !text-xs sm:!text-sm !py-1.5 !px-2 w-auto rounded-md"
           >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            {sortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && filterOptions && (
-        <div className="neumorphic-card mb-6 p-4 space-y-6">
-          <h3 className="text-lg font-orbitron text-sakura-pink">Filters</h3>
-
-          {/* Genre Filter */}
-          {filterOptions.genres && filterOptions.genres.length > 0 && (
-            <div>
-              <h4 className="text-md text-neon-cyan mb-2">Genres</h4>
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
-                {filterOptions.genres.map((genre) => (
-                  <StyledButton
-                    key={genre}
-                    onClick={() => toggleArrayFilter("genres", genre)}
-                    variant={
-                      filters.genres.includes(genre)
-                        ? "primary_small"
-                        : "secondary_small"
-                    }
-                    className="text-xs"
-                  >
-                    {genre}
-                  </StyledButton>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Year Range Filter */}
-          {filterOptions.yearRange && (
-            <div>
-              <h4 className="text-md text-neon-cyan mb-2">Year Range</h4>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">
-                    Min Year:
-                  </label>
-                  <input
-                    type="number"
-                    min={filterOptions.yearRange.min}
-                    max={filterOptions.yearRange.max}
-                    value={filters.yearRange.min || ""}
-                    onChange={(e) =>
-                      updateFilter("yearRange", {
-                        ...filters.yearRange,
-                        min: e.target.value
-                          ? parseInt(e.target.value)
-                          : undefined,
-                      })
-                    }
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={String(filterOptions.yearRange.min)}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">
-                    Max Year:
-                  </label>
-                  <input
-                    type="number"
-                    min={filterOptions.yearRange.min}
-                    max={filterOptions.yearRange.max}
-                    value={filters.yearRange.max || ""}
-                    onChange={(e) =>
-                      updateFilter("yearRange", {
-                        ...filters.yearRange,
-                        max: e.target.value
-                          ? parseInt(e.target.value)
-                          : undefined,
-                      })
-                    }
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={String(filterOptions.yearRange.max)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* External Rating Filter */}
-          {filterOptions.ratingRange && (
-             <div>
-              <h4 className="text-md text-neon-cyan mb-2">External Rating (1-10)</h4>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">Min:</label>
-                  <input
-                    type="number"
-                    min={filterOptions.ratingRange.min}
-                    max={filterOptions.ratingRange.max}
-                    step="0.1"
-                    value={filters.ratingRange.min || ''}
-                    onChange={(e) => updateFilter('ratingRange', { ...filters.ratingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={filterOptions.ratingRange.min.toFixed(1)}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">Max:</label>
-                  <input
-                    type="number"
-                    min={filterOptions.ratingRange.min}
-                    max={filterOptions.ratingRange.max}
-                    step="0.1"
-                    value={filters.ratingRange.max || ''}
-                    onChange={(e) => updateFilter('ratingRange', { ...filters.ratingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={filterOptions.ratingRange.max.toFixed(1)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* User Rating Filter */}
-           {filterOptions.userRatingRange && (
-            <div>
-              <h4 className="text-md text-neon-cyan mb-2">AniMuse User Rating (1-5)</h4>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                 <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">Min:</label>
-                  <input
-                    type="number"
-                    min={filterOptions.userRatingRange.min}
-                    max={filterOptions.userRatingRange.max}
-                    step="0.1"
-                    value={filters.userRatingRange.min || ''}
-                    onChange={(e) => updateFilter('userRatingRange', { ...filters.userRatingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={filterOptions.userRatingRange.min.toFixed(1)}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-brand-text-secondary block mb-1">Max:</label>
-                  <input
-                    type="number"
-                    min={filterOptions.userRatingRange.min}
-                    max={filterOptions.userRatingRange.max}
-                    step="0.1"
-                    value={filters.userRatingRange.max || ''}
-                    onChange={(e) => updateFilter('userRatingRange', { ...filters.userRatingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    className="neumorphic-input w-full sm:w-24 text-sm"
-                    placeholder={filterOptions.userRatingRange.max.toFixed(1)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Minimum Reviews Filter */}
-          <div>
-            <h4 className="text-md text-neon-cyan mb-2">Minimum AniMuse Reviews</h4>
-            <input
-              type="number"
-              min="0"
-              value={filters.minReviews || ""}
-              onChange={(e) =>
-                updateFilter(
-                  "minReviews",
-                  e.target.value ? parseInt(e.target.value) : undefined
-                )
-              }
-              className="neumorphic-input w-full sm:w-28 text-sm"
-              placeholder="e.g., 5"
-            />
+      {showFilters && (
+        <div id="filter-panel" className="mb-5 bg-brand-surface rounded-lg shadow-lg p-3 sm:p-4 border border-brand-accent-peach/30">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-base sm:text-lg font-heading text-brand-accent-gold">Filter Options</h3>
+            {hasActiveFilters && (
+                 <StyledButton onClick={clearFilters} variant="ghost" className="!text-xs !text-brand-accent-gold hover:!text-brand-primary-action sm:hidden">Clear All</StyledButton>
+            )}
           </div>
-
-          {/* Studios Filter */}
-          {filterOptions.studios && filterOptions.studios.length > 0 && (
-            <div>
-              <h4 className="text-md text-neon-cyan mb-2">Studios</h4>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                {filterOptions.studios.slice(0, 20).map((studio) => (
-                  <StyledButton
-                    key={studio}
-                    onClick={() => toggleArrayFilter("studios", studio)}
-                    variant={
-                      filters.studios.includes(studio)
-                        ? "primary_small"
-                        : "secondary_small"
-                    }
-                    className="text-xs"
-                  >
-                    {studio}
-                  </StyledButton>
-                ))}
-                {filterOptions.studios.length > 20 && (
-                  <span className="text-xs text-brand-text-secondary self-center">
-                    ... and {filterOptions.studios.length - 20} more
-                  </span>
+          {!filterOptions && <p className="text-xs text-brand-text-primary/70 py-4 text-center">Loading filter options...</p>}
+          {filterOptions && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3 sm:gap-x-4">
+              {filterOptions.genres && filterOptions.genres.length > 0 && (
+                <FilterPanelSection title="Genres">
+                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                    {filterOptions.genres.map(genre => (
+                      <StyledButton key={genre} onClick={() => toggleArrayFilter("genres", genre)} selected={filters.genres.includes(genre)} variant={filters.genres.includes(genre) ? "primary_small" : "secondary_small"} className="!text-[10px] !px-1.5 !py-0.5">{genre}</StyledButton>
+                    ))}
+                  </div>
+                </FilterPanelSection>
+              )}
+              {filterOptions.yearRange && (
+                <FilterPanelSection title="Release Year">
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.min || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, min: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.yearRange.min}`} aria-label="Minimum Year"/>
+                    <span className="text-brand-text-primary/70 text-xs">-</span>
+                    <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.max || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, max: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.yearRange.max}`} aria-label="Maximum Year"/>
+                  </div>
+                </FilterPanelSection>
+              )}
+               {filterOptions.ratingRange && (
+                    <FilterPanelSection title="External Rating (0-10)">
+                         <div className="flex items-center gap-2">
+                            <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.min || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.ratingRange.min?.toFixed(1)}`} aria-label="Minimum External Rating"/>
+                            <span className="text-brand-text-primary/70 text-xs">-</span>
+                            <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.max || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.ratingRange.max?.toFixed(1)}`} aria-label="Maximum External Rating"/>
+                        </div>
+                    </FilterPanelSection>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Themes Filter */}
-          {filterOptions.themes && filterOptions.themes.length > 0 && (
-             <div>
-              <h4 className="text-md text-neon-cyan mb-2">Themes</h4>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                {filterOptions.themes.slice(0, 15).map(theme => (
-                  <StyledButton
-                    key={theme}
-                    onClick={() => toggleArrayFilter('themes', theme)}
-                    variant={filters.themes.includes(theme) ? "primary_small" : "secondary_small"}
-                    className="text-xs"
-                  >
-                    {theme}
-                  </StyledButton>
-                ))}
-                {filterOptions.themes.length > 15 && (
-                  <span className="text-xs text-brand-text-secondary self-center">
-                    ... and {filterOptions.themes.length - 15} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Emotional Tags Filter */}
-          {filterOptions.emotionalTags && filterOptions.emotionalTags.length > 0 && (
-            <div>
-              <h4 className="text-md text-neon-cyan mb-2">Emotional Tags</h4>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                {filterOptions.emotionalTags.slice(0, 15).map(tag => (
-                  <StyledButton
-                    key={tag}
-                    onClick={() => toggleArrayFilter('emotionalTags', tag)}
-                    variant={filters.emotionalTags.includes(tag) ? "primary_small" : "secondary_small"}
-                    className="text-xs"
-                  >
-                    {tag}
-                  </StyledButton>
-                ))}
-                {filterOptions.emotionalTags.length > 15 && (
-                  <span className="text-xs text-brand-text-secondary self-center">
-                    ... and {filterOptions.emotionalTags.length - 15} more
-                  </span>
-                )}
-              </div>
+                <FilterPanelSection title="Min User Reviews">
+                     <input type="number" min="0" value={filters.minReviews || ""} onChange={e => updateFilter("minReviews", e.target.value ? parseInt(e.target.value) : undefined)} className={`${filterInputClass} w-full sm:w-28`} placeholder="e.g., 5"/>
+                </FilterPanelSection>
+                {/* Add Studios, Themes, Emotional Tags similarly if data exists in filterOptions */}
             </div>
           )}
         </div>
       )}
 
-      {/* Results */}
-      {status === "LoadingFirstPage" && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-          <p className="ml-3 text-brand-text-secondary">Loading anime...</p>
-        </div>
-      )}
-
+      {isLoading && status === "LoadingFirstPage" && <DiscoverLoadingSpinner />}
       {animeList && animeList.length > 0 ? (
         <>
-          <div className="mb-4 text-sm text-brand-text-secondary">
-            Found {animeList.length}
-            {status === "CanLoadMore" ? "+" : ""} anime
-            {hasActiveFilters && " matching your filters"}
+          <div className="mb-2.5 text-xs sm:text-sm text-brand-text-primary/80">
+            Showing {animeList.length}{status === "CanLoadMore" ? "+" : ""} anime
+            {hasActiveFilters && " (filtered)"}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {animeList.map((anime) => (
-              <AnimeCard
-                key={anime._id}
-                anime={anime as Doc<"anime">}
-                onViewDetails={onViewDetailsProp} // Pass the memoized prop from MainApp
-              />
+          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
+            {animeList.map(anime => (
+              <AnimeCard key={anime._id} anime={anime as Doc<"anime">} onViewDetails={onViewDetails} variant="default"/>
             ))}
           </div>
           {status === "CanLoadMore" && (
-            <div className="mt-8 text-center">
-              <StyledButton onClick={() => loadMore(12)} disabled={isLoading}>
-                {isLoading ? "Loading..." : "Load More Anime"}
+            <div className="mt-5 sm:mt-6 text-center">
+              <StyledButton onClick={() => loadMore(10)} disabled={isLoading && status === "LoadingMore"} variant="primary">
+                {isLoading && status === "LoadingMore" ? "Loading..." : "Load More"}
               </StyledButton>
             </div>
           )}
           {status === "Exhausted" && animeList.length > 0 && (
-            <p className="text-center mt-8 text-brand-text-secondary">
-              You've reached the end of the filtered results!
-            </p>
+            <p className="text-center mt-5 sm:mt-6 text-xs sm:text-sm text-brand-text-primary/70">You've seen all results!</p>
           )}
         </>
       ) : (
         status !== "LoadingFirstPage" && (
-          <div className="text-center p-8 neumorphic-card">
-            <p className="text-brand-text-secondary text-lg mb-4">
-              {hasActiveFilters
-                ? "No anime found matching your filters."
-                : "No anime found in the database yet."}
+          <div className="text-center p-6 sm:p-8 bg-brand-accent-peach/10 rounded-lg mt-4">
+            <p className="text-brand-text-primary/80 text-sm sm:text-base mb-3">
+              {hasActiveFilters ? "No anime found for these filters." : "No anime in the database yet."}
             </p>
-            {hasActiveFilters && (
-              <StyledButton onClick={clearFilters} variant="primary">
-                Clear Filters
-              </StyledButton>
-            )}
+            {hasActiveFilters && <StyledButton onClick={clearFilters} variant="primary_small">Clear Filters</StyledButton>}
           </div>
         )
       )}

@@ -2,7 +2,7 @@
 import React from "react";
 import StyledButton from "../shared/StyledButton";
 
-const GENRES = ["Shonen", "Shojo", "Seinen", "Josei", "Slice of Life", "Mecha", "Isekai", "Fantasy", "Sci-Fi", "Romance", "Comedy", "Horror", "Mystery"];
+const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Isekai", "Josei", "Mecha", "Mystery", "Psychological", "Romance", "Sci-Fi", "Seinen", "Shojo", "Shonen", "Slice of Life", "Sports", "Supernatural", "Thriller"]; // Expanded list
 
 interface GenreStepProps {
   data: { genres: string[] };
@@ -17,19 +17,21 @@ export default function GenreStep({ data, updateData }: GenreStepProps) {
     updateData({ genres: newGenres });
   };
   return (
-    <div>
-      <h3 className="text-xl font-orbitron text-neon-cyan mb-2 text-center">Favorite Genres?</h3>
-      {/* PHASE 1: Added subtext for clarity */}
-      <p className="text-xs text-brand-text-secondary mb-4 text-center">
-        Let us know which types of stories you generally enjoy. This is a key part of personalizing your recommendations!
+    <div className="text-center">
+      <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-2">
+        Favorite Genres?
+      </h3>
+      <p className="text-xs sm:text-sm text-brand-text-primary/70 mb-4 sm:mb-6">
+        Pick your most-loved story types. This is key for spot-on recommendations!
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 max-h-[200px] sm:max-h-[240px] overflow-y-auto pr-1">
         {GENRES.map((genre) => (
           <StyledButton
             key={genre}
             onClick={() => toggleGenre(genre)}
-            variant={data.genres.includes(genre) ? "primary" : "secondary"}
-            className="w-full"
+            selected={data.genres.includes(genre)}
+            variant={data.genres.includes(genre) ? "primary_small" : "secondary_small"}
+            className="w-full py-2 text-xs" // Smaller text for more items
           >
             {genre}
           </StyledButton>

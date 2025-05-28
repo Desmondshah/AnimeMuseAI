@@ -1,36 +1,35 @@
-// src/components/admin/AnimeManagementPage.tsx
-import React, { useState, useCallback } from "react";
+// src/components/animuse/onboarding/AnimeManagementPage.tsx
+// (Assuming this is used as an Admin page, despite its original folder)
+import React, { useState, useCallback, memo } from "react";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
-import EditAnimeForm from "../../admin/EditAnimeForm"; // Assuming EditAnimeForm.tsx is in the same directory
+import EditAnimeForm from "../../admin/EditAnimeForm"; // This will be refactored next
 
-// This interface should match the one expected by adminEditAnime mutation's 'updates' arg
+// Themed Loading Spinner (can be shared if moved to a common admin utils)
+const AdminLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => (
+  <div className="flex flex-col justify-center items-center h-64 py-10 text-brand-text-primary/80">
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
+    {message && <p className="mt-3 text-sm">{message}</p>}
+  </div>
+));
+
 interface AnimeEditableFields {
-  title?: string;
-  description?: string;
-  posterUrl?: string;
-  genres?: string[];
-  year?: number;
-  rating?: number; // External rating
-  emotionalTags?: string[];
-  trailerUrl?: string;
-  studios?: string[];
-  themes?: string[];
+  title?: string; description?: string; posterUrl?: string; genres?: string[];
+  year?: number; rating?: number; emotionalTags?: string[];
+  trailerUrl?: string; studios?: string[]; themes?: string[];
 }
 
-const AnimeManagementPage: React.FC = () => {
+const AnimeManagementPageComponent: React.FC = () => {
   const {
     results: animeList,
     status,
     loadMore,
-    isLoading: isLoadingList, // Renamed to avoid conflict with other loading states
+    isLoading: isLoadingList,
   } = usePaginatedQuery(
-    api.admin.getAllAnimeForAdmin,
-    {}, // Args for getAllAnimeForAdmin (paginationOpts handled by the hook)
-    { initialNumItems: 10 }
+    api.admin.getAllAnimeForAdmin, {}, { initialNumItems: 10 }
   );
 
   const deleteAnimeMutation = useMutation(api.admin.adminDeleteAnime);
@@ -41,15 +40,13 @@ const AnimeManagementPage: React.FC = () => {
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   const handleDeleteAnime = useCallback(async (animeId: Id<"anime">, animeTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${animeTitle}"? This action cannot be undone and will also remove related reviews and watchlist entries.`)) {
+    if (window.confirm(`PERMANENTLY DELETE "${animeTitle}" and all its reviews/watchlist entries? This cannot be undone.`)) {
       try {
         toast.loading(`Deleting ${animeTitle}...`, { id: `delete-anime-${animeId}` });
         await deleteAnimeMutation({ animeId });
-        toast.success(`"${animeTitle}" deleted successfully.`, { id: `delete-anime-${animeId}` });
-        // The list should update automatically due to Convex reactivity
+        toast.success(`"${animeTitle}" deleted.`, { id: `delete-anime-${animeId}` });
       } catch (error: any) {
-        toast.error(error.data?.message || error.message || `Failed to delete "${animeTitle}".`, { id: `delete-anime-${animeId}` });
-        console.error("Failed to delete anime:", error);
+        toast.error(error.data?.message || `Failed to delete "${animeTitle}".`, { id: `delete-anime-${animeId}` });
       }
     }
   }, [deleteAnimeMutation]);
@@ -72,100 +69,69 @@ const AnimeManagementPage: React.FC = () => {
     }
     setIsSavingEdit(true);
     try {
-      toast.loading("Saving changes...", { id: `edit-anime-${animeId}` });
+      toast.loading("Saving anime changes...", { id: `edit-anime-${animeId}` });
       await editAnimeMutation({ animeId, updates });
       toast.success("Anime updated successfully!", { id: `edit-anime-${animeId}` });
       handleCloseEditModal();
     } catch (error: any) {
-      toast.error(error.data?.message || error.message || "Failed to update anime.", { id: `edit-anime-${animeId}` });
-      console.error("Failed to save anime changes:", error);
+      toast.error(error.data?.message || "Failed to update anime.", { id: `edit-anime-${animeId}` });
     } finally {
       setIsSavingEdit(false);
     }
   }, [editAnimeMutation, handleCloseEditModal]);
 
+  const placeholderPoster = (title: string) => `https://placehold.co/80x120/${'ECB091'.substring(1)}/${'321D0B'.substring(1)}/png?text=${encodeURIComponent(title.substring(0,3))}&font=poppins`;
 
-  if (isLoadingList && status === "LoadingFirstPage") {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-        <p className="ml-3 text-brand-text-secondary">Loading anime entries...</p>
-      </div>
-    );
+
+  if (isLoadingList && status === "LoadingFirstPage" && (!animeList || animeList.length === 0)) {
+    return <AdminLoadingSpinner message="Loading anime entries..." />;
+  }
+   if (animeList === null) {
+      return <p className="text-brand-text-primary/70 p-4 text-center">Could not load anime. Ensure you are an administrator.</p>;
   }
 
+
   return (
-    <div>
-      <h2 className="text-2xl font-orbitron text-neon-cyan mb-6">Anime Management</h2>
+    <div className="text-brand-text-primary">
+      <h2 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-3 sm:mb-4">Anime Database Management</h2>
       
       {isEditModalOpen && editingAnime && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="neumorphic-card bg-brand-surface p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-orbitron text-sakura-pink">Edit Anime: {editingAnime.title}</h3>
-                <button 
-                  onClick={handleCloseEditModal} 
-                  className="text-2xl text-brand-text-secondary hover:text-sakura-pink p-1 leading-none"
-                  aria-label="Close edit modal"
-                >
-                    &times;
-                </button>
+        // Modal Overlay and Panel
+        <div className="fixed inset-0 bg-brand-background/70 backdrop-blur-sm flex items-center justify-center z-[101] p-4"> {/* Higher z-index for modal */}
+          <div className="bg-brand-surface text-brand-text-primary p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar border border-brand-accent-peach/30">
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="text-base sm:text-lg font-heading text-brand-primary-action">Edit Anime: {editingAnime.title}</h3>
+                <button onClick={handleCloseEditModal} className="text-2xl text-brand-text-primary/70 hover:text-brand-primary-action p-1 leading-none focus:outline-none" aria-label="Close edit modal">&times;</button>
             </div>
-            <EditAnimeForm
-              anime={editingAnime}
-              onSave={handleSaveChanges}
-              onCancel={handleCloseEditModal}
-              isSaving={isSavingEdit}
-            />
+            <EditAnimeForm anime={editingAnime} onSave={handleSaveChanges} onCancel={handleCloseEditModal} isSaving={isSavingEdit} />
           </div>
         </div>
       )}
 
-      {(!animeList || animeList.length === 0) && !isLoadingList ? (
-        <p className="text-brand-text-secondary p-4">
-            {isLoadingList ? "Loading..." : "No anime entries found."}
-        </p>
+      {animeList.length === 0 && !isLoadingList ? (
+        <p className="text-brand-text-primary/70 text-center py-5">No anime entries found. Add some!</p>
       ) : (
-         <div className="overflow-x-auto neumorphic-card bg-brand-dark p-0 shadow-neumorphic-light-inset">
-          <table className="min-w-full divide-y divide-brand-surface">
-            <thead className="bg-brand-surface/50">
+         <div className="overflow-x-auto bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30">
+          <table className="min-w-full divide-y divide-brand-accent-peach/20">
+            <thead className="bg-brand-accent-peach/10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Poster</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Year</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Genres</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Actions</th>
+                {["Poster", "Title", "Year", "Genres", "Actions"].map(header => (
+                     <th key={header} className="px-3 py-2 sm:px-4 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold font-heading text-brand-primary-action/80 uppercase tracking-wider">{header}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-dark">
+            <tbody className="divide-y divide-brand-accent-peach/20">
               {animeList?.map((anime) => (
-                <tr key={anime._id} className="hover:bg-brand-surface/20 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <img 
-                        src={anime.posterUrl || `https://via.placeholder.com/50x75.png?text=${encodeURIComponent(anime.title)}`} 
-                        alt={anime.title} 
-                        className="w-12 h-[72px] object-cover rounded"
-                        onError={(e) => (e.currentTarget.src = `https://via.placeholder.com/50x75.png?text=Error`)}
-                    />
+                <tr key={anime._id} className="hover:bg-brand-accent-peach/10 transition-colors duration-150">
+                  <td className="px-3 py-1.5 sm:px-4 sm:py-2 whitespace-nowrap">
+                    <img src={anime.posterUrl || placeholderPoster(anime.title)} alt={anime.title} className="w-10 h-[60px] sm:w-12 sm:h-[72px] object-cover rounded-sm shadow-sm" onError={(e) => (e.currentTarget.src = placeholderPoster(anime.title))}/>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text font-semibold">{anime.title}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text-secondary">{anime.year || "N/A"}</td>
-                  <td className="px-4 py-3 text-sm text-brand-text-secondary max-w-xs truncate" title={anime.genres?.join(", ")}>{anime.genres?.join(", ") || "N/A"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
-                    <StyledButton
-                      onClick={() => handleOpenEditModal(anime)}
-                      variant="secondary_small"
-                      className="text-xs"
-                    >
-                      Edit
-                    </StyledButton>
-                    <StyledButton
-                      onClick={() => handleDeleteAnime(anime._id, anime.title)}
-                      variant="primary_small" 
-                      className="text-xs !bg-red-500 hover:!bg-red-700 focus:!ring-red-500" // More distinct delete button
-                    >
-                      Delete
-                    </StyledButton>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-xs sm:text-sm font-medium text-brand-text-primary">{anime.title}</td>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-xs sm:text-sm text-brand-text-primary/80">{anime.year || "N/A"}</td>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 text-xs text-brand-text-primary/70 max-w-[150px] sm:max-w-xs truncate" title={anime.genres?.join(", ")}>{anime.genres?.slice(0,3).join(", ") || "N/A"}{anime.genres && anime.genres.length > 3 ? "..." : ""}</td>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-xs space-x-1 sm:space-x-1.5">
+                    <StyledButton onClick={() => handleOpenEditModal(anime)} variant="secondary_small" className="!text-[10px] !py-1 !px-1.5">Edit</StyledButton>
+                    <StyledButton onClick={() => handleDeleteAnime(anime._id, anime.title)} variant="primary_small" className="!text-[10px] !py-1 !px-1.5 !bg-brand-primary-action/80 hover:!bg-brand-primary-action !text-brand-surface">Delete</StyledButton>
                   </td>
                 </tr>
               ))}
@@ -174,17 +140,17 @@ const AnimeManagementPage: React.FC = () => {
         </div>
       )}
       {status === "CanLoadMore" && (
-        <div className="mt-6 text-center">
-          <StyledButton onClick={() => loadMore(10)} disabled={isLoadingList} variant="primary">
-            {isLoadingList ? "Loading More..." : "Load More Anime"}
+        <div className="mt-4 sm:mt-5 text-center">
+          <StyledButton onClick={() => loadMore(10)} disabled={isLoadingList && status === "LoadingMore"} variant="secondary">
+            {isLoadingList && status === "LoadingMore" ? "Loading..." : "Load More Anime"}
           </StyledButton>
         </div>
       )}
        {status === "Exhausted" && animeList && animeList.length > 0 && (
-         <p className="mt-6 text-xs text-center text-brand-text-secondary">All anime entries loaded.</p>
+         <p className="mt-4 sm:mt-5 text-xs text-center text-brand-text-primary/60">All anime entries loaded.</p>
        )}
     </div>
   );
 };
 
-export default AnimeManagementPage;
+export default memo(AnimeManagementPageComponent);

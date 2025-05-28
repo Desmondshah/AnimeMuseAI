@@ -1,103 +1,101 @@
 // src/components/admin/ReviewModerationPage.tsx
-import React from "react";
+import React, { memo } from "react"; // Added memo
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Doc, Id } from "../../../convex/_generated/dataModel";
+import { Id } from "../../../convex/_generated/dataModel"; // Doc not directly used for props
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
 import { format } from 'date-fns';
 
-// For displaying review cards, we can reuse or adapt ReviewCard props/structure if helpful
-// For now, we'll display inline in a table.
+// Themed Loading Spinner for Admin Pages
+const AdminLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => (
+  <div className="flex flex-col justify-center items-center h-64 py-10 text-brand-text-primary/80">
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
+    {message && <p className="mt-3 text-sm">{message}</p>}
+  </div>
+));
 
-const ReviewModerationPage: React.FC = () => {
+// Themed Star Rating Display for tables
+const ThemedStarRatingDisplay: React.FC<{ rating: number; maxStars?: number }> = memo(({ rating, maxStars = 5 }) => (
+  <div className="flex items-center">
+    {[...Array(maxStars)].map((_, i) => (
+      <span key={i} className={`text-xs sm:text-sm ${i < Math.floor(rating) ? "text-brand-primary-action" : "text-brand-accent-peach"}`}>★</span>
+    ))}
+    <span className="ml-1 text-[10px] sm:text-xs text-brand-text-primary/70">({rating.toFixed(1)}/{maxStars})</span>
+  </div>
+));
+
+const ReviewModerationPageComponent: React.FC = () => {
   const {
     results: reviews,
     status,
     loadMore,
-    isLoading,
+    isLoading, // This captures both initial and subsequent loading for pagination
   } = usePaginatedQuery(
-    api.admin.getAllReviewsForAdmin, // Using the admin query
-    {}, // No specific args other than pagination for this query
+    api.admin.getAllReviewsForAdmin,
+    {},
     { initialNumItems: 10 }
   );
 
   const deleteReviewMutation = useMutation(api.admin.adminDeleteReview);
 
-  const handleDeleteReview = async (reviewId: Id<"reviews">) => {
-    if (window.confirm(`Are you sure you want to delete this review? This action cannot be undone.`)) {
+  const handleDeleteReview = async (reviewId: Id<"reviews">, reviewUser?: string) => {
+    const reviewIdentifier = reviewUser ? `review by ${reviewUser.substring(0,15)}...` : `review ${reviewId.substring(0,5)}...`;
+    if (window.confirm(`Are you sure you want to PERMANENTLY DELETE ${reviewIdentifier}? This action cannot be undone.`)) {
       try {
-        toast.loading(`Deleting review ${reviewId}...`, { id: `delete-review-${reviewId}` });
+        toast.loading(`Deleting ${reviewIdentifier}`, { id: `delete-review-${reviewId}` });
         await deleteReviewMutation({ reviewId });
-        toast.success(`Review ${reviewId} deleted successfully.`, { id: `delete-review-${reviewId}` });
-        // List should update due to Convex reactivity
+        toast.success(`${reviewIdentifier} deleted successfully.`, { id: `delete-review-${reviewId}` });
       } catch (error: any) {
-        toast.error(error.data?.message || error.message || `Failed to delete review ${reviewId}.`, { id: `delete-review-${reviewId}` });
+        toast.error(error.data?.message || error.message || `Failed to delete ${reviewIdentifier}.`, { id: `delete-review-${reviewId}` });
         console.error("Failed to delete review:", error);
       }
     }
   };
 
-  // Helper to render star ratings (can be extracted to a shared component)
-  const StarRatingDisplay: React.FC<{ rating: number; maxStars?: number }> = ({ rating, maxStars = 5 }) => (
-    <div className="flex">
-      {[...Array(maxStars)].map((_, i) => (
-        <span key={i} className={i < rating ? "text-yellow-400" : "text-gray-500"}>★</span>
-      ))}
-       <span className="ml-1 text-xs">({rating}/{maxStars})</span>
-    </div>
-  );
-
-
-  if (isLoading && status === "LoadingFirstPage") {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-        <p className="ml-3 text-brand-text-secondary">Loading reviews...</p>
-      </div>
-    );
+  if (isLoading && status === "LoadingFirstPage" && (!reviews || reviews.length === 0)) {
+    return <AdminLoadingSpinner message="Loading reviews for moderation..." />;
   }
-  
-  // Error handling note: getAllReviewsForAdmin throws on auth failure, which should be caught by an ErrorBoundary.
-  // If it returns null/empty on other "expected" failures, handle animeList being null/empty.
+
+  if (reviews === null) { // Explicit null check for critical errors like auth
+      return <p className="text-brand-text-primary/70 p-4 text-center">Could not load reviews. Ensure you are an administrator.</p>;
+  }
 
   return (
-    <div>
-      <h2 className="text-2xl font-orbitron text-neon-cyan mb-6">Review Moderation</h2>
-      {(!reviews || reviews.length === 0) && !isLoading ? (
-        <p className="text-brand-text-secondary p-4">No reviews found.</p>
+    // Page content within AdminDashboardPage's themed content area
+    <div className="text-brand-text-primary">
+      <h2 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-3 sm:mb-4">Review Moderation</h2>
+      {reviews.length === 0 && !isLoading ? (
+        <p className="text-brand-text-primary/70 text-center py-5">No reviews found in the system.</p>
       ) : (
-        <div className="overflow-x-auto neumorphic-card bg-brand-dark p-0 shadow-neumorphic-light-inset">
-          <table className="min-w-full divide-y divide-brand-surface">
-            <thead className="bg-brand-surface/50">
+        <div className="overflow-x-auto bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30">
+          <table className="min-w-full divide-y divide-brand-accent-peach/20">
+            <thead className="bg-brand-accent-peach/10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Anime ID</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">User ID</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Review Text</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Created At</th>
-                <th className="px-4 py-3 text-left text-xs font-orbitron text-sakura-pink uppercase tracking-wider">Actions</th>
+                {["Anime ID", "User ID", "Rating", "Review (Excerpt)", "Created At", "Actions"].map(header => (
+                    <th key={header} className="px-3 py-2 sm:px-4 sm:py-2.5 text-left text-[10px] sm:text-xs font-semibold font-heading text-brand-primary-action/80 uppercase tracking-wider">{header}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-dark">
+            <tbody className="divide-y divide-brand-accent-peach/20">
               {reviews?.map((review) => (
-                <tr key={review._id} className="hover:bg-brand-surface/20 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-brand-text-secondary" title={review.animeId}>{review.animeId.substring(0,5)}...</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-brand-text-secondary" title={review.userId}>{review.userId.substring(0,5)}...</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text">
-                    <StarRatingDisplay rating={review.rating} />
+                <tr key={review._id} className="hover:bg-brand-accent-peach/10 transition-colors duration-150">
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-[10px] sm:text-xs text-brand-text-primary/70" title={review.animeId}>{review.animeId.substring(0,8)}...</td>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-[10px] sm:text-xs text-brand-text-primary/70" title={review.userId}>{review.userId.substring(0,8)}...</td>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap">
+                    <ThemedStarRatingDisplay rating={review.rating} />
                   </td>
-                  <td className="px-4 py-3 text-sm text-brand-text-secondary max-w-md">
-                    <p className="truncate" title={review.reviewText || ""}>{review.reviewText || <span className="italic">No text</span>}</p>
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-brand-text-primary/80 max-w-xs sm:max-w-sm md:max-w-md">
+                    <p className="truncate" title={review.reviewText || ""}>{review.reviewText?.substring(0, 50) || <span className="italic opacity-60">No text</span>}{review.reviewText && review.reviewText.length > 50 ? "..." : ""}</p>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-text-secondary">
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-[10px] sm:text-xs text-brand-text-primary/70">
                     {format(new Date(review.createdAt), "MMM d, yyyy HH:mm")}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                  <td className="px-3 py-2 sm:px-4 sm:py-2.5 whitespace-nowrap text-center">
                     <StyledButton
-                      onClick={() => handleDeleteReview(review._id)}
+                      onClick={() => handleDeleteReview(review._id, (review as any).userName)} // Assuming userName might be on extended review type
                       variant="primary_small"
-                      className="text-xs !bg-red-600 hover:!bg-red-700 focus:!ring-red-500"
+                      className="!text-[10px] !py-1 !px-1.5 !bg-brand-primary-action/80 hover:!bg-brand-primary-action !text-brand-surface"
                     >
                       Delete
                     </StyledButton>
@@ -109,17 +107,17 @@ const ReviewModerationPage: React.FC = () => {
         </div>
       )}
       {status === "CanLoadMore" && (
-        <div className="mt-6 text-center">
-          <StyledButton onClick={() => loadMore(10)} disabled={isLoading} variant="primary">
-            {isLoading ? "Loading More..." : "Load More Reviews"}
+        <div className="mt-4 sm:mt-5 text-center">
+          <StyledButton onClick={() => loadMore(10)} disabled={isLoading && status === "LoadingMore"} variant="secondary">
+            {isLoading && status === "LoadingMore" ? "Loading More..." : "Load More Reviews"}
           </StyledButton>
         </div>
       )}
       {status === "Exhausted" && reviews && reviews.length > 0 && (
-         <p className="mt-6 text-xs text-center text-brand-text-secondary">All reviews loaded.</p>
+         <p className="mt-4 sm:mt-5 text-xs text-center text-brand-text-primary/60">All reviews loaded.</p>
        )}
     </div>
   );
 };
 
-export default ReviewModerationPage;
+export default memo(ReviewModerationPageComponent);

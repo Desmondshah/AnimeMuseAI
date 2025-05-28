@@ -3,29 +3,31 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import React, { useState, FormEvent } from "react";
 import { toast } from "sonner";
-import StyledButton from "./components/animuse/shared/StyledButton";
+import StyledButton from "./components/animuse/shared/StyledButton"; // Ensure path is correct
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail] = useState(""); // Added for controlled input
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
-    const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get("email") as string;
-    const currentPassword = formData.get("password") as string;
+    // Email and password are now taken from state for controlled components
+    // const formData = new FormData(e.target as HTMLFormElement);
+    // const email = formData.get("email") as string;
+    // const currentPassword = formData.get("password") as string;
 
     if (flow === "signUp") {
-      if (currentPassword !== passwordConfirm) {
+      if (password !== passwordConfirm) {
         toast.error("Passwords do not match.");
         setSubmitting(false);
         return;
       }
-      if (currentPassword.length < 6) {
+      if (password.length < 6) {
         toast.error("Password must be at least 6 characters long.");
         setSubmitting(false);
         return;
@@ -34,11 +36,12 @@ export function SignInForm() {
 
     const convexFormData = new FormData();
     convexFormData.set("email", email);
-    convexFormData.set("password", currentPassword);
+    convexFormData.set("password", password); // Use state variable 'password'
     convexFormData.set("flow", flow);
 
     try {
       await signIn("password", convexFormData);
+      // toast.success for sign-in/sign-up is usually handled by the auth flow itself or page navigation
     } catch (error: any) {
       let errorMessage = flow === "signIn"
         ? "Could not sign in. Please check your credentials."
@@ -75,21 +78,25 @@ export function SignInForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 sm:p-8 neumorphic-card bg-brand-surface">
-      <h2 className="text-3xl font-orbitron text-center mb-6 text-neon-cyan">
+    // Use content-card for the new theme. Max width for mobile, centered.
+    <div className="w-full max-w-sm mx-auto p-6 sm:p-8 bg-brand-surface text-brand-text-primary rounded-xl shadow-lg">
+      <h2 className="text-2xl sm:text-3xl font-heading text-center mb-6 sm:mb-8 text-brand-primary-action">
         {flow === "signIn" ? "Welcome Back!" : "Create Account"}
       </h2>
-      <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit}>
          <input
-          className="neumorphic-input w-full"
+          className="form-input" // Apply new input style
           type="email"
           name="email"
           placeholder="Email"
           required
           autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={submitting}
         />
         <input
-          className="neumorphic-input w-full"
+          className="form-input" // Apply new input style
           type="password"
           name="password"
           placeholder="Password"
@@ -97,10 +104,11 @@ export function SignInForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+          disabled={submitting}
         />
         {flow === "signUp" && (
           <input
-            className="neumorphic-input w-full"
+            className="form-input" // Apply new input style
             type="password"
             name="passwordConfirm"
             placeholder="Confirm Password"
@@ -108,20 +116,21 @@ export function SignInForm() {
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
             autoComplete="new-password"
+            disabled={submitting}
           />
         )}
         <StyledButton
           type="submit"
           variant="primary"
-          className="w-full py-3 text-lg"
-          disabled={submitting && (flow === "signIn" || flow === "signUp") }
+          className="w-full py-2.5 sm:py-3 text-base sm:text-lg mt-2" // Adjusted padding and margin
+          disabled={submitting}
         >
-          {submitting && (flow === "signIn" || flow === "signUp")
+          {submitting
             ? (flow === "signIn" ? "Signing In..." : "Signing Up...")
             : (flow === "signIn" ? "Sign In" : "Sign Up")
           }
         </StyledButton>
-        <div className="text-center text-sm text-brand-text-secondary">
+        <div className="text-center text-sm text-brand-text-primary/80">
           <span>
             {flow === "signIn"
               ? "Don't have an account? "
@@ -129,31 +138,33 @@ export function SignInForm() {
           </span>
           <button
             type="button"
-            className="font-semibold text-sakura-pink hover:text-neon-cyan cursor-pointer transition-colors"
+            className="font-semibold text-brand-primary-action hover:text-brand-accent-peach cursor-pointer transition-colors"
             onClick={() => {
               setFlow(flow === "signIn" ? "signUp" : "signIn");
+              setEmail(""); // Clear email field on flow change
               setPassword("");
               setPasswordConfirm("");
             }}
+            disabled={submitting}
           >
-            {flow === "signIn" ? "Sign up instead" : "Sign in instead"}
+            {flow === "signIn" ? "Sign up" : "Sign in"}
           </button>
         </div>
       </form>
 
       <div className="my-6 flex items-center">
-        <hr className="flex-grow border-t border-brand-dark" />
-        <span className="mx-4 text-xs text-brand-text-secondary">OR</span>
-        <hr className="flex-grow border-t border-brand-dark" />
+        <hr className="flex-grow border-t border-brand-accent-peach/50" />
+        <span className="mx-3 text-xs text-brand-text-primary/70">OR</span>
+        <hr className="flex-grow border-t border-brand-accent-peach/50" />
       </div>
 
       <StyledButton
-        variant="secondary"
-        className="w-full py-3 text-lg"
+        variant="secondary" // Using secondary style for anonymous sign-in
+        className="w-full py-2.5 sm:py-3 text-base sm:text-lg"
         onClick={handleAnonymousSignIn}
         disabled={submitting}
       >
-        {submitting ? "Processing..." : "Sign In Anonymously"}
+        {submitting ? "Processing..." : "Continue as Guest"}
       </StyledButton>
     </div>
   );

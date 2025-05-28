@@ -2,52 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Poppins:wght@400;500;700&family=Orbitron:wght@400;500;700&display=swap');
+
 body {
-  @apply bg-brand-dark text-brand-text font-sans;
+  @apply bg-brand-background text-brand-text-on-dark font-sans;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for a more modern feel */
+/* Custom scrollbar for the new theme */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px; /* Slimmer for a cleaner look */
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-brand-surface;
-  border-radius: 10px;
+  @apply bg-brand-background; /* Darker track */
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-electric-blue;
-  border-radius: 10px;
+  @apply bg-brand-accent-gold rounded;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-neon-cyan;
+  @apply bg-brand-primary-action;
 }
 
-.accent-text {
-  @apply text-neon-cyan; /* Or cycle through accents */
+/* Reimagined Card Style - cleaner, less "neumorphic" but still distinct */
+.content-card {
+  @apply bg-brand-surface text-brand-text-primary rounded-lg p-4 sm:p-6 shadow-lg;
+  /* Using a standard shadow for a cleaner look than neumorphism */
 }
 
-/* Basic neumorphic card style */
-.neumorphic-card {
-  @apply bg-brand-surface rounded-xl p-4 shadow-neumorphic-light;
+/* Button Styling - to be primarily handled by StyledButton.tsx, but base resets can be here */
+.action-button {
+  @apply font-heading rounded-md transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-opacity-75;
 }
 
-.neumorphic-button {
-  @apply bg-brand-surface rounded-lg px-4 py-2 shadow-neumorphic-light text-brand-text transition-all duration-200 ease-in-out;
-}
-.neumorphic-button:hover {
-  @apply shadow-neumorphic-light-inset;
-}
-.neumorphic-button:active {
-  @apply shadow-neumorphic-light-inset scale-95;
+/* Input Styling - to be refined for better mobile experience */
+.form-input {
+  @apply bg-brand-surface border border-brand-accent-peach text-brand-text-primary placeholder-brand-accent-peach rounded-md px-3 py-2 w-full;
+  @apply focus:border-brand-primary-action focus:ring-1 focus:ring-brand-primary-action outline-none;
 }
 
-.neumorphic-input {
-  @apply bg-brand-dark text-brand-text placeholder-brand-text-secondary rounded-lg px-4 py-2 shadow-neumorphic-light-inset focus:outline-none focus:ring-2 focus:ring-neon-cyan;
-}
-
+/* Headings */
 h1, h2, h3, h4, h5, h6 {
-  @apply font-orbitron;
+  @apply font-heading;
+}
+
+/* Responsive text sizes for mobile-first approach */
+h1 { @apply text-2xl sm:text-3xl md:text-4xl; }
+h2 { @apply text-xl sm:text-2xl md:text-3xl; }
+h3 { @apply text-lg sm:text-xl md:text-2xl; }
+p, span, div, li, button, input, select, textarea {
+  @apply text-sm sm:text-base; /* Base size for mobile, scales up slightly */
+}
+
+/* in index.css */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-brand-accent-peach/20; /* Or bg-transparent */
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-brand-accent-gold;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-primary-action;
 }
