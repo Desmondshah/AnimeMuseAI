@@ -17,8 +17,14 @@ const applicationTables = {
     onboardingCompleted: v.boolean(),
     avatarUrl: v.optional(v.string()),
     dislikedGenres: v.optional(v.array(v.string())),
-    dislikedTags: v.optional(v.array(v.string())), // Keep this if you plan to use it
+    dislikedTags: v.optional(v.array(v.string())),
     isAdmin: v.optional(v.boolean()),
+    // Phase 2: Granular Preferences & Watchlist Privacy
+    characterArchetypes: v.optional(v.array(v.string())), // e.g., "Tsundere", "Stoic Hero"
+    tropes: v.optional(v.array(v.string())), // e.g., "Found Family", "Time Loop"
+    artStyles: v.optional(v.array(v.string())), // e.g., "Retro", "Photorealistic", "Minimalist"
+    narrativePacing: v.optional(v.string()), // e.g., "Slow Burn", "Fast-Paced"
+    watchlistIsPublic: v.optional(v.boolean()), // User's general preference for watchlist privacy
   })
   .index("by_userId", ["userId"])
   .index("by_phoneNumber", ["phoneNumber"]),
@@ -29,15 +35,19 @@ const applicationTables = {
     posterUrl: v.string(),
     genres: v.array(v.string()),
     year: v.optional(v.number()),
-    rating: v.optional(v.number()),
+    rating: v.optional(v.number()), // External rating
     emotionalTags: v.optional(v.array(v.string())),
     trailerUrl: v.optional(v.string()),
     studios: v.optional(v.array(v.string())),
     themes: v.optional(v.array(v.string())),
     averageUserRating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
-    // Potentially add a field to track last admin edit if complex data update strategy is needed later
-    // lastAdminEditTimestamp: v.optional(v.number()),
+    // Phase 2: For alternative data sources - an example, might need more generic structure
+    anilistId: v.optional(v.number()), 
+    lastFetchedFromExternal: v.optional(v.object({
+        source: v.string(), // e.g., "jikan", "anilist"
+        timestamp: v.number(),
+    })),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
@@ -56,10 +66,14 @@ const applicationTables = {
   watchlist: defineTable({
     userId: v.id("users"),
     animeId: v.id("anime"),
-    status: v.string(),
+    status: v.string(), // "Watching", "Completed", "Plan to Watch", "Dropped"
     progress: v.optional(v.number()),
     userRating: v.optional(v.number()),
-    notes: v.optional(v.string()), // <-- PHASE 1: Added watchlist notes
+    notes: v.optional(v.string()),
+    // Phase 2: isPublic on individual watchlist entries might be redundant if global userProfile.watchlistIsPublic is used.
+    // However, it could allow specific entries to override the global setting if needed in the future.
+    // For Phase 2, we'll rely on the global setting primarily.
+    isPublic: v.optional(v.boolean()), 
   })
   .index("by_user_anime", ["userId", "animeId"])
   .index("by_userId", ["userId"]),
@@ -69,13 +83,37 @@ const applicationTables = {
     animeId: v.id("anime"),
     rating: v.number(),
     reviewText: v.optional(v.string()),
-    isSpoiler: v.optional(v.boolean()), // <-- PHASE 1: Added spoiler tag
+    isSpoiler: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    // Phase 2: For review voting
+    upvotes: v.optional(v.number()),
+    downvotes: v.optional(v.number()),
+     helpfulScore: v.optional(v.number()), // Could be calculated: upvotes - downvotes
+  })
+  .index("by_animeId_userId", ["animeId", "userId"])
+  .index("by_animeId_createdAt", ["animeId", "createdAt"])
+  .index("by_animeId_rating", ["animeId", "rating"])
+  .index("by_animeId_upvotes", ["animeId", "upvotes"]), // For sorting by most helpful
+
+  // Phase 2: New table for Review Votes
+  reviewVotes: defineTable({
+    reviewId: v.id("reviews"),
+    userId: v.id("users"),
+    voteType: v.union(v.literal("up"), v.literal("down")),
+  }).index("by_review_user", ["reviewId", "userId"]),
+
+  // Phase 2: New table for Review Comments
+  reviewComments: defineTable({
+    reviewId: v.id("reviews"),
+    userId: v.id("users"),
+    commentText: v.string(),
+    parentId: v.optional(v.id("reviewComments")), // For replies
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
-  .index("by_animeId_userId", ["animeId", "userId"])
-  .index("by_animeId_createdAt", ["animeId", "createdAt"]) // Existing index, good for default sort
-  .index("by_animeId_rating", ["animeId", "rating"]), // <-- PHASE 1: Added for sorting by rating
+  .index("by_review_createdAt", ["reviewId", "createdAt"])
+  .index("by_parent_createdAt", ["parentId", "createdAt"]),
 
   notifications: defineTable({
     userId: v.id("users"),
@@ -111,18 +149,30 @@ const applicationTables = {
   .index("by_phoneNumber_expiresAt", ["phoneNumber", "expiresAt"])
   .index("by_expiresAt", ["expiresAt"]),
 
-  // <-- PHASE 1: New table for AI Interaction Feedback -->
   aiInteractionFeedback: defineTable({
     userId: v.id("users"),
-    prompt: v.optional(v.string()), // The user's prompt to the AI
-    aiAction: v.string(), // e.g., "getAnimeRecommendation", "getSimilarAnime", "getPersonalized"
-    aiResponseRecommendations: v.optional(v.array(v.any())), // Store the recommendations JSON if applicable
-    aiResponseText: v.optional(v.string()), // Store general AI text response if no structured recommendations
-    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")), // User feedback
-    messageId: v.string(), // Link to the message ID from the frontend chat if applicable
+    prompt: v.optional(v.string()),
+    aiAction: v.string(),
+    aiResponseRecommendations: v.optional(v.array(v.any())),
+    aiResponseText: v.optional(v.string()),
+    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")),
+    messageId: v.string(),
     timestamp: v.number(),
   }).index("by_userId", ["userId"])
     .index("by_aiAction", ["aiAction"]),
+
+  // Phase 2: New table for Custom User Lists
+  customLists: defineTable({
+    userId: v.id("users"),
+    listName: v.string(),
+    description: v.optional(v.string()),
+    isPublic: v.boolean(),
+    animeIds: v.array(v.id("anime")), // Array of anime IDs in this list
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+  .index("by_userId_createdAt", ["userId", "createdAt"])
+  .index("by_userId_listName", ["userId", "listName"]), // For uniqueness if desired
 };
 
 export default defineSchema({
