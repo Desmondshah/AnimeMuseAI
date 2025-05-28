@@ -452,10 +452,9 @@ const renderAnalysisResult = (analysis: any) => (
                   {msg.recommendations.map((animeRec, idx) => (
                     <div key={`${msg.id}-rec-${idx}`} className="p-2 bg-brand-accent-peach/10 rounded-md border border-brand-accent-peach/20">
                       <AnimeCard
-                          anime={animeRec}
-                          variant="compact"
-                          onViewDetails={(id) => navigateToDetail(id as Id<"anime">)}
-                      />
+  anime={animeRec}
+  onViewDetails={(id) => navigateToDetail(id as Id<"anime">)}
+/>
                       <div className="mt-1.5 pt-1.5 border-t border-brand-accent-peach/30 text-brand-text-primary">
                         <h4 className="font-heading text-sm text-brand-primary-action font-semibold">{animeRec.title}</h4>
                         {animeRec.year && <p className="text-[10px] text-brand-text-primary/70 mb-0.5">{animeRec.year}</p>}

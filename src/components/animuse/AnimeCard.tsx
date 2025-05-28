@@ -6,7 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import { AnimeRecommendation } from "../../../convex/types";
 import StyledButton from "./shared/StyledButton";
-import styles from './AnimeCard.module.css'; // Import the CSS module
+import styles from '../../AnimeCard.module.css'; // Import the CSS module
 
 interface AnimeCardProps {
   anime: AnimeRecommendation | Doc<"anime">;

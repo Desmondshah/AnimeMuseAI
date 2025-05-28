@@ -400,7 +400,11 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
           <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
             {filteredAnimeList.map(anime => (
-              <AnimeCard key={anime._id} anime={anime as Doc<"anime">} onViewDetails={onViewDetails} variant="default"/>
+              <AnimeCard 
+  key={anime._id} 
+  anime={anime as Doc<"anime">} 
+  onViewDetails={onViewDetails}
+/>
             ))}
           </div>
           {!hasActiveSearch && status === "CanLoadMore" && (
