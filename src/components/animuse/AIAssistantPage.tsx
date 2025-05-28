@@ -66,13 +66,7 @@ const LocalSpinner: React.FC<{ size?: string; colorClass?: string }> = memo(({ s
     <div className={`animate-spin rounded-full ${size} border-b-2 ${colorClass}`}></div>
 ));
 
-interface AnimeCardProps {
-  anime: AnimeRecommendation | Doc<"anime">;
-  onAddToWatchlist?: (animeId: Id<"anime">, status: string) => void;
-  onViewDetails?: (animeId: Id<"anime">) => void;
-  isRecommendation?: boolean;
-  variant?: "default" | "featured" | "compact"; // Make sure this line exists
-}
+
 
 
 const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> = ({ navigateToDetail }) => {
