@@ -19,6 +19,55 @@ export const getMyUserProfile = query({
   },
 });
 
+// ---- PHASE 1: New Mutation to Update User Preferences ----
+export const updateUserProfilePreferences = mutation({
+  args: {
+    // All fields are optional, only provided fields will be updated
+    name: v.optional(v.string()),
+    moods: v.optional(v.array(v.string())),
+    genres: v.optional(v.array(v.string())),
+    favoriteAnimes: v.optional(v.array(v.string())),
+    experienceLevel: v.optional(v.string()),
+    dislikedGenres: v.optional(v.array(v.string())),
+    dislikedTags: v.optional(v.array(v.string())),
+    // avatarUrl can also be updated here if you have a mechanism for it
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("User not authenticated.");
+    }
+
+    const userProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .unique();
+
+    if (!userProfile) {
+      throw new Error("User profile not found. Please complete onboarding first.");
+    }
+
+    // Construct an updates object with only the fields that were actually passed in args
+    const updates: Partial<Doc<"userProfiles">> = {};
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.moods !== undefined) updates.moods = args.moods;
+    if (args.genres !== undefined) updates.genres = args.genres;
+    if (args.favoriteAnimes !== undefined) updates.favoriteAnimes = args.favoriteAnimes;
+    if (args.experienceLevel !== undefined) updates.experienceLevel = args.experienceLevel;
+    if (args.dislikedGenres !== undefined) updates.dislikedGenres = args.dislikedGenres;
+    if (args.dislikedTags !== undefined) updates.dislikedTags = args.dislikedTags;
+
+    if (Object.keys(updates).length === 0) {
+      // No actual changes were provided
+      return { success: true, message: "No preferences updated." };
+    }
+
+    await ctx.db.patch(userProfile._id, updates);
+    return { success: true, message: "Profile preferences updated successfully." };
+  },
+});
+
+
 export const checkVerificationStatus = query({
   args: {},
   returns: v.object({
@@ -28,7 +77,7 @@ export const checkVerificationStatus = query({
     pendingVerificationExpiresAt: v.optional(v.number()),
     identifier: v.optional(v.string()),
     emailFromAuth: v.optional(v.string()),
-    isAnonymous: v.optional(v.boolean()), // Added this
+    isAnonymous: v.optional(v.boolean()),
   }),
   handler: async (ctx): Promise<{
     isAuthenticated: boolean;
@@ -37,7 +86,7 @@ export const checkVerificationStatus = query({
     pendingVerificationExpiresAt?: number;
     identifier?: string;
     emailFromAuth?: string;
-    isAnonymous?: boolean; // Added this
+    isAnonymous?: boolean;
   }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -49,7 +98,7 @@ export const checkVerificationStatus = query({
     if (userAuthRecord?.isAnonymous) {
       return {
         isAuthenticated: true,
-        isVerified: true, // Anonymous users are considered "verified" for app access
+        isVerified: true,
         isAnonymous: true,
         identifier: "Anonymous User",
         emailFromAuth: userAuthRecord?.email,
@@ -88,6 +137,7 @@ export const completeOnboarding = mutation({
     favoriteAnimes: v.optional(v.array(v.string())),
     experienceLevel: v.optional(v.string()),
     dislikedGenres: v.optional(v.array(v.string())),
+    dislikedTags: v.optional(v.array(v.string())), // Added dislikedTags
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -102,7 +152,7 @@ export const completeOnboarding = mutation({
 
     const profileData = {
       userId: userId as Id<"users">,
-      name: args.name ?? existingProfile?.name ?? undefined,
+      name: args.name ?? existingProfile?.name ?? undefined, // Use existing name if not provided
       moods: args.moods ?? existingProfile?.moods ?? [],
       genres: args.genres ?? existingProfile?.genres ?? [],
       favoriteAnimes: args.favoriteAnimes ?? existingProfile?.favoriteAnimes ?? [],
@@ -110,6 +160,7 @@ export const completeOnboarding = mutation({
       onboardingCompleted: true,
       avatarUrl: existingProfile?.avatarUrl ?? undefined,
       dislikedGenres: args.dislikedGenres ?? existingProfile?.dislikedGenres ?? [],
+      dislikedTags: args.dislikedTags ?? existingProfile?.dislikedTags ?? [], // Add dislikedTags
       phoneNumber: existingProfile?.phoneNumber,
       phoneNumberVerified: existingProfile?.phoneNumberVerified,
       verifiedAt: existingProfile?.verifiedAt,
@@ -121,25 +172,17 @@ export const completeOnboarding = mutation({
       return existingProfile._id;
     } else {
       const userAuthRecord = await ctx.db.get(userId as Id<"users">);
+      const newProfileData = {
+        ...profileData,
+        phoneNumber: profileData.phoneNumber ?? undefined,
+        phoneNumberVerified: profileData.phoneNumberVerified ?? false,
+        verifiedAt: profileData.verifiedAt ?? undefined,
+      };
       if (userAuthRecord?.isAnonymous) {
-        // For anonymous users completing onboarding, create their profile
-         const profileId = await ctx.db.insert("userProfiles", {
-            ...profileData,
-            // Ensure phone fields are appropriately initialized if not already set
-            phoneNumber: profileData.phoneNumber ?? undefined,
-            phoneNumberVerified: profileData.phoneNumberVerified ?? false,
-            verifiedAt: profileData.verifiedAt ?? undefined,
-         });
+         const profileId = await ctx.db.insert("userProfiles", newProfileData);
          return profileId;
       } else {
-        // This path is less likely if phone verification creates a stub profile
-        // but included for robustness.
-        const profileId = await ctx.db.insert("userProfiles", {
-            ...profileData,
-            phoneNumber: profileData.phoneNumber ?? undefined,
-            phoneNumberVerified: profileData.phoneNumberVerified ?? false,
-            verifiedAt: profileData.verifiedAt ?? undefined,
-        });
+        const profileId = await ctx.db.insert("userProfiles", newProfileData);
         return profileId;
       }
     }
@@ -183,7 +226,7 @@ export const cleanupExpiredPhoneVerifications = internalMutation({
       cleanedCount++;
     }
     if (cleanedCount > 0) {
-      console.log(`Cleaned up ${cleanedCount} expired phone verification codes`);
+      console.log(`[Phone Verification Cleanup] Cleaned up ${cleanedCount} expired phone verification codes`);
     }
     return { cleanedCount };
   },
@@ -196,7 +239,7 @@ export const scheduledCleanupExpiredPhoneVerifications = internalAction({
   }),
   handler: async (ctx): Promise<{ cleanedCount: number }> => {
     const result = await ctx.runMutation(internal.users.cleanupExpiredPhoneVerifications, {});
-    console.log(`Scheduled phone verification cleanup completed: ${result.cleanedCount} expired codes removed`);
+    console.log(`[Phone Verification Cleanup] Scheduled task completed: ${result.cleanedCount} expired codes removed`);
     return result;
   },
 });

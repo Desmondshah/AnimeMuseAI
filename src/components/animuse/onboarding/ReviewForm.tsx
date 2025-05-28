@@ -1,13 +1,20 @@
-// src/components/animuse/ReviewForm.tsx
+// src/components/animuse/onboarding/ReviewForm.tsx
 import React, { useState, useEffect } from "react";
 import { Id } from "../../../../convex/_generated/dataModel";
 import StyledButton from "../shared/StyledButton";
-import { ReviewProps } from "./ReviewCard"; // Assuming ReviewProps is exported from ReviewCard
+import { ReviewProps } from "./ReviewCard"; 
+import { toast } from "sonner";
 
 interface ReviewFormProps {
   animeId: Id<"anime">;
-  existingReview?: ReviewProps | null; // Pass existing review data for editing
-  onSubmit: (data: { animeId: Id<"anime">; rating: number; reviewText?: string; reviewId?: Id<"reviews"> }) => Promise<void>;
+  existingReview?: ReviewProps | null; 
+  onSubmit: (data: { 
+    animeId: Id<"anime">; 
+    rating: number; 
+    reviewText?: string; 
+    isSpoiler?: boolean; 
+    reviewId?: Id<"reviews"> 
+  }) => Promise<void>;
   onCancel?: () => void;
   isLoading: boolean;
 }
@@ -24,29 +31,32 @@ export default function ReviewForm({
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [reviewText, setReviewText] = useState(existingReview?.reviewText || "");
   const [hoverRating, setHoverRating] = useState(0);
+  const [isSpoiler, setIsSpoiler] = useState(existingReview?.isSpoiler || false);
+
 
   useEffect(() => {
     if (existingReview) {
       setRating(existingReview.rating);
       setReviewText(existingReview.reviewText || "");
+      setIsSpoiler(existingReview.isSpoiler || false); 
     } else {
-      // Reset for new review form
       setRating(0);
       setReviewText("");
+      setIsSpoiler(false); 
     }
   }, [existingReview]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) {
-      // Or use a toast to notify user
-      alert("Please select a rating.");
+      toast.error("Please select a rating."); 
       return;
     }
     onSubmit({
       animeId,
       rating,
       reviewText,
+      isSpoiler, 
       reviewId: existingReview?._id,
     });
   };
@@ -59,7 +69,6 @@ export default function ReviewForm({
         {existingReview ? "Edit Your Review" : "Write a Review"}
       </h3>
 
-      {/* Star Rating Input */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-brand-text-secondary mb-1">Your Rating*</label>
         <div className="flex items-center space-x-1">
@@ -85,7 +94,6 @@ export default function ReviewForm({
         </div>
       </div>
 
-      {/* Review Text Input */}
       <div className="mb-4">
         <label htmlFor="reviewText" className="block text-sm font-medium text-brand-text-secondary mb-1">
           Your Review (Optional)
@@ -104,7 +112,20 @@ export default function ReviewForm({
         </p>
       </div>
 
-      {/* Action Buttons */}
+      <div className="mb-4">
+        <label htmlFor="isSpoiler" className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            id="isSpoiler"
+            checked={isSpoiler}
+            onChange={(e) => setIsSpoiler(e.target.checked)}
+            className="neumorphic-input form-checkbox h-4 w-4 text-electric-blue rounded border-brand-dark focus:ring-electric-blue accent-electric-blue"
+          />
+          <span className="text-sm text-brand-text-secondary">This review contains spoilers</span>
+        </label>
+      </div>
+
+
       <div className="flex items-center justify-end space-x-3">
         {onCancel && (
           <StyledButton type="button" onClick={onCancel} variant="secondary_small" disabled={isLoading}>

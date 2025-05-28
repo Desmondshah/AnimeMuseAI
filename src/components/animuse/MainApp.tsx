@@ -9,10 +9,13 @@ import StyledButton from "./shared/StyledButton";
 import WatchlistPage from "./onboarding/WatchlistPage";
 import DiscoverPage from "./onboarding/DiscoverPage";
 import ProfileStats from "./onboarding/ProfileStats";
-import { AnimeRecommendation } from "./AIAssistantPage";
+import { AnimeRecommendation } from "./AIAssistantPage"; 
 import { toast } from "sonner";
 import AnimeCard from "./AnimeCard";
-import AdminDashboardPage from "../admin/AdminDashboardPage"; // Import AdminDashboardPage
+import AdminDashboardPage from "../admin/AdminDashboardPage"; 
+// PHASE 1: Import ProfileSettingsPage
+import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
+
 
 type CurrentView =
   | "dashboard"
@@ -20,7 +23,10 @@ type CurrentView =
   | "anime_detail"
   | "watchlist"
   | "discover"
-  | "admin_dashboard";
+  | "admin_dashboard"
+  // PHASE 1: Add new view for Profile Settings
+  | "profile_settings";
+
 
 interface WatchlistActivityItem {
   animeTitle: string;
@@ -67,9 +73,9 @@ export default function MainApp() {
 
   const navigateToDashboard = useCallback(() => {
     setCurrentView("dashboard");
-    setSelectedAnimeId(null);
+    setSelectedAnimeId(null); 
   }, []);
-
+  
   const navigateToDiscover = useCallback(() => {
     setPreviousView(currentView);
     setCurrentView("discover");
@@ -89,91 +95,110 @@ export default function MainApp() {
     setPreviousView(currentView);
     setCurrentView("admin_dashboard");
   }, [currentView]);
+  
+  // PHASE 1: Navigation to Profile Settings
+  const navigateToProfileSettings = useCallback(() => {
+    setPreviousView(currentView); 
+    setCurrentView("profile_settings");
+  }, [currentView]);
+
 
   const navigateBack = useCallback(() => {
-    setCurrentView(previousView);
-    if (previousView !== "anime_detail") {
-      setSelectedAnimeId(null);
+    if (currentView === "profile_settings" && previousView === "anime_detail" && selectedAnimeId) {
+        setCurrentView("anime_detail");
+    } else if (previousView && previousView !== currentView) { 
+        setCurrentView(previousView);
+        if (previousView !== "anime_detail") { 
+          setSelectedAnimeId(null);
+        }
+    } else {
+        setCurrentView("dashboard"); 
+        setSelectedAnimeId(null);
     }
-  }, [previousView]);
+  }, [previousView, currentView, selectedAnimeId]);
+
 
   useEffect(() => {
     const fetchForYouRecommendations = async () => {
       if (
-        currentView === "dashboard" &&
+        currentView === "dashboard" && 
         userProfile &&
         userProfile.onboardingCompleted &&
-        forYouRecommendations.length === 0 &&
-        !isLoadingForYou
+        forYouRecommendations.length === 0 && 
+        !isLoadingForYou 
       ) {
         setIsLoadingForYou(true);
-        toast.loading("AniMuse is crafting your 'For You' list...", {
-          id: "for-you-loading",
-        });
+        const toastId = "for-you-loading";
+        toast.loading("AniMuse is crafting your 'For You' list...", { id: toastId });
+        
         const watchlistActivity: WatchlistActivityItem[] = fullWatchlist
           ? fullWatchlist
-              .filter((item) => item.anime)
+              .filter((item) => item.anime) 
               .map((item) => ({
-                animeTitle: item.anime!.title,
+                animeTitle: item.anime!.title, 
                 status: item.status,
                 userRating: item.userRating,
               }))
-              .slice(0, 10)
+              .slice(0, 10) 
           : [];
 
         try {
-          const result = await getPersonalizedRecommendations({
-            userProfile: {
-              name: userProfile.name,
-              moods: userProfile.moods,
-              genres: userProfile.genres,
-              favoriteAnimes: userProfile.favoriteAnimes,
-              experienceLevel: userProfile.experienceLevel,
-              dislikedGenres: userProfile.dislikedGenres,
-              dislikedTags: userProfile.dislikedTags,
-            },
-            watchlistActivity,
-            count: 3,
-          });
+          // Assuming getPersonalizedRecommendations might return a 'details' field on error
+          const result: { recommendations: AnimeRecommendation[]; error?: string | null; details?: any } = 
+            await getPersonalizedRecommendations({
+              userProfile: {
+                name: userProfile.name,
+                moods: userProfile.moods,
+                genres: userProfile.genres,
+                favoriteAnimes: userProfile.favoriteAnimes,
+                experienceLevel: userProfile.experienceLevel,
+                dislikedGenres: userProfile.dislikedGenres,
+                dislikedTags: userProfile.dislikedTags,
+              },
+              watchlistActivity,
+              count: 3, 
+            });
+
           if (result.error) {
             toast.error(
               `Could not load 'For You' list: ${result.error}`,
-              { id: "for-you-loading" }
+              { id: toastId }
             );
-            console.error("For You error:", result.error, result.details);
+            // ---- PHASE 1: Corrected result.details access ----
+            console.error("For You error:", result.error, result.details ?? "No additional details.");
           } else {
             setForYouRecommendations(
               result.recommendations as AnimeRecommendation[]
             );
             if (result.recommendations.length > 0) {
               toast.success("Your 'For You' list is ready!", {
-                id: "for-you-loading",
+                id: toastId,
               });
             } else {
               toast.info(
                 "Could not find any 'For You' recommendations at this time.",
-                { id: "for-you-loading" }
+                { id: toastId }
               );
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Failed to fetch 'For You' recommendations:", e);
           toast.error(
-            "An unexpected error occurred while fetching 'For You' recommendations.",
-            { id: "for-you-loading" }
+            `An unexpected error occurred: ${e.message || "Unknown error"}`,
+            { id: toastId }
           );
         } finally {
           setIsLoadingForYou(false);
         }
       }
     };
-    fetchForYouRecommendations();
-  }, [
+    fetchForYouRecommendations(); 
+  }, [ 
     currentView,
     userProfile,
     fullWatchlist,
     getPersonalizedRecommendations,
-    forYouRecommendations.length,
+    forYouRecommendations.length, 
     isLoadingForYou,
   ]);
 
@@ -192,47 +217,51 @@ export default function MainApp() {
     }
     setIsLoadingMoodBoard(true);
     setMoodBoardRecommendations([]);
-    toast.loading("Finding anime for your mood...", {
-      id: "mood-board-loading",
-    });
+    const toastId = "mood-board-loading";
+    toast.loading("Finding anime for your mood...", { id: toastId });
     try {
-      const result = await getRecommendationsByMoodTheme({
-        selectedCues: selectedMoodCues,
-        userProfile: userProfile
-          ? {
-              name: userProfile.name,
-              moods: userProfile.moods,
-              genres: userProfile.genres,
-              favoriteAnimes: userProfile.favoriteAnimes,
-              experienceLevel: userProfile.experienceLevel,
-              dislikedGenres: userProfile.dislikedGenres,
-              dislikedTags: userProfile.dislikedTags,
-            }
-          : undefined,
-        count: 3,
-      });
+      // Assuming getRecommendationsByMoodTheme might return a 'details' field on error
+      const result: { recommendations: AnimeRecommendation[]; error?: string | null; details?: any } = 
+        await getRecommendationsByMoodTheme({
+          selectedCues: selectedMoodCues,
+          userProfile: userProfile
+            ? {
+                name: userProfile.name,
+                moods: userProfile.moods,
+                genres: userProfile.genres,
+                favoriteAnimes: userProfile.favoriteAnimes,
+                experienceLevel: userProfile.experienceLevel,
+                dislikedGenres: userProfile.dislikedGenres,
+                dislikedTags: userProfile.dislikedTags,
+              }
+            : undefined,
+          count: 3,
+        });
+
       if (result.error) {
         toast.error(`Mood board error: ${result.error}`, {
-          id: "mood-board-loading",
+          id: toastId,
         });
+        // ---- PHASE 1: Corrected result.details access (example) ----
+        console.error("Mood board error:", result.error, result.details ?? "No additional details.");
       } else {
         setMoodBoardRecommendations(
           result.recommendations as AnimeRecommendation[]
         );
         if (result.recommendations.length > 0) {
           toast.success("Found some anime for your mood!", {
-            id: "mood-board-loading",
+            id: toastId,
           });
         } else {
           toast.info(
             "Couldn't find specific recommendations for this mood combination.",
-            { id: "mood-board-loading" }
+            { id: toastId }
           );
         }
       }
-    } catch (e) {
-      toast.error("Error fetching mood board recommendations.", {
-        id: "mood-board-loading",
+    } catch (e: any) {
+      toast.error(`Error fetching mood board recommendations: ${e.message || "Unknown error"}`, {
+        id: toastId,
       });
     } finally {
       setIsLoadingMoodBoard(false);
@@ -240,21 +269,28 @@ export default function MainApp() {
   }, [selectedMoodCues, userProfile, getRecommendationsByMoodTheme]);
 
   useEffect(() => {
-    if (selectedMoodCues.length > 0) {
+    if (selectedMoodCues.length > 0 && currentView === 'dashboard') {
       const handler = setTimeout(() => {
         fetchMoodBoardRecommendations();
-      }, 500);
+      }, 500); 
       return () => clearTimeout(handler);
-    } else {
-      setMoodBoardRecommendations([]);
+    } else if (selectedMoodCues.length === 0) {
+      setMoodBoardRecommendations([]); 
     }
-  }, [selectedMoodCues, fetchMoodBoardRecommendations]);
+  }, [selectedMoodCues, fetchMoodBoardRecommendations, currentView]);
+
 
   const renderDashboard = useCallback(() => (
     <div className="p-4 neumorphic-card">
-      <h1 className="text-3xl font-orbitron text-sakura-pink mb-4 text-center">
-        Welcome to AniMuse, {userProfile?.name || "Explorer"}!
-      </h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-orbitron text-sakura-pink text-center flex-grow">
+          Welcome, {userProfile?.name || "Explorer"}!
+        </h1>
+        {/* PHASE 1: Button to navigate to Profile Settings */}
+        <StyledButton onClick={navigateToProfileSettings} variant="secondary_small" title="Profile Settings" className="ml-2">
+          ⚙️
+        </StyledButton>
+      </div>
       <p className="text-brand-text-secondary mb-6 text-center">
         Your personalized anime journey begins now.
       </p>
@@ -296,8 +332,7 @@ export default function MainApp() {
           userProfile?.onboardingCompleted && (
             <div className="text-center p-6 neumorphic-card bg-brand-dark shadow-neumorphic-light-inset">
               <p className="text-brand-text-secondary">
-                AniMuse is still getting to know you! Complete your profile or
-                interact more for personalized recommendations.
+                AniMuse is still getting to know you! Explore, review, or use the AI assistant.
               </p>
             </div>
           )}
@@ -316,7 +351,7 @@ export default function MainApp() {
               key={cue.id}
               onClick={() => handleMoodCueToggle(cue.label)}
               variant={
-                selectedMoodCues.includes(cue.label) ? "primary" : "secondary"
+                selectedMoodCues.includes(cue.label) ? "primary_small" : "secondary_small"
               }
               className="text-sm"
             >
@@ -404,9 +439,10 @@ export default function MainApp() {
     </div>
   ), [
       userProfile, isLoadingForYou, forYouRecommendations, isLoadingMoodBoard, 
-      moodBoardRecommendations, selectedMoodCues, isUserAdmin, // State and query results
-      navigateToAIAssistant, navigateToDetail, navigateToDiscover, // Callbacks
-      navigateToWatchlist, handleMoodCueToggle, navigateToAdminDashboard
+      moodBoardRecommendations, selectedMoodCues, isUserAdmin,
+      navigateToAIAssistant, navigateToDetail, navigateToDiscover,
+      navigateToWatchlist, handleMoodCueToggle, navigateToAdminDashboard,
+      navigateToProfileSettings 
     ]
   );
 
@@ -423,7 +459,7 @@ export default function MainApp() {
             />
           );
         }
-        setCurrentView(previousView || "dashboard");
+        setCurrentView(previousView || "dashboard"); 
         return null;
       case "watchlist":
         return (
@@ -441,6 +477,9 @@ export default function MainApp() {
         );
       case "admin_dashboard":
         return <AdminDashboardPage onNavigateBack={navigateToDashboard} />;
+      // PHASE 1: Render ProfileSettingsPage
+      case "profile_settings":
+        return <ProfileSettingsPage onBack={navigateBack} />;
       case "dashboard":
       default:
         return renderDashboard();
@@ -454,36 +493,40 @@ export default function MainApp() {
       case "discover": return "🔍 Discover";
       case "watchlist": return "📚 Watchlist";
       case "admin_dashboard": return "🛡️ Admin Dashboard";
+      // PHASE 1: Add display name for profile settings
+      case "profile_settings": return "⚙️ Profile Settings";
       case "dashboard": return "🏠 Dashboard";
       default:
-        const _exhaustiveCheck: never = view;
+        const _exhaustiveCheck: never = view; 
         return String(view); 
     }
   }, []);
-
-  if (import.meta.env.DEV) {
-    // console.log("MainApp - Current view:", currentView, "Previous view:", previousView);
-    // console.log("MainApp - User profile:", userProfile, "Is Admin:", isUserAdmin);
-  }
-
+  
   return (
-    <div className="w-full">
+    <div className="w-full max-w-5xl mx-auto"> 
       {currentView !== "dashboard" && (
-        <div className="mb-4 p-2 text-sm text-brand-text-secondary bg-brand-surface/50 rounded-lg">
+        <div className="mb-4 p-2 text-sm text-brand-text-secondary bg-brand-surface/50 rounded-lg flex items-center flex-wrap">
           <button
             onClick={navigateToDashboard}
             className="hover:text-neon-cyan transition-colors"
           >
             🏠 Dashboard
           </button>
-          {currentView === "anime_detail" &&
+          {(currentView === "anime_detail" || currentView === "profile_settings") &&
             previousView !== "dashboard" &&
-            previousView !== "anime_detail" && (
+            previousView !== currentView && 
+            previousView && 
+             (
               <>
                 <span className="mx-2">•</span>
                 <button
                   onClick={() => {
-                    setCurrentView(previousView);
+                    if (currentView === "profile_settings" && previousView === "anime_detail" && selectedAnimeId) {
+                       setCurrentView("anime_detail");
+                    } else if (previousView) {
+                       setCurrentView(previousView);
+                       if (previousView !== "anime_detail") setSelectedAnimeId(null); 
+                    }
                   }}
                   className="hover:text-neon-cyan transition-colors capitalize"
                 >

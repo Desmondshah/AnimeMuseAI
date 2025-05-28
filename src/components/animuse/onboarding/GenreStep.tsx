@@ -1,3 +1,4 @@
+// src/components/animuse/onboarding/GenreStep.tsx
 import React from "react";
 import StyledButton from "../shared/StyledButton";
 
@@ -17,8 +18,11 @@ export default function GenreStep({ data, updateData }: GenreStepProps) {
   };
   return (
     <div>
-      <h3 className="text-xl font-orbitron text-neon-cyan mb-4 text-center">Favorite Genres?</h3>
-      <p className="text-sm text-brand-text-secondary mb-6 text-center">Pick your preferred anime genres.</p>
+      <h3 className="text-xl font-orbitron text-neon-cyan mb-2 text-center">Favorite Genres?</h3>
+      {/* PHASE 1: Added subtext for clarity */}
+      <p className="text-xs text-brand-text-secondary mb-4 text-center">
+        Let us know which types of stories you generally enjoy. This is a key part of personalizing your recommendations!
+      </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {GENRES.map((genre) => (
           <StyledButton

@@ -1,15 +1,12 @@
 // convex/anime.ts
 import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { Doc, Id, DataModel } from "./_generated/dataModel"; // Added DataModel
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { PaginationResult } from "convex/server";
+import { PaginationResult, Query, OrderedQuery } from "convex/server"; // Added OrderedQuery
 import { internal } from "./_generated/api";
 
-// Unique identifier for the singleton document in filterMetadata table
 const FILTER_METADATA_IDENTIFIER = "singleton_filter_options_v1";
-
-// ==== Queries ====
 
 export const getAnimeById = query({
   args: { animeId: v.id("anime") },
@@ -88,19 +85,15 @@ export const getAllAnime = query({
   },
 });
 
-// Reads pre-computed filter options from filterMetadata table
 export const getFilterOptions = query({
   args: {},
   handler: async (ctx): Promise<Partial<Omit<Doc<"filterMetadata">, "_id" | "_creationTime" | "identifier">>> => {
-    // Note: `identifier` field in filterMetadata table is used to query the singleton.
-    // The `FILTER_METADATA_IDENTIFIER` const holds the value of this identifier.
     const metadata = await ctx.db
       .query("filterMetadata")
       .withIndex("by_identifier", q => q.eq("identifier", FILTER_METADATA_IDENTIFIER))
       .unique();
     
     if (metadata) {
-      // Exclude system fields and the identifier itself when returning options
       const { _id, _creationTime, identifier, ...options } = metadata;
       return options;
     }
@@ -113,7 +106,6 @@ export const getFilterOptions = query({
   },
 });
 
-// Corrected getFilteredAnime (q.search removed from .filter callback, array filtering is JS-based)
 export const getFilteredAnime = query({
   args: {
     paginationOpts: v.any(),
@@ -139,7 +131,9 @@ export const getFilteredAnime = query({
   handler: async (ctx, args): Promise<PaginationResult<Doc<"anime">>> => {
     const { filters, sortBy = "newest" } = args;
     
-    let queryBuilder;
+    // Correctly type queryBuilder. It can be an OrderedQuery or a regular Query initially.
+    let queryBuilder: OrderedQuery<DataModel["anime"]> | Query<DataModel["anime"]>; 
+
     switch (sortBy) {
       case "year_desc": queryBuilder = ctx.db.query("anime").withIndex("by_year").order("desc"); break;
       case "year_asc": queryBuilder = ctx.db.query("anime").withIndex("by_year").order("asc"); break;
@@ -155,6 +149,7 @@ export const getFilteredAnime = query({
     }
 
     if (filters) {
+      // The .filter method is available on both Query and OrderedQuery
       queryBuilder = queryBuilder.filter((q) => {
         let condition = q.eq(q.field("_id"), q.field("_id")); 
         if (filters.yearRange?.min !== undefined) condition = q.and(condition, q.gte(q.field("year"), filters.yearRange.min));
@@ -163,49 +158,51 @@ export const getFilteredAnime = query({
         if (filters.ratingRange?.max !== undefined) condition = q.and(condition, q.lte(q.field("rating"), filters.ratingRange.max));
         if (filters.userRatingRange?.min !== undefined) condition = q.and(condition, q.gte(q.field("averageUserRating"), filters.userRatingRange.min));
         if (filters.userRatingRange?.max !== undefined) condition = q.and(condition, q.lte(q.field("averageUserRating"), filters.userRatingRange.max));
-        if (filters.minReviews !== undefined) condition = q.and(condition, q.gte(q.field("reviewCount"), filters.minReviews));
+        if (filters.minReviews !== undefined && filters.minReviews > 0) { 
+            condition = q.and(condition, q.gte(q.field("reviewCount"), filters.minReviews));
+        } else if (filters.minReviews === 0) { 
+            condition = q.and(condition, q.or(q.eq(q.field("reviewCount"), undefined), q.eq(q.field("reviewCount"), 0)));
+        }
         return condition;
       });
     }
 
     const results = await queryBuilder.paginate(args.paginationOpts);
 
-    let filteredPage = results.page;
+    // Explicitly type the elements of filteredPage as Doc<"anime">
+    let filteredPage: Doc<"anime">[] = results.page;
     if (filters) {
-      filteredPage = results.page.filter(anime => {
+      filteredPage = results.page.filter((anime: Doc<"anime">) => { // Explicit type here
         if (filters.genres && filters.genres.length > 0) {
-          if (!filters.genres.every(genre => anime.genres?.includes(genre))) return false;
+          if (!anime.genres || !filters.genres.every(genre => anime.genres!.includes(genre))) return false;
         }
         if (filters.studios && filters.studios.length > 0) {
-          if (!filters.studios.some(studio => anime.studios?.includes(studio))) return false;
+          if (!anime.studios || !filters.studios.some(studio => anime.studios!.includes(studio))) return false;
         }
         if (filters.themes && filters.themes.length > 0) {
-          if (!filters.themes.some(theme => anime.themes?.includes(theme))) return false;
+          if (!anime.themes || !filters.themes.some(theme => anime.themes!.includes(theme))) return false;
         }
         if (filters.emotionalTags && filters.emotionalTags.length > 0) {
-          if (!filters.emotionalTags.some(tag => anime.emotionalTags?.includes(tag))) return false;
+          if (!anime.emotionalTags || !filters.emotionalTags.some(tag => anime.emotionalTags!.includes(tag))) return false;
         }
         return true;
       });
     }
 
     if (sortBy === "title_asc" || sortBy === "title_desc") {
-      // Ensure titles are defined for localeCompare, provide a fallback empty string if null/undefined
-      filteredPage.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-      if (sortBy === "title_desc") filteredPage.reverse(); // Reverse for descending order
+      // Explicit type for a and b
+      filteredPage.sort((a: Doc<"anime">, b: Doc<"anime">) => (a.title || "").localeCompare(b.title || ""));
+      if (sortBy === "title_desc") filteredPage.reverse();
     }
 
     return { ...results, page: filteredPage };
   },
 });
 
-
-// ==== Mutations ====
-
 export const internalUpdateFilterMetadata = internalMutation({
   args: {},
   handler: async (ctx) => {
-    console.log("Attempting to update filter metadata with identifier:", FILTER_METADATA_IDENTIFIER);
+    console.log("[Filter Metadata] Attempting to update filter metadata with identifier:", FILTER_METADATA_IDENTIFIER);
     
     const allAnimeForArrays = await ctx.db.query("anime").collect();
     const genres = new Set<string>();
@@ -232,7 +229,7 @@ export const internalUpdateFilterMetadata = internalMutation({
                              ? { min: minUserRatingDoc.averageUserRating, max: maxUserRatingDoc.averageUserRating } : null;
 
     const newMetadataPayload = {
-      identifier: FILTER_METADATA_IDENTIFIER, // Ensure identifier is part of the data to be stored
+      identifier: FILTER_METADATA_IDENTIFIER,
       genres: Array.from(genres).sort(),
       studios: Array.from(studios).sort(),
       themes: Array.from(themes).sort(),
@@ -247,39 +244,67 @@ export const internalUpdateFilterMetadata = internalMutation({
       .unique();
 
     if (existingMetadata) {
-      // Pass the full payload including the identifier for replacement,
-      // as schema expects identifier.
       await ctx.db.replace(existingMetadata._id, newMetadataPayload);
-      console.log("Filter metadata updated for identifier:", FILTER_METADATA_IDENTIFIER);
+      console.log("[Filter Metadata] Filter metadata updated for identifier:", FILTER_METADATA_IDENTIFIER);
     } else {
       await ctx.db.insert("filterMetadata", newMetadataPayload);
-      console.log("Filter metadata created for the first time for identifier:", FILTER_METADATA_IDENTIFIER);
+      console.log("[Filter Metadata] Filter metadata created for the first time for identifier:", FILTER_METADATA_IDENTIFIER);
     }
   },
 });
 
+// ---- PHASE 1: Updated upsertToWatchlist to include notes ----
 export const upsertToWatchlist = mutation({
   args: {
-    animeId: v.id("anime"), status: v.string(), progress: v.optional(v.number()), userRating: v.optional(v.number()),
+    animeId: v.id("anime"),
+    status: v.string(), // e.g., "Watching", "Completed", "Plan to Watch", "Dropped"
+    progress: v.optional(v.number()),
+    userRating: v.optional(v.number()),
+    notes: v.optional(v.string()), // New field for notes
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("User not authenticated");
+
     const anime = await ctx.db.get(args.animeId);
     if (!anime) throw new Error("Anime not found");
+
     const existingEntry = await ctx.db.query("watchlist")
       .withIndex("by_user_anime", (q) => q.eq("userId", userId as Id<"users">).eq("animeId", args.animeId))
       .unique();
+
     let entryId;
+    const updateData: Partial<Doc<"watchlist">> = {
+        status: args.status,
+        progress: args.progress,
+        userRating: args.userRating,
+        notes: args.notes, // Include notes in update/insert
+    };
+
+    // Filter out undefined fields from updateData to avoid overwriting with undefined
+    const definedUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, v]) => v !== undefined)
+    );
+
+
     if (existingEntry) {
-      await ctx.db.patch(existingEntry._id, { status: args.status, progress: args.progress, userRating: args.userRating });
+      await ctx.db.patch(existingEntry._id, definedUpdateData);
       entryId = existingEntry._id;
     } else {
-      entryId = await ctx.db.insert("watchlist", { userId: userId as Id<"users">, animeId: args.animeId, status: args.status, progress: args.progress, userRating: args.userRating });
+      entryId = await ctx.db.insert("watchlist", {
+        userId: userId as Id<"users">,
+        animeId: args.animeId,
+        status: args.status, // status is required
+        // Provide defaults for optional fields if not in definedUpdateData but needed for insert
+        progress: args.progress,
+        userRating: args.userRating,
+        notes: args.notes,
+      });
     }
-    if (args.status === "Completed") {
+
+    if (args.status === "Completed" && (!existingEntry || existingEntry.status !== "Completed")) {
       const message = `🎉 Congratulations on completing "${anime.title}"! How about rating it or writing a review?`;
-      const link = `/anime/${args.animeId}`; // Ensure this link structure matches your frontend routing
+      const link = `/anime/${args.animeId}`;
       await ctx.scheduler.runAfter(0, internal.notifications.internalAddNotification, { userId: userId as Id<"users">, message: message, link: link });
     }
     return entryId;
@@ -309,10 +334,14 @@ export const addAnimeByUser = mutation({
         trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
     },
     handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
+        const userId = await getAuthUserId(ctx); // Ensure user is authenticated to perform this
         if (!userId) throw new Error("User not authenticated");
         const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).first();
-        if (existing) return existing._id;
+        if (existing) {
+            console.warn(`[Add Anime] User ${userId} attempted to add existing anime: "${args.title}" (ID: ${existing._id}). Returning existing ID.`);
+            return existing._id;
+        }
+        console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
         return await ctx.db.insert("anime", args);
     }
 });
@@ -330,10 +359,11 @@ export const addAnimeInternal = internalMutation({
     }
 });
 
+// ---- PHASE 1: Refined Data Update Strategy (Simplified for Phase 1) ----
 export const updateAnimeWithExternalData = internalMutation({
   args: {
     animeId: v.id("anime"),
-    updates: v.object({
+    updates: v.object({ // Schema for updates remains the same
       description: v.optional(v.string()), posterUrl: v.optional(v.string()), genres: v.optional(v.array(v.string())),
       year: v.optional(v.number()), rating: v.optional(v.number()), emotionalTags: v.optional(v.array(v.string())),
       trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
@@ -341,14 +371,50 @@ export const updateAnimeWithExternalData = internalMutation({
   },
   handler: async (ctx, args) => {
     const existingAnime = await ctx.db.get(args.animeId);
-    if (!existingAnime) { console.error(`Cannot update anime ${args.animeId}: not found.`); return; }
-    const definedUpdates: Partial<Doc<"anime">> = {};
+    if (!existingAnime) {
+        console.error(`[Update Anime External] Cannot update anime ${args.animeId}: not found.`);
+        return;
+    }
+
+    const updatesToApply: Partial<Doc<"anime">> = {};
+
+    // Phase 1 Strategy: Overwrite if new data is provided and different,
+    // UNLESS existing data is non-empty and new data is an empty string (for string fields).
+    // More complex logic (e.g., admin lock, field-level timestamps) can be Phase 2+.
     for (const key in args.updates) {
         const typedKey = key as keyof typeof args.updates;
-        if (args.updates[typedKey] !== undefined) { (definedUpdates as any)[typedKey] = args.updates[typedKey]; }
+        const newValue = args.updates[typedKey];
+        const existingValue = existingAnime[typedKey];
+
+        if (newValue !== undefined) { // Only consider if new value is explicitly provided
+            let applyChange = true;
+            // For strings, don't replace existing content with an empty string from external API
+            if (typeof existingValue === 'string' && existingValue.trim() !== "" &&
+                typeof newValue === 'string' && newValue.trim() === "") {
+                applyChange = false;
+            }
+            // For arrays, apply if new array is different (simple string comparison for now)
+            else if (Array.isArray(existingValue) && Array.isArray(newValue)) {
+                if (JSON.stringify(existingValue.slice().sort()) === JSON.stringify(newValue.slice().sort())) {
+                    applyChange = false;
+                }
+            }
+            // For other types (numbers, booleans, or if existingValue was undefined)
+            else if (JSON.stringify(existingValue) === JSON.stringify(newValue)) {
+                applyChange = false;
+            }
+
+            if (applyChange) {
+                (updatesToApply as any)[typedKey] = newValue;
+            }
+        }
     }
-    if (Object.keys(definedUpdates).length > 0) {
-        await ctx.db.patch(args.animeId, definedUpdates);
+
+    if (Object.keys(updatesToApply).length > 0) {
+        await ctx.db.patch(args.animeId, updatesToApply);
+        console.log(`[Update Anime External] Patched anime ${args.animeId} with ${Object.keys(updatesToApply).length} fields:`, Object.keys(updatesToApply));
+    } else {
+        console.log(`[Update Anime External] No applicable changes to patch for anime ${args.animeId}.`);
     }
   },
 });

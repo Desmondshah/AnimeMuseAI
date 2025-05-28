@@ -1,9 +1,9 @@
-// src/components/animuse/onboarding/ReviewCard.tsx - Memoized
-import React, { memo } from "react"; // Import memo
+// src/components/animuse/onboarding/ReviewCard.tsx
+import React, { memo, useState } from "react"; 
 import { Id } from "../../../../convex/_generated/dataModel";
 import { formatDistanceToNow } from 'date-fns';
+import StyledButton from "../shared/StyledButton"; 
 
-// Assuming the structure from getReviewsForAnime query in convex/reviews.ts
 export interface ReviewProps {
   _id: Id<"reviews">;
   _creationTime: number;
@@ -11,6 +11,7 @@ export interface ReviewProps {
   userId: Id<"users">;
   rating: number;
   reviewText?: string;
+  isSpoiler?: boolean; 
   createdAt: number;
   updatedAt?: number;
   userName: string;
@@ -40,17 +41,22 @@ const StarRatingComponent: React.FC<{ rating: number; maxStars?: number }> = ({ 
     </div>
   );
 };
-const StarRating = memo(StarRatingComponent); // Memoize StarRating as well if it's complex or re-renders often
+const StarRating = memo(StarRatingComponent);
 
 const ReviewCardComponent: React.FC<ReviewCardProps> = ({ review, currentUserId, onEdit, onDelete }) => {
   const displayDate = review.updatedAt ? review.updatedAt : review.createdAt;
   const timeAgo = formatDistanceToNow(new Date(displayDate), { addSuffix: true });
+  
+  const [showSpoiler, setShowSpoiler] = useState(false);
+
+  const reviewContent = review.reviewText || "";
+  const isPotentiallySpoiler = review.isSpoiler && reviewContent.length > 0;
 
   return (
     <div className="neumorphic-card bg-brand-surface p-4 rounded-lg shadow-md mb-4">
       <div className="flex items-start mb-2">
         {review.userAvatarUrl ? (
-          <img src={review.userAvatarUrl} alt={review.userName} className="w-10 h-10 rounded-full mr-3" />
+          <img src={review.userAvatarUrl} alt={review.userName} className="w-10 h-10 rounded-full mr-3 object-cover" />
         ) : (
           <div className="w-10 h-10 rounded-full bg-electric-blue flex items-center justify-center text-white font-semibold mr-3">
             {review.userName?.charAt(0).toUpperCase() || "A"}
@@ -64,21 +70,38 @@ const ReviewCardComponent: React.FC<ReviewCardProps> = ({ review, currentUserId,
           <p className="text-xs text-brand-text-secondary">{timeAgo}</p>
         </div>
       </div>
-      {review.reviewText && (
-        <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">
-          {review.reviewText}
-        </p>
+
+      {reviewContent && (
+        <div className="mt-2">
+          {isPotentiallySpoiler && !showSpoiler ? (
+            <div className="p-3 bg-brand-dark rounded-md shadow-neumorphic-light-inset">
+              <p className="text-sm text-yellow-400 italic">This review contains spoilers.</p>
+              <StyledButton
+                onClick={() => setShowSpoiler(true)}
+                variant="secondary_small"
+                className="mt-2 text-xs"
+              >
+                Show Spoiler
+              </StyledButton>
+            </div>
+          ) : (
+            <p className="text-brand-text text-sm leading-relaxed whitespace-pre-wrap">
+              {reviewContent}
+            </p>
+          )}
+        </div>
       )}
+      
       {currentUserId && review.userId === currentUserId && onEdit && onDelete && (
         <div className="mt-3 pt-3 border-t border-brand-dark flex justify-end space-x-2">
           <button
-            onClick={() => onEdit(review)} // If onEdit is stable (e.g., via useCallback), this is fine
+            onClick={() => onEdit(review)} 
             className="text-xs text-electric-blue hover:underline"
           >
             Edit
           </button>
           <button
-            onClick={() => onDelete(review._id)} // If onDelete is stable, this is fine
+            onClick={() => onDelete(review._id)} 
             className="text-xs text-sakura-pink hover:underline"
           >
             Delete

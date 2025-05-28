@@ -7,9 +7,9 @@ const applicationTables = {
   userProfiles: defineTable({
     userId: v.id("users"),
     name: v.optional(v.string()),
-    phoneNumber: v.optional(v.string()), 
+    phoneNumber: v.optional(v.string()),
     phoneNumberVerified: v.optional(v.boolean()),
-    verifiedAt: v.optional(v.number()), 
+    verifiedAt: v.optional(v.number()),
     moods: v.optional(v.array(v.string())),
     genres: v.optional(v.array(v.string())),
     favoriteAnimes: v.optional(v.array(v.string())),
@@ -17,7 +17,7 @@ const applicationTables = {
     onboardingCompleted: v.boolean(),
     avatarUrl: v.optional(v.string()),
     dislikedGenres: v.optional(v.array(v.string())),
-    dislikedTags: v.optional(v.array(v.string())),
+    dislikedTags: v.optional(v.array(v.string())), // Keep this if you plan to use it
     isAdmin: v.optional(v.boolean()),
   })
   .index("by_userId", ["userId"])
@@ -29,13 +29,15 @@ const applicationTables = {
     posterUrl: v.string(),
     genres: v.array(v.string()),
     year: v.optional(v.number()),
-    rating: v.optional(v.number()), 
+    rating: v.optional(v.number()),
     emotionalTags: v.optional(v.array(v.string())),
     trailerUrl: v.optional(v.string()),
     studios: v.optional(v.array(v.string())),
     themes: v.optional(v.array(v.string())),
     averageUserRating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
+    // Potentially add a field to track last admin edit if complex data update strategy is needed later
+    // lastAdminEditTimestamp: v.optional(v.number()),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
@@ -57,6 +59,7 @@ const applicationTables = {
     status: v.string(),
     progress: v.optional(v.number()),
     userRating: v.optional(v.number()),
+    notes: v.optional(v.string()), // <-- PHASE 1: Added watchlist notes
   })
   .index("by_user_anime", ["userId", "animeId"])
   .index("by_userId", ["userId"]),
@@ -66,11 +69,13 @@ const applicationTables = {
     animeId: v.id("anime"),
     rating: v.number(),
     reviewText: v.optional(v.string()),
+    isSpoiler: v.optional(v.boolean()), // <-- PHASE 1: Added spoiler tag
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
   .index("by_animeId_userId", ["animeId", "userId"])
-  .index("by_animeId_createdAt", ["animeId", "createdAt"]),
+  .index("by_animeId_createdAt", ["animeId", "createdAt"]) // Existing index, good for default sort
+  .index("by_animeId_rating", ["animeId", "rating"]), // <-- PHASE 1: Added for sorting by rating
 
   notifications: defineTable({
     userId: v.id("users"),
@@ -105,6 +110,19 @@ const applicationTables = {
   .index("by_userId", ["userId"])
   .index("by_phoneNumber_expiresAt", ["phoneNumber", "expiresAt"])
   .index("by_expiresAt", ["expiresAt"]),
+
+  // <-- PHASE 1: New table for AI Interaction Feedback -->
+  aiInteractionFeedback: defineTable({
+    userId: v.id("users"),
+    prompt: v.optional(v.string()), // The user's prompt to the AI
+    aiAction: v.string(), // e.g., "getAnimeRecommendation", "getSimilarAnime", "getPersonalized"
+    aiResponseRecommendations: v.optional(v.array(v.any())), // Store the recommendations JSON if applicable
+    aiResponseText: v.optional(v.string()), // Store general AI text response if no structured recommendations
+    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")), // User feedback
+    messageId: v.string(), // Link to the message ID from the frontend chat if applicable
+    timestamp: v.number(),
+  }).index("by_userId", ["userId"])
+    .index("by_aiAction", ["aiAction"]),
 };
 
 export default defineSchema({

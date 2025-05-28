@@ -1,43 +1,68 @@
-// convex/reviews.ts - Optimized
+// convex/reviews.ts
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { Doc, Id, DataModel } from "./_generated/dataModel"; // Added DataModel
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
-import { PaginationResult } from "convex/server";
+import { PaginationResult, Query, OrderedQuery } from "convex/server"; // Added OrderedQuery
 
-// --- Queries ---
-
-// Get all reviews for a specific anime, optionally paginated and sorted (Optimized N+1)
+// ---- PHASE 1: Added sorting options to getReviewsForAnime ----
 export const getReviewsForAnime = query({
   args: {
     animeId: v.id("anime"),
     paginationOpts: v.any(),
+    // PHASE 1: Add sortOption argument
+    sortOption: v.optional(v.union(
+        v.literal("newest"),
+        v.literal("oldest"),
+        v.literal("highest_rating"),
+        v.literal("lowest_rating")
+    ))
   },
   handler: async (ctx, args) => {
-    const reviewsPaginated = await ctx.db
-      .query("reviews")
-      .withIndex("by_animeId_createdAt", (q) => q.eq("animeId", args.animeId))
-      .order("desc") // Show newest reviews first
-      .paginate(args.paginationOpts);
+    let queryBuilder: OrderedQuery<DataModel["reviews"]>; // Correctly typed
 
-    const reviewsOnPage = reviewsPaginated.page;
-
-    if (reviewsOnPage.length === 0) {
-      return {
-        ...reviewsPaginated,
-        page: [], // Ensure page is an empty array
-      };
+    // Determine the index and order based on sortOption
+    switch (args.sortOption) {
+        case "oldest":
+            queryBuilder = ctx.db
+                .query("reviews")
+                .withIndex("by_animeId_createdAt", (q) => q.eq("animeId", args.animeId))
+                .order("asc");
+            break;
+        case "highest_rating":
+            queryBuilder = ctx.db
+                .query("reviews")
+                .withIndex("by_animeId_rating", (q) => q.eq("animeId", args.animeId))
+                .order("desc"); // Highest rating first
+            break;
+        case "lowest_rating":
+            queryBuilder = ctx.db
+                .query("reviews")
+                .withIndex("by_animeId_rating", (q) => q.eq("animeId", args.animeId))
+                .order("asc"); // Lowest rating first
+            break;
+        case "newest":
+        default: // Default to newest first
+            queryBuilder = ctx.db
+                .query("reviews")
+                .withIndex("by_animeId_createdAt", (q) => q.eq("animeId", args.animeId))
+                .order("desc");
+            break;
     }
 
-    // Collect unique user IDs from the current page of reviews
-    const userIds = Array.from(new Set(reviewsOnPage.map(review => review.userId)));
+    const reviewsPaginated = await queryBuilder.paginate(args.paginationOpts);
+    const reviewsOnPage: Doc<"reviews">[] = reviewsPaginated.page; // Explicitly type
 
-    // Fetch user profiles for these user IDs in a more batched way
+    if (reviewsOnPage.length === 0) {
+      return { ...reviewsPaginated, page: [] };
+    }
+
+    const userIds = Array.from(new Set(reviewsOnPage.map(review => review.userId)));
     const userProfilesPromises = userIds.map(userId =>
       ctx.db
         .query("userProfiles")
-        .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">)) // Cast needed if userId from map isn't Id<"users">
+        .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
         .unique()
     );
     const userProfilesArray = await Promise.all(userProfilesPromises);
@@ -49,12 +74,12 @@ export const getReviewsForAnime = query({
       }
     });
 
-    const reviewsWithUserDetails = reviewsOnPage.map((review) => {
+    const reviewsWithUserDetails = reviewsOnPage.map((review: Doc<"reviews">) => { // Explicitly type 'review' here
       const userProfile = userProfilesMap.get(review.userId.toString());
       return {
-        ...review,
+        ...review, // Spread 'review' which is now correctly typed
         userName: userProfile?.name || "Anonymous",
-        userAvatarUrl: userProfile?.avatarUrl, // Or a default avatar
+        userAvatarUrl: userProfile?.avatarUrl,
       };
     });
 
@@ -65,7 +90,6 @@ export const getReviewsForAnime = query({
   },
 });
 
-// Get a specific review by a user for an anime
 export const getUserReviewForAnime = query({
   args: { animeId: v.id("anime") },
   handler: async (ctx, args) => {
@@ -82,21 +106,20 @@ export const getUserReviewForAnime = query({
   },
 });
 
-
-// --- Mutations ---
+// ---- PHASE 1: Updated addReview to include isSpoiler ----
 export const addReview = mutation({
   args: {
     animeId: v.id("anime"),
-    rating: v.number(), // Ensure rating is within 1-5 or 1-10 based on your frontend ReviewForm
+    rating: v.number(),
     reviewText: v.optional(v.string()),
+    isSpoiler: v.optional(v.boolean()), // New field
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("User not authenticated");
     }
-    // Validate rating, e.g., if your system is 1-5
-    if (args.rating < 1 || args.rating > 5) { // Adjusted based on ReviewForm using MAX_RATING = 5
+    if (args.rating < 1 || args.rating > 5) {
         throw new Error("Rating must be between 1 and 5.");
     }
     const existingReview = await ctx.db
@@ -113,6 +136,7 @@ export const addReview = mutation({
       animeId: args.animeId,
       rating: args.rating,
       reviewText: args.reviewText,
+      isSpoiler: args.isSpoiler ?? false, // Default to false if not provided
       createdAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.reviews.updateAnimeAverageRating, {
@@ -122,11 +146,13 @@ export const addReview = mutation({
   },
 });
 
+// ---- PHASE 1: Updated editReview to include isSpoiler ----
 export const editReview = mutation({
   args: {
     reviewId: v.id("reviews"),
-    rating: v.number(), // Ensure rating is within 1-5 or 1-10
+    rating: v.number(),
     reviewText: v.optional(v.string()),
+    isSpoiler: v.optional(v.boolean()), // New field
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -140,13 +166,13 @@ export const editReview = mutation({
     if (existingReview.userId !== userId) {
       throw new Error("You can only edit your own reviews.");
     }
-    // Validate rating, e.g., if your system is 1-5
-    if (args.rating < 1 || args.rating > 5) { // Adjusted based on ReviewForm using MAX_RATING = 5
+    if (args.rating < 1 || args.rating > 5) {
         throw new Error("Rating must be between 1 and 5.");
     }
     await ctx.db.patch(args.reviewId, {
       rating: args.rating,
       reviewText: args.reviewText,
+      isSpoiler: args.isSpoiler ?? existingReview.isSpoiler ?? false, // Preserve existing if not provided, else default
       updatedAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.reviews.updateAnimeAverageRating, {
@@ -167,9 +193,17 @@ export const deleteReview = mutation({
     if (!existingReview) {
       throw new Error("Review not found.");
     }
+    // Admins can delete any review, users can only delete their own.
+    // This logic is handled in admin.ts for admin deletions.
+    // Here, we only allow users to delete their own.
     if (existingReview.userId !== userId) {
-      throw new Error("You can only delete your own reviews.");
+      const userProfile = await ctx.db.query("userProfiles").withIndex("by_userId", q => q.eq("userId", userId as Id<"users">)).unique();
+      if(!userProfile?.isAdmin){ // Check if current user is NOT an admin
+        throw new Error("You can only delete your own reviews.");
+      }
+      // If admin, allow deletion (though adminDeleteReview is preferred for admins)
     }
+
     const animeId = existingReview.animeId;
     await ctx.db.delete(args.reviewId);
     await ctx.scheduler.runAfter(0, internal.reviews.updateAnimeAverageRating, {
@@ -179,28 +213,27 @@ export const deleteReview = mutation({
   },
 });
 
-// --- Internal Mutations ---
 export const updateAnimeAverageRating = internalMutation({
   args: { animeId: v.id("anime") },
   handler: async (ctx, args) => {
     const reviewsForAnime = await ctx.db
       .query("reviews")
-      .withIndex("by_animeId_createdAt", q => q.eq("animeId", args.animeId))
+      .withIndex("by_animeId_createdAt", q => q.eq("animeId", args.animeId)) // Can use any index that filters by animeId
       .collect();
     const reviewCount = reviewsForAnime.length;
     let averageUserRating = 0;
     if (reviewCount > 0) {
       const totalRatingSum = reviewsForAnime.reduce((sum, review) => sum + review.rating, 0);
-      averageUserRating = parseFloat((totalRatingSum / reviewCount).toFixed(2));
+      averageUserRating = parseFloat((totalRatingSum / reviewCount).toFixed(2)); // Keep 2 decimal places
     }
     try {
         await ctx.db.patch(args.animeId, {
-            averageUserRating: reviewCount > 0 ? averageUserRating : undefined,
+            averageUserRating: reviewCount > 0 ? averageUserRating : undefined, // Set to undefined if no reviews
             reviewCount: reviewCount,
           });
     } catch (e) {
-        console.error(`Failed to patch anime ${args.animeId} with new average rating:`, e)
+        console.error(`[Rating Update] Failed to patch anime ${args.animeId} with new average rating:`, e)
     }
-    console.log(`Updated average rating for anime ${args.animeId}: ${averageUserRating} from ${reviewCount} reviews.`);
+    console.log(`[Rating Update] Updated average rating for anime ${args.animeId}: ${averageUserRating} from ${reviewCount} reviews.`);
   },
 });
