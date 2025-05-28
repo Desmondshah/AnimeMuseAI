@@ -151,7 +151,10 @@ export default function AnimeDetailPage({ animeId, onBack }: AnimeDetailPageProp
     if (!anime) return; setLoadingSimilar(true); setSimilarAnimeError(null);
     try {
         const profile = userProfile ? { name: userProfile.name, moods: userProfile.moods, genres: userProfile.genres, favoriteAnimes: userProfile.favoriteAnimes, experienceLevel: userProfile.experienceLevel, dislikedGenres: userProfile.dislikedGenres, dislikedTags: userProfile.dislikedTags, characterArchetypes: userProfile.characterArchetypes, tropes: userProfile.tropes, artStyles: userProfile.artStyles, narrativePacing: userProfile.narrativePacing } : undefined;
-        const result = await getSimilarAnimeAction({ animeId: anime._id, userProfile: profile, count: 3 });
+        const result = await getSimilarAnimeAction({
+          animeId: anime._id, userProfile: profile, count: 3,
+          messageId: ""
+        });
         if (result.error) setSimilarAnimeError(result.error); else setSimilarAnime(result.recommendations as AnimeRecommendation[]);
         setShowSimilarAnime(true);
     } catch (e:any) { setSimilarAnimeError("Failed to load similar anime."); }

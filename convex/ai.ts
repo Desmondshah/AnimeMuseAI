@@ -1,10 +1,26 @@
+// convex/ai.ts
 // Advanced AI Features: Multi-turn conversations, clarification, and refinement
 // Fixed version of convex/ai.ts
 
 import { action, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { api, internal, } from "./_generated/api";
 import OpenAI from "openai";
+import { Id } from "./_generated/dataModel";
+import { internalQuery } from "./_generated/server";
+
+interface AnimeDocument {
+    _id: Id<"anime">;
+    title: string;
+    description?: string;
+    posterUrl?: string;
+    genres?: string[];
+    year?: number;
+    rating?: number;
+    emotionalTags?: string[];
+    themes?: string[];
+    studios?: string[];
+}
 
 // Enhanced user profile validator (moved to top to avoid hoisting issues)
 const enhancedUserProfileValidator = v.object({
@@ -68,10 +84,17 @@ const tryParseAIResponse = (jsonString: string | null, actionName: string): any[
     }
 };
 
-// Store AI feedback mutation (add this if it doesn't exist)
+export const getAllAnimeInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("anime").collect();
+  },
+});
+
+// Store AI feedback mutation
 export const storeAiFeedback = mutation({
   args: {
-    prompt: v.string(),
+    prompt: v.string(), // Changed from v.optional(v.string()) to v.string() to match usage
     aiAction: v.string(),
     aiResponseRecommendations: v.optional(v.array(v.any())),
     aiResponseText: v.optional(v.string()),
@@ -79,22 +102,98 @@ export const storeAiFeedback = mutation({
     messageId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Implementation would depend on your database schema
     // For now, just log the feedback
-    console.log(`[AI Feedback] ${args.aiAction}: ${args.feedbackType}`);
+    // console.log(`[AI Feedback] UserID: ${await ctx.auth.getUserIdentity()?.subject} Action: ${args.aiAction}, Feedback: ${args.feedbackType}, MessageID: ${args.messageId}`);
     
-    // You would typically insert this into a feedback table:
-    // await ctx.db.insert("aiInteractionFeedback", {
-    //   prompt: args.prompt,
-    //   aiAction: args.aiAction,
-    //   aiResponseRecommendations: args.aiResponseRecommendations,
-    //   aiResponseText: args.aiResponseText,
-    //   feedbackType: args.feedbackType,
-    //   messageId: args.messageId,
-    //   timestamp: Date.now(),
-    // });
+     await ctx.db.insert("aiInteractionFeedback", {
+       // userId: (await ctx.auth.getUserIdentity())?.subject as Id<"users">, // This requires user to be logged in
+       userId: "system" as any, // Placeholder if you don't have userId here or make it optional
+       prompt: args.prompt,
+       aiAction: args.aiAction,
+       aiResponseRecommendations: args.aiResponseRecommendations,
+       aiResponseText: args.aiResponseText,
+       feedbackType: args.feedbackType,
+       messageId: args.messageId,
+       timestamp: Date.now(),
+     });
   },
 });
+
+// *******************************************************************
+// ADD THE MISSING getAnimeRecommendation ACTION HERE
+// *******************************************************************
+export const getAnimeRecommendation = action({
+  args: {
+    prompt: v.string(),
+    userProfile: v.optional(enhancedUserProfileValidator),
+    count: v.optional(v.number()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { recommendations: [], error: "OpenAI API key not configured." };
+    }
+
+    let systemPrompt = `You are AniMuse AI, an expert anime recommendation assistant.
+Your goal is to provide high-quality anime recommendations based on the user's prompt.
+Consider the user's profile if provided to tailor suggestions.
+Output a JSON object with a single key "recommendations", which is an array of 3-${args.count || 3} anime.
+Each anime object should have: title, description, reasoning (why it matches the prompt/profile), posterUrl (use "https://via.placeholder.com/200x300.png?text=[Anime+Title]" if unknown), genres (array of strings), year (number), rating (number 0-10), emotionalTags (array of strings like "heartwarming", "intense"), trailerUrl (optional string), studios (array of strings), themes (array of strings).
+Focus on providing diverse and relevant choices.`;
+
+    if (args.userProfile) {
+      systemPrompt += "\n\nUser Profile Context:";
+      if (args.userProfile.name) systemPrompt += `\n- Name: ${args.userProfile.name}`;
+      if (args.userProfile.moods?.length) systemPrompt += `\n- Current Moods: ${args.userProfile.moods.join(", ")}`;
+      if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
+      if (args.userProfile.favoriteAnimes?.length) systemPrompt += `\n- Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
+      if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
+      if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
+      // Add other profile fields as needed
+    }
+
+    let recommendations: any[] = [];
+    let errorResult: string | undefined = undefined;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: args.prompt }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const parsed = tryParseAIResponse(completion.choices[0].message.content, "getAnimeRecommendation");
+      if (parsed) {
+        recommendations = parsed.slice(0, args.count || 3);
+      } else {
+        errorResult = "AI response format error or no recommendations found.";
+      }
+    } catch (err: any) {
+      console.error("[AI Action - GetAnimeRecommendation] Error:", err);
+      errorResult = `AI Error: ${err.message || "Unknown"}`;
+    } finally {
+      if (args.messageId) {
+         await ctx.runMutation(api.ai.storeAiFeedback, {
+          prompt: args.prompt,
+          aiAction: "getAnimeRecommendation",
+          aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+          aiResponseText: recommendations.length === 0 ? errorResult : undefined,
+          feedbackType: "none", // Default feedback
+          messageId: args.messageId,
+        });
+      }
+    }
+    return { recommendations, error: errorResult };
+  },
+});
+// *******************************************************************
+// END OF getAnimeRecommendation
+// *******************************************************************
+
 
 // Smart query analyzer - determines if query needs clarification
 export const analyzeUserQuery = action({
@@ -105,11 +204,11 @@ export const analyzeUserQuery = action({
   },
   handler: async (ctx, args) => {
     if (!process.env.CONVEX_OPENAI_API_KEY) {
-      return { 
-        needsClarification: false, 
+      return {
+        needsClarification: false,
         suggestedAction: "getAnimeRecommendation",
         confidence: 0,
-        error: "OpenAI API key not configured." 
+        error: "OpenAI API key not configured."
       };
     }
 
@@ -174,8 +273,7 @@ Rules:
       });
 
       const analysis = JSON.parse(completion.choices[0].message.content || "{}");
-      
-      // Store the query analysis for learning
+
       await ctx.runMutation(api.ai.storeAiFeedback, {
         prompt: args.query,
         aiAction: "analyzeUserQuery",
@@ -230,7 +328,7 @@ ORIGINAL QUERY: "${args.originalQuery}"
 REFINEMENT REQUEST: "${args.refinementRequest}"
 
 ORIGINAL RECOMMENDATIONS:`;
-    
+
     args.originalRecommendations.forEach((rec, idx) => {
       systemPrompt += `\n${idx + 1}. ${rec.title} - ${rec.reasoning || rec.description}`;
     });
@@ -251,7 +349,7 @@ ORIGINAL RECOMMENDATIONS:`;
 
 Common Refinement Types:
 - "More action/romance/comedy" - increase that element
-- "Less X" - reduce or avoid that element  
+- "Less X" - reduce or avoid that element
 - "Older/newer anime" - adjust time period
 - "Shorter/longer series" - adjust episode count
 - "More mainstream/obscure" - adjust popularity level
@@ -315,7 +413,7 @@ export const generateFollowUpSuggestions = action({
     let systemPrompt = `You are AniMuse Follow-up Suggester. Based on user interactions with recommendations, suggest next steps.
 
 LAST RECOMMENDATIONS:`;
-    
+
     args.lastRecommendations.forEach((rec, idx) => {
       systemPrompt += `\n${idx + 1}. ${rec.title} (${rec.genres?.join(", ") || "No genres"})`;
     });
@@ -334,7 +432,7 @@ LAST RECOMMENDATIONS:`;
 
 Suggestion Types:
 - "more_like_this": Similar to what they liked
-- "complementary": Good to watch alongside their picks  
+- "complementary": Good to watch alongside their picks
 - "pivot": Different direction if they didn't like suggestions
 - "deep_dive": Explore specific aspect (director, studio, theme) they seemed interested in
 - "next_steps": What to watch after they finish current picks
@@ -362,10 +460,10 @@ Output JSON: {
       });
 
       const result = JSON.parse(completion.choices[0].message.content || "{}");
-      
+
       await ctx.runMutation(api.ai.storeAiFeedback, {
         prompt: "Follow-up suggestions generation",
-        aiAction: "generateFollowUpSuggestions", 
+        aiAction: "generateFollowUpSuggestions",
         aiResponseText: JSON.stringify(result),
         feedbackType: "none",
         messageId: args.messageId,
@@ -395,7 +493,7 @@ export const learnFromFeedback = action({
     })),
     analysisType: v.optional(v.union(
       v.literal("negative_patterns"),
-      v.literal("positive_patterns"), 
+      v.literal("positive_patterns"),
       v.literal("improvement_suggestions"),
       v.literal("user_preference_insights")
     )),
@@ -405,16 +503,13 @@ export const learnFromFeedback = action({
       return { insights: null, error: "OpenAI API key not configured." };
     }
 
-    // This would need to query the aiInteractionFeedback table
-    // For now, showing the structure for learning from feedback
-    
     let systemPrompt = `You are AniMuse Learning Analyzer. Analyze user feedback patterns to improve recommendations.
 
 ANALYSIS TYPE: ${args.analysisType || "general_insights"}
 
 Based on feedback data, identify:
 1. Common reasons for negative feedback
-2. Patterns in successful recommendations  
+2. Patterns in successful recommendations
 3. User preference trends
 4. Recommendation strategy improvements
 
@@ -439,7 +534,7 @@ For "positive_patterns":
 {
   "positivePatterns": [
     {
-      "pattern": "What works well", 
+      "pattern": "What works well",
       "frequency": number,
       "examples": ["example1", "example2"],
       "amplificationStrategy": "How to do more of this"
@@ -461,10 +556,7 @@ For "improvement_suggestions":
 
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
-      
-      // In a real implementation, you'd query the feedback table here
-      // const feedbackData = await ctx.runQuery(internal.ai.getFeedbackAnalytics, args);
-      
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -475,7 +567,7 @@ For "improvement_suggestions":
       });
 
       const insights = JSON.parse(completion.choices[0].message.content || "{}");
-      
+
       return { insights, error: undefined };
 
     } catch (err: any) {
@@ -488,12 +580,11 @@ For "improvement_suggestions":
   },
 });
 
-// Advanced prompt templates with role-playing
 const getAdvancedSystemPrompt = (role: string, context: any) => {
   const roles: Record<string, string> = {
     "anime_historian": `You are an Anime Historian with deep knowledge of anime evolution from the 1960s to present. You understand:
 - Historical context and cultural significance
-- How anime styles and themes evolved over decades  
+- How anime styles and themes evolved over decades
 - Influence of manga, light novels, and cultural events
 - Studio evolution and director signatures
 - Genre development and cross-cultural impact
@@ -531,13 +622,12 @@ Guide users toward meaningful discoveries that surprise and delight.`
   return roles[role] || roles["casual_blogger"];
 };
 
-// Role-based recommendation system
 export const getRoleBasedRecommendations = action({
   args: {
     query: v.string(),
     aiRole: v.optional(v.union(
       v.literal("anime_historian"),
-      v.literal("casual_blogger"), 
+      v.literal("casual_blogger"),
       v.literal("genre_specialist"),
       v.literal("discovery_guide")
     )),
@@ -601,7 +691,6 @@ Each recommendation: title, description, reasoning (in your role's voice/perspec
   },
 });
 
-// 1. CHARACTER-BASED RECOMMENDATIONS
 export const getCharacterBasedRecommendations = action({
   args: {
     characterDescription: v.string(),
@@ -684,7 +773,6 @@ Each recommendation: title, description, reasoning (focus on character similarit
   },
 });
 
-// 2. PLOT/TROPE-BASED RECOMMENDATIONS
 export const getTropeBasedRecommendations = action({
   args: {
     plotDescription: v.string(),
@@ -764,7 +852,6 @@ Each recommendation: title, description, reasoning (focus on plot/trope similari
   },
 });
 
-// 3. ART STYLE/STUDIO FOCUSED RECOMMENDATIONS
 export const getArtStyleRecommendations = action({
   args: {
     artStyleDescription: v.string(),
@@ -842,7 +929,6 @@ Each recommendation: title, description, reasoning (focus on visual/studio aspec
   },
 });
 
-// 4. COMPARATIVE ANALYSIS
 export const getComparativeAnalysis = action({
   args: {
     animeA: v.string(),
@@ -863,13 +949,13 @@ export const getComparativeAnalysis = action({
 
     let systemPrompt = `You are AniMuse AI, expert anime analyst specializing in comparative analysis.
 
-TASK: ${analysisType === "similarities" ? "Compare similarities between" : 
-           analysisType === "differences" ? "Analyze key differences between" : 
+TASK: ${analysisType === "similarities" ? "Compare similarities between" :
+           analysisType === "differences" ? "Analyze key differences between" :
            "Provide detailed comparison of"} "${args.animeA}" and "${args.animeB}".
 
 Analysis Framework:
 1. Plot Structure & Themes
-2. Character Development & Archetypes  
+2. Character Development & Archetypes
 3. Art Style & Animation
 4. Tone & Atmosphere
 5. Target Audience & Genre
@@ -882,7 +968,7 @@ Output JSON: {
     "animeB": "${args.animeB}",
     "analysisType": "${analysisType}",
     "plotComparison": "...",
-    "characterComparison": "...", 
+    "characterComparison": "...",
     "visualComparison": "...",
     "toneComparison": "...",
     "overallSummary": "...",
@@ -925,7 +1011,6 @@ Output JSON: {
   },
 });
 
-// 5. HIDDEN GEM / SURPRISE ME FINDER
 export const getHiddenGemRecommendations = action({
   args: {
     surpriseLevel: v.optional(v.union(v.literal("mild"), v.literal("moderate"), v.literal("wild"))),
@@ -944,7 +1029,7 @@ export const getHiddenGemRecommendations = action({
     let systemPrompt = `You are AniMuse AI, curator of hidden anime gems and unexpected discoveries.
 
 MISSION: Find ${surpriseLevel} surprises - anime that are:
-- ${surpriseLevel === "mild" ? "Slightly off the beaten path but accessible" : 
+- ${surpriseLevel === "mild" ? "Slightly off the beaten path but accessible" :
     surpriseLevel === "moderate" ? "Genuinely surprising but not too obscure" :
     "Completely unexpected and wonderfully weird"}
 - ${avoidPopular ? "NOT mainstream or widely known" : "Can include some lesser-known gems from popular franchises"}
@@ -963,9 +1048,9 @@ User Profile Context:`;
       }
     }
 
-    systemPrompt += `\n\nStrategy: ${surpriseLevel === "mild" ? 
+    systemPrompt += `\n\nStrategy: ${surpriseLevel === "mild" ?
       "Recommend quality anime from adjacent genres or underappreciated classics" :
-      surpriseLevel === "moderate" ? 
+      surpriseLevel === "moderate" ?
       "Mix familiar elements with unexpected twists, or explore niche but excellent shows" :
       "Go for the wonderfully bizarre, experimental, or completely genre-defying"}
 
@@ -1009,7 +1094,6 @@ Each recommendation: title, description, reasoning (why this is a perfect surpri
   },
 });
 
-// 6. WATCH ORDER / FRANCHISE GUIDE
 export const getFranchiseGuide = action({
   args: {
     franchiseName: v.string(),
@@ -1095,4 +1179,276 @@ Output JSON: {
 
     return { guide, error: errorResult };
   },
+});
+
+// Fixed getSimilarAnimeFromDB function
+export const getSimilarAnimeFromDB = action({
+    args: {
+        animeId: v.id("anime"),
+        userProfile: v.optional(enhancedUserProfileValidator),
+        count: v.optional(v.number()),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args): Promise<{ recommendations: any[]; error: string | undefined }> => {
+        const targetAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId }) as AnimeDocument | null;
+        if (!targetAnime) return { recommendations: [], error: "Target anime not found." };
+
+        // For now, let's use AI to find similar anime instead of querying all anime
+        // This is more efficient and can provide better recommendations
+        
+        const aiRecommendations = await ctx.runAction(api.ai.getAnimeRecommendation, {
+            prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
+            userProfile: args.userProfile,
+            count: args.count || 5,
+            messageId: args.messageId,
+        });
+
+        if (aiRecommendations.error) {
+            return { recommendations: [], error: aiRecommendations.error };
+        }
+
+        const recommendations = (aiRecommendations.recommendations || []).map((anime: any) => ({
+            ...anime,
+            reasoning: anime.reasoning || `Similar to ${targetAnime.title} based on AI analysis`,
+        }));
+        
+        if (args.messageId) {
+            await ctx.runMutation(api.ai.storeAiFeedback, {
+              prompt: `Similar to DB anime: ${targetAnime.title}`,
+              aiAction: "getSimilarAnimeFromDB",
+              aiResponseRecommendations: recommendations,
+              feedbackType: "none",
+              messageId: args.messageId,
+            });
+        }
+        return { recommendations, error: undefined };
+    }
+});
+
+// --- NEW: getPersonalizedRecommendations (can call other AI actions or fetch from DB) ---
+export const getPersonalizedRecommendations = action({
+    args: {
+        userProfile: enhancedUserProfileValidator,
+        watchlistActivity: v.optional(v.array(v.object({
+            animeTitle: v.string(),
+            status: v.string(), // "Watching", "Completed", "Plan to Watch", "Dropped"
+            userRating: v.optional(v.number()), // User's rating for this anime
+        }))),
+        count: v.optional(v.number()),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        if (!process.env.CONVEX_OPENAI_API_KEY) {
+            return { recommendations: [], error: "OpenAI API key not configured." };
+        }
+
+        let systemPrompt = `You are AniMuse, an AI that provides highly personalized anime recommendations.
+Based on the user's detailed profile and recent watchlist activity, suggest ${args.count || 3} anime they might enjoy.
+Provide diverse recommendations that touch upon different aspects of their profile.
+Each recommendation MUST include: title, description, posterUrl (use placeholder if needed), genres, year, rating (0-10), emotionalTags, studios, themes, and a DETAILED reasoning explaining *why* this specific anime is a good fit for THIS user, referencing their profile data (genres, moods, experience, archetypes, tropes, art styles etc.) and watchlist activity.
+The "reasoning" field is crucial for personalization. Make it insightful.`;
+
+        systemPrompt += "\n\nUSER PROFILE:";
+        systemPrompt += `\n- Name: ${args.userProfile.name || "N/A"}`;
+        if (args.userProfile.moods?.length) systemPrompt += `\n- Current Moods: ${args.userProfile.moods.join(", ")}`;
+        if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
+        if (args.userProfile.favoriteAnimes?.length) systemPrompt += `\n- Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
+        if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
+        if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
+        if (args.userProfile.characterArchetypes?.length) systemPrompt += `\n- Liked Character Archetypes: ${args.userProfile.characterArchetypes.join(", ")}`;
+        if (args.userProfile.tropes?.length) systemPrompt += `\n- Liked Tropes: ${args.userProfile.tropes.join(", ")}`;
+        if (args.userProfile.artStyles?.length) systemPrompt += `\n- Liked Art Styles: ${args.userProfile.artStyles.join(", ")}`;
+        if (args.userProfile.narrativePacing) systemPrompt += `\n- Preferred Pacing: ${args.userProfile.narrativePacing}`;
+
+        if (args.watchlistActivity?.length) {
+            systemPrompt += "\n\nRECENT WATCHLIST ACTIVITY (last 5 items):";
+            args.watchlistActivity.slice(0, 5).forEach(item => {
+                systemPrompt += `\n- "${item.animeTitle}": ${item.status}${item.userRating ? ` (Rated: ${item.userRating}/5)` : ''}`;
+            });
+        }
+        
+        systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
+
+
+        let recommendations: any[] = [];
+        let errorResult: string | undefined = undefined;
+
+        try {
+            const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini", // or "gpt-4-turbo" for potentially better reasoning
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: "Generate personalized anime recommendations based on my profile and activity." }
+                ],
+                response_format: { type: "json_object" },
+            });
+
+            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getPersonalizedRecommendations");
+            if (parsed) {
+                recommendations = parsed.slice(0, args.count || 3);
+            } else {
+                errorResult = "AI response format error or no recommendations found.";
+            }
+        } catch (err: any) {
+            console.error("[AI Action - GetPersonalizedRecommendations] Error:", err);
+            errorResult = `AI Error: ${err.message || "Unknown"}`;
+        } finally {
+             if (args.messageId) {
+                await ctx.runMutation(api.ai.storeAiFeedback, {
+                    prompt: "Personalized recommendations request",
+                    aiAction: "getPersonalizedRecommendations",
+                    aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+                    aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
+                    feedbackType: "none",
+                    messageId: args.messageId,
+                });
+            }
+        }
+        return { recommendations, error: errorResult };
+    }
+});
+
+
+// --- NEW: getRecommendationsByMoodTheme (for Mood Board on Dashboard) ---
+export const getRecommendationsByMoodTheme = action({
+    args: {
+        selectedCues: v.array(v.string()), // e.g., ["Dark & Gritty", "Mind-Bending"]
+        userProfile: v.optional(enhancedUserProfileValidator),
+        count: v.optional(v.number()),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        if (!process.env.CONVEX_OPENAI_API_KEY) {
+            return { recommendations: [], error: "OpenAI API key not configured." };
+        }
+        if (args.selectedCues.length === 0) {
+            return { recommendations: [], error: "No mood cues selected." };
+        }
+
+        let systemPrompt = `You are AniMuse, an AI specializing in recommending anime based on mood, themes, and vibes.
+The user has selected the following mood/theme cues: ${args.selectedCues.join(", ")}.
+Suggest ${args.count || 3} anime that strongly evoke these combined vibes.
+Each recommendation MUST include: title, description, posterUrl (use placeholder if needed), genres, year, rating (0-10), emotionalTags, studios, themes, and a DETAILED reasoning explaining *why* this anime fits the selected mood cues.
+If user profile data is available, subtly weave it into the reasoning if it aligns, but prioritize the mood cues.`;
+
+        if (args.userProfile) {
+            systemPrompt += "\n\nUser Profile Context (use for subtle tie-ins if relevant):";
+            if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
+            if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
+             if (args.userProfile.moods?.length) systemPrompt += `\n- General Moods Liked: ${args.userProfile.moods.join(", ")}`;
+        }
+         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
+
+
+        let recommendations: any[] = [];
+        let errorResult: string | undefined = undefined;
+
+        try {
+            const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `Find anime for vibes: ${args.selectedCues.join(" & ")}.` }
+                ],
+                response_format: { type: "json_object" },
+            });
+
+            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getRecommendationsByMoodTheme");
+            if (parsed) {
+                recommendations = parsed.slice(0, args.count || 3);
+            } else {
+                errorResult = "AI response format error or no mood-based recommendations found.";
+            }
+        } catch (err: any) {
+            console.error("[AI Action - GetRecommendationsByMoodTheme] Error:", err);
+            errorResult = `AI Error: ${err.message || "Unknown"}`;
+        } finally {
+            if (args.messageId) {
+                await ctx.runMutation(api.ai.storeAiFeedback, {
+                    prompt: `Mood board: ${args.selectedCues.join(", ")}`,
+                    aiAction: "getRecommendationsByMoodTheme",
+                    aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+                    aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
+                    feedbackType: "none",
+                    messageId: args.messageId,
+                });
+            }
+        }
+        return { recommendations, error: errorResult };
+    }
+});
+
+// NEW : getSimilarAnimeRecommendations (for Anime Detail Page)
+export const getSimilarAnimeRecommendations = action({
+    args: {
+        animeId: v.id("anime"), // ID of the anime in *our* database
+        userProfile: v.optional(enhancedUserProfileValidator),
+        count: v.optional(v.number()),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        if (!process.env.CONVEX_OPENAI_API_KEY) {
+            return { recommendations: [], error: "OpenAI API key not configured." };
+        }
+
+        const targetAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId });
+        if (!targetAnime) {
+            return { recommendations: [], error: "Target anime not found in database." };
+        }
+
+        let systemPrompt = `You are AniMuse, an AI that finds anime similar to a given title.
+The user is looking for anime similar to "${targetAnime.title}" (Year: ${targetAnime.year || 'N/A'}, Genres: ${targetAnime.genres?.join(", ") || 'N/A'}).
+Description of target anime: "${targetAnime.description?.substring(0, 200) || 'N/A'}..."
+Suggest ${args.count || 3} anime that share significant similarities in terms of genre, themes, tone, plot structure, or character archetypes.
+For each recommendation, provide: title, description, posterUrl, genres, year, rating, emotionalTags, studios, themes, and a DETAILED reasoning explaining *how* it is similar to "${targetAnime.title}".
+If user profile data is available, use it to refine the *type* of similarities highlighted or to filter out suggestions the user might dislike.`;
+
+        if (args.userProfile) {
+            systemPrompt += "\n\nUser Profile Context (use to refine similarity focus):";
+            if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
+            if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")} (try to avoid these in suggestions if possible, unless a core aspect of similarity)`;
+            if (args.userProfile.tropes?.length) systemPrompt += `\n- Liked Tropes: ${args.userProfile.tropes.join(", ")}`;
+             if (args.userProfile.characterArchetypes?.length) systemPrompt += `\n- Liked Archetypes: ${args.userProfile.characterArchetypes.join(", ")}`;
+        }
+        systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
+
+        let recommendations: any[] = [];
+        let errorResult: string | undefined = undefined;
+
+        try {
+            const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `Find anime similar to "${targetAnime.title}".` }
+                ],
+                response_format: { type: "json_object" },
+            });
+
+            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendations");
+            if (parsed) {
+                recommendations = parsed.slice(0, args.count || 3);
+            } else {
+                errorResult = "AI response format error or no similar anime found.";
+            }
+        } catch (err: any) {
+            console.error("[AI Action - GetSimilarAnimeRecommendations] Error:", err);
+            errorResult = `AI Error: ${err.message || "Unknown"}`;
+        } finally {
+            if (args.messageId) {
+                 await ctx.runMutation(api.ai.storeAiFeedback, {
+                    prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id})`,
+                    aiAction: "getSimilarAnimeRecommendations",
+                    aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+                    aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
+                    feedbackType: "none",
+                    messageId: args.messageId,
+                });
+            }
+        }
+        return { recommendations, error: errorResult };
+    }
 });

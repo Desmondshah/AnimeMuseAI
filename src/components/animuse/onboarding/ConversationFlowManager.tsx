@@ -1,3 +1,4 @@
+// src/components/animuse/onboarding/ConversationFlowManager.tsx
 // Conversation Flow Manager - Smart AI interaction orchestrator
 // This component manages the enhanced conversation flow
 
@@ -7,6 +8,37 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
+
+// Define the possible return types from AI actions
+type RecommendationResult = {
+  recommendations: any[];
+  error?: string;
+};
+
+type AnalysisResult = {
+  analysis: any;
+  error?: string;
+};
+
+type GuideResult = {
+  guide: any;
+  error?: string;
+};
+
+type AIActionResult = RecommendationResult | AnalysisResult | GuideResult;
+
+// Type guard functions
+function hasRecommendations(result: any): result is RecommendationResult {
+  return result && 'recommendations' in result;
+}
+
+function hasAnalysis(result: any): result is AnalysisResult {
+  return result && 'analysis' in result;
+}
+
+function hasGuide(result: any): result is GuideResult {
+  return result && 'guide' in result;
+}
 
 interface ConversationState {
   currentContext: "fresh_start" | "clarification_needed" | "recommendations_given" | "refinement_mode" | "follow_up";
@@ -38,9 +70,16 @@ interface ConversationFlowManagerProps {
   userProfile: any;
 }
 
+interface FollowUpSuggestion {
+  type: string;
+  title: string;
+  description: string;
+  actionPrompt: string;
+}
+
 export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = ({
   onRecommendations,
-  onAnalysis, 
+  onAnalysis,
   onGuide,
   onError,
   userProfile
@@ -62,7 +101,14 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
   const refineRecommendations = useAction(api.ai.refineRecommendations);
   const generateFollowUpSuggestions = useAction(api.ai.generateFollowUpSuggestions);
   const getRoleBasedRecommendations = useAction(api.ai.getRoleBasedRecommendations);
-  const getAnimeRecommendation = useAction(api.ai.getAnimeRecommendation);
+  const getAnimeRecommendationAction = useAction(api.ai.getAnimeRecommendation); // This line causes the error if not found in api.ai
+  const getCharacterBasedRecommendationsAction = useAction(api.ai.getCharacterBasedRecommendations);
+  const getTropeBasedRecommendationsAction = useAction(api.ai.getTropeBasedRecommendations);
+  const getArtStyleRecommendationsAction = useAction(api.ai.getArtStyleRecommendations);
+  const getComparativeAnalysisAction = useAction(api.ai.getComparativeAnalysis);
+  const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
+  const getHiddenGemRecommendationsAction = useAction(api.ai.getHiddenGemRecommendations);
+
 
   // Smart suggestion generation based on context
   const generateSmartSuggestions = useCallback(async () => {
@@ -85,7 +131,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
           messageId,
         });
 
-        return followUpResult.suggestions?.map(s => s.actionPrompt) || [
+        return followUpResult.suggestions?.map((s: FollowUpSuggestion) => s.actionPrompt) || [
           "Can you refine these recommendations?",
           "Show me something completely different",
           "More like the first recommendation"
@@ -97,7 +143,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
 
     return [
       "Show me something different",
-      "More like what you just suggested", 
+      "More like what you just suggested",
       "I need something specific..."
     ];
   }, [conversationState, generateFollowUpSuggestions, userProfile]);
@@ -160,12 +206,12 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
       }
 
       // Check if this is a refinement request
-      if (conversationState.currentContext === "recommendations_given" && 
-          (input.toLowerCase().includes("more") || 
-           input.toLowerCase().includes("less") || 
+      if (conversationState.currentContext === "recommendations_given" &&
+          (input.toLowerCase().includes("more") ||
+           input.toLowerCase().includes("less") ||
            input.toLowerCase().includes("different") ||
            input.toLowerCase().includes("similar"))) {
-        
+
         const refinementResult = await refineRecommendations({
           originalQuery: conversationState.conversationHistory.find(h => h.role === "user")?.content || "",
           originalRecommendations: conversationState.lastRecommendations,
@@ -181,9 +227,9 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
             lastRecommendations: refinementResult.recommendations,
             lastAction: "refineRecommendations",
           }));
-          onRecommendations(refinementResult.recommendations, { 
-            type: "refinement", 
-            originalQuery: input 
+          onRecommendations(refinementResult.recommendations, {
+            type: "refinement",
+            originalQuery: input
           });
         } else if (refinementResult.error) {
           onError(refinementResult.error);
@@ -192,12 +238,12 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
       }
 
       // Determine which AI action to use based on analysis
-      let result;
+      let result: AIActionResult | undefined;
       const aiRole = determineAIRole(input, userProfile);
 
       switch (analysis.suggestedAction) {
         case "getCharacterBasedRecommendations":
-          result = await api.ai.getCharacterBasedRecommendations({
+          result = await getCharacterBasedRecommendationsAction({
             characterDescription: input,
             userProfile,
             messageId,
@@ -205,7 +251,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
           break;
 
         case "getTropeBasedRecommendations":
-          result = await api.ai.getTropeBasedRecommendations({
+          result = await getTropeBasedRecommendationsAction({
             plotDescription: input,
             userProfile,
             messageId,
@@ -213,7 +259,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
           break;
 
         case "getArtStyleRecommendations":
-          result = await api.ai.getArtStyleRecommendations({
+          result = await getArtStyleRecommendationsAction({
             artStyleDescription: input,
             userProfile,
             messageId,
@@ -221,10 +267,9 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
           break;
 
         case "getComparativeAnalysis":
-          // This would need parsing to extract two anime names
           const animeNames = extractAnimeNamesForComparison(input);
           if (animeNames.length === 2) {
-            result = await api.ai.getComparativeAnalysis({
+            result = await getComparativeAnalysisAction({
               animeA: animeNames[0],
               animeB: animeNames[1],
               messageId,
@@ -235,7 +280,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
             }
           }
           // Fall back to general recommendations if parsing fails
-          result = await getAnimeRecommendation({
+          result = await getAnimeRecommendationAction({
             prompt: input,
             userProfile,
             messageId,
@@ -244,7 +289,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
 
         case "getFranchiseGuide":
           const franchiseName = extractFranchiseName(input);
-          result = await api.ai.getFranchiseGuide({
+          result = await getFranchiseGuideAction({
             franchiseName,
             userExperience: userProfile?.experienceLevel,
             messageId,
@@ -256,7 +301,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
           break;
 
         case "getHiddenGemRecommendations":
-          result = await api.ai.getHiddenGemRecommendations({
+          result = await getHiddenGemRecommendationsAction({
             surpriseLevel: "moderate",
             avoidPopular: true,
             userProfile,
@@ -266,30 +311,48 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
 
         default:
           // Use role-based recommendations for more personalized responses
-          result = await getRoleBasedRecommendations({
-            query: input,
-            aiRole,
-            userProfile,
-            messageId,
-          });
+          // If getAnimeRecommendationAction is intended for general cases, it should be used here.
+          // Otherwise, getRoleBasedRecommendations is used.
+          if (analysis.suggestedAction === "getAnimeRecommendation" || !analysis.suggestedAction) {
+             result = await getAnimeRecommendationAction({
+                prompt: input,
+                userProfile,
+                messageId,
+             });
+          } else {
+            result = await getRoleBasedRecommendations({
+                query: input,
+                aiRole,
+                userProfile,
+                messageId,
+            });
+          }
           break;
       }
 
-      // Handle the result
+    // Handle the result
       if (result?.error) {
         onError(result.error);
-      } else if (result?.recommendations?.length) {
+      } else if (hasRecommendations(result) && result.recommendations.length > 0) {
         setConversationState(prev => ({
           ...prev,
           currentContext: "recommendations_given",
           lastRecommendations: result.recommendations,
           lastAction: analysis.suggestedAction,
         }));
-        onRecommendations(result.recommendations, { 
-          type: "primary", 
+        onRecommendations(result.recommendations, {
+          type: "primary",
           action: analysis.suggestedAction,
-          role: aiRole 
+          role: aiRole
         });
+      } else if (hasAnalysis(result)) {
+        // This case should have been handled above with early return,
+        // but adding as safety net
+        onAnalysis(result.analysis);
+      } else if (hasGuide(result)) {
+        // This case should have been handled above with early return,
+        // but adding as safety net
+        onGuide(result.guide);
       } else {
         onError("No recommendations found for your request.");
       }
@@ -300,17 +363,34 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
     } finally {
       setIsProcessing(false);
     }
-  }, [conversationState, userProfile, analyzeUserQuery, refineRecommendations, getAnimeRecommendation, getRoleBasedRecommendations, onRecommendations, onAnalysis, onGuide, onError]);
+  }, [
+    conversationState,
+    userProfile,
+    analyzeUserQuery,
+    refineRecommendations,
+    getAnimeRecommendationAction,
+    getRoleBasedRecommendations,
+    getCharacterBasedRecommendationsAction,
+    getTropeBasedRecommendationsAction,
+    getArtStyleRecommendationsAction,
+    getComparativeAnalysisAction,
+    getFranchiseGuideAction,
+    getHiddenGemRecommendationsAction,
+    onRecommendations,
+    onAnalysis,
+    onGuide,
+    onError
+  ]);
 
   // Helper function to determine AI role based on input and user profile
   const determineAIRole = (input: string, profile: any) => {
     const inputLower = input.toLowerCase();
-    
+
     if (inputLower.includes("history") || inputLower.includes("classic") || inputLower.includes("evolution")) {
       return "anime_historian";
     }
     if (inputLower.includes("genre") || inputLower.includes("type") || inputLower.includes("category")) {
-      return "genre_specialist";  
+      return "genre_specialist";
     }
     if (inputLower.includes("surprise") || inputLower.includes("discover") || inputLower.includes("hidden")) {
       return "discovery_guide";
@@ -318,19 +398,18 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
     if (profile?.experienceLevel === "Newbie (Just starting!)") {
       return "casual_blogger";
     }
-    
+
     return "casual_blogger"; // Default friendly approach
   };
 
   // Helper functions for parsing specific requests
   const extractAnimeNamesForComparison = (input: string): string[] => {
-    // Simple regex to find "X vs Y" or "X and Y" patterns
     const patterns = [
       /(.+?)\s+vs\.?\s+(.+)/i,
       /(.+?)\s+and\s+(.+)/i,
       /compare\s+(.+?)\s+(?:to|with)\s+(.+)/i,
     ];
-    
+
     for (const pattern of patterns) {
       const match = input.match(pattern);
       if (match) {
@@ -341,19 +420,17 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
   };
 
   const extractFranchiseName = (input: string): string => {
-    // Remove common phrases to extract the franchise name
     return input
       .replace(/(?:watch\s+order|guide|how\s+to\s+watch|order)/gi, "")
       .replace(/(?:for|the|series|franchise)/gi, "")
       .trim();
   };
 
-  // Handle clarification responses
   const handleClarificationResponse = useCallback(async (response: string) => {
     if (!conversationState.pendingClarification) return;
 
     const fullQuery = `${conversationState.pendingClarification.originalQuery} - ${response}`;
-    
+
     setConversationState(prev => ({
       ...prev,
       currentContext: "fresh_start",
@@ -363,7 +440,6 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
     await processUserInput(fullQuery);
   }, [conversationState.pendingClarification, processUserInput]);
 
-  // Record user interaction with recommendations
   const recordInteraction = useCallback((recommendationTitle: string, action: "liked" | "disliked" | "added_to_watchlist" | "viewed_details") => {
     setConversationState(prev => ({
       ...prev,
@@ -372,11 +448,10 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
         action,
         timestamp: Date.now(),
       }],
-      currentContext: "follow_up", // Switch to follow-up mode
+      currentContext: "follow_up",
     }));
   }, []);
 
-  // Submit handler
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentInput.trim() || isProcessing) return;
@@ -388,7 +463,6 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
     await processUserInput(input);
   }, [currentInput, isProcessing, processUserInput]);
 
-  // Render clarification questions
   if (conversationState.currentContext === "clarification_needed" && conversationState.pendingClarification) {
     return (
       <div className="space-y-4">
@@ -406,7 +480,7 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
             ))}
           </div>
         </div>
-        
+
         <form onSubmit={(e) => {
           e.preventDefault();
           if (currentInput.trim()) {
@@ -428,12 +502,11 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
 
   return (
     <div className="space-y-4">
-      {/* Smart Suggestions */}
       {showSuggestions && smartSuggestions.length > 0 && (
         <div className="p-3 bg-brand-dark rounded-lg">
           <h3 className="text-sm font-orbitron text-electric-blue mb-2">
-            {conversationState.currentContext === "fresh_start" 
-              ? "Try asking:" 
+            {conversationState.currentContext === "fresh_start"
+              ? "Try asking:"
               : "What's next:"}
           </h3>
           <div className="grid grid-cols-1 gap-2">
@@ -453,7 +526,6 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
         </div>
       )}
 
-      {/* Context indicator */}
       {conversationState.currentContext !== "fresh_start" && (
         <div className="text-xs text-brand-text-secondary flex items-center gap-2">
           <span className={`px-2 py-1 rounded text-xs ${
@@ -469,14 +541,13 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
         </div>
       )}
 
-      {/* Main input */}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
           value={currentInput}
           onChange={(e) => setCurrentInput(e.target.value)}
           placeholder={
-            conversationState.currentContext === "recommendations_given" 
+            conversationState.currentContext === "recommendations_given"
               ? "Want to refine these suggestions?"
               : conversationState.currentContext === "follow_up"
               ? "What would you like to explore next?"
@@ -494,7 +565,6 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
         </StyledButton>
       </form>
 
-      {/* Quick actions based on context */}
       {conversationState.currentContext === "recommendations_given" && (
         <div className="flex flex-wrap gap-2">
           <button
@@ -521,7 +591,6 @@ export const ConversationFlowManager: React.FC<ConversationFlowManagerProps> = (
         </div>
       )}
 
-      {/* Conversation context display for debugging */}
       {process.env.NODE_ENV === "development" && (
         <div className="text-xs text-brand-text-secondary p-2 bg-brand-dark rounded">
           <details>

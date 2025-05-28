@@ -10,6 +10,39 @@ import { AnimeRecommendation } from "../../../convex/types";
 // Export the interface for backward compatibility
 export type { AnimeRecommendation };
 
+// Add these type definitions near the top of your AIAssistantPage.tsx file, after the imports
+
+// Define the possible return types from AI actions
+type RecommendationResult = {
+  recommendations: AnimeRecommendation[];
+  error?: string;
+};
+
+type AnalysisResult = {
+  analysis: any;
+  error?: string;
+};
+
+type GuideResult = {
+  guide: any;
+  error?: string;
+};
+
+type AIActionResult = RecommendationResult | AnalysisResult | GuideResult;
+
+// Type guard functions
+function isRecommendationResult(result: AIActionResult): result is RecommendationResult {
+  return 'recommendations' in result;
+}
+
+function isAnalysisResult(result: AIActionResult): result is AnalysisResult {
+  return 'analysis' in result;
+}
+
+function isGuideResult(result: AIActionResult): result is GuideResult {
+  return 'guide' in result;
+}
+
 // Enhanced interface for different types of AI responses
 interface ChatMessage {
   id: string;
@@ -211,94 +244,98 @@ export default function EnhancedAIAssistantPage() {
 
     const aiMessageId = generateMessageId();
 
-    try {
-      const result = await executeAIAction(currentPromptText, aiMessageId);
-      let aiResponseMessage: ChatMessage;
+    
 
-      // Handle different response types
-      if (result.error) {
-        aiResponseMessage = {
-          id: aiMessageId,
-          type: "error",
-          content: `Error: ${result.error}`,
-          rawAiText: result.error,
-          feedback: null,
-          actionType: aiMode,
-        };
-        toast.error("AniMuse had trouble with that request.");
-      } else if (result.analysis) {
-        // Comparative analysis response
-        aiResponseMessage = {
-          id: aiMessageId,
-          type: "analysis",
-          content: "Here's my comparative analysis:",
-          analysis: result.analysis,
-          feedback: null,
-          actionType: aiMode,
-        };
-        toast.success("Analysis complete!");
-      } else if (result.guide) {
-        // Franchise guide response
-        aiResponseMessage = {
-          id: aiMessageId,
-          type: "guide",
-          content: `Here's your guide to the ${result.guide.franchiseName} franchise:`,
-          guide: result.guide,
-          feedback: null,
-          actionType: aiMode,
-        };
-        toast.success("Franchise guide ready!");
-      } else if (result.recommendations && result.recommendations.length > 0) {
-        // Standard recommendations response
-        const modeLabels = {
-          character: "character-based recommendations",
-          trope: "plot/trope recommendations", 
-          art_style: "art style recommendations",
-          hidden_gems: "hidden gems",
-          general: "recommendations"
-        };
-        
-        aiResponseMessage = {
-          id: aiMessageId,
-          type: "ai",
-          content: `Here are some ${modeLabels[aiMode as keyof typeof modeLabels] || "recommendations"} for you:`,
-          recommendations: result.recommendations as AnimeRecommendation[],
-          rawAiResponse: result.recommendations,
-          feedback: null,
-          actionType: aiMode,
-        };
-        toast.success(`Found some great ${modeLabels[aiMode as keyof typeof modeLabels] || "recommendations"}!`);
-      } else {
-        const noRecContent = "I couldn't find specific matches for that request. Try adjusting your criteria or switching modes!";
-        aiResponseMessage = {
-          id: aiMessageId,
-          type: "ai",
-          content: noRecContent,
-          rawAiText: noRecContent,
-          feedback: null,
-          actionType: aiMode,
-        };
-        toast.info("No matches found - try a different approach!");
-      }
+    // Replace the handleSubmit function's try block (starting around line 224) with this:
 
-      setChatHistory((prev) => [...prev, aiResponseMessage]);
+try {
+  const result = await executeAIAction(currentPromptText, aiMessageId);
+  let aiResponseMessage: ChatMessage;
 
-    } catch (error) {
-      console.error("Failed to get AI response:", error);
-      const errorContent = error instanceof Error ? error.message : "Something went wrong on my end.";
-      const errorResponseMessage: ChatMessage = {
-        id: aiMessageId,
-        type: "error", 
-        content: errorContent,
-        rawAiText: errorContent,
-        feedback: null,
-        actionType: aiMode,
-      };
-      setChatHistory((prev) => [...prev, errorResponseMessage]);
-      toast.error("An error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle different response types using type guards
+  if (result.error) {
+    aiResponseMessage = {
+      id: aiMessageId,
+      type: "error",
+      content: `Error: ${result.error}`,
+      rawAiText: result.error,
+      feedback: null,
+      actionType: aiMode,
+    };
+    toast.error("AniMuse had trouble with that request.");
+  } else if ('analysis' in result && result.analysis) {
+    // Comparative analysis response
+    aiResponseMessage = {
+      id: aiMessageId,
+      type: "analysis",
+      content: "Here's my comparative analysis:",
+      analysis: result.analysis,
+      feedback: null,
+      actionType: aiMode,
+    };
+    toast.success("Analysis complete!");
+  } else if ('guide' in result && result.guide) {
+    // Franchise guide response
+    aiResponseMessage = {
+      id: aiMessageId,
+      type: "guide",
+      content: `Here's your guide to the ${result.guide.franchiseName} franchise:`,
+      guide: result.guide,
+      feedback: null,
+      actionType: aiMode,
+    };
+    toast.success("Franchise guide ready!");
+  } else if ('recommendations' in result && result.recommendations && result.recommendations.length > 0) {
+    // Standard recommendations response
+    const modeLabels = {
+      character: "character-based recommendations",
+      trope: "plot/trope recommendations", 
+      art_style: "art style recommendations",
+      hidden_gems: "hidden gems",
+      general: "recommendations"
+    };
+    
+    aiResponseMessage = {
+      id: aiMessageId,
+      type: "ai",
+      content: `Here are some ${modeLabels[aiMode as keyof typeof modeLabels] || "recommendations"} for you:`,
+      recommendations: result.recommendations as AnimeRecommendation[],
+      rawAiResponse: result.recommendations,
+      feedback: null,
+      actionType: aiMode,
+    };
+    toast.success(`Found some great ${modeLabels[aiMode as keyof typeof modeLabels] || "recommendations"}!`);
+  } else {
+    const noRecContent = "I couldn't find specific matches for that request. Try adjusting your criteria or switching modes!";
+    aiResponseMessage = {
+      id: aiMessageId,
+      type: "ai",
+      content: noRecContent,
+      rawAiText: noRecContent,
+      feedback: null,
+      actionType: aiMode,
+    };
+    toast.info("No matches found - try a different approach!");
+  }
+
+  setChatHistory((prev) => [...prev, aiResponseMessage]);
+
+} catch (error) {
+  console.error("Failed to get AI response:", error);
+  const errorContent = error instanceof Error ? error.message : "Something went wrong on my end.";
+  const errorResponseMessage: ChatMessage = {
+    id: aiMessageId,
+    type: "error", 
+    content: errorContent,
+    rawAiText: errorContent,
+    feedback: null,
+    actionType: aiMode,
+  };
+  setChatHistory((prev) => [...prev, errorResponseMessage]);
+  toast.error("An error occurred.");
+} finally {
+  setIsLoading(false);
+}
   };
 
   const renderModeSelector = () => (
