@@ -29,7 +29,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-dark text-brand-text">
+    <div className="min-h-screen flex flex-col text-white">
       <header className="sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30">
         <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
         <div className="flex items-center gap-4">
@@ -45,7 +45,7 @@ export default function App() {
           <SignOutButton />
         </div>
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 w-full">
+      <main className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-lg mx-auto">
           <Content
             key={verificationFlowKey} // Use key to help with re-rendering after verification
@@ -73,7 +73,7 @@ function Content({ onPhoneVerified }: ContentProps) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-        <p className="ml-3 text-brand-text-secondary">Loading status...</p>
+        <p className="ml-3 text-white">Loading status...</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ function Content({ onPhoneVerified }: ContentProps) {
       <Unauthenticated>
         <div className="text-center mb-8">
           <h1 className="text-5xl font-orbitron text-sakura-pink mb-4">Welcome to AniMuse</h1>
-          <p className="text-xl text-brand-text-secondary">Sign in to discover your next favorite anime.</p>
+          <p className="text-xl text-white">Sign in to discover your next favorite anime.</p>
         </div>
         <SignInForm />
       </Unauthenticated>
@@ -103,7 +103,7 @@ function Content({ onPhoneVerified }: ContentProps) {
                return (
                  <div className="flex justify-center items-center h-64">
                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-                   <p className="ml-3 text-brand-text-secondary">Loading profile for guest...</p>
+                   <p className="ml-3 text-white">Loading profile for guest...</p>
                  </div>
                );
             }
@@ -134,7 +134,7 @@ function Content({ onPhoneVerified }: ContentProps) {
               return (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan"></div>
-                  <p className="ml-3 text-brand-text-secondary">Loading profile...</p>
+                  <p className="ml-3 text-white">Loading profile...</p>
                 </div>
               );
             }
@@ -150,7 +150,7 @@ function Content({ onPhoneVerified }: ContentProps) {
 
           // Fallback: Should ideally not be reached if logic is exhaustive
           return (
-            <div className="text-center text-brand-text-secondary">
+            <div className="text-center text-white">
               Determining application state...
             </div>
           );

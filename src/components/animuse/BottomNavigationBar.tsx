@@ -25,7 +25,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-brand-background border-t border-brand-accent-gold/30 shadow-top-md z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-brand-surface/90 backdrop-blur-sm border-t border-brand-accent-gold/30 shadow-lg z-50">
       <div className="max-w-lg mx-auto flex justify-around items-center h-16">
         {tabs.map((tab) => {
           const isActive = currentView === tab.view;
@@ -34,11 +34,11 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
               key={tab.view}
               onClick={() => onTabChange(tab.view)}
               className={`flex flex-col items-center justify-center w-1/5 h-full p-1 text-xs transition-colors duration-150 ease-in-out focus:outline-none
-                          ${isActive ? "text-brand-primary-action" : "text-brand-text-on-dark/70 hover:text-brand-accent-gold"}`}
+                          ${isActive ? "text-brand-primary-action" : "text-white/70 hover:text-brand-accent-gold"}`}
               aria-current={isActive ? "page" : undefined}
             >
               <svg
-                className={`w-5 h-5 sm:w-6 sm:h-6 mb-0.5 ${isActive ? "text-brand-primary-action" : "text-brand-text-on-dark/70"}`}
+                className={`w-5 h-5 sm:w-6 sm:h-6 mb-0.5 ${isActive ? "text-brand-primary-action" : "text-white/70"}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

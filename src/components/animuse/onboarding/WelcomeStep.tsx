@@ -13,7 +13,7 @@ export default function WelcomeStep({ data, updateData }: WelcomeStepProps) {
       <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-3">
         Welcome to AniMuse!
       </h3>
-      <p className="text-brand-text-primary/80 mb-6 text-sm sm:text-base max-w-md">
+      <p className="text-white mb-6 text-sm sm:text-base max-w-md">
         Let's get to know you a bit to tailor your anime discovery experience.
         What should we call you?
       </p>

@@ -1,9 +1,9 @@
-// src/components/animuse/onboarding/DiscoverPage.tsx
+// src/components/animuse/onboarding/DiscoverPage.tsx - Advanced Artistic Version
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
-import AnimeCard from "../AnimeCard"; // Renders poster + banner only
+import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
 
 interface FilterState {
@@ -43,19 +43,29 @@ interface DiscoverPageProps {
   onBack?: () => void;
 }
 
-const DiscoverLoadingSpinner: React.FC<{ message?: string }> = ({ message = "Loading anime..." }) => (
-  <div className="flex flex-col justify-center items-center h-64 py-10 text-brand-text-on-dark/80">
-    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
-    <p className="mt-3 text-sm">{message}</p>
+const DiscoverLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Discovering anime..." }) => (
+  <div className="flex flex-col justify-center items-center h-64 py-10">
+    <div className="relative">
+      <div className="w-16 h-16 border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin"></div>
+      <div className="absolute top-2 left-2 w-12 h-12 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
+      <div className="absolute top-4 left-4 w-8 h-8 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
+    </div>
+    <p className="mt-4 text-base text-white/80 font-medium animate-pulse">{message}</p>
   </div>
-);
+));
 
-const FilterPanelSection: React.FC<{title: string; children: React.ReactNode}> = ({title, children}) => (
-  <div className="py-2.5 sm:py-3 border-b border-brand-accent-peach/20 last:border-b-0">
-    <h4 className="text-xs sm:text-sm font-semibold text-brand-text-on-dark/90 mb-1.5">{title}</h4>
-    {children}
+const FilterSection: React.FC<{title: string; children: React.ReactNode; icon?: string}> = memo(({title, children, icon}) => (
+  <div className="group relative overflow-hidden rounded-2xl bg-black/30 backdrop-blur-sm border border-white/10 p-4 transition-all duration-300 hover:border-white/30 hover:bg-black/40">
+    <div className="absolute inset-0 bg-gradient-to-br from-brand-primary-action/5 to-brand-accent-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    <div className="relative z-10">
+      <h4 className="text-sm font-heading text-white/90 mb-3 flex items-center gap-2">
+        {icon && <span className="text-lg">{icon}</span>}
+        {title}
+      </h4>
+      {children}
+    </div>
   </div>
-);
+));
 
 export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,123 +134,351 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const hasActiveFilters = activeFilterCount > 0;
   const hasActiveSearch = debouncedSearchQuery.length > 0;
   const hasAnyActive = hasActiveFilters || hasActiveSearch;
-  const filterInputClass = "form-input !text-xs !py-1.5 !px-2 w-full !text-brand-text-on-dark";
-  const labelBaseClass = "block text-xs font-medium text-brand-text-on-dark/70 mb-0.5";
 
   return (
-    <div className="p-3 sm:p-4 md:p-0 text-brand-text-on-dark">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-5 gap-2">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-heading text-brand-primary-action">Browse Anime</h2>
-        {onBack && ( <StyledButton onClick={onBack} variant="ghost" className="text-sm text-brand-accent-gold hover:text-brand-primary-action self-start sm:self-center"> ← Back </StyledButton> )}
+    <div className="relative min-h-screen">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-brand-primary-action/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-r from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-gradient-to-l from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
       </div>
 
-      <div className="mb-4 p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30">
-        <div className="flex gap-2 items-center">
-          <div className="relative flex-1">
-            <input type="text" placeholder="Search anime titles, genres..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="form-input w-full !text-sm !pl-10 !text-brand-text-on-dark placeholder:!text-brand-text-on-dark/60" />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><svg className="w-4 h-4 text-brand-text-on-dark/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
-            {searchQuery && ( <button onClick={clearSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-brand-text-on-dark/50 hover:text-brand-primary-action"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button> )}
+      {/* Main Content */}
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
+        {/* Hero Header */}
+        <div className="text-center space-y-4">
+          <div className="inline-block">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+              🌟 Discover Anime
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
           </div>
-          {hasAnyActive && ( <StyledButton onClick={clearAll} variant="ghost" className="!text-xs text-brand-accent-gold hover:!text-brand-primary-action"> Clear All </StyledButton> )}
-        </div>
-        {hasActiveSearch && ( <div className="mt-2 text-xs text-brand-text-on-dark/70">
-            {isLoading && status === "LoadingFirstPage" ? "Searching..." : <>{filteredAnimeList?.length || 0} result{filteredAnimeList?.length !== 1 ? 's' : ''} for "<span className="font-medium text-brand-primary-action">{debouncedSearchQuery}</span>"</>}
-        </div> )}
-      </div>
-
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30 text-brand-text-on-dark">
-        <div className="flex flex-wrap gap-2 items-center">
-          <StyledButton onClick={() => setShowFilters(!showFilters)} variant={showFilters ? "primary_small" : "secondary_small"} className="!text-xs sm:!text-sm" aria-expanded={showFilters} aria-controls="filter-panel">
-            {showFilters ? "Hide Filters" : "Advanced Filters"}
-            {hasActiveFilters && ( <span className="ml-1.5 inline-block bg-brand-primary-action text-brand-surface text-[10px] font-bold px-1.5 py-0.5 rounded-full"> {activeFilterCount} </span> )}
-          </StyledButton>
-        </div>
-        <div className="flex items-center gap-2 self-end sm:self-center">
-          <label htmlFor="discoverSort" className="text-xs sm:text-sm text-brand-text-on-dark/80">Sort by:</label>
-          <select id="discoverSort" value={sortBy} onChange={(e) => setSortBy(e.target.value as UISortOption)} className="form-input !text-xs sm:!text-sm !py-1.5 !px-2 w-auto rounded-md !text-brand-text-on-dark">
-            {sortOptions.map(option => ( <option key={option.value} value={option.value} disabled={option.value === "relevance" && !hasActiveSearch}> {option.label} </option> ))}
-          </select>
-        </div>
-      </div>
-
-      {showFilters && ( <div id="filter-panel" className="mb-5 bg-brand-surface rounded-lg shadow-lg p-3 sm:p-4 border border-brand-accent-peach/30 text-brand-text-on-dark">
-        <div className="flex justify-between items-center mb-2">
-            <h3 className="text-base sm:text-lg font-heading text-brand-accent-gold">Advanced Filters</h3>
-            {hasActiveFilters && ( <StyledButton onClick={clearFilters} variant="ghost" className="!text-xs !text-brand-accent-gold hover:!text-brand-primary-action sm:hidden"> Clear Filters </StyledButton> )}
-        </div>
-        {!filterOptions && <p className="text-xs text-brand-text-on-dark/70 py-4 text-center">Loading filter options...</p>}
-        {filterOptions && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3 sm:gap-x-4">
-              {filterOptions.genres && filterOptions.genres.length > 0 && (
-                <FilterPanelSection title="Genres">
-                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">
-                    {filterOptions.genres.map(genre => ( <StyledButton key={genre} onClick={() => toggleArrayFilter("genres", genre)} selected={filters.genres.includes(genre)} variant={filters.genres.includes(genre) ? "primary_small" : "secondary_small"} className="!text-[10px] !px-1.5 !py-0.5"> {genre} </StyledButton> ))}
-                  </div>
-                </FilterPanelSection>
-              )}
-              {filterOptions.yearRange && (
-                <FilterPanelSection title="Release Year">
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.min || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, min: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.yearRange.min}`} aria-label="Minimum Year"/>
-                    <span className="text-brand-text-on-dark/70 text-xs">-</span>
-                    <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.max || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, max: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.yearRange.max}`} aria-label="Maximum Year"/>
-                  </div>
-                </FilterPanelSection>
-              )}
-              {filterOptions.ratingRange && (
-                <FilterPanelSection title="External Rating (0-10)">
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.min || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.ratingRange.min?.toFixed(1)}`} aria-label="Minimum External Rating"/>
-                    <span className="text-brand-text-on-dark/70 text-xs">-</span>
-                    <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.max || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.ratingRange.max?.toFixed(1)}`} aria-label="Maximum External Rating"/>
-                  </div>
-                </FilterPanelSection>
-              )}
-              <FilterPanelSection title="Min User Reviews">
-                <input type="number" min="0" value={filters.minReviews || ""} onChange={e => updateFilter("minReviews", e.target.value ? parseInt(e.target.value) : undefined)} className={`${filterInputClass} w-full sm:w-28`} placeholder="e.g., 5"/>
-              </FilterPanelSection>
-            </div>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            Explore our curated collection and find your next anime obsession
+          </p>
+          {onBack && (
+            <StyledButton 
+              onClick={onBack} 
+              variant="ghost" 
+              className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+            >
+              ← Back to Dashboard
+            </StyledButton>
           )}
-      </div> )}
+        </div>
 
-      {isLoading && status === "LoadingFirstPage" && <DiscoverLoadingSpinner />}
-      
-      {filteredAnimeList && filteredAnimeList.length > 0 ? (
-        <>
-          <div className="mb-2.5 text-xs sm:text-sm text-brand-text-on-dark/80">
-            Showing {filteredAnimeList.length}{!hasActiveSearch && status === "CanLoadMore" ? "+" : ""} anime
-            {hasActiveSearch && " matching your search"}
-            {hasActiveFilters && " (filtered)"}
-          </div>
-          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6">
-            {filteredAnimeList.map(anime => (
-              <div key={anime._id} className="flex flex-col items-center">
-                <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
-                <h4 className="mt-1.5 text-xs text-center text-brand-text-on-dark w-full truncate px-1" title={anime.title}>
-                  {anime.title}
-                </h4>
+        {/* Advanced Search Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+          <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Search anime titles, genres, studios..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)} 
+                  className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={clearSearch} 
+                    className="absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-          {status === "CanLoadMore" && !hasActiveSearch && ( <div className="mt-5 sm:mt-6 text-center"> <StyledButton onClick={() => loadMore(20)} disabled={isLoading && status === "LoadingMore"} variant="primary"> {isLoading && status === "LoadingMore" ? "Loading..." : "Load More"} </StyledButton> </div> )}
-          {status === "Exhausted" && filteredAnimeList.length > 0 && !hasActiveSearch && ( <p className="text-center mt-5 sm:mt-6 text-xs sm:text-sm text-brand-text-on-dark/70">You've seen all results!</p> )}
-        </>
-      ) : ( status !== "LoadingFirstPage" && (
-          <div className="text-center p-6 sm:p-8 bg-brand-surface/5 rounded-lg mt-4">
-            <div className="mb-4">
-              <svg className="w-16 h-16 mx-auto text-brand-text-on-dark/40 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <p className="text-brand-text-on-dark/80 text-sm sm:text-base mb-3">
-                {hasActiveSearch ? `No anime found matching "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.` : hasActiveFilters ? "No anime found for these filters." : "No anime in the database yet."}
-              </p>
+
+              {/* Sort Selector */}
+              <div className="flex items-center gap-4">
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as UISortOption)} 
+                  className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                >
+                  {sortOptions.map(option => (
+                    <option key={option.value} value={option.value} disabled={option.value === "relevance" && !hasActiveSearch} className="bg-black text-white">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+
+                <StyledButton
+                  onClick={() => setShowFilters(!showFilters)}
+                  variant={showFilters ? "primary_small" : "ghost"}
+                  className={`relative ${showFilters ? '' : '!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white'}`}
+                >
+                  🎛️ Filters
+                  {hasActiveFilters && (
+                    <span className="absolute -top-2 -right-2 bg-brand-primary-action text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </StyledButton>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {hasActiveSearch && ( <StyledButton onClick={clearSearch} variant="secondary_small"> Clear Search </StyledButton> )}
-              {hasActiveFilters && ( <StyledButton onClick={clearFilters} variant="secondary_small"> Clear Filters </StyledButton> )}
-              {hasAnyActive && ( <StyledButton onClick={clearAll} variant="primary_small"> Clear All </StyledButton> )}
+
+            {/* Quick Actions */}
+            {hasAnyActive && (
+              <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
+                <StyledButton 
+                  onClick={clearAll} 
+                  variant="ghost" 
+                  className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                >
+                  ✨ Clear All Filters
+                </StyledButton>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Search Results Summary */}
+        {hasActiveSearch && (
+          <div className="text-center">
+            <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <span className="text-white/80 text-sm">
+                {isLoading && status === "LoadingFirstPage" ? "Searching..." : 
+                  <>Found <span className="text-brand-accent-gold font-bold">{filteredAnimeList?.length || 0}</span> results for <span className="text-brand-primary-action font-medium">"{debouncedSearchQuery}"</span></>
+                }
+              </span>
             </div>
           </div>
-        )
-      )}
+        )}
+
+        {/* Advanced Filters Panel */}
+        {showFilters && filterOptions && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-3xl p-6 space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-heading text-white">🎛️ Advanced Filters</h2>
+                {hasActiveFilters && (
+                  <StyledButton 
+                    onClick={clearFilters} 
+                    variant="ghost" 
+                    className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                  >
+                    Clear Filters
+                  </StyledButton>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Genres Filter */}
+                {filterOptions.genres && filterOptions.genres.length > 0 && (
+                  <FilterSection title="Genres" icon="🎭">
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                      {filterOptions.genres.map(genre => (
+                        <button
+                          key={genre}
+                          onClick={() => toggleArrayFilter("genres", genre)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                            filters.genres.includes(genre)
+                              ? 'bg-brand-primary-action text-white shadow-lg shadow-brand-primary-action/50'
+                              : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                          }`}
+                        >
+                          {genre}
+                        </button>
+                      ))}
+                    </div>
+                  </FilterSection>
+                )}
+
+                {/* Year Range Filter */}
+                {filterOptions.yearRange && (
+                  <FilterSection title="Release Year" icon="📅">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="number" 
+                          min={filterOptions.yearRange.min} 
+                          max={filterOptions.yearRange.max} 
+                          value={filters.yearRange.min || ""} 
+                          onChange={e => updateFilter("yearRange", { ...filters.yearRange, min: e.target.value ? parseInt(e.target.value) : undefined })} 
+                          className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:border-brand-primary-action focus:outline-none flex-1"
+                          placeholder={`Min: ${filterOptions.yearRange.min}`}
+                        />
+                        <span className="text-white/60">—</span>
+                        <input 
+                          type="number" 
+                          min={filterOptions.yearRange.min} 
+                          max={filterOptions.yearRange.max} 
+                          value={filters.yearRange.max || ""} 
+                          onChange={e => updateFilter("yearRange", { ...filters.yearRange, max: e.target.value ? parseInt(e.target.value) : undefined })} 
+                          className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:border-brand-primary-action focus:outline-none flex-1"
+                          placeholder={`Max: ${filterOptions.yearRange.max}`}
+                        />
+                      </div>
+                    </div>
+                  </FilterSection>
+                )}
+
+                {/* Rating Filter */}
+                {filterOptions.ratingRange && (
+                  <FilterSection title="External Rating" icon="⭐">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number" 
+                        min={filterOptions.ratingRange.min} 
+                        max={filterOptions.ratingRange.max} 
+                        step="0.1" 
+                        value={filters.ratingRange.min || ''} 
+                        onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })} 
+                        className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:border-brand-primary-action focus:outline-none flex-1"
+                        placeholder={`Min: ${filterOptions.ratingRange.min?.toFixed(1)}`}
+                      />
+                      <span className="text-white/60">—</span>
+                      <input 
+                        type="number" 
+                        min={filterOptions.ratingRange.min} 
+                        max={filterOptions.ratingRange.max} 
+                        step="0.1" 
+                        value={filters.ratingRange.max || ''} 
+                        onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })} 
+                        className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:border-brand-primary-action focus:outline-none flex-1"
+                        placeholder={`Max: ${filterOptions.ratingRange.max?.toFixed(1)}`}
+                      />
+                    </div>
+                  </FilterSection>
+                )}
+
+                {/* Minimum Reviews Filter */}
+                <FilterSection title="Minimum Reviews" icon="📝">
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={filters.minReviews || ""} 
+                    onChange={e => updateFilter("minReviews", e.target.value ? parseInt(e.target.value) : undefined)} 
+                    className="bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:border-brand-primary-action focus:outline-none w-full"
+                    placeholder="e.g., 5"
+                  />
+                </FilterSection>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && status === "LoadingFirstPage" && <DiscoverLoadingSpinner />}
+        
+        {/* Results Grid */}
+        {filteredAnimeList && filteredAnimeList.length > 0 ? (
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                <span className="text-white/80 text-sm">
+                  Showing <span className="text-brand-accent-gold font-bold">{filteredAnimeList.length}</span>
+                  {!hasActiveSearch && status === "CanLoadMore" && "+"} anime
+                  {hasActiveSearch && " matching your search"}
+                  {hasActiveFilters && " (filtered)"}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              {filteredAnimeList.map((anime, index) => (
+                <div 
+                  key={anime._id} 
+                  className="group relative transform transition-all duration-500 hover:scale-105"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Glow Effect */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                    <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+                    <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
+                      <h4 className="text-sm font-medium text-white text-center truncate" title={anime.title}>
+                        {anime.title}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {status === "CanLoadMore" && !hasActiveSearch && (
+              <div className="text-center">
+                <StyledButton 
+                  onClick={() => loadMore(20)} 
+                  disabled={isLoading && status === "LoadingMore"} 
+                  variant="ghost"
+                  className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white !px-8 !py-4"
+                >
+                  {isLoading && status === "LoadingMore" ? "Loading More..." : "🔍 Discover More Anime"}
+                </StyledButton>
+              </div>
+            )}
+
+            {status === "Exhausted" && filteredAnimeList.length > 0 && !hasActiveSearch && (
+              <div className="text-center">
+                <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                  <span className="text-white/80 text-sm">✨ You've discovered all available anime!</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          status !== "LoadingFirstPage" && (
+            <div className="text-center py-16">
+              <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
+                <div className="text-8xl mb-6 animate-bounce">🔍</div>
+                <h3 className="text-2xl font-heading text-white mb-4">No Anime Found</h3>
+                <p className="text-white/80 text-lg mb-6 leading-relaxed">
+                  {hasActiveSearch 
+                    ? `No anime matches "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.`
+                    : hasActiveFilters 
+                    ? "No anime matches your current filters."
+                    : "The anime database is empty right now."
+                  }
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {hasActiveSearch && (
+                    <StyledButton 
+                      onClick={clearSearch} 
+                      variant="ghost"
+                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                    >
+                      Clear Search
+                    </StyledButton>
+                  )}
+                  {hasActiveFilters && (
+                    <StyledButton 
+                      onClick={clearFilters} 
+                      variant="ghost"
+                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                    >
+                      Clear Filters
+                    </StyledButton>
+                  )}
+                  {hasAnyActive && (
+                    <StyledButton 
+                      onClick={clearAll} 
+                      variant="primary_small"
+                    >
+                      Start Fresh
+                    </StyledButton>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }

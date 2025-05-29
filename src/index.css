@@ -5,18 +5,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Poppins:wght@400;500;700&family=Orbitron:wght@400;500;700&display=swap');
 
 body {
-  @apply bg-brand-background text-brand-text-on-dark font-sans;
+  @apply bg-transparent text-white font-sans;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for the dark theme */
+/* Custom scrollbar for the theme */
 ::-webkit-scrollbar {
   width: 6px; 
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-brand-background; 
+  @apply bg-transparent; 
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-brand-accent-gold rounded;
@@ -26,7 +26,7 @@ body {
 }
 
 .content-card {
-  @apply bg-brand-surface text-brand-text-on-dark rounded-lg p-4 sm:p-6 shadow-lg;
+  @apply bg-brand-surface text-white rounded-lg p-4 sm:p-6 shadow-lg;
 }
 
 .action-button {
@@ -34,18 +34,18 @@ body {
 }
 
 .form-input {
-  @apply bg-brand-surface border border-brand-accent-peach/30 text-brand-text-on-dark placeholder-brand-accent-peach/70 rounded-md px-3 py-2 w-full;
+  @apply bg-brand-surface border border-brand-accent-peach/30 text-white placeholder-brand-accent-peach/70 rounded-md px-3 py-2 w-full;
   @apply focus:border-brand-primary-action focus:ring-1 focus:ring-brand-primary-action outline-none;
 }
 
-/* Form checkbox styling for dark theme */
+/* Form checkbox styling */
 .form-checkbox {
   @apply bg-brand-surface border-brand-accent-peach/30 text-brand-primary-action;
-  @apply focus:ring-brand-primary-action focus:ring-offset-brand-background;
+  @apply focus:ring-brand-primary-action focus:ring-offset-transparent;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  @apply font-heading text-brand-text-on-dark;
+  @apply font-heading text-white;
 }
 
 h1 { @apply text-2xl sm:text-3xl md:text-4xl; }
@@ -60,7 +60,7 @@ p, span, div, li, button, input, select, textarea {
   height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-brand-background;
+  @apply bg-transparent;
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -80,10 +80,56 @@ p, span, div, li, button, input, select, textarea {
   border-radius: 10px;
 }
 .horizontal-carousel::-webkit-scrollbar-track {
-  background-color: rgba(15, 15, 15, 0.8); /* Dark background for track */
+  background-color: transparent;
 }
 /* For Firefox */
 .horizontal-carousel {
   scrollbar-width: thin;
-  scrollbar-color: #B08968 rgba(15, 15, 15, 0.8);
+  scrollbar-color: #B08968 transparent;
+}
+
+/* Add these animations to your existing index.css */
+
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-reverse {
+  animation: spin-reverse 1s linear infinite;
+}
+
+/* Enhanced scrollbar for horizontal carousels */
+.horizontal-carousel::-webkit-scrollbar {
+  height: 6px;
+}
+.horizontal-carousel::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #B08968, #E76F51);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(176, 137, 104, 0.5);
+}
+.horizontal-carousel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #E76F51, #B08968);
+  box-shadow: 0 0 15px rgba(231, 111, 81, 0.7);
+}
+.horizontal-carousel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+/* Staggered fade-in animation for grid items */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
 }

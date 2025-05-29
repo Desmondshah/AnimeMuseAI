@@ -1,9 +1,9 @@
-// src/components/animuse/onboarding/WatchlistPage.tsx
+// src/components/animuse/onboarding/WatchlistPage.tsx - Advanced Artistic Version
 import React, { useState, useCallback, useEffect, memo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
-import AnimeCard from "../AnimeCard"; // Renders poster + banner only
+import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
 
@@ -16,10 +16,14 @@ interface WatchlistPageProps {
 type WatchlistStatusFilter = "All" | "Watching" | "Completed" | "Plan to Watch" | "Dropped";
 type WatchlistItemWithAnime = Doc<"watchlist"> & { anime: Doc<"anime"> | null };
 
-const WatchlistLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Loading watchlist..." }) => (
-  <div className="flex flex-col justify-center items-center h-64 py-10 text-brand-text-on-dark/80">
-    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
-    <p className="mt-3 text-sm">{message}</p>
+const WatchlistLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Loading your collection..." }) => (
+  <div className="flex flex-col justify-center items-center h-64 py-10">
+    <div className="relative">
+      <div className="w-20 h-20 border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin"></div>
+      <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
+      <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
+    </div>
+    <p className="mt-4 text-lg text-white/80 font-medium animate-pulse">{message}</p>
   </div>
 ));
 
@@ -33,7 +37,12 @@ const NotesModal: React.FC<{
   const [notes, setNotes] = useState(currentNotes);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => { if (isOpen) { setNotes(currentNotes); setIsSaving(false); } }, [currentNotes, isOpen]);
+  useEffect(() => { 
+    if (isOpen) { 
+      setNotes(currentNotes); 
+      setIsSaving(false); 
+    } 
+  }, [currentNotes, isOpen]);
 
   if (!isOpen) return null;
 
@@ -43,14 +52,64 @@ const NotesModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-brand-background/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-brand-surface text-brand-text-primary p-5 sm:p-6 rounded-xl shadow-2xl w-full max-w-md">
-        <h3 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-1">Notes for:</h3>
-        <p className="text-base sm:text-lg text-brand-accent-gold mb-3 sm:mb-4 truncate" title={animeTitle}>{animeTitle}</p>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} maxLength={500} placeholder="Your private thoughts on this anime..." className="form-input w-full mb-4 !text-sm !text-brand-text-primary" />
-        <div className="flex justify-end gap-2 sm:gap-3">
-          <StyledButton onClick={onClose} variant="secondary_small" disabled={isSaving}>Cancel</StyledButton>
-          <StyledButton onClick={handleSave} variant="primary_small" disabled={isSaving}> {isSaving ? "Saving..." : "Save Notes"} </StyledButton>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      {/* Floating Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-tl from-brand-accent-gold/15 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative">
+        {/* Glow Effect */}
+        <div className="absolute -inset-4 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-3xl blur-xl opacity-60"></div>
+        
+        <div className="relative bg-black/80 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 w-full max-w-lg">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="inline-block p-3 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full mb-4">
+              <span className="text-3xl">📝</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-heading text-white mb-2">Personal Notes</h3>
+            <p className="text-brand-accent-gold text-base font-medium truncate" title={animeTitle}>
+              {animeTitle}
+            </p>
+          </div>
+
+          {/* Notes Input */}
+          <div className="mb-6">
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              rows={6} 
+              maxLength={500} 
+              placeholder="Share your thoughts, feelings, or memorable moments about this anime..."
+              className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 resize-none"
+            />
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-white/60 text-xs">Your private thoughts</p>
+              <p className="text-white/60 text-xs">{notes.length}/500</p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end">
+            <StyledButton 
+              onClick={onClose} 
+              variant="ghost" 
+              disabled={isSaving}
+              className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+            >
+              Cancel
+            </StyledButton>
+            <StyledButton 
+              onClick={handleSave} 
+              variant="primary" 
+              disabled={isSaving}
+              className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+            >
+              {isSaving ? "Saving..." : "Save Notes"}
+            </StyledButton>
+          </div>
         </div>
       </div>
     </div>
@@ -84,71 +143,255 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
     item.anime && (filterStatus === "All" || item.status === filterStatus)
   );
 
+  // Status configurations with colors and icons
+  const statusConfig = {
+    "All": { icon: "📚", color: "from-white to-gray-300", count: watchlistDataFull?.filter(i => i.anime)?.length || 0 },
+    "Watching": { icon: "👁️", color: "from-blue-500 to-cyan-400", count: watchlistDataFull?.filter(i => i.status === "Watching" && i.anime)?.length || 0 },
+    "Completed": { icon: "✅", color: "from-green-500 to-emerald-400", count: watchlistDataFull?.filter(i => i.status === "Completed" && i.anime)?.length || 0 },
+    "Plan to Watch": { icon: "📝", color: "from-yellow-500 to-orange-400", count: watchlistDataFull?.filter(i => i.status === "Plan to Watch" && i.anime)?.length || 0 },
+    "Dropped": { icon: "⏸️", color: "from-red-500 to-pink-400", count: watchlistDataFull?.filter(i => i.status === "Dropped" && i.anime)?.length || 0 }
+  };
+
   if (watchlistDataFull === undefined) return <WatchlistLoadingSpinner />;
 
   return (
-    // This page is rendered on the main dark app background. Titles should be light.
-    <div className="p-3 sm:p-4 md:p-0 text-brand-text-on-dark">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-5 gap-2">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-heading text-brand-primary-action">My Watchlist</h2>
-        <div className="flex gap-2 flex-wrap items-center self-start sm:self-center">
-            {onNavigateToCustomLists && ( <StyledButton onClick={onNavigateToCustomLists} variant="secondary" className="!text-xs sm:!text-sm !py-1.5 !text-brand-text-on-dark hover:!bg-brand-accent-gold hover:!text-brand-surface"> 📜 Custom Lists </StyledButton> )}
-            {onBack && (<StyledButton onClick={onBack} variant="ghost" className="text-sm text-brand-accent-gold hover:text-brand-primary-action">← Back</StyledButton>)}
-        </div>
+    <div className="relative min-h-screen">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/12 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-32 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
       </div>
 
-      <div className="mb-4 sm:mb-5 flex flex-wrap gap-1.5 sm:gap-2 p-2 sm:p-3 bg-brand-surface/10 rounded-lg shadow border border-brand-accent-peach/20">
-        {(["All", "Watching", "Completed", "Plan to Watch", "Dropped"] as WatchlistStatusFilter[]).map(status => {
-          const count = status === "All" ? watchlistDataFull.filter(i => i.anime).length : watchlistDataFull.filter(i => i.status === status && i.anime).length;
-          return (
-            <StyledButton key={status} variant={filterStatus === status ? "primary_small" : "secondary_small"} selected={filterStatus === status} onClick={() => setFilterStatus(status)} className="!text-[10px] sm:!text-xs !px-2 !py-1 sm:!px-2.5">
-              {status} <span className={`ml-1 text-[9px] sm:text-[10px] ${filterStatus === status ? 'opacity-80' : 'opacity-60'}`}>({count})</span>
-            </StyledButton>
-          );
-        })}
-      </div>
-
-      {filteredWatchlist && filteredWatchlist.length > 0 ? (
-        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6">
-          {filteredWatchlist.map((item) => (
-            // Each item here is a poster + title + notes section.
-            // Poster + title are on the page's dark background.
-            // Notes section has its own light background.
-            <div key={item._id} className="flex flex-col items-stretch">
-              {item.anime && (
-                <div className="flex flex-col items-center mb-1">
-                    <AnimeCard anime={item.anime} onViewDetails={onViewDetails} className="w-full" />
-                    <h4
-                        className="mt-1.5 text-xs text-center text-brand-text-on-dark w-full truncate px-1"
-                        title={item.anime.title}
-                    >
-                        {item.anime.title}
-                    </h4>
-                </div>
-              )}
-              <div className="w-full p-2 pt-1.5 border-t border-brand-accent-peach/20 bg-brand-surface rounded-b-lg shadow-sm text-brand-text-primary">
-                <StyledButton onClick={() => setEditingNotesFor(item)} variant="ghost" className="w-full !text-[10px] sm:!text-xs !py-1 !text-brand-accent-gold hover:!text-brand-primary-action">
-                    {item.notes ? "View/Edit Notes" : "Add Notes"}
+      {/* Main Content */}
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
+        {/* Hero Header */}
+        <div className="text-center space-y-6">
+          <div className="inline-block">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+              📚 My Anime Collection
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
+          </div>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            Your personal anime library - track, organize, and rediscover your favorites
+          </p>
+          
+          {/* Navigation Actions */}
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+            {onNavigateToCustomLists && (
+              <div className="relative group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-brand-accent-peach/40 to-brand-primary-action/40 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <StyledButton 
+                  onClick={onNavigateToCustomLists} 
+                  variant="ghost"
+                  className="relative !bg-black/30 !backdrop-blur-sm !border-white/20 hover:!bg-black/50 !text-white flex items-center gap-2"
+                >
+                  <span className="text-lg">📜</span>
+                  Custom Lists
                 </StyledButton>
-                {item.notes && (<p className="mt-1 text-[10px] text-brand-text-primary/70 italic truncate p-1 bg-brand-accent-peach/20 rounded" title={item.notes}>{item.notes}</p>)}
+              </div>
+            )}
+            {onBack && (
+              <StyledButton 
+                onClick={onBack} 
+                variant="ghost" 
+                className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              >
+                ← Back to Dashboard
+              </StyledButton>
+            )}
+          </div>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+          <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
+            <div className="flex flex-wrap gap-3 justify-center">
+              {(Object.keys(statusConfig) as WatchlistStatusFilter[]).map(status => {
+                const config = statusConfig[status];
+                const isActive = filterStatus === status;
+                
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setFilterStatus(status)}
+                    className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform hover:scale-105 ${
+                      isActive 
+                        ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
+                        : 'hover:shadow-xl hover:shadow-white/20'
+                    }`}
+                  >
+                    {/* Background Gradient */}
+                    <div className={`absolute inset-0 bg-gradient-to-r ${config.color} ${
+                      isActive ? 'opacity-80' : 'opacity-40'
+                    } transition-opacity duration-300`}></div>
+                    
+                    {/* Selected Ring */}
+                    {isActive && (
+                      <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl animate-pulse"></div>
+                    )}
+                    
+                    {/* Content */}
+                    <div className="relative z-10 text-center space-y-2 min-w-[80px]">
+                      <div className={`text-2xl transition-transform duration-300 ${
+                        isActive ? 'animate-bounce' : 'group-hover:animate-pulse'
+                      }`}>
+                        {config.icon}
+                      </div>
+                      <div className={`text-xs font-medium transition-colors duration-300 ${
+                        isActive ? 'text-white' : 'text-white/90'
+                      }`}>
+                        {status}
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        isActive ? 'text-white' : 'text-white/80'
+                      }`}>
+                        {config.count}
+                      </div>
+                    </div>
+                    
+                    {/* Hover Effect */}
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Collection Grid */}
+        {filteredWatchlist && filteredWatchlist.length > 0 ? (
+          <div className="space-y-6">
+            {/* Results Summary */}
+            <div className="text-center">
+              <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                <span className="text-white/80 text-sm">
+                  Showing <span className="text-brand-accent-gold font-bold">{filteredWatchlist.length}</span> anime
+                  {filterStatus !== "All" && (
+                    <span> in <span className="text-brand-primary-action font-medium">{filterStatus}</span></span>
+                  )}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center p-6 sm:p-8 bg-brand-surface/5 rounded-lg mt-4">
-          <p className="text-brand-text-on-dark/80 text-sm sm:text-base mb-3">
-            {filterStatus === "All" ? "Your watchlist is empty." : `No anime with status: "${filterStatus}".`}
-          </p>
-          <StyledButton onClick={() => onBack ? onBack() : (window.location.href = '/')} variant="primary_small">
-            Discover Anime
-          </StyledButton>
-        </div>
-      )}
 
-      {editingNotesFor && editingNotesFor.anime && (
-        <NotesModal isOpen={!!editingNotesFor} currentNotes={editingNotesFor.notes || ""} animeTitle={editingNotesFor.anime.title || "Selected Anime"} onSave={handleSaveNotes} onClose={() => setEditingNotesFor(null)} />
-      )}
+            {/* Anime Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              {filteredWatchlist.map((item, index) => (
+                <div 
+                  key={item._id} 
+                  className="group relative transform transition-all duration-500 hover:scale-105"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {item.anime && (
+                    <>
+                      {/* Card Glow Effect */}
+                      <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                        {/* Anime Poster */}
+                        <div className="relative">
+                          <AnimeCard 
+                            anime={item.anime} 
+                            onViewDetails={onViewDetails} 
+                            className="w-full" 
+                          />
+                          {/* Status Badge */}
+                          <div className="absolute top-2 right-2">
+                            <div className={`p-1.5 rounded-full bg-gradient-to-r ${statusConfig[item.status as keyof typeof statusConfig]?.color || statusConfig.All.color} shadow-lg`}>
+                              <span className="text-xs">
+                                {statusConfig[item.status as keyof typeof statusConfig]?.icon || "📚"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Title & Info Section */}
+                        <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
+                          <h4 
+                            className="text-sm font-medium text-white text-center truncate mb-2 group-hover:text-brand-accent-gold transition-colors duration-300"
+                            title={item.anime.title}
+                          >
+                            {item.anime.title}
+                          </h4>
+                          
+                          {/* Notes Section */}
+                          <div className="space-y-2">
+                            <StyledButton 
+                              onClick={() => setEditingNotesFor(item)} 
+                              variant="ghost" 
+                              className="w-full !text-xs !py-1.5 !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white flex items-center justify-center gap-1"
+                            >
+                              <span className="text-sm">📝</span>
+                              {item.notes ? "Edit Notes" : "Add Notes"}
+                            </StyledButton>
+                            
+                            {item.notes && (
+                              <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2 border border-white/10">
+                                <p className="text-xs text-white/80 line-clamp-2 leading-relaxed" title={item.notes}>
+                                  {item.notes}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
+              <div className="text-8xl mb-6 animate-bounce">
+                {filterStatus === "All" ? "📚" : statusConfig[filterStatus]?.icon || "📚"}
+              </div>
+              <h3 className="text-2xl font-heading text-white mb-4">
+                {filterStatus === "All" ? "Your Collection Awaits" : `No ${filterStatus} Anime`}
+              </h3>
+              <p className="text-white/80 text-lg leading-relaxed mb-6">
+                {filterStatus === "All" 
+                  ? "Start building your personal anime library by discovering new series and adding them to your watchlist."
+                  : `You haven't added any anime to "${filterStatus}" yet. Start exploring and organizing your collection!`
+                }
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <StyledButton 
+                  onClick={() => onBack ? onBack() : (window.location.href = '/')} 
+                  variant="primary"
+                  className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                >
+                  🔍 Discover Anime
+                </StyledButton>
+                {filterStatus !== "All" && (
+                  <StyledButton 
+                    onClick={() => setFilterStatus("All")} 
+                    variant="ghost"
+                    className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                  >
+                    View All Collection
+                  </StyledButton>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes Modal */}
+        {editingNotesFor && editingNotesFor.anime && (
+          <NotesModal 
+            isOpen={!!editingNotesFor} 
+            currentNotes={editingNotesFor.notes || ""} 
+            animeTitle={editingNotesFor.anime.title || "Selected Anime"} 
+            onSave={handleSaveNotes} 
+            onClose={() => setEditingNotesFor(null)} 
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function MoodStep({ data, updateData }: MoodStepProps) {
       <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-2">
         What's your current vibe?
       </h3>
-      <p className="text-xs sm:text-sm text-brand-text-primary/70 mb-4 sm:mb-6">
+      <p className="text-xs sm:text-sm text-white/70 mb-4 sm:mb-6">
         Select one or more moods. This helps AniMuse understand the emotional tone you're looking for.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-[200px] sm:max-h-[240px] overflow-y-auto pr-1">

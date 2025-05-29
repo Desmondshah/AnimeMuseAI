@@ -55,11 +55,11 @@ export default function OnboardingFlow() {
 
   return (
     // Main card using new theme
-    <div className="w-full max-w-lg mx-auto bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-6 sm:p-8 flex flex-col items-center">
+    <div className="w-full max-w-lg mx-auto bg-brand-surface text-white rounded-xl shadow-xl p-6 sm:p-8 flex flex-col items-center">
       <h2 className="text-2xl sm:text-3xl font-heading text-brand-primary-action mb-2 text-center">
         Personalize Your Journey
       </h2>
-      <p className="text-sm text-brand-text-primary/70 mb-6 sm:mb-8">Step {currentStep} of {TOTAL_STEPS}</p>
+      <p className="text-sm text-white/70 mb-6 sm:mb-8">Step {currentStep} of {TOTAL_STEPS}</p>
 
       {/* Container for the current step's content */}
       <div className="w-full mb-8 min-h-[250px] sm:min-h-[300px] flex flex-col justify-center">

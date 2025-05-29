@@ -1,9 +1,7 @@
-// src/components/animuse/onboarding/ProfileSettingsPage.tsx
+// src/components/animuse/onboarding/ProfileSettingsPage.tsx - Advanced Artistic Version
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-// Doc type might not be needed if UserProfileForEdit is comprehensive
-// import { Doc } from "../../../../convex/_generated/dataModel";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
 
@@ -20,12 +18,11 @@ interface ProfileSettingsPageProps {
   onBack: () => void;
 }
 
-// Simplified type for form data, ensuring all fields from schema are optional
 type UserProfileForEdit = {
   name?: string;
   moods?: string[];
   genres?: string[];
-  favoriteAnimes?: string[]; // Will handle this with a separate input
+  favoriteAnimes?: string[];
   experienceLevel?: string;
   dislikedGenres?: string[];
   dislikedTags?: string[];
@@ -37,19 +34,67 @@ type UserProfileForEdit = {
 };
 
 const LoadingSpinnerFullPage: React.FC = memo(() => (
-    <div className="flex flex-col justify-center items-center h-screen bg-brand-background text-brand-text-on-dark">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary-action"></div>
-      <p className="mt-4 text-lg">Loading Profile...</p>
+  <div className="flex flex-col justify-center items-center h-screen">
+    <div className="relative">
+      <div className="w-20 h-20 border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin"></div>
+      <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
+      <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
     </div>
+    <p className="mt-4 text-lg text-white font-medium animate-pulse">Loading Your Profile...</p>
+  </div>
 ));
 
-const SectionWrapper: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
-    <div className={`bg-brand-accent-peach/10 p-3 sm:p-4 rounded-lg shadow-sm ${className}`}>
-        <h3 className="text-sm sm:text-base font-heading text-brand-accent-gold mb-2 font-semibold">{title}</h3>
-        {children}
+const SectionWrapper: React.FC<{ 
+  title: string; 
+  children: React.ReactNode; 
+  icon?: string;
+  gradient?: string;
+  index?: number;
+}> = ({ title, children, icon, gradient = "from-brand-primary-action/20 to-brand-accent-gold/20", index = 0 }) => (
+  <div 
+    className="group relative transform transition-all duration-500 hover:scale-[1.02]"
+    style={{ animationDelay: `${index * 100}ms` }}
+  >
+    {/* Glow Effect */}
+    <div className={`absolute -inset-2 bg-gradient-to-r ${gradient} rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+    
+    <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 group-hover:border-white/20 transition-all duration-300">
+      <div className="flex items-center gap-3 mb-6">
+        {icon && (
+          <div className="p-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full">
+            <span className="text-2xl">{icon}</span>
+          </div>
+        )}
+        <h3 className="text-xl font-heading text-white font-bold">{title}</h3>
+      </div>
+      {children}
     </div>
+  </div>
 );
 
+const MultiSelectButtons: React.FC<{
+  options: readonly string[];
+  selected: string[];
+  onChange: (item: string) => void;
+  colorScheme?: string;
+}> = ({ options, selected, onChange, colorScheme = "brand-primary-action" }) => (
+  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scrollbar">
+    {options.map(item => (
+      <button
+        key={item}
+        type="button"
+        onClick={() => onChange(item)}
+        className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 ${
+          selected.includes(item)
+            ? `bg-gradient-to-r from-${colorScheme} to-brand-accent-gold text-white shadow-lg transform scale-105`
+            : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white hover:scale-105'
+        }`}
+      >
+        {item}
+      </button>
+    ))}
+  </div>
+);
 
 export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps) {
   const userProfile = useQuery(api.users.getMyUserProfile);
@@ -81,7 +126,6 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const isCheckbox = type === 'checkbox';
-    // @ts-ignore - type for checked is boolean
     setFormData(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
   };
 
@@ -115,15 +159,13 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
     setFormData(prev => ({...prev, [fieldName]: tagsArray}));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     toast.loading("Saving preferences...", { id: "profile-settings-save" });
     try {
-      // Ensure all fields are passed, even if empty arrays (backend handles optionals)
       const preferencesToUpdate: UserProfileForEdit = {
-        name: formData.name || "", // Ensure name is not undefined
+        name: formData.name || "",
         moods: formData.moods || [],
         genres: formData.genres || [],
         favoriteAnimes: formData.favoriteAnimes || [],
@@ -137,8 +179,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         watchlistIsPublic: formData.watchlistIsPublic || false,
       };
       await updateUserPreferences(preferencesToUpdate);
-      toast.success("Preferences updated successfully!", { id: "profile-settings-save" });
-      // onBack(); // Optionally navigate back on success
+      toast.success("Profile updated successfully!", { id: "profile-settings-save" });
     } catch (error: any) {
       toast.error(error.data?.message || error.message || "Could not save preferences.", { id: "profile-settings-save" });
     } finally {
@@ -147,139 +188,338 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
   };
 
   if (userProfile === undefined) return <LoadingSpinnerFullPage />;
-  if (userProfile === null) return (
-    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-6 text-center max-w-md mx-auto">
-      <h2 className="text-xl font-heading text-brand-primary-action mb-4">Profile Not Found</h2>
-      <p className="mb-4 text-sm">We couldn't load your profile. Please try again later.</p>
-      <StyledButton onClick={onBack} variant="primary">Back to App</StyledButton>
-    </div>
-  );
   
-  const renderMultiSelectButtons = (
-    options: readonly string[],
-    field: keyof Pick<UserProfileForEdit, "moods" | "genres" | "dislikedGenres" | "characterArchetypes" | "tropes" | "artStyles">
-  ) => (
-    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar border border-brand-accent-peach/20 rounded-md p-2 bg-brand-surface">
-        {options.map(item => (
-            <StyledButton
-                type="button"
-                key={item}
-                onClick={() => toggleArrayItem(field, item)}
-                selected={(formData[field] as string[] || []).includes(item)}
-                variant={(formData[field] as string[] || []).includes(item) ? "primary_small" : "secondary_small"}
-                className="!text-[10px] !px-1.5 !py-0.5" // Compact buttons
-            >
-                {item}
-            </StyledButton>
-        ))}
+  if (userProfile === null) return (
+    <div className="relative min-h-screen flex items-center justify-center px-4">
+      <div className="bg-black/30 backdrop-blur-sm border border-red-500/30 rounded-3xl p-8 text-center max-w-md">
+        <div className="text-6xl mb-4">⚠️</div>
+        <h2 className="text-xl font-heading text-red-400 mb-4">Profile Not Found</h2>
+        <p className="mb-4 text-sm text-red-300">We couldn't load your profile. Please try again later.</p>
+        <StyledButton onClick={onBack} variant="primary">Back to App</StyledButton>
+      </div>
     </div>
   );
-
 
   return (
-    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-4 sm:p-5 md:p-6 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-4 pb-3 border-b border-brand-accent-peach/30">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-heading text-brand-primary-action">Profile Settings</h1>
-        <StyledButton onClick={onBack} variant="ghost" className="!text-sm text-brand-accent-gold hover:!text-brand-primary-action">
-          ← Back
-        </StyledButton>
+    <div className="relative min-h-screen">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/12 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-32 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-        <SectionWrapper title="Basic Info">
-          <div>
-            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Nickname</label>
-            <input type="text" id="name" name="name" value={formData.name || ""} onChange={handleInputChange} className="form-input w-full !text-sm"/>
+      {/* Main Content */}
+      <div className="relative z-10 px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-8">
+        {/* Hero Header */}
+        <div className="text-center space-y-6">
+          <div className="inline-block">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+              ⚙️ Profile Settings
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
           </div>
-          <div className="mt-3">
-            <label htmlFor="experienceLevel" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Anime Experience Level</label>
-            <select id="experienceLevel" name="experienceLevel" value={formData.experienceLevel || ""} onChange={handleInputChange} className="form-input w-full !text-sm">
-                <option value="">Select level...</option>
-                {EXPERIENCE_LEVELS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
-        </SectionWrapper>
-
-        <SectionWrapper title="Content Preferences">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Genres</label>
-                    {renderMultiSelectButtons(GENRES_OPTIONS, "genres")}
-                </div>
-                <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Disliked Genres</label>
-                    {renderMultiSelectButtons(DISLIKED_GENRES_OPTIONS, "dislikedGenres")}
-                </div>
-            </div>
-            <div className="mt-3">
-                 <label htmlFor="dislikedTags" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Specific Tags to Avoid (comma-separated)</label>
-                 <input type="text" id="dislikedTags" name="dislikedTags" value={(formData.dislikedTags || []).join(", ")} onChange={(e) => handleTagsChange(e, 'dislikedTags')} className="form-input w-full !text-sm" placeholder="e.g., excessive gore, jump scares"/>
-            </div>
-        </SectionWrapper>
-
-        <SectionWrapper title="Deeper Preferences">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Character Archetypes</label>
-                    {renderMultiSelectButtons(CHARACTER_ARCHETYPES_OPTIONS, "characterArchetypes")}
-                </div>
-                <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Tropes/Themes</label>
-                    {renderMultiSelectButtons(TROPES_OPTIONS, "tropes")}
-                </div>
-                <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Preferred Art Styles</label>
-                    {renderMultiSelectButtons(ART_STYLES_OPTIONS, "artStyles")}
-                </div>
-                <div>
-                    <label htmlFor="narrativePacing" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Preferred Narrative Pacing</label>
-                    <select id="narrativePacing" name="narrativePacing" value={formData.narrativePacing || ""} onChange={handleInputChange} className="form-input w-full !text-sm">
-                        <option value="">No Preference</option>
-                        {NARRATIVE_PACING_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Current Moods (Optional)</label>
-                    {renderMultiSelectButtons(MOODS_OPTIONS, "moods")}
-                </div>
-            </div>
-        </SectionWrapper>
-
-        <SectionWrapper title="Favorite Anime List">
-            <div className="flex gap-2 mb-2">
-                <input type="text" placeholder="Add a favorite anime..." value={currentFavoriteAnime} onChange={(e) => setCurrentFavoriteAnime(e.target.value)} className="form-input flex-grow !text-sm"/>
-                <StyledButton type="button" onClick={addFavoriteAnime} variant="secondary_small" className="flex-shrink-0">Add</StyledButton>
-            </div>
-            <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar border border-brand-accent-peach/20 rounded-md p-1.5 bg-brand-surface">
-                {(formData.favoriteAnimes || []).length === 0 && <p className="text-xs text-brand-text-on-dark/60 text-center py-1">No favorites added yet.</p>}
-                {(formData.favoriteAnimes || []).map(anime => (
-                    <div key={anime} className="flex justify-between items-center p-1.5 bg-brand-accent-peach/20 rounded text-xs">
-                        <span className="text-brand-text-on-dark/90">{anime}</span>
-                        <button type="button" onClick={() => removeFavoriteAnime(anime)} className="text-red-500 hover:text-red-700 font-semibold text-sm leading-none px-1" aria-label={`Remove ${anime}`}>&times;</button>
-                    </div>
-                ))}
-            </div>
-        </SectionWrapper>
-
-        <SectionWrapper title="Privacy & Other Settings">
-            <div className="flex items-center justify-between">
-                <label htmlFor="watchlistIsPublic" className="text-xs sm:text-sm font-medium text-brand-text-on-dark/90">Make My Watchlist Public</label>
-                <input type="checkbox" id="watchlistIsPublic" name="watchlistIsPublic" checked={formData.watchlistIsPublic || false} onChange={handleInputChange} className="form-checkbox h-4 w-4 rounded border-brand-accent-peach text-brand-primary-action focus:ring-brand-primary-action focus:ring-offset-brand-surface accent-brand-primary-action"/>
-            </div>
-            <p className="text-[10px] sm:text-xs text-brand-text-on-dark/70 mt-0.5">If public, other users might see your watchlist (feature in progress).</p>
-            
-            <div className="mt-3">
-                <h4 className="text-xs sm:text-sm font-medium text-brand-text-on-dark/90 mb-1">Import Data</h4>
-                <StyledButton type="button" variant="secondary" disabled className="!text-xs">Import from MyAnimeList (Soon)</StyledButton>
-            </div>
-        </SectionWrapper>
-
-        <div className="flex justify-end pt-3 sm:pt-4">
-          <StyledButton type="submit" variant="primary" disabled={isSaving} className="!px-5 !py-2.5">
-            {isSaving ? "Saving..." : "Save All Changes"}
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            Customize your anime discovery experience and personalize your recommendations
+          </p>
+          
+          <StyledButton 
+            onClick={onBack} 
+            variant="ghost" 
+            className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+          >
+            ← Back to Dashboard
           </StyledButton>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Info Section */}
+          <SectionWrapper title="Basic Information" icon="👤" index={0}>
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-white/90 mb-2">
+                  Display Name
+                </label>
+                <input 
+                  type="text" 
+                  id="name" 
+                  name="name" 
+                  value={formData.name || ""} 
+                  onChange={handleInputChange} 
+                  className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                  placeholder="How should we address you?"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="experienceLevel" className="block text-sm font-medium text-white/90 mb-2">
+                  Anime Experience Level
+                </label>
+                <div className="relative">
+                  <select 
+                    id="experienceLevel" 
+                    name="experienceLevel" 
+                    value={formData.experienceLevel || ""} 
+                    onChange={handleInputChange} 
+                    className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-white focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 appearance-none"
+                  >
+                    <option value="" className="bg-black text-white">Select your level...</option>
+                    {EXPERIENCE_LEVELS_OPTIONS.map(opt => (
+                      <option key={opt} value={opt} className="bg-black text-white">{opt}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SectionWrapper>
+
+          {/* Content Preferences Section */}
+          <SectionWrapper title="Content Preferences" icon="🎭" gradient="from-purple-500/20 to-pink-500/20" index={1}>
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-3">Favorite Genres</label>
+                  <MultiSelectButtons
+                    options={GENRES_OPTIONS}
+                    selected={formData.genres || []}
+                    onChange={(item) => toggleArrayItem("genres", item)}
+                    colorScheme="green-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-3">Genres to Avoid</label>
+                  <MultiSelectButtons
+                    options={DISLIKED_GENRES_OPTIONS}
+                    selected={formData.dislikedGenres || []}
+                    onChange={(item) => toggleArrayItem("dislikedGenres", item)}
+                    colorScheme="red-500"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="dislikedTags" className="block text-sm font-medium text-white/90 mb-2">
+                  Specific Content to Avoid
+                </label>
+                <input 
+                  type="text" 
+                  id="dislikedTags" 
+                  name="dislikedTags" 
+                  value={(formData.dislikedTags || []).join(", ")} 
+                  onChange={(e) => handleTagsChange(e, 'dislikedTags')} 
+                  className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                  placeholder="e.g., excessive gore, jump scares, fan service"
+                />
+                <p className="text-xs text-white/60 mt-1">Separate multiple tags with commas</p>
+              </div>
+            </div>
+          </SectionWrapper>
+
+          {/* Advanced Preferences Section */}
+          <SectionWrapper title="Advanced Preferences" icon="🎨" gradient="from-cyan-500/20 to-blue-500/20" index={2}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-3">Character Archetypes</label>
+                <MultiSelectButtons
+                  options={CHARACTER_ARCHETYPES_OPTIONS}
+                  selected={formData.characterArchetypes || []}
+                  onChange={(item) => toggleArrayItem("characterArchetypes", item)}
+                  colorScheme="pink-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-3">Favorite Tropes</label>
+                <MultiSelectButtons
+                  options={TROPES_OPTIONS}
+                  selected={formData.tropes || []}
+                  onChange={(item) => toggleArrayItem("tropes", item)}
+                  colorScheme="yellow-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-white/90 mb-3">Art Styles</label>
+                <MultiSelectButtons
+                  options={ART_STYLES_OPTIONS}
+                  selected={formData.artStyles || []}
+                  onChange={(item) => toggleArrayItem("artStyles", item)}
+                  colorScheme="indigo-500"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="narrativePacing" className="block text-sm font-medium text-white/90 mb-2">
+                  Preferred Narrative Pacing
+                </label>
+                <div className="relative">
+                  <select 
+                    id="narrativePacing" 
+                    name="narrativePacing" 
+                    value={formData.narrativePacing || ""} 
+                    onChange={handleInputChange} 
+                    className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-white focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 appearance-none"
+                  >
+                    <option value="" className="bg-black text-white">No Preference</option>
+                    {NARRATIVE_PACING_OPTIONS.map(opt => (
+                      <option key={opt} value={opt} className="bg-black text-white">{opt}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SectionWrapper>
+
+          {/* Current Moods Section */}
+          <SectionWrapper title="Current Moods" icon="😌" gradient="from-orange-500/20 to-yellow-500/20" index={3}>
+            <div>
+              <p className="text-sm text-white/70 mb-4">What kind of emotional experience are you seeking right now?</p>
+              <MultiSelectButtons
+                options={MOODS_OPTIONS}
+                selected={formData.moods || []}
+                onChange={(item) => toggleArrayItem("moods", item)}
+                colorScheme="orange-500"
+              />
+            </div>
+          </SectionWrapper>
+
+          {/* Favorite Anime Section */}
+          <SectionWrapper title="Favorite Anime Collection" icon="⭐" gradient="from-emerald-500/20 to-teal-500/20" index={4}>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <input 
+                  type="text" 
+                  placeholder="Add a favorite anime..." 
+                  value={currentFavoriteAnime} 
+                  onChange={(e) => setCurrentFavoriteAnime(e.target.value)} 
+                  className="flex-1 bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFavoriteAnime())}
+                />
+                <StyledButton 
+                  type="button" 
+                  onClick={addFavoriteAnime} 
+                  variant="secondary" 
+                  className="!bg-gradient-to-r !from-brand-primary-action/20 !to-brand-accent-gold/20 !border-brand-primary-action/40 hover:!from-brand-primary-action/40 hover:!to-brand-accent-gold/40"
+                >
+                  Add
+                </StyledButton>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar">
+                {(formData.favoriteAnimes || []).length === 0 ? (
+                  <div className="col-span-full text-center py-8">
+                    <div className="text-4xl mb-2">📚</div>
+                    <p className="text-white/60 text-sm">No favorites added yet. Share your all-time favorites!</p>
+                  </div>
+                ) : (
+                  (formData.favoriteAnimes || []).map((anime, index) => (
+                    <div 
+                      key={anime} 
+                      className="group relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-3 flex items-center justify-between hover:border-white/30 transition-all duration-300"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <span className="text-white/90 text-sm truncate pr-3">{anime}</span>
+                      <button 
+                        type="button"
+                        onClick={() => removeFavoriteAnime(anime)} 
+                        className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/40 hover:text-red-300 transition-all duration-200 flex items-center justify-center text-sm font-bold"
+                        aria-label={`Remove ${anime}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-white/60">Add up to 10 of your all-time favorite anime series</p>
+            </div>
+          </SectionWrapper>
+
+          {/* Privacy & Advanced Settings */}
+          <SectionWrapper title="Privacy & Advanced" icon="🔒" gradient="from-slate-500/20 to-gray-500/20" index={5}>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm rounded-2xl border border-white/10">
+                <div>
+                  <label htmlFor="watchlistIsPublic" className="text-sm font-medium text-white/90 cursor-pointer">
+                    Make My Watchlist Public
+                  </label>
+                  <p className="text-xs text-white/60 mt-1">Allow other users to discover anime through your watchlist</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    id="watchlistIsPublic" 
+                    name="watchlistIsPublic" 
+                    checked={formData.watchlistIsPublic || false} 
+                    onChange={handleInputChange} 
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-primary-action/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-brand-primary-action peer-checked:to-brand-accent-gold"></div>
+                </label>
+              </div>
+              
+              <div className="p-4 bg-black/20 backdrop-blur-sm rounded-2xl border border-white/10">
+                <h4 className="text-sm font-medium text-white/90 mb-2 flex items-center gap-2">
+                  <span className="text-lg">📥</span>
+                  Data Import (Coming Soon)
+                </h4>
+                <p className="text-xs text-white/60 mb-3">Import your anime list from other platforms</p>
+                <StyledButton 
+                  type="button" 
+                  variant="ghost" 
+                  disabled 
+                  className="!bg-white/5 !border-white/10 !text-white/50"
+                >
+                  Import from MyAnimeList
+                </StyledButton>
+              </div>
+            </div>
+          </SectionWrapper>
+
+          {/* Save Button */}
+          <div className="text-center pt-8">
+            <div className="relative inline-block group">
+              {/* Glow Effect */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <StyledButton 
+                type="submit" 
+                variant="primary" 
+                disabled={isSaving}
+                className="relative !text-lg !px-12 !py-4 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500 !shadow-2xl hover:!shadow-brand-primary-action/25"
+              >
+                {isSaving ? (
+                  <span className="flex items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-transparent border-t-white rounded-full animate-spin"></div>
+                    Saving Changes...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <span className="text-xl">💾</span>
+                    Save All Changes
+                    <span className="text-xl">✨</span>
+                  </span>
+                )}
+              </StyledButton>
+            </div>
+          </div>
+        </form>
+
+        {/* Bottom Spacer */}
+        <div className="h-24"></div>
+      </div>
     </div>
   );
 }

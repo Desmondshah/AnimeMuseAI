@@ -79,7 +79,7 @@ export function SignInForm() {
 
   return (
     // Use content-card for the new theme. Max width for mobile, centered.
-    <div className="w-full max-w-sm mx-auto p-6 sm:p-8 bg-brand-surface text-brand-text-primary rounded-xl shadow-lg">
+    <div className="w-full max-w-sm mx-auto p-6 sm:p-8 bg-brand-surface text-white rounded-xl shadow-lg">
       <h2 className="text-2xl sm:text-3xl font-heading text-center mb-6 sm:mb-8 text-brand-primary-action">
         {flow === "signIn" ? "Welcome Back!" : "Create Account"}
       </h2>
@@ -130,7 +130,7 @@ export function SignInForm() {
             : (flow === "signIn" ? "Sign In" : "Sign Up")
           }
         </StyledButton>
-        <div className="text-center text-sm text-brand-text-primary/80">
+        <div className="text-center text-sm text-white">
           <span>
             {flow === "signIn"
               ? "Don't have an account? "
@@ -154,7 +154,7 @@ export function SignInForm() {
 
       <div className="my-6 flex items-center">
         <hr className="flex-grow border-t border-brand-accent-peach/50" />
-        <span className="mx-3 text-xs text-brand-text-primary/70">OR</span>
+        <span className="mx-3 text-xs text-white">OR</span>
         <hr className="flex-grow border-t border-brand-accent-peach/50" />
       </div>
 

@@ -21,7 +21,7 @@ export default function GenreStep({ data, updateData }: GenreStepProps) {
       <h3 className="text-xl sm:text-2xl font-heading text-brand-primary-action mb-2">
         Favorite Genres?
       </h3>
-      <p className="text-xs sm:text-sm text-brand-text-primary/70 mb-4 sm:mb-6">
+      <p className="text-xs sm:text-sm text-white/70 mb-4 sm:mb-6">
         Pick your most-loved story types. This is key for spot-on recommendations!
       </p>
       <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 max-h-[200px] sm:max-h-[240px] overflow-y-auto pr-1">
