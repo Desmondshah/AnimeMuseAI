@@ -3,7 +3,7 @@
 "use node";
 import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
 
@@ -27,6 +27,93 @@ const getStringArray = (obj: any, path: string, nameField: string = "name"): str
     }
     return undefined;
 };
+
+// Add interfaces for test results
+interface TestResult {
+  title: string;
+  success: boolean;
+  message?: string;
+  source?: string;
+  error?: string;
+}
+
+interface TestEnhancementResult {
+  success: boolean;
+  message: string;
+  tested: number;
+  enhanced: number;
+  processed?: number; // Add this property
+  results?: TestResult[];
+}
+
+interface QuickFixResult {
+  success: boolean;
+  message: string;
+  processed: number;
+  enhanced: number;
+  tested: number;
+}
+
+interface SampleTestResult {
+  success: boolean;
+  message: string;
+  tested: number;
+  enhanced: number;
+  results?: TestResult[];
+}
+
+
+// Add interface for poster stats
+interface PosterStats {
+  total: number;
+  withPosters: number;
+  withoutPosters: number;
+  withPlaceholders: number;
+  withRealPosters: number;
+  withLowQuality: number;
+  recentlyFetched: number;
+  neverFetched: number;
+  needsEnhancement: number;
+}
+
+interface PosterStatsResult {
+  stats: PosterStats;
+  percentages: {
+    withPosters: string;
+    withRealPosters: string;
+    needsEnhancement: string;
+  };
+}
+
+// Add interfaces for the quality check results
+interface AnimeQualityReport {
+  animeId: Id<"anime">;
+  title: string;
+  posterUrl?: string;
+  quality: "missing" | "placeholder" | "low" | "good" | "unknown";
+  needsEnhancement: boolean;
+  reason: string;
+  lastFetched: number | null;
+}
+
+interface QualitySummary {
+  total: number;
+  missing: number;
+  placeholder: number;
+  low: number;
+  good: number;
+  needEnhancement: number;
+}
+
+interface QualityCheckResult {
+  summary: QualitySummary;
+  details: AnimeQualityReport[];
+}
+
+interface BatchEnhancementResult {
+  enhancedCount: number;
+  error?: string;
+}
 
 interface ExternalApiResult {
   success: boolean;
@@ -314,5 +401,503 @@ export const callTriggerFetchExternalAnimeDetails = action({
   args: { animeIdInOurDB: v.id("anime"), titleToSearch: v.string() },
   handler: async (ctx: ActionCtx, args): Promise<ExternalApiResult> => {
     return await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, args);
+  },
+});
+
+// Add this to convex/externalApis.ts - Batch poster enhancement for visible anime
+
+export const batchEnhanceVisibleAnimePosters = internalAction({
+  args: {
+    animeIds: v.array(v.id("anime")),
+    messageId: v.string(),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<BatchEnhancementResult> => {
+    console.log(`[Batch Poster Enhancement] Starting enhancement for ${args.animeIds.length} anime...`);
+    
+    let enhancedCount = 0;
+    const errors: string[] = [];
+
+    // Process in small batches to avoid overwhelming APIs
+    const batchSize = 3;
+    
+    for (let i = 0; i < args.animeIds.length; i += batchSize) {
+      const batchIds = args.animeIds.slice(i, i + batchSize);
+      
+      // Process batch in parallel
+      const batchPromises = batchIds.map(async (animeId: Id<"anime">): Promise<boolean> => {
+        try {
+          const anime: Doc<"anime"> | null = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId });
+          if (!anime) {
+            console.warn(`[Batch Poster Enhancement] Anime ${animeId} not found`);
+            return false;
+          }
+
+          // Check if poster needs enhancement
+          const needsEnhancement = !anime.posterUrl || 
+                                 anime.posterUrl.includes('placehold.co') || 
+                                 anime.posterUrl.includes('placeholder') ||
+                                 anime.posterUrl.includes('300x450') ||
+                                 !anime.lastFetchedFromExternal ||
+                                 (Date.now() - anime.lastFetchedFromExternal.timestamp) > (7 * 24 * 60 * 60 * 1000); // 7 days old
+
+          if (needsEnhancement) {
+            console.log(`[Batch Poster Enhancement] Enhancing poster for: ${anime.title}`);
+            
+            // Use the existing external API fetching function
+            const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+              animeIdInOurDB: animeId,
+              titleToSearch: anime.title
+            });
+
+            if (result.success) {
+              console.log(`[Batch Poster Enhancement] ✅ Enhanced: ${anime.title}`);
+              return true;
+            } else {
+              console.warn(`[Batch Poster Enhancement] ❌ Failed to enhance: ${anime.title} - ${result.message}`);
+              return false;
+            }
+          } else {
+            console.log(`[Batch Poster Enhancement] ✓ Skipped (already good): ${anime.title}`);
+            return false;
+          }
+        } catch (error: any) {
+          console.error(`[Batch Poster Enhancement] Error for anime ${animeId}:`, error.message);
+          errors.push(`${animeId}: ${error.message}`);
+          return false;
+        }
+      });
+
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      enhancedCount += batchResults.filter(result => result === true).length;
+
+      // Respectful delay between batches
+      if (i + batchSize < args.animeIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
+      }
+
+      console.log(`[Batch Poster Enhancement] Batch ${Math.floor(i / batchSize) + 1} complete. Enhanced: ${batchResults.filter(r => r).length}/${batchResults.length}`);
+    }
+
+    console.log(`[Batch Poster Enhancement] Complete! Enhanced ${enhancedCount} out of ${args.animeIds.length} anime.`);
+
+    // Store feedback about the batch operation
+    await ctx.runMutation(api.ai.storeAiFeedback, {
+      prompt: `Batch enhance ${args.animeIds.length} anime posters`,
+      aiAction: "batchEnhanceVisibleAnimePosters",
+      aiResponseText: `Enhanced ${enhancedCount} posters. Errors: ${errors.length > 0 ? errors.join("; ") : "None"}`,
+      feedbackType: "none",
+      messageId: args.messageId,
+    });
+
+    return {
+      enhancedCount,
+      error: errors.length > 0 ? `Some enhancements failed: ${errors.slice(0, 3).join("; ")}${errors.length > 3 ? "..." : ""}` : undefined
+    };
+  },
+});
+
+// Public action that users can call
+export const callBatchEnhanceVisibleAnimePosters = action({
+  args: {
+    animeIds: v.array(v.id("anime")),
+    messageId: v.string(),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<BatchEnhancementResult> => {
+    return await ctx.runAction(internal.externalApis.batchEnhanceVisibleAnimePosters, args);
+  },
+});
+
+// Enhanced version of the existing scheduled poster enhancement job with proper types
+export const enhanceExistingAnimePostersBetter = internalAction({
+  args: {},
+  handler: async (ctx: ActionCtx): Promise<void> => {
+    console.log("[Enhanced Poster Enhancement] Starting comprehensive poster enhancement...");
+    
+    // Get anime with potentially low-quality posters
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
+      const poster = anime.posterUrl;
+      // Target placeholder images, very old/low quality URLs, or never-fetched anime
+      return !poster || 
+             poster.includes('placehold.co') || 
+             poster.includes('placeholder') ||
+             poster.includes('300x450') ||
+             poster.includes('via.placeholder') ||
+             !anime.lastFetchedFromExternal ||
+             (Date.now() - anime.lastFetchedFromExternal.timestamp) > (14 * 24 * 60 * 60 * 1000); // 14 days old
+    });
+
+    console.log(`[Enhanced Poster Enhancement] Found ${animesToEnhance.length} anime that need poster enhancement.`);
+    
+    if (animesToEnhance.length === 0) {
+      console.log("[Enhanced Poster Enhancement] No anime need poster enhancement.");
+      return;
+    }
+
+    // Process in batches with rate limiting
+    const batchSize = 5;
+    const maxAnimesToProcess = 30; // Limit per run to avoid timeouts
+    const animeToProcess = animesToEnhance.slice(0, maxAnimesToProcess);
+    
+    let processedCount = 0;
+    let enhancedCount = 0;
+
+    for (let i = 0; i < animeToProcess.length; i += batchSize) {
+      const batch = animeToProcess.slice(i, i + batchSize);
+      
+      console.log(`[Enhanced Poster Enhancement] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(animeToProcess.length / batchSize)}`);
+
+      // Process batch with individual error handling
+      const batchPromises = batch.map(async (anime: Doc<"anime">): Promise<void> => {
+        try {
+          console.log(`[Enhanced Poster Enhancement] Processing: ${anime.title}`);
+          
+          const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+            animeIdInOurDB: anime._id,
+            titleToSearch: anime.title
+          });
+          
+          processedCount++;
+          
+          if (result.success) {
+            enhancedCount++;
+            console.log(`[Enhanced Poster Enhancement] ✅ Enhanced: ${anime.title}`);
+          } else {
+            console.log(`[Enhanced Poster Enhancement] ❌ Failed: ${anime.title} - ${result.message}`);
+          }
+          
+          // Small delay between individual requests within batch
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error: any) {
+          processedCount++;
+          console.error(`[Enhanced Poster Enhancement] Error processing ${anime.title}:`, error.message);
+        }
+      });
+      
+      // Wait for batch to complete
+      await Promise.all(batchPromises);
+      
+      // Longer delay between batches to be respectful to external APIs
+      if (i + batchSize < animeToProcess.length) {
+        console.log(`[Enhanced Poster Enhancement] Waiting 5 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+    
+    console.log(`[Enhanced Poster Enhancement] Completed! Processed: ${processedCount}, Enhanced: ${enhancedCount}, Remaining: ${animesToEnhance.length - processedCount}`);
+  },
+});
+
+// Quick poster quality check action
+export const checkPosterQuality = action({
+  args: {
+    animeIds: v.optional(v.array(v.id("anime"))),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<QualityCheckResult> => {
+    const limit = args.limit || 20;
+    let animeToCheck: Doc<"anime">[] = [];
+
+    if (args.animeIds) {
+      // Check specific anime
+      const animeResults = await Promise.all(
+        args.animeIds.map((id: Id<"anime">) => ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: id }))
+      );
+      animeToCheck = animeResults.filter((anime): anime is Doc<"anime"> => anime !== null);
+    } else {
+      // Check random sample
+      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+      animeToCheck = allAnime.slice(0, limit);
+    }
+
+    const qualityReport: AnimeQualityReport[] = animeToCheck.map((anime: Doc<"anime">) => {
+      const poster = anime.posterUrl;
+      
+      let quality: AnimeQualityReport["quality"] = "unknown";
+      let needsEnhancement = true;
+      let reason = "";
+
+      if (!poster) {
+        quality = "missing";
+        reason = "No poster URL";
+      } else if (poster.includes('placehold.co') || poster.includes('placeholder')) {
+        quality = "placeholder";
+        reason = "Using placeholder image";
+      } else if (poster.includes('300x450')) {
+        quality = "low";
+        reason = "Low resolution (300x450)";
+      } else if (poster.startsWith('https://')) {
+        quality = "good";
+        needsEnhancement = false;
+        reason = "Has real poster URL";
+        
+        // Check if it's old data
+        if (!anime.lastFetchedFromExternal || (Date.now() - anime.lastFetchedFromExternal.timestamp) > (30 * 24 * 60 * 60 * 1000)) {
+          needsEnhancement = true;
+          reason += " (but data is old, may need refresh)";
+        }
+      }
+
+      return {
+        animeId: anime._id,
+        title: anime.title,
+        posterUrl: poster,
+        quality,
+        needsEnhancement,
+        reason,
+        lastFetched: anime.lastFetchedFromExternal?.timestamp || null,
+      };
+    });
+
+    const summary: QualitySummary = {
+      total: qualityReport.length,
+      missing: qualityReport.filter(r => r.quality === "missing").length,
+      placeholder: qualityReport.filter(r => r.quality === "placeholder").length,
+      low: qualityReport.filter(r => r.quality === "low").length,
+      good: qualityReport.filter(r => r.quality === "good").length,
+      needEnhancement: qualityReport.filter(r => r.needsEnhancement).length,
+    };
+
+    return {
+      summary,
+      details: qualityReport,
+    };
+  },
+});
+
+// Action to get detailed poster statistics with proper types
+export const getPosterQualityStats = action({
+  args: {},
+  handler: async (ctx: ActionCtx): Promise<PosterStatsResult> => {
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    
+    const stats: PosterStats = {
+      total: allAnime.length,
+      withPosters: 0,
+      withoutPosters: 0,
+      withPlaceholders: 0,
+      withRealPosters: 0,
+      withLowQuality: 0,
+      recentlyFetched: 0,
+      neverFetched: 0,
+      needsEnhancement: 0,
+    };
+    
+    const now = Date.now();
+    
+    allAnime.forEach((anime: Doc<"anime">) => {
+      const poster = anime.posterUrl;
+      
+      if (!poster) {
+        stats.withoutPosters++;
+        stats.needsEnhancement++;
+      } else {
+        stats.withPosters++;
+        
+        if (poster.includes('placehold.co') || poster.includes('placeholder')) {
+          stats.withPlaceholders++;
+          stats.needsEnhancement++;
+        } else if (poster.includes('300x450')) {
+          stats.withLowQuality++;
+          stats.needsEnhancement++;
+        } else if (poster.startsWith('https://')) {
+          stats.withRealPosters++;
+        }
+      }
+      
+      if (anime.lastFetchedFromExternal) {
+        const daysSinceLastFetch = (now - anime.lastFetchedFromExternal.timestamp) / (24 * 60 * 60 * 1000);
+        if (daysSinceLastFetch <= 7) {
+          stats.recentlyFetched++;
+        } else if (daysSinceLastFetch > 30) {
+          stats.needsEnhancement++;
+        }
+      } else {
+        stats.neverFetched++;
+        stats.needsEnhancement++;
+      }
+    });
+    
+    return {
+      stats,
+      percentages: {
+        withPosters: ((stats.withPosters / stats.total) * 100).toFixed(1),
+        withRealPosters: ((stats.withRealPosters / stats.total) * 100).toFixed(1),
+        needsEnhancement: ((stats.needsEnhancement / stats.total) * 100).toFixed(1),
+      }
+    };
+  },
+});
+
+// Action to run poster enhancement on a sample for testing with proper types
+export const testPosterEnhancementSample = action({
+  args: {
+    sampleSize: v.optional(v.number()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<SampleTestResult> => {
+    const sampleSize = args.sampleSize || 5;
+    
+    console.log(`[Test Poster Enhancement] Testing on ${sampleSize} anime sample...`);
+    
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const animesToTest = allAnime
+      .filter((anime: Doc<"anime">) => !anime.posterUrl || anime.posterUrl.includes('placeholder'))
+      .slice(0, sampleSize);
+    
+    if (animesToTest.length === 0) {
+      return {
+        success: false,
+        message: "No anime found that need poster enhancement",
+        tested: 0,
+        enhanced: 0
+      };
+    }
+    
+    console.log(`[Test Poster Enhancement] Found ${animesToTest.length} anime to test`);
+    
+    const results: TestResult[] = [];
+    let enhancedCount = 0;
+    
+    for (const anime of animesToTest) {
+      try {
+        console.log(`[Test Poster Enhancement] Testing: ${anime.title}`);
+        
+        const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+          animeIdInOurDB: anime._id,
+          titleToSearch: anime.title
+        });
+        
+        results.push({
+          title: anime.title,
+          success: result.success,
+          message: result.message,
+          source: result.source
+        });
+        
+        if (result.success) enhancedCount++;
+        
+        // Small delay between tests
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error: any) {
+        results.push({
+          title: anime.title,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
+    return {
+      success: true,
+      tested: animesToTest.length,
+      enhanced: enhancedCount,
+      results,
+      message: `Test completed: ${enhancedCount}/${animesToTest.length} enhanced`
+    };
+  },
+});
+
+// Quick fix action - force refresh all placeholder posters with proper types
+export const quickFixPlaceholderPosters = action({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<QuickFixResult> => {
+    const limit = args.limit || 10;
+    
+    console.log(`[Quick Fix] Finding anime with placeholder posters...`);
+    
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const placeholderAnime = allAnime
+      .filter((anime: Doc<"anime">) => anime.posterUrl && anime.posterUrl.includes('placehold'))
+      .slice(0, limit);
+    
+    if (placeholderAnime.length === 0) {
+      return {
+        success: true,
+        message: "No placeholder posters found!",
+        processed: 0,
+        enhanced: 0,
+        tested: 0
+      };
+    }
+    
+    console.log(`[Quick Fix] Found ${placeholderAnime.length} anime with placeholder posters`);
+    
+    let enhancedCount = 0;
+    
+    for (const anime of placeholderAnime) {
+      try {
+        console.log(`[Quick Fix] Fixing poster for: ${anime.title}`);
+        
+        const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+          animeIdInOurDB: anime._id,
+          titleToSearch: anime.title
+        });
+        
+        if (result.success) {
+          enhancedCount++;
+          console.log(`[Quick Fix] ✅ Fixed: ${anime.title}`);
+        } else {
+          console.log(`[Quick Fix] ❌ Failed: ${anime.title} - ${result.message}`);
+        }
+        
+        // Respectful delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error: any) {
+        console.error(`[Quick Fix] Error fixing ${anime.title}:`, error.message);
+      }
+    }
+    
+    return {
+      success: true,
+      message: `Quick fix completed`,
+      processed: placeholderAnime.length,
+      enhanced: enhancedCount,
+      tested: placeholderAnime.length
+    };
+  },
+});
+
+// Debug action to manually test poster enhancement with proper types
+export const debugManualPosterEnhancement = action({
+  args: {
+    animeTitle: v.string(),
+    animeId: v.optional(v.id("anime")),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{ success: boolean; message?: string; error?: string; details?: any; source?: string }> => {
+    console.log(`[Debug Manual Enhancement] Testing poster enhancement for: ${args.animeTitle}`);
+    
+    let animeId = args.animeId;
+    
+    // If no ID provided, try to find by title
+    if (!animeId) {
+      const anime: Doc<"anime"> | null = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title: args.animeTitle });
+      if (!anime) {
+        return { success: false, error: `Anime "${args.animeTitle}" not found` };
+      }
+      animeId = anime._id;
+    }
+    
+    try {
+      const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+        animeIdInOurDB: animeId,
+        titleToSearch: args.animeTitle
+      });
+      
+      return {
+        success: result.success,
+        message: result.message,
+        details: result.details,
+        source: result.source
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        details: error
+      };
+    }
   },
 });

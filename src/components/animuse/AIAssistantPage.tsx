@@ -191,7 +191,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const [avoidPopular, setAvoidPopular] = useState(false);
 
   // AI Actions
-  const getAnimeRecommendationAction = useAction(api.ai.getAnimeRecommendation);
+  const getAnimeRecommendationAction = useAction(api.ai.getAnimeRecommendationWithBetterLogging);
   const getCharacterBasedRecommendationsAction = useAction(api.ai.getCharacterBasedRecommendations);
   const getTropeBasedRecommendationsAction = useAction(api.ai.getTropeBasedRecommendations);
   const getArtStyleRecommendationsAction = useAction(api.ai.getArtStyleRecommendations);

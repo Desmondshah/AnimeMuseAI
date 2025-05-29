@@ -1,4 +1,4 @@
-// src/components/animuse/AnimeCard.tsx - Enhanced with high-quality placeholders and better navigation
+// src/components/animuse/AnimeCard.tsx - Fixed loading logic
 import React, { memo, useState, useEffect, useRef, useMemo } from "react";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -23,6 +23,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState<string>("");
   const imgRef = useRef<HTMLImageElement>(null);
 
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
@@ -53,20 +54,14 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     return anime.posterUrl;
   }, [imageError, anime.posterUrl, placeholderUrl]);
 
+  // Simplified loading logic - reset loading state when poster URL changes
   useEffect(() => {
-    setImageLoaded(false);
-    setImageError(false);
-    const imageElement = imgRef.current;
-    if (imageElement && posterToDisplay) { 
-      if (imageElement.src === posterToDisplay && imageElement.complete) {
-        if (imageElement.naturalHeight > 0) setImageLoaded(true);
-        else { setImageError(true); setImageLoaded(true); }
-      }
-    } else if (!posterToDisplay) {
-        setImageError(true);
-        setImageLoaded(true);
+    if (posterToDisplay !== currentSrc) {
+      setImageLoaded(false);
+      setImageError(false);
+      setCurrentSrc(posterToDisplay);
     }
-  }, [posterToDisplay, anime._id]);
+  }, [posterToDisplay, currentSrc]);
 
   const handleImageLoad = () => { 
     setImageLoaded(true); 
@@ -165,7 +160,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
         style={{ cursor: isNavigating ? 'wait' : 'pointer' }}
     >
       <div className={styles.imageContainer}>
-        {!imageLoaded && !imageError && (
+        {!imageLoaded && (
           <div className={styles.imageLoadingPlaceholder}>
             <div className="animate-pulse text-center p-2">
               <div className="text-2xl mb-2">🎭</div>
@@ -175,13 +170,16 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
         )}
         <img
           ref={imgRef}
-          key={posterToDisplay}
           src={posterToDisplay}
           alt={anime.title ? `${anime.title} poster` : "Anime Poster"}
           className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
           loading="lazy"
+          style={{ 
+            opacity: imageLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease-in-out'
+          }}
         />
       </div>
       {displayRatingOrYear && (

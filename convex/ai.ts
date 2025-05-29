@@ -162,7 +162,7 @@ const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: num
 
       console.log(`[Real Poster Fetch] Attempt ${attempt + 1} for: "${cleanTitle}"`);
 
-      // Try AniList first (highest quality images)
+      // Try AniList first (highest quality images) with timeout
       const anilistQuery = `
         query ($search: String) {
           Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
@@ -178,68 +178,126 @@ const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: num
         }
       `;
 
-      const anilistResponse = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json',
-          'User-Agent': 'AniMuse-App/1.0'
-        },
-        body: JSON.stringify({ 
-          query: anilistQuery, 
-          variables: { search: cleanTitle }
-        })
-      });
+      try {
+        const anilistController = new AbortController();
+        const anilistTimeout = setTimeout(() => anilistController.abort(), 8000); // 8 second timeout
 
-      if (anilistResponse.ok) {
-        const anilistData = await anilistResponse.json();
-        const media = anilistData?.data?.Media;
-        if (media?.coverImage) {
-          const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
-          if (posterUrl) {
-            console.log(`[Real Poster Fetch] ✅ Found AniList poster for: "${cleanTitle}" (ID: ${media.id})`);
-            return posterUrl;
+        const anilistResponse = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json',
+            'User-Agent': 'AniMuse-App/1.0'
+          },
+          body: JSON.stringify({ 
+            query: anilistQuery, 
+            variables: { search: cleanTitle }
+          }),
+          signal: anilistController.signal
+        });
+
+        clearTimeout(anilistTimeout);
+
+        if (anilistResponse.ok) {
+          const anilistData = await anilistResponse.json();
+          const media = anilistData?.data?.Media;
+          if (media?.coverImage) {
+            const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
+            if (posterUrl && posterUrl.startsWith('https://')) {
+              console.log(`[Real Poster Fetch] ✅ Found AniList poster for: "${cleanTitle}" (ID: ${media.id})`);
+              // Verify the URL is accessible
+              try {
+                const testController = new AbortController();
+                const testTimeout = setTimeout(() => testController.abort(), 3000);
+                const testResponse = await fetch(posterUrl, { 
+                  method: 'HEAD', 
+                  signal: testController.signal 
+                });
+                clearTimeout(testTimeout);
+                if (testResponse.ok) {
+                  return posterUrl;
+                }
+              } catch (testError) {
+                console.warn(`[Real Poster Fetch] AniList URL test failed for: "${cleanTitle}"`);
+              }
+            }
           }
+        }
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.warn(`[Real Poster Fetch] AniList timeout for: "${cleanTitle}"`);
+        } else {
+          console.warn(`[Real Poster Fetch] AniList error for: "${cleanTitle}":`, error.message);
         }
       }
 
       // Small delay before trying Jikan
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Fallback to Jikan API with better error handling
-      const encodedTitle = encodeURIComponent(cleanTitle);
-      const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
-      
-      const jikanResponse = await fetch(jikanUrl, {
-        headers: { 
-          'Accept': 'application/json',
-          'User-Agent': 'AniMuse-App/1.0'
-        }
-      });
-      
-      if (jikanResponse.ok) {
-        const jikanData = await jikanResponse.json();
-        const anime = jikanData?.data?.[0];
-        if (anime?.images) {
-          const posterUrl = anime.images.jpg?.large_image_url || 
-                          anime.images.webp?.large_image_url || 
-                          anime.images.jpg?.image_url || 
-                          anime.images.webp?.image_url;
-          
-          if (posterUrl) {
-            console.log(`[Real Poster Fetch] ✅ Found Jikan poster for: "${cleanTitle}" (MAL ID: ${anime.mal_id})`);
-            return posterUrl;
+      // Fallback to Jikan API with better error handling and timeout
+      try {
+        const encodedTitle = encodeURIComponent(cleanTitle);
+        const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
+        
+        const jikanController = new AbortController();
+        const jikanTimeout = setTimeout(() => jikanController.abort(), 8000); // 8 second timeout
+        
+        const jikanResponse = await fetch(jikanUrl, {
+          headers: { 
+            'Accept': 'application/json',
+            'User-Agent': 'AniMuse-App/1.0'
+          },
+          signal: jikanController.signal
+        });
+        
+        clearTimeout(jikanTimeout);
+        
+        if (jikanResponse.ok) {
+          const jikanData = await jikanResponse.json();
+          const anime = jikanData?.data?.[0];
+          if (anime?.images) {
+            const posterUrl = anime.images.jpg?.large_image_url || 
+                            anime.images.webp?.large_image_url || 
+                            anime.images.jpg?.image_url || 
+                            anime.images.webp?.image_url;
+            
+            if (posterUrl && posterUrl.startsWith('https://')) {
+              console.log(`[Real Poster Fetch] ✅ Found Jikan poster for: "${cleanTitle}" (MAL ID: ${anime.mal_id})`);
+              // Verify the URL is accessible
+              try {
+                const testController = new AbortController();
+                const testTimeout = setTimeout(() => testController.abort(), 3000);
+                const testResponse = await fetch(posterUrl, { 
+                  method: 'HEAD', 
+                  signal: testController.signal 
+                });
+                clearTimeout(testTimeout);
+                if (testResponse.ok) {
+                  return posterUrl;
+                }
+              } catch (testError) {
+                console.warn(`[Real Poster Fetch] Jikan URL test failed for: "${cleanTitle}"`);
+              }
+            }
           }
+        } else if (jikanResponse.status === 429) {
+          // Rate limited, wait longer before retry
+          const waitTime = (attempt + 1) * 2000;
+          console.log(`[Real Poster Fetch] Rate limited, waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-      } else if (jikanResponse.status === 429) {
-        // Rate limited, wait longer before retry
-        const waitTime = (attempt + 1) * 2000;
-        console.log(`[Real Poster Fetch] Rate limited, waiting ${waitTime}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.warn(`[Real Poster Fetch] Jikan timeout for: "${cleanTitle}"`);
+        } else {
+          console.warn(`[Real Poster Fetch] Jikan error for: "${cleanTitle}":`, error.message);
+        }
       }
 
+      // If both APIs failed, return null for this attempt
       return null;
+
     } catch (error: any) {
       console.error(`[Real Poster Fetch] Attempt ${attempt + 1} failed for "${animeTitle}":`, error.message);
       
@@ -264,47 +322,66 @@ const enhanceRecommendationsWithRealPosters = async (recommendations: any[]): Pr
   
   console.log(`[Poster Enhancement] Processing ${recommendations.length} recommendations...`);
   
-  for (let i = 0; i < recommendations.length; i++) {
-    const rec = recommendations[i];
-    let posterUrl = rec.posterUrl;
+  // Process in smaller batches to avoid overwhelming external APIs
+  const batchSize = 3;
+  
+  for (let batchStart = 0; batchStart < recommendations.length; batchStart += batchSize) {
+    const batch = recommendations.slice(batchStart, batchStart + batchSize);
     
-    // Check if we need to find a real poster
-    const needsRealPoster = !posterUrl || 
-                           posterUrl === "PLACEHOLDER" ||
-                           posterUrl.includes('placehold.co') || 
-                           posterUrl.includes('placeholder') ||
-                           posterUrl.includes('via.placeholder');
-    
-    if (needsRealPoster && rec.title) {
-      console.log(`[Poster Enhancement] 🔍 Searching for real poster (${i + 1}/${recommendations.length}): ${rec.title}`);
+    // Process batch in parallel but with limited concurrency
+    const batchPromises = batch.map(async (rec, localIndex) => {
+      const globalIndex = batchStart + localIndex;
+      let posterUrl = rec.posterUrl;
       
-      const realPosterUrl = await fetchRealAnimePosterWithRetry(rec.title);
+      // Check if we need to find a real poster
+      const needsRealPoster = !posterUrl || 
+                             posterUrl === "PLACEHOLDER" ||
+                             posterUrl.includes('placehold.co') || 
+                             posterUrl.includes('placeholder') ||
+                             posterUrl.includes('via.placeholder');
       
-      if (realPosterUrl) {
-        posterUrl = realPosterUrl;
-        console.log(`[Poster Enhancement] ✅ Enhanced poster (${i + 1}/${recommendations.length}): ${rec.title}`);
+      if (needsRealPoster && rec.title) {
+        console.log(`[Poster Enhancement] 🔍 Searching for real poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+        
+        try {
+          const realPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 1); // Reduced retries for batch processing
+          
+          if (realPosterUrl) {
+            posterUrl = realPosterUrl;
+            console.log(`[Poster Enhancement] ✅ Enhanced poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+          } else {
+            // Use a clean, high-quality placeholder as fallback
+            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+            posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+            console.log(`[Poster Enhancement] 📝 Using fallback placeholder (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+          }
+        } catch (error: any) {
+          console.error(`[Poster Enhancement] Error for "${rec.title}":`, error.message);
+          // Fallback to placeholder
+          const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+          posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+        }
       } else {
-        // Use a clean, high-quality placeholder as fallback
-        const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
-        posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-        console.log(`[Poster Enhancement] 📝 Using fallback placeholder (${i + 1}/${recommendations.length}): ${rec.title}`);
+        console.log(`[Poster Enhancement] ✓ Using existing poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
       }
       
-      // Respectful delay between API calls
-      if (i < recommendations.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    } else {
-      console.log(`[Poster Enhancement] ✓ Using existing poster (${i + 1}/${recommendations.length}): ${rec.title}`);
-    }
-    
-    enhancedRecommendations.push({
-      ...rec,
-      posterUrl,
-      title: rec.title || "Unknown Title",
-      description: rec.description || "No description available.",
-      reasoning: rec.reasoning || "AI recommendation.",
+      return {
+        ...rec,
+        posterUrl,
+        title: rec.title || "Unknown Title",
+        description: rec.description || "No description available.",
+        reasoning: rec.reasoning || "AI recommendation.",
+      };
     });
+    
+    // Wait for batch to complete
+    const batchResults = await Promise.all(batchPromises);
+    enhancedRecommendations.push(...batchResults);
+    
+    // Respectful delay between batches
+    if (batchStart + batchSize < recommendations.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
   
   const realPostersFound = enhancedRecommendations.filter(rec => 
@@ -317,7 +394,7 @@ const enhanceRecommendationsWithRealPosters = async (recommendations: any[]): Pr
 };
 
 
-export const getAnimeRecommendation = action({
+export const getAnimeRecommendationWithBetterLogging = action({
   args: {
     prompt: v.string(),
     userProfile: v.optional(enhancedUserProfileValidator),
@@ -328,6 +405,8 @@ export const getAnimeRecommendation = action({
     if (!process.env.CONVEX_OPENAI_API_KEY) {
       return { recommendations: [], error: "OpenAI API key not configured." };
     }
+
+    console.log(`[AI Recommendations] Starting recommendation generation for prompt: "${args.prompt}"`);
 
     let systemPrompt = `You are AniMuse AI, an expert anime recommendation assistant.
 Your goal is to provide high-quality anime recommendations based on the user's prompt.
@@ -366,6 +445,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
     let errorResult: string | undefined = undefined;
 
     try {
+      console.log(`[AI Recommendations] Calling OpenAI API...`);
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -376,17 +456,30 @@ Focus on providing diverse and relevant choices with accurate information.`;
         response_format: { type: "json_object" },
       });
 
+      console.log(`[AI Recommendations] OpenAI response received, parsing...`);
       const parsed = tryParseAIResponse(completion.choices[0].message.content, "getAnimeRecommendation");
+      
       if (parsed) {
         const rawRecommendations = parsed.slice(0, args.count || 3);
+        console.log(`[AI Recommendations] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, posterUrl: r.posterUrl })));
         
         // Enhance recommendations with real posters
         console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+        const startTime = Date.now();
         recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+        const enhancementTime = Date.now() - startTime;
+        
+        console.log(`[AI Recommendations] Poster enhancement completed in ${enhancementTime}ms`);
+        console.log(`[AI Recommendations] Final recommendations:`, recommendations.map(r => ({ 
+          title: r.title, 
+          posterUrl: r.posterUrl?.substring(0, 50) + "...",
+          isReal: !r.posterUrl?.includes('placehold.co')
+        })));
         
         console.log(`[AI Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
       } else {
         errorResult = "AI response format error or no recommendations found.";
+        console.error(`[AI Recommendations] Parse error: ${errorResult}`);
       }
     } catch (err: any) {
       console.error("[AI Action - GetAnimeRecommendation] Error:", err);
@@ -1412,7 +1505,7 @@ export const getSimilarAnimeFromDB = action({
         // For now, let's use AI to find similar anime instead of querying all anime
         // This is more efficient and can provide better recommendations
         
-        const aiRecommendations = await ctx.runAction(api.ai.getAnimeRecommendation, {
+        const aiRecommendations = await ctx.runAction(api.ai.getAnimeRecommendationWithBetterLogging, {
             prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
             userProfile: args.userProfile,
             count: args.count || 5,
@@ -1906,4 +1999,69 @@ export const debugPersonalizedRecommendations = action({
             };
         }
     }
+});
+
+export const debugPosterUrls = action({
+  args: {
+    titles: v.array(v.string()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Debug Poster URLs] Testing ${args.titles.length} titles...`);
+    
+    const results = [];
+    
+    for (const title of args.titles) {
+      try {
+        console.log(`[Debug Poster URLs] Testing: ${title}`);
+        
+        // Test the poster fetching function
+        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
+        
+        const result = {
+          title,
+          posterUrl,
+          success: !!posterUrl,
+          isReal: posterUrl && !posterUrl.includes('placehold.co'),
+          accessible: false
+        };
+
+        // Test if the URL is actually accessible
+        if (posterUrl && posterUrl.startsWith('https://')) {
+          try {
+            const testResponse = await fetch(posterUrl, { method: 'HEAD' });
+            result.accessible = testResponse.ok;
+            console.log(`[Debug Poster URLs] URL test for "${title}": ${testResponse.ok ? 'OK' : 'FAILED'} (${testResponse.status})`);
+          } catch (error: any) {
+            console.log(`[Debug Poster URLs] URL test failed for "${title}":`, error.message);
+          }
+        }
+        
+        results.push(result);
+        
+        // Small delay between tests
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error: any) {
+        results.push({
+          title,
+          posterUrl: null,
+          success: false,
+          error: error.message,
+          accessible: false
+        });
+      }
+    }
+    
+    console.log(`[Debug Poster URLs] Results:`, results);
+    
+    await ctx.runMutation(api.ai.storeAiFeedback, {
+      prompt: `Debug poster URLs for: ${args.titles.join(", ")}`,
+      aiAction: "debugPosterUrls",
+      aiResponseText: JSON.stringify(results),
+      feedbackType: "none",
+      messageId: args.messageId,
+    });
+    
+    return { results };
+  },
 });

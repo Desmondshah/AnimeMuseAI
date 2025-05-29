@@ -18,11 +18,19 @@ crons.interval(
   {}
 );
 
-// Add poster enhancement job - runs daily to improve image quality
+// Updated poster enhancement job - runs more frequently with better logic
 crons.interval(
   "enhanceAnimePosterQuality",
-  { hours: 24 }, // Run once daily
-  internal.externalApis.enhanceExistingAnimePosters,
+  { hours: 12 }, // Run twice daily instead of once daily
+  internal.externalApis.enhanceExistingAnimePostersBetter, // Use the better version
+  {}
+);
+
+// Optional: Add a weekly comprehensive poster check
+crons.weekly(
+  "weeklyPosterQualityCheck",
+  { dayOfWeek: "sunday", hourUTC: 2, minuteUTC: 0 }, // Sunday at 2 AM UTC
+  internal.externalApis.enhanceExistingAnimePostersBetter,
   {}
 );
 

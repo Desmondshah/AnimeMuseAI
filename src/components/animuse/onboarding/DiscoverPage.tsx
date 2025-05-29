@@ -1,10 +1,11 @@
-// src/components/animuse/onboarding/DiscoverPage.tsx - Advanced Artistic Version
+// Enhanced DiscoverPage.tsx with poster enhancement
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
 import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
+import { toast } from "sonner";
 
 interface FilterState {
   genres: string[];
@@ -76,8 +77,14 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     genres: [], yearRange: {}, ratingRange: {}, userRatingRange: {},
     minReviews: undefined, studios: [], themes: [], emotionalTags: [],
   });
+  
+  // Poster enhancement state
+  const [isEnhancingPosters, setIsEnhancingPosters] = useState(false);
+  const [enhancementProgress, setEnhancementProgress] = useState<{current: number; total: number} | null>(null);
 
   const filterOptions = useQuery(api.anime.getFilterOptions);
+  const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
+
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
@@ -130,6 +137,42 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const clearSearch = useCallback(() => { setSearchQuery(""); setDebouncedSearchQuery(""); }, []);
   const clearAll = useCallback(() => { clearFilters(); clearSearch(); }, [clearFilters, clearSearch]);
 
+  // Poster enhancement function
+  const handleEnhancePosters = useCallback(async () => {
+    if (!filteredAnimeList || filteredAnimeList.length === 0) {
+      toast.error("No anime to enhance!");
+      return;
+    }
+
+    setIsEnhancingPosters(true);
+    setEnhancementProgress({ current: 0, total: filteredAnimeList.length });
+
+    const toastId = "enhance-posters";
+    toast.loading("Enhancing anime posters...", { id: toastId });
+
+    try {
+      // Get the IDs of visible anime
+      const animeIds = filteredAnimeList.slice(0, 24).map(anime => anime._id); // Limit to first 24 visible anime
+      
+      const result = await enhanceBatchPosters({
+        animeIds: animeIds,
+        messageId: `batch-enhance-${Date.now()}`
+      });
+
+      if (result.error) {
+        toast.error(`Enhancement failed: ${result.error}`, { id: toastId });
+      } else {
+        toast.success(`Enhanced ${result.enhancedCount} out of ${animeIds.length} anime posters!`, { id: toastId });
+      }
+    } catch (error: any) {
+      console.error("Poster enhancement error:", error);
+      toast.error(`Enhancement failed: ${error.message}`, { id: toastId });
+    } finally {
+      setIsEnhancingPosters(false);
+      setEnhancementProgress(null);
+    }
+  }, [filteredAnimeList, enhanceBatchPosters]);
+
   const activeFilterCount = Object.values(filters).reduce((acc, value) => Array.isArray(value) ? acc + value.length : typeof value === 'object' ? acc + Object.values(value).filter(v => v !== undefined).length : value !== undefined ? acc + 1 : acc, 0);
   const hasActiveFilters = activeFilterCount > 0;
   const hasActiveSearch = debouncedSearchQuery.length > 0;
@@ -158,14 +201,44 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           <p className="text-lg text-white/80 max-w-2xl mx-auto">
             Explore our curated collection and find your next anime obsession
           </p>
-          {onBack && (
+          <div className="flex flex-wrap gap-3 justify-center">
+            {onBack && (
+              <StyledButton 
+                onClick={onBack} 
+                variant="ghost" 
+                className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              >
+                ← Back to Dashboard
+              </StyledButton>
+            )}
+            
+            {/* Poster Enhancement Button */}
             <StyledButton 
-              onClick={onBack} 
-              variant="ghost" 
-              className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              onClick={handleEnhancePosters}
+              disabled={isEnhancingPosters || !filteredAnimeList || filteredAnimeList.length === 0}
+              variant="secondary"
+              className="!text-sm !bg-gradient-to-r !from-purple-600 !to-blue-600 hover:!from-blue-600 hover:!to-purple-600 !text-white !border-0"
             >
-              ← Back to Dashboard
+              {isEnhancingPosters ? (
+                <span className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Enhancing Posters...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  🖼️ Enhance Posters
+                </span>
+              )}
             </StyledButton>
+          </div>
+          
+          {/* Enhancement Progress */}
+          {enhancementProgress && (
+            <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <span className="text-white/80 text-sm">
+                Enhancing: {enhancementProgress.current}/{enhancementProgress.total}
+              </span>
+            </div>
           )}
         </div>
 
