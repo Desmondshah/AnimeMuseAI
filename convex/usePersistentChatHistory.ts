@@ -1,5 +1,3 @@
-// Create this as a new file: src/hooks/usePersistentChatHistory.ts
-
 import { useState, useEffect, useCallback } from 'react';
 
 interface ChatMessage {

@@ -7,7 +7,7 @@ import StyledButton from "./shared/StyledButton";
 import { toast } from "sonner";
 import { AnimeRecommendation } from "../../../convex/types";
 import AnimeCard from "./AnimeCard";
-import { usePersistentChatHistory } from 'C:/Users/desmo/AnimeMuseAI/convex/usePersistentChatHistory.ts';
+import { usePersistentChatHistory } from '../../../convex/usePersistentChatHistory.ts';
 
 // Enhanced types
 type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
