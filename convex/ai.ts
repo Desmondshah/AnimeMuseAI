@@ -1,13 +1,11 @@
 // convex/ai.ts
-// Advanced AI Features: Multi-turn conversations, clarification, and refinement
-// Fixed version of convex/ai.ts
-
-import { action, mutation } from "./_generated/server";
+import { action, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal, } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import OpenAI from "openai";
-import { Id } from "./_generated/dataModel";
-import { internalQuery } from "./_generated/server";
+import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
+import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
+
 
 interface AnimeDocument {
     _id: Id<"anime">;
@@ -22,7 +20,7 @@ interface AnimeDocument {
     studios?: string[];
 }
 
-// Enhanced user profile validator (moved to top to avoid hoisting issues)
+// Enhanced user profile validator (ensure this matches your schema and needs)
 const enhancedUserProfileValidator = v.object({
     name: v.optional(v.string()),
     moods: v.optional(v.array(v.string())),
@@ -57,7 +55,7 @@ const conversationContextValidator = v.object({
   })),
 });
 
-// Helper function for parsing AI responses (single declaration)
+// Helper function for parsing AI responses
 const tryParseAIResponse = (jsonString: string | null, actionName: string): any[] | null => {
     if (!jsonString) {
         console.warn(`[AI Response - ${actionName}] AI returned null or empty content.`);
@@ -76,10 +74,10 @@ const tryParseAIResponse = (jsonString: string | null, actionName: string): any[
         if (Array.isArray(parsed)) {
             return parsed;
         }
-        console.warn(`[AI Response - ${actionName}] Parsed JSON not in expected format.`);
+        console.warn(`[AI Response - ${actionName}] Parsed JSON not in expected format, got:`, typeof parsed, Object.keys(parsed));
         return null;
     } catch (error) {
-        console.error(`[AI Response - ${actionName}] Failed to parse JSON:`, error);
+        console.error(`[AI Response - ${actionName}] Failed to parse JSON:`, error, "\nOriginal String:", jsonString.substring(0, 500));
         return null;
     }
 };
@@ -94,7 +92,7 @@ export const getAllAnimeInternal = internalQuery({
 // Store AI feedback mutation
 export const storeAiFeedback = mutation({
   args: {
-    prompt: v.string(), // Changed from v.optional(v.string()) to v.string() to match usage
+    prompt: v.string(),
     aiAction: v.string(),
     aiResponseRecommendations: v.optional(v.array(v.any())),
     aiResponseText: v.optional(v.string()),
@@ -102,12 +100,8 @@ export const storeAiFeedback = mutation({
     messageId: v.string(),
   },
   handler: async (ctx, args) => {
-    // For now, just log the feedback
-    // console.log(`[AI Feedback] UserID: ${await ctx.auth.getUserIdentity()?.subject} Action: ${args.aiAction}, Feedback: ${args.feedbackType}, MessageID: ${args.messageId}`);
-    
      await ctx.db.insert("aiInteractionFeedback", {
-       // userId: (await ctx.auth.getUserIdentity())?.subject as Id<"users">, // This requires user to be logged in
-       userId: "system" as any, // Placeholder if you don't have userId here or make it optional
+       userId: "system" as any, // Replace with actual userId if available and authenticated
        prompt: args.prompt,
        aiAction: args.aiAction,
        aiResponseRecommendations: args.aiResponseRecommendations,
@@ -1380,15 +1374,14 @@ If user profile data is available, subtly weave it into the reasoning if it alig
     }
 });
 
-// NEW : getSimilarAnimeRecommendations (for Anime Detail Page)
 export const getSimilarAnimeRecommendations = action({
     args: {
-        animeId: v.id("anime"), // ID of the anime in *our* database
+        animeId: v.id("anime"),
         userProfile: v.optional(enhancedUserProfileValidator),
         count: v.optional(v.number()),
         messageId: v.string(),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args): Promise<{ recommendations: AnimeRecommendation[]; error?: string }> => {
         if (!process.env.CONVEX_OPENAI_API_KEY) {
             return { recommendations: [], error: "OpenAI API key not configured." };
         }
@@ -1402,37 +1395,78 @@ export const getSimilarAnimeRecommendations = action({
 The user is looking for anime similar to "${targetAnime.title}" (Year: ${targetAnime.year || 'N/A'}, Genres: ${targetAnime.genres?.join(", ") || 'N/A'}).
 Description of target anime: "${targetAnime.description?.substring(0, 200) || 'N/A'}..."
 Suggest ${args.count || 3} anime that share significant similarities in terms of genre, themes, tone, plot structure, or character archetypes.
-For each recommendation, provide: title, description, posterUrl, genres, year, rating, emotionalTags, studios, themes, and a DETAILED reasoning explaining *how* it is similar to "${targetAnime.title}".
-If user profile data is available, use it to refine the *type* of similarities highlighted or to filter out suggestions the user might dislike.`;
+For each recommendation, provide:
+- title: (string, REQUIRED) The exact title of the anime.
+- description: (string) A brief synopsis.
+- posterUrl: (string, REQUIRED) A valid direct image URL for the poster. Use "https://placehold.co/300x450/ECB091/321D0B/png?text=No+Poster&font=poppins" if a real one cannot be found.
+- genres: (array of strings) Key genres.
+- year: (number, optional) Release year.
+- rating: (number, optional, 0-10 scale) External average rating.
+- reasoning: (string, REQUIRED) Detailed explanation of *how* it is similar to "${targetAnime.title}".
+- emotionalTags: (array of strings, optional)
+- studios: (array of strings, optional)
+- themes: (array of strings, optional)
+
+If user profile data is available, use it to refine the *type* of similarities highlighted or to filter out suggestions the user might dislike.
+Ensure the output is a JSON object with a single key "recommendations", which is an array of these anime objects.
+Prioritize well-known anime if they are good fits, but also include lesser-known gems if highly relevant.
+MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly formatted for each recommendation.`;
 
         if (args.userProfile) {
             systemPrompt += "\n\nUser Profile Context (use to refine similarity focus):";
             if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
             if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")} (try to avoid these in suggestions if possible, unless a core aspect of similarity)`;
-            if (args.userProfile.tropes?.length) systemPrompt += `\n- Liked Tropes: ${args.userProfile.tropes.join(", ")}`;
-             if (args.userProfile.characterArchetypes?.length) systemPrompt += `\n- Liked Archetypes: ${args.userProfile.characterArchetypes.join(", ")}`;
         }
         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
 
-        let recommendations: any[] = [];
+        let recommendations: AnimeRecommendation[] = [];
         let errorResult: string | undefined = undefined;
 
         try {
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "gpt-4o-mini", // Consider gpt-4-turbo for more complex reasoning if needed
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: `Find anime similar to "${targetAnime.title}".` }
+                    { role: "user", content: `Find anime similar to "${targetAnime.title}". Focus on strong thematic and genre similarities.` }
                 ],
                 response_format: { type: "json_object" },
             });
 
-            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendations");
-            if (parsed) {
-                recommendations = parsed.slice(0, args.count || 3);
+            const parsedResponse = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendations");
+            
+            if (parsedResponse) {
+                recommendations = parsedResponse.map((rec: any) => ({
+                    // Ensure all fields from AnimeRecommendation type are mapped, providing defaults
+                    title: rec.title || "Unknown Title",
+                    description: rec.description || "No description available.",
+                    posterUrl: rec.posterUrl || `https://placehold.co/300x450/ECB091/321D0B/png?text=${encodeURIComponent(rec.title || "N/A")}&font=poppins`,
+                    genres: Array.isArray(rec.genres) ? rec.genres : [],
+                    year: typeof rec.year === 'number' ? rec.year : undefined,
+                    rating: typeof rec.rating === 'number' ? rec.rating : undefined,
+                    reasoning: rec.reasoning || `Similar to ${targetAnime.title}.`,
+                    emotionalTags: Array.isArray(rec.emotionalTags) ? rec.emotionalTags : [],
+                    studios: Array.isArray(rec.studios) ? rec.studios : [],
+                    themes: Array.isArray(rec.themes) ? rec.themes : [],
+                    // Optional fields from AnimeRecommendation type
+                    characterHighlights: Array.isArray(rec.characterHighlights) ? rec.characterHighlights : undefined,
+                    plotTropes: Array.isArray(rec.plotTropes) ? rec.plotTropes : undefined,
+                    artStyleTags: Array.isArray(rec.artStyleTags) ? rec.artStyleTags : undefined,
+                    surpriseFactors: Array.isArray(rec.surpriseFactors) ? rec.surpriseFactors : undefined,
+                    similarityScore: typeof rec.similarityScore === 'number' ? rec.similarityScore : undefined,
+                    // _id might not be available if it's a new suggestion not yet in DB
+                })).filter(rec => rec.title && rec.title !== "Unknown Title" && rec.posterUrl); // Basic validation
+                
+                recommendations = recommendations.slice(0, args.count || 3);
+
+                if (recommendations.length === 0 && parsedResponse.length > 0) {
+                     errorResult = "AI provided suggestions, but they were missing critical information (like title or poster).";
+                } else if (recommendations.length === 0) {
+                    errorResult = "AI could not find suitable similar anime with the required details.";
+                }
+
             } else {
-                errorResult = "AI response format error or no similar anime found.";
+                errorResult = "AI response format error or no similar anime found by AI.";
             }
         } catch (err: any) {
             console.error("[AI Action - GetSimilarAnimeRecommendations] Error:", err);
@@ -1440,7 +1474,7 @@ If user profile data is available, use it to refine the *type* of similarities h
         } finally {
             if (args.messageId) {
                  await ctx.runMutation(api.ai.storeAiFeedback, {
-                    prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id})`,
+                    prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id.toString()})`, // Ensure ID is string
                     aiAction: "getSimilarAnimeRecommendations",
                     aiResponseRecommendations: recommendations.length ? recommendations : undefined,
                     aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
