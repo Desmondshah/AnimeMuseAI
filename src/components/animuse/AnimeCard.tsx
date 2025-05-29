@@ -62,37 +62,59 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   const handleImageError = () => { setImageError(true); setImageLoaded(true); };
   
   const handleCardClick = async () => {
-    let idToNavigate = animeDocumentId;
-    if (!idToNavigate && isRecommendation && onViewDetails) {
-        try {
-            const toastId = `prepare-details-${anime.title || 'new-anime'}`;
-            toast.loading("Getting details...", { id: toastId });
-            idToNavigate = await addAnimeByUser({
-                title: anime.title || "Unknown Title",
-                description: anime.description || "No description available.",
-                posterUrl: anime.posterUrl || placeholderUrl,
-                genres: anime.genres || [], year: anime.year, rating: anime.rating,
-                emotionalTags: anime.emotionalTags || [],
-                trailerUrl: anime.trailerUrl || undefined,
-                studios: anime.studios || [], themes: anime.themes || []
-            });
-            toast.dismiss(toastId);
-            if (!idToNavigate) throw new Error("Could not add anime to view details.");
-        } catch (error: any) {
-            toast.error(error.data?.message || error.message || "Error preparing details.");
-            console.error("Error adding AI rec before navigating:", error);
-            return;
-        }
+  let idToNavigate = animeDocumentId;
+  
+  // If we don't have an ID and this is a recommendation, try to add it to the database
+  if (!idToNavigate && isRecommendation && onViewDetails) {
+    try {
+      const toastId = `prepare-details-${anime.title || 'new-anime'}`;
+      toast.loading("Preparing details...", { id: toastId });
+      
+      // Create a more robust anime object for the database
+      const animeToAdd = {
+        title: anime.title || "Unknown Title",
+        description: anime.description || "No description available.",
+        posterUrl: anime.posterUrl || placeholderUrl,
+        genres: Array.isArray(anime.genres) ? anime.genres : [],
+        year: anime.year || undefined, // Convert null to undefined
+        rating: anime.rating || undefined, // Convert null to undefined
+        emotionalTags: Array.isArray(anime.emotionalTags) ? anime.emotionalTags : [],
+        trailerUrl: anime.trailerUrl || undefined,
+        studios: Array.isArray(anime.studios) ? anime.studios : [],
+        themes: Array.isArray(anime.themes) ? anime.themes : []
+      };
+      
+      idToNavigate = await addAnimeByUser(animeToAdd);
+      toast.dismiss(toastId);
+      
+      if (!idToNavigate) {
+        throw new Error("Could not add anime to database.");
+      }
+      
+      toast.success("Details ready!");
+    } catch (error: any) {
+      console.error("Error adding AI recommendation before navigating:", error);
+      toast.error("Could not prepare anime details. Please try again.");
+      return; // Don't attempt navigation
     }
+  }
 
-    if (idToNavigate && onViewDetails) {
+  // Navigate if we have an ID and a navigation function
+  if (idToNavigate && onViewDetails) {
+    try {
       onViewDetails(idToNavigate);
-    } else if (!onViewDetails) {
-        console.warn("AnimeCard (Poster): onViewDetails prop is not provided.");
-    } else if (!idToNavigate) {
-        toast.info("Details for this item are not available yet.");
+    } catch (error) {
+      console.error("Navigation error:", error);
+      toast.error("Could not open details page.");
     }
-  };
+  } else if (!onViewDetails) {
+    console.warn("AnimeCard: onViewDetails prop is not provided.");
+    toast.info("Navigation function not available.");
+  } else if (!idToNavigate) {
+    console.warn("AnimeCard: No anime ID available for navigation.");
+    toast.info("Anime details are not ready yet.");
+  }
+};
   
   const displayRatingOrYear = anime.rating !== undefined && anime.rating !== null 
     ? `⭐ ${(anime.rating / 2).toFixed(1)}` 

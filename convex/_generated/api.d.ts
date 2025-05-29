@@ -27,6 +27,7 @@ import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
+import type * as usePersistentChatHistory from "../usePersistentChatHistory.js";
 import type * as users from "../users.js";
 
 /**
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   router: typeof router;
   twilioSender: typeof twilioSender;
   types: typeof types;
+  usePersistentChatHistory: typeof usePersistentChatHistory;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
