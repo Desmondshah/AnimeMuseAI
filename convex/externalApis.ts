@@ -1,4 +1,5 @@
-// convex/externalApis.ts
+// convex/externalApis.ts - Enhanced version with better image quality
+
 "use node";
 import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
@@ -27,7 +28,6 @@ const getStringArray = (obj: any, path: string, nameField: string = "name"): str
     return undefined;
 };
 
-
 interface ExternalApiResult {
   success: boolean;
   message: string;
@@ -37,6 +37,24 @@ interface ExternalApiResult {
 
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1000;
+
+// Enhanced image quality selection
+const selectBestImageUrl = (images: any): string | undefined => {
+    if (!images) return undefined;
+    
+    // AniList image priority: extraLarge > large > medium
+    if (images.extraLarge) return images.extraLarge;
+    if (images.large) return images.large;
+    if (images.medium) return images.medium;
+    
+    // Jikan image priority: large_image_url > image_url > small_image_url
+    if (images.jpg?.large_image_url) return images.jpg.large_image_url;
+    if (images.webp?.large_image_url) return images.webp.large_image_url;
+    if (images.jpg?.image_url) return images.jpg.image_url;
+    if (images.webp?.image_url) return images.webp.image_url;
+    
+    return undefined;
+};
 
 const fetchFromAnilist = async (title: string, existingAnilistId?: number): Promise<any | null> => {
     const anilistQuery = `
@@ -56,7 +74,12 @@ const fetchFromAnilist = async (title: string, existingAnilistId?: number): Prom
           hashtag
           trailer { id site thumbnail }
           updatedAt
-          coverImage { extraLarge large medium color }
+          coverImage { 
+            extraLarge 
+            large 
+            medium 
+            color 
+          }
           bannerImage
           genres
           synonyms
@@ -115,6 +138,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
     let apiData: any = null;
     let sourceApiUsed: string = "none";
 
+    // Try AniList first (higher quality images)
     if (existingAnime.anilistId) {
         apiData = await fetchFromAnilist(args.titleToSearch, existingAnime.anilistId);
         if (apiData) sourceApiUsed = "anilist";
@@ -124,6 +148,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
         if (apiData) sourceApiUsed = "anilist";
     }
 
+    // Fallback to Jikan if AniList fails
     if (!apiData) {
         console.log(`[External API] AniList failed or no data, falling back to Jikan for "${args.titleToSearch}"`);
         const encodedTitle = encodeURIComponent(args.titleToSearch);
@@ -153,17 +178,16 @@ export const triggerFetchExternalAnimeDetails = internalAction({
     }
 
     if (apiData) {
-        let mappedData: Partial<Omit<Doc<"anime">, "title">> = {}; // Ensure title is not part of this type initially
+        let mappedData: Partial<Omit<Doc<"anime">, "title">> = {};
         let fetchedTitle: string | undefined = undefined;
 
         if (sourceApiUsed === "jikan") {
-            // Jikan doesn't usually provide multiple title variations like AniList in a single search result object easily
-            // We primarily rely on the title used for searching or what Jikan returns as its main title.
-            // For this example, we won't try to map a new title from Jikan to avoid conflicts,
-            // assuming title consistency is handled elsewhere or the initial title is preferred.
+            // Enhanced image selection for Jikan
+            const bestImageUrl = selectBestImageUrl(apiData.images);
+            
             mappedData = {
               description: getString(apiData, 'synopsis', existingAnime.description),
-              posterUrl: getString(apiData, 'images.jpg.large_image_url', getString(apiData, 'images.webp.large_image_url', existingAnime.posterUrl)),
+              posterUrl: bestImageUrl || existingAnime.posterUrl,
               genres: getStringArray(apiData, 'genres', 'name') || existingAnime.genres,
               year: apiData.year ?? (apiData.aired?.from ? new Date(apiData.aired.from).getFullYear() : existingAnime.year),
               rating: getNumber(apiData, 'score', existingAnime.rating),
@@ -174,17 +198,25 @@ export const triggerFetchExternalAnimeDetails = internalAction({
             };
         } else if (sourceApiUsed === "anilist" && apiData) {
             fetchedTitle = apiData.title?.english || apiData.title?.romaji || apiData.title?.native;
-            // If fetchedTitle is substantially different from existingAnime.title, you might log a warning
-            // or have a more complex reconciliation strategy. For now, we exclude title from 'updates'.
+            
             if (fetchedTitle && fetchedTitle.toLowerCase() !== existingAnime.title.toLowerCase()) {
                 console.warn(`[External API - AniList] Fetched title "${fetchedTitle}" differs from existing "${existingAnime.title}". Title will not be updated by this process.`);
             }
+
+            // Enhanced image selection for AniList
+            const bestImageUrl = selectBestImageUrl(apiData.coverImage);
 
             mappedData.anilistId = apiData.id;
             mappedData.description = apiData.description || existingAnime.description;
             if (apiData.startDate?.year) mappedData.year = apiData.startDate.year;
             else if (apiData.seasonYear) mappedData.year = apiData.seasonYear;
-            if (apiData.coverImage?.extraLarge || apiData.coverImage?.large) mappedData.posterUrl = apiData.coverImage.extraLarge || apiData.coverImage.large;
+            
+            // Prioritize high-quality images
+            if (bestImageUrl) {
+                mappedData.posterUrl = bestImageUrl;
+                console.log(`[External API - AniList] Selected high-quality image: ${bestImageUrl}`);
+            }
+            
             if (apiData.genres?.length) mappedData.genres = apiData.genres;
 
             let anilistStudiosData = existingAnime.studios || [];
@@ -209,23 +241,72 @@ export const triggerFetchExternalAnimeDetails = internalAction({
             console.log(`[External API - AniList] Mapped data for (AniList ID: ${apiData.id}). Title in DB: "${existingAnime.title}"`);
         }
 
-        // Construct the final updates object *without* title
         const updatesForMutation: Partial<Omit<Doc<"anime">, "title" | "_id" | "_creationTime">> = { ...mappedData };
-
 
         if (Object.keys(updatesForMutation).length > 0) {
             await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
               animeId: args.animeIdInOurDB,
-              updates: updatesForMutation, // This object no longer contains 'title'
+              updates: updatesForMutation,
               sourceApi: sourceApiUsed,
             });
-            return { success: true, message: `Data from ${sourceApiUsed} triggered update.`, source: sourceApiUsed };
+            return { success: true, message: `High-quality data from ${sourceApiUsed} applied.`, source: sourceApiUsed };
         } else {
             return { success: true, message: `No new data from ${sourceApiUsed} to update.`, source: sourceApiUsed };
         }
     } else {
         return { success: false, message: `No data found from any external API for "${args.titleToSearch}".`, source: sourceApiUsed };
     }
+  },
+});
+
+// Add scheduled enhancement for existing anime with low-quality posters
+export const enhanceExistingAnimePosters = internalAction({
+  args: {},
+  handler: async (ctx: ActionCtx) => {
+    console.log("[Poster Enhancement] Starting batch enhancement of existing anime posters...");
+    
+    // Get anime with potentially low-quality posters
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const animesToEnhance = allAnime.filter(anime => {
+      const poster = anime.posterUrl;
+      // Target placeholder images or very old/low quality URLs
+      return !poster || 
+             poster.includes('placehold.co') || 
+             poster.includes('placeholder') ||
+             poster.includes('300x450') ||
+             !anime.lastFetchedFromExternal ||
+             (Date.now() - anime.lastFetchedFromExternal.timestamp) > (30 * 24 * 60 * 60 * 1000); // 30 days old
+    });
+
+    console.log(`[Poster Enhancement] Found ${animesToEnhance.length} anime that could benefit from poster enhancement.`);
+    
+    // Process in batches to avoid overwhelming external APIs
+    const batchSize = 5;
+    for (let i = 0; i < Math.min(animesToEnhance.length, 20); i += batchSize) { // Limit to 20 per run
+      const batch = animesToEnhance.slice(i, i + batchSize);
+      
+      for (const anime of batch) {
+        try {
+          console.log(`[Poster Enhancement] Processing: ${anime.title}`);
+          await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+            animeIdInOurDB: anime._id,
+            titleToSearch: anime.title
+          });
+          
+          // Small delay between requests to be respectful to APIs
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error: any) {
+          console.error(`[Poster Enhancement] Failed to enhance ${anime.title}:`, error.message);
+        }
+      }
+      
+      // Longer delay between batches
+      if (i + batchSize < Math.min(animesToEnhance.length, 20)) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+    
+    console.log("[Poster Enhancement] Batch enhancement completed.");
   },
 });
 

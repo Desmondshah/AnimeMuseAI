@@ -151,11 +151,38 @@ export default function MainApp() {
 
     if (userProfile && userProfile.onboardingCompleted && !hasFetchedForYou && currentView === "dashboard") {
       const personalizedCategorySetup: ForYouCategory = {
-          id: "generalPersonalized", title: "✨ Personalized For You", recommendations: [], isLoading: true, error: null,
-          fetchFn: getPersonalizedRecommendationsAction,
-          fetchArgs: { count: 7, messageId: `foryou-general-${Date.now()}` },
-          reason: "Tailored based on your profile and activity."
-      };
+    id: "generalPersonalized", 
+    title: "✨ Personalized For You (Debug)", 
+    recommendations: [], 
+    isLoading: true, 
+    error: null,
+    fetchFn: async (args) => {
+        console.log(`[MainApp Debug] Fetching personalized recommendations with args:`, args);
+        
+        try {
+            const result = await getPersonalizedRecommendationsAction({
+                userProfile: args.userProfile,
+                watchlistActivity: args.watchlistActivity,
+                count: args.count || 7,
+                messageId: args.messageId
+            });
+            
+            console.log(`[MainApp Debug] Personalized recommendations result:`, {
+                count: result.recommendations?.length,
+                error: result.error,
+                firstTitle: result.recommendations?.[0]?.title,
+                firstPosterUrl: result.recommendations?.[0]?.posterUrl?.substring(0, 50) + "..."
+            });
+            
+            return result;
+        } catch (error: any) {
+            console.error(`[MainApp Debug] Personalized recommendations error:`, error);
+            throw error;
+        }
+    },
+    fetchArgs: { count: 7, messageId: `foryou-debug-${Date.now()}` },
+    reason: "Tailored based on your profile and activity (Debug Mode)."
+};
       setForYouCategories([personalizedCategorySetup]); // Initialize with the category
       fetchCategoryData(personalizedCategorySetup);     // Then fetch data for it
       setHasFetchedForYou(true); // Mark as fetched to prevent re-fetching on navigation

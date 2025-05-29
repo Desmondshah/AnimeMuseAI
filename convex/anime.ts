@@ -314,24 +314,33 @@ export const addAnimeByUser = mutation({
         title: v.string(), description: v.string(), posterUrl: v.string(), genres: v.array(v.string()),
         year: v.optional(v.number()), rating: v.optional(v.number()), emotionalTags: v.optional(v.array(v.string())),
         trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
-        // Phase 2: Add anilistId if known from AI/User input
         anilistId: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("User not authenticated");
+        
         const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).first();
         if (existing) {
             console.warn(`[Add Anime] User ${userId} existing anime: "${args.title}" (ID: ${existing._id}). Returning existing.`);
             return existing._id;
         }
+        
         console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
-        return await ctx.db.insert("anime", {
+        const animeId = await ctx.db.insert("anime", {
             title: args.title, description: args.description, posterUrl: args.posterUrl, genres: args.genres,
             year: args.year, rating: args.rating, emotionalTags: args.emotionalTags, trailerUrl: args.trailerUrl,
             studios: args.studios, themes: args.themes,
-            anilistId: args.anilistId, // Phase 2
+            anilistId: args.anilistId,
         });
+        
+        // Auto-fetch external data to improve poster quality and metadata
+        ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
+            animeIdInOurDB: animeId,
+            titleToSearch: args.title
+        });
+        
+        return animeId;
     }
 });
 
@@ -340,12 +349,21 @@ export const addAnimeInternal = internalMutation({
       title: v.string(), description: v.string(), posterUrl: v.string(), genres: v.array(v.string()),
       year: v.optional(v.number()), rating: v.optional(v.number()), emotionalTags: v.optional(v.array(v.string())),
       trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
-      anilistId: v.optional(v.number()), // Phase 2
+      anilistId: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).unique();
         if (existing) return existing._id;
-        return await ctx.db.insert("anime", args);
+        
+        const animeId = await ctx.db.insert("anime", args);
+        
+        // Auto-fetch external data for better poster quality
+        ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
+            animeIdInOurDB: animeId,
+            titleToSearch: args.title
+        });
+        
+        return animeId;
     }
 });
 

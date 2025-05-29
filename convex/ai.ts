@@ -113,9 +113,210 @@ export const storeAiFeedback = mutation({
   },
 });
 
-// *******************************************************************
-// ADD THE MISSING getAnimeRecommendation ACTION HERE
-// *******************************************************************
+export const enhanceRecommendationsPosters = action({
+  args: {
+    recommendations: v.array(v.any()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Poster Enhancement Action] Starting enhancement for ${args.recommendations.length} recommendations`);
+    
+    try {
+      const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(args.recommendations);
+      
+      console.log(`[Poster Enhancement Action] Successfully enhanced ${enhancedRecommendations.length} recommendations`);
+      
+      // Store feedback about the enhancement
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: "Poster enhancement request",
+        aiAction: "enhanceRecommendationsPosters",
+        aiResponseRecommendations: enhancedRecommendations,
+        feedbackType: "none",
+        messageId: args.messageId,
+      });
+      
+      return { 
+        recommendations: enhancedRecommendations, 
+        enhanced: enhancedRecommendations.length,
+        error: undefined 
+      };
+    } catch (error: any) {
+      console.error("[Poster Enhancement Action] Error:", error);
+      return { 
+        recommendations: args.recommendations, 
+        enhanced: 0,
+        error: `Enhancement failed: ${error.message}` 
+      };
+    }
+  },
+});
+
+const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: number = 2): Promise<string | null> => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Clean the title for better search results
+      const cleanTitle = animeTitle
+        .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+        .replace(/\s+/g, ' ') // Normalize spaces
+        .trim();
+
+      console.log(`[Real Poster Fetch] Attempt ${attempt + 1} for: "${cleanTitle}"`);
+
+      // Try AniList first (highest quality images)
+      const anilistQuery = `
+        query ($search: String) {
+          Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
+            id
+            title { romaji english native }
+            coverImage { 
+              extraLarge 
+              large 
+              medium 
+            }
+            averageScore
+          }
+        }
+      `;
+
+      const anilistResponse = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept': 'application/json',
+          'User-Agent': 'AniMuse-App/1.0'
+        },
+        body: JSON.stringify({ 
+          query: anilistQuery, 
+          variables: { search: cleanTitle }
+        })
+      });
+
+      if (anilistResponse.ok) {
+        const anilistData = await anilistResponse.json();
+        const media = anilistData?.data?.Media;
+        if (media?.coverImage) {
+          const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
+          if (posterUrl) {
+            console.log(`[Real Poster Fetch] ✅ Found AniList poster for: "${cleanTitle}" (ID: ${media.id})`);
+            return posterUrl;
+          }
+        }
+      }
+
+      // Small delay before trying Jikan
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Fallback to Jikan API with better error handling
+      const encodedTitle = encodeURIComponent(cleanTitle);
+      const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
+      
+      const jikanResponse = await fetch(jikanUrl, {
+        headers: { 
+          'Accept': 'application/json',
+          'User-Agent': 'AniMuse-App/1.0'
+        }
+      });
+      
+      if (jikanResponse.ok) {
+        const jikanData = await jikanResponse.json();
+        const anime = jikanData?.data?.[0];
+        if (anime?.images) {
+          const posterUrl = anime.images.jpg?.large_image_url || 
+                          anime.images.webp?.large_image_url || 
+                          anime.images.jpg?.image_url || 
+                          anime.images.webp?.image_url;
+          
+          if (posterUrl) {
+            console.log(`[Real Poster Fetch] ✅ Found Jikan poster for: "${cleanTitle}" (MAL ID: ${anime.mal_id})`);
+            return posterUrl;
+          }
+        }
+      } else if (jikanResponse.status === 429) {
+        // Rate limited, wait longer before retry
+        const waitTime = (attempt + 1) * 2000;
+        console.log(`[Real Poster Fetch] Rate limited, waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error(`[Real Poster Fetch] Attempt ${attempt + 1} failed for "${animeTitle}":`, error.message);
+      
+      if (attempt < maxRetries) {
+        // Wait before retry, with exponential backoff
+        const waitTime = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  console.warn(`[Real Poster Fetch] ❌ All attempts failed for: "${animeTitle}"`);
+  return null;
+};
+
+    
+
+
+// Enhanced recommendation post-processing
+const enhanceRecommendationsWithRealPosters = async (recommendations: any[]): Promise<any[]> => {
+  const enhancedRecommendations = [];
+  
+  console.log(`[Poster Enhancement] Processing ${recommendations.length} recommendations...`);
+  
+  for (let i = 0; i < recommendations.length; i++) {
+    const rec = recommendations[i];
+    let posterUrl = rec.posterUrl;
+    
+    // Check if we need to find a real poster
+    const needsRealPoster = !posterUrl || 
+                           posterUrl === "PLACEHOLDER" ||
+                           posterUrl.includes('placehold.co') || 
+                           posterUrl.includes('placeholder') ||
+                           posterUrl.includes('via.placeholder');
+    
+    if (needsRealPoster && rec.title) {
+      console.log(`[Poster Enhancement] 🔍 Searching for real poster (${i + 1}/${recommendations.length}): ${rec.title}`);
+      
+      const realPosterUrl = await fetchRealAnimePosterWithRetry(rec.title);
+      
+      if (realPosterUrl) {
+        posterUrl = realPosterUrl;
+        console.log(`[Poster Enhancement] ✅ Enhanced poster (${i + 1}/${recommendations.length}): ${rec.title}`);
+      } else {
+        // Use a clean, high-quality placeholder as fallback
+        const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+        posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+        console.log(`[Poster Enhancement] 📝 Using fallback placeholder (${i + 1}/${recommendations.length}): ${rec.title}`);
+      }
+      
+      // Respectful delay between API calls
+      if (i < recommendations.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    } else {
+      console.log(`[Poster Enhancement] ✓ Using existing poster (${i + 1}/${recommendations.length}): ${rec.title}`);
+    }
+    
+    enhancedRecommendations.push({
+      ...rec,
+      posterUrl,
+      title: rec.title || "Unknown Title",
+      description: rec.description || "No description available.",
+      reasoning: rec.reasoning || "AI recommendation.",
+    });
+  }
+  
+  const realPostersFound = enhancedRecommendations.filter(rec => 
+    rec.posterUrl && !rec.posterUrl.includes('placehold.co')
+  ).length;
+  
+  console.log(`[Poster Enhancement] ✅ Complete! Found ${realPostersFound}/${recommendations.length} real posters`);
+  
+  return enhancedRecommendations;
+};
+
+
 export const getAnimeRecommendation = action({
   args: {
     prompt: v.string(),
@@ -132,8 +333,24 @@ export const getAnimeRecommendation = action({
 Your goal is to provide high-quality anime recommendations based on the user's prompt.
 Consider the user's profile if provided to tailor suggestions.
 Output a JSON object with a single key "recommendations", which is an array of 3-${args.count || 3} anime.
-Each anime object should have: title, description, reasoning (why it matches the prompt/profile), posterUrl (use "https://via.placeholder.com/200x300.png?text=[Anime+Title]" if unknown), genres (array of strings), year (number), rating (number 0-10), emotionalTags (array of strings like "heartwarming", "intense"), trailerUrl (optional string), studios (array of strings), themes (array of strings).
-Focus on providing diverse and relevant choices.`;
+
+IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+
+Each anime object should have: 
+- title (string, REQUIRED): The exact title of the anime
+- description (string): A brief synopsis  
+- reasoning (string): Why it matches the prompt/profile
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- genres (array of strings): Key genres
+- year (number): Release year if known
+- rating (number 0-10): External average rating if known
+- emotionalTags (array of strings): Emotional descriptors like "heartwarming", "intense"
+- trailerUrl (string, optional): YouTube or official trailer URL if known
+- studios (array of strings): Animation studios
+- themes (array of strings): Major themes
+
+Focus on providing diverse and relevant choices with accurate information.`;
 
     if (args.userProfile) {
       systemPrompt += "\n\nUser Profile Context:";
@@ -143,7 +360,6 @@ Focus on providing diverse and relevant choices.`;
       if (args.userProfile.favoriteAnimes?.length) systemPrompt += `\n- Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
       if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
       if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
-      // Add other profile fields as needed
     }
 
     let recommendations: any[] = [];
@@ -162,7 +378,13 @@ Focus on providing diverse and relevant choices.`;
 
       const parsed = tryParseAIResponse(completion.choices[0].message.content, "getAnimeRecommendation");
       if (parsed) {
-        recommendations = parsed.slice(0, args.count || 3);
+        const rawRecommendations = parsed.slice(0, args.count || 3);
+        
+        // Enhance recommendations with real posters
+        console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+        recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+        
+        console.log(`[AI Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
       } else {
         errorResult = "AI response format error or no recommendations found.";
       }
@@ -176,7 +398,7 @@ Focus on providing diverse and relevant choices.`;
           aiAction: "getAnimeRecommendation",
           aiResponseRecommendations: recommendations.length ? recommendations : undefined,
           aiResponseText: recommendations.length === 0 ? errorResult : undefined,
-          feedbackType: "none", // Default feedback
+          feedbackType: "none",
           messageId: args.messageId,
         });
       }
@@ -1225,8 +1447,8 @@ export const getPersonalizedRecommendations = action({
         userProfile: enhancedUserProfileValidator,
         watchlistActivity: v.optional(v.array(v.object({
             animeTitle: v.string(),
-            status: v.string(), // "Watching", "Completed", "Plan to Watch", "Dropped"
-            userRating: v.optional(v.number()), // User's rating for this anime
+            status: v.string(),
+            userRating: v.optional(v.number()),
         }))),
         count: v.optional(v.number()),
         messageId: v.string(),
@@ -1239,8 +1461,23 @@ export const getPersonalizedRecommendations = action({
         let systemPrompt = `You are AniMuse, an AI that provides highly personalized anime recommendations.
 Based on the user's detailed profile and recent watchlist activity, suggest ${args.count || 3} anime they might enjoy.
 Provide diverse recommendations that touch upon different aspects of their profile.
-Each recommendation MUST include: title, description, posterUrl (use placeholder if needed), genres, year, rating (0-10), emotionalTags, studios, themes, and a DETAILED reasoning explaining *why* this specific anime is a good fit for THIS user, referencing their profile data (genres, moods, experience, archetypes, tropes, art styles etc.) and watchlist activity.
-The "reasoning" field is crucial for personalization. Make it insightful.`;
+
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+
+Each recommendation MUST include: 
+- title (string, REQUIRED): Exact anime title
+- description (string): Brief synopsis  
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- genres (array of strings): Key genres
+- year (number): Release year if known
+- rating (number 0-10): External rating if known
+- emotionalTags (array of strings): Emotional descriptors
+- studios (array of strings): Animation studios
+- themes (array of strings): Major themes
+- reasoning (string, REQUIRED): DETAILED reasoning explaining *why* this specific anime is a good fit for THIS user
+
+The "reasoning" field is crucial for personalization. Make it insightful and specific to the user.`;
 
         systemPrompt += "\n\nUSER PROFILE:";
         systemPrompt += `\n- Name: ${args.userProfile.name || "N/A"}`;
@@ -1263,14 +1500,13 @@ The "reasoning" field is crucial for personalization. Make it insightful.`;
         
         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
 
-
         let recommendations: any[] = [];
         let errorResult: string | undefined = undefined;
 
         try {
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini", // or "gpt-4-turbo" for potentially better reasoning
+                model: "gpt-4o-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: "Generate personalized anime recommendations based on my profile and activity." }
@@ -1280,7 +1516,13 @@ The "reasoning" field is crucial for personalization. Make it insightful.`;
 
             const parsed = tryParseAIResponse(completion.choices[0].message.content, "getPersonalizedRecommendations");
             if (parsed) {
-                recommendations = parsed.slice(0, args.count || 3);
+                const rawRecommendations = parsed.slice(0, args.count || 3);
+                
+                // Enhance recommendations with real posters
+                console.log(`[Personalized Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+                recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                
+                console.log(`[Personalized Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
             } else {
                 errorResult = "AI response format error or no recommendations found.";
             }
@@ -1307,7 +1549,7 @@ The "reasoning" field is crucial for personalization. Make it insightful.`;
 // --- NEW: getRecommendationsByMoodTheme (for Mood Board on Dashboard) ---
 export const getRecommendationsByMoodTheme = action({
     args: {
-        selectedCues: v.array(v.string()), // e.g., ["Dark & Gritty", "Mind-Bending"]
+        selectedCues: v.array(v.string()),
         userProfile: v.optional(enhancedUserProfileValidator),
         count: v.optional(v.number()),
         messageId: v.string(),
@@ -1323,7 +1565,22 @@ export const getRecommendationsByMoodTheme = action({
         let systemPrompt = `You are AniMuse, an AI specializing in recommending anime based on mood, themes, and vibes.
 The user has selected the following mood/theme cues: ${args.selectedCues.join(", ")}.
 Suggest ${args.count || 3} anime that strongly evoke these combined vibes.
-Each recommendation MUST include: title, description, posterUrl (use placeholder if needed), genres, year, rating (0-10), emotionalTags, studios, themes, and a DETAILED reasoning explaining *why* this anime fits the selected mood cues.
+
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+
+Each recommendation MUST include: 
+- title (string, REQUIRED): Exact anime title
+- description (string): Brief synopsis
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- genres (array of strings): Key genres
+- year (number): Release year if known
+- rating (number 0-10): External rating if known
+- emotionalTags (array of strings): Emotional descriptors
+- studios (array of strings): Animation studios
+- themes (array of strings): Major themes
+- reasoning (string, REQUIRED): DETAILED reasoning explaining *why* this anime fits the selected mood cues
+
 If user profile data is available, subtly weave it into the reasoning if it aligns, but prioritize the mood cues.`;
 
         if (args.userProfile) {
@@ -1333,7 +1590,6 @@ If user profile data is available, subtly weave it into the reasoning if it alig
              if (args.userProfile.moods?.length) systemPrompt += `\n- General Moods Liked: ${args.userProfile.moods.join(", ")}`;
         }
          systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
-
 
         let recommendations: any[] = [];
         let errorResult: string | undefined = undefined;
@@ -1351,7 +1607,13 @@ If user profile data is available, subtly weave it into the reasoning if it alig
 
             const parsed = tryParseAIResponse(completion.choices[0].message.content, "getRecommendationsByMoodTheme");
             if (parsed) {
-                recommendations = parsed.slice(0, args.count || 3);
+                const rawRecommendations = parsed.slice(0, args.count || 3);
+                
+                // Enhance recommendations with real posters
+                console.log(`[Mood Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+                recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                
+                console.log(`[Mood Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
             } else {
                 errorResult = "AI response format error or no mood-based recommendations found.";
             }
@@ -1394,21 +1656,26 @@ export const getSimilarAnimeRecommendations = action({
         let systemPrompt = `You are AniMuse, an AI that finds anime similar to a given title.
 The user is looking for anime similar to "${targetAnime.title}" (Year: ${targetAnime.year || 'N/A'}, Genres: ${targetAnime.genres?.join(", ") || 'N/A'}).
 Description of target anime: "${targetAnime.description?.substring(0, 200) || 'N/A'}..."
+
 Suggest ${args.count || 3} anime that share significant similarities in terms of genre, themes, tone, plot structure, or character archetypes.
+
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+
 For each recommendation, provide:
-- title: (string, REQUIRED) The exact title of the anime.
-- description: (string) A brief synopsis.
-- posterUrl: (string, REQUIRED) A valid direct image URL for the poster. Use "https://placehold.co/300x450/ECB091/321D0B/png?text=No+Poster&font=poppins" if a real one cannot be found.
-- genres: (array of strings) Key genres.
-- year: (number, optional) Release year.
-- rating: (number, optional, 0-10 scale) External average rating.
-- reasoning: (string, REQUIRED) Detailed explanation of *how* it is similar to "${targetAnime.title}".
+- title: (string, REQUIRED) The exact title of the anime
+- description: (string) A brief synopsis
+- posterUrl: (string) Real poster URL if known, otherwise "PLACEHOLDER"
+- genres: (array of strings) Key genres
+- year: (number, optional) Release year
+- rating: (number, optional, 0-10 scale) External average rating
+- reasoning: (string, REQUIRED) Detailed explanation of how it is similar to "${targetAnime.title}"
 - emotionalTags: (array of strings, optional)
 - studios: (array of strings, optional)
 - themes: (array of strings, optional)
 
-If user profile data is available, use it to refine the *type* of similarities highlighted or to filter out suggestions the user might dislike.
-Ensure the output is a JSON object with a single key "recommendations", which is an array of these anime objects.
+If user profile data is available, use it to refine the type of similarities highlighted or to filter out suggestions the user might dislike.
+Ensure the output is a JSON object with a single key "recommendations".
 Prioritize well-known anime if they are good fits, but also include lesser-known gems if highly relevant.
 MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly formatted for each recommendation.`;
 
@@ -1425,7 +1692,7 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
         try {
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini", // Consider gpt-4-turbo for more complex reasoning if needed
+                model: "gpt-4o-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `Find anime similar to "${targetAnime.title}". Focus on strong thematic and genre similarities.` }
@@ -1436,11 +1703,16 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
             const parsedResponse = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendations");
             
             if (parsedResponse) {
-                recommendations = parsedResponse.map((rec: any) => ({
-                    // Ensure all fields from AnimeRecommendation type are mapped, providing defaults
+                const rawRecommendations = parsedResponse.slice(0, args.count || 3);
+                
+                // Enhance recommendations with real posters
+                console.log(`[Similar Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+                const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                
+                recommendations = enhancedRecommendations.map((rec: any) => ({
                     title: rec.title || "Unknown Title",
                     description: rec.description || "No description available.",
-                    posterUrl: rec.posterUrl || `https://placehold.co/300x450/ECB091/321D0B/png?text=${encodeURIComponent(rec.title || "N/A")}&font=poppins`,
+                    posterUrl: rec.posterUrl,
                     genres: Array.isArray(rec.genres) ? rec.genres : [],
                     year: typeof rec.year === 'number' ? rec.year : undefined,
                     rating: typeof rec.rating === 'number' ? rec.rating : undefined,
@@ -1448,21 +1720,19 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
                     emotionalTags: Array.isArray(rec.emotionalTags) ? rec.emotionalTags : [],
                     studios: Array.isArray(rec.studios) ? rec.studios : [],
                     themes: Array.isArray(rec.themes) ? rec.themes : [],
-                    // Optional fields from AnimeRecommendation type
                     characterHighlights: Array.isArray(rec.characterHighlights) ? rec.characterHighlights : undefined,
                     plotTropes: Array.isArray(rec.plotTropes) ? rec.plotTropes : undefined,
                     artStyleTags: Array.isArray(rec.artStyleTags) ? rec.artStyleTags : undefined,
                     surpriseFactors: Array.isArray(rec.surpriseFactors) ? rec.surpriseFactors : undefined,
                     similarityScore: typeof rec.similarityScore === 'number' ? rec.similarityScore : undefined,
-                    // _id might not be available if it's a new suggestion not yet in DB
-                })).filter(rec => rec.title && rec.title !== "Unknown Title" && rec.posterUrl); // Basic validation
+                })).filter(rec => rec.title && rec.title !== "Unknown Title" && rec.posterUrl);
                 
-                recommendations = recommendations.slice(0, args.count || 3);
+                console.log(`[Similar Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
 
                 if (recommendations.length === 0 && parsedResponse.length > 0) {
-                     errorResult = "AI provided suggestions, but they were missing critical information (like title or poster).";
+                     errorResult = "AI provided suggestions, but they were missing critical information.";
                 } else if (recommendations.length === 0) {
-                    errorResult = "AI could not find suitable similar anime with the required details.";
+                    errorResult = "AI could not find suitable similar anime.";
                 }
 
             } else {
@@ -1474,7 +1744,7 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
         } finally {
             if (args.messageId) {
                  await ctx.runMutation(api.ai.storeAiFeedback, {
-                    prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id.toString()})`, // Ensure ID is string
+                    prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id.toString()})`,
                     aiAction: "getSimilarAnimeRecommendations",
                     aiResponseRecommendations: recommendations.length ? recommendations : undefined,
                     aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
@@ -1484,5 +1754,156 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
             }
         }
         return { recommendations, error: errorResult };
+    }
+
+    
+});
+
+export const testPosterFetching = action({
+  args: {
+    animeTitles: v.array(v.string()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Debug Poster Test] Testing poster fetching for: ${args.animeTitles.join(", ")}`);
+    
+    const results = [];
+    
+    for (const title of args.animeTitles) {
+      try {
+        console.log(`[Debug Poster Test] Testing: ${title}`);
+        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
+        
+        results.push({
+          title,
+          posterUrl,
+          success: !!posterUrl,
+          isReal: posterUrl && !posterUrl.includes('placehold.co')
+        });
+        
+        // Small delay between tests
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error: any) {
+        results.push({
+          title,
+          posterUrl: null,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
+    console.log(`[Debug Poster Test] Results:`, results);
+    
+    await ctx.runMutation(api.ai.storeAiFeedback, {
+      prompt: `Poster test for: ${args.animeTitles.join(", ")}`,
+      aiAction: "testPosterFetching",
+      aiResponseText: JSON.stringify(results),
+      feedbackType: "none",
+      messageId: args.messageId,
+    });
+    
+    return { results };
+  },
+});
+
+// Debug version of getPersonalizedRecommendations with extra logging
+export const debugPersonalizedRecommendations = action({
+    args: {
+        userProfile: enhancedUserProfileValidator,
+        count: v.optional(v.number()),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        console.log(`[DEBUG Personalized] Starting debug personalized recommendations`);
+        console.log(`[DEBUG Personalized] User profile:`, {
+            name: args.userProfile.name,
+            genres: args.userProfile.genres,
+            favoriteAnimes: args.userProfile.favoriteAnimes,
+            experienceLevel: args.userProfile.experienceLevel
+        });
+
+        if (!process.env.CONVEX_OPENAI_API_KEY) {
+            return { recommendations: [], error: "OpenAI API key not configured." };
+        }
+
+        // Simplified test recommendations for debugging
+        const testRecommendations = [
+            {
+                title: "Attack on Titan",
+                description: "Humanity fights for survival against giant humanoid Titans.",
+                posterUrl: "PLACEHOLDER",
+                genres: ["Action", "Drama", "Fantasy"],
+                year: 2013,
+                rating: 9.0,
+                emotionalTags: ["intense", "dramatic"],
+                studios: ["Studio Pierrot"],
+                themes: ["survival", "freedom"],
+                reasoning: "Perfect for testing poster fetching and navigation"
+            },
+            {
+                title: "Demon Slayer",
+                description: "A young boy becomes a demon slayer to save his sister.",
+                posterUrl: "PLACEHOLDER", 
+                genres: ["Action", "Supernatural"],
+                year: 2019,
+                rating: 8.7,
+                emotionalTags: ["emotional", "action-packed"],
+                studios: ["Ufotable"],
+                themes: ["family", "determination"],
+                reasoning: "Another test anime for poster enhancement"
+            },
+            {
+                title: "Your Name",
+                description: "Two teenagers share a profound, magical connection.",
+                posterUrl: "PLACEHOLDER",
+                genres: ["Romance", "Drama", "Supernatural"],
+                year: 2016,
+                rating: 8.4,
+                emotionalTags: ["romantic", "beautiful"],
+                studios: ["CoMix Wave Films"],
+                themes: ["love", "destiny"],
+                reasoning: "Movie test for poster system"
+            }
+        ];
+
+        console.log(`[DEBUG Personalized] Using test recommendations:`, testRecommendations.map(r => r.title));
+
+        try {
+            // Enhance with real posters
+            console.log(`[DEBUG Personalized] Enhancing ${testRecommendations.length} test recommendations with real posters...`);
+            const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(testRecommendations);
+            
+            console.log(`[DEBUG Personalized] Enhanced recommendations:`, enhancedRecommendations.map(r => ({
+                title: r.title,
+                posterUrl: r.posterUrl?.substring(0, 50) + "...",
+                isReal: !r.posterUrl?.includes('placehold.co')
+            })));
+
+            await ctx.runMutation(api.ai.storeAiFeedback, {
+                prompt: "Debug personalized recommendations test",
+                aiAction: "debugPersonalizedRecommendations",
+                aiResponseRecommendations: enhancedRecommendations,
+                feedbackType: "none",
+                messageId: args.messageId,
+            });
+
+            return { 
+                recommendations: enhancedRecommendations, 
+                debug: {
+                    originalCount: testRecommendations.length,
+                    enhancedCount: enhancedRecommendations.length,
+                    realPostersFound: enhancedRecommendations.filter(r => !r.posterUrl?.includes('placehold.co')).length
+                },
+                error: undefined 
+            };
+        } catch (err: any) {
+            console.error("[DEBUG Personalized] Error:", err);
+            return { 
+                recommendations: testRecommendations, 
+                debug: { error: err.message },
+                error: `Debug Error: ${err.message}` 
+            };
+        }
     }
 });

@@ -1,4 +1,4 @@
-// convex/crons.ts
+// convex/crons.ts - Add poster enhancement job
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
@@ -15,6 +15,14 @@ crons.interval(
   "cleanupExpiredPhoneVerifications",
   { minutes: 30 },
   internal.users.scheduledCleanupExpiredPhoneVerifications,
+  {}
+);
+
+// Add poster enhancement job - runs daily to improve image quality
+crons.interval(
+  "enhanceAnimePosterQuality",
+  { hours: 24 }, // Run once daily
+  internal.externalApis.enhanceExistingAnimePosters,
   {}
 );
 
