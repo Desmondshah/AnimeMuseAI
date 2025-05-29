@@ -55,6 +55,32 @@ export default function MainApp() {
   const [forYouCategories, setForYouCategories] = useState<ForYouCategory[]>([]);
   const [hasFetchedForYou, setHasFetchedForYou] = useState(false);
 
+  // Add moodboard state
+  const [moodboardState, setMoodboardState] = useState({
+    selectedMoodCues: [] as string[],
+    recommendations: [] as AnimeRecommendation[],
+    isLoading: false,
+  });
+
+  // Moodboard state handlers
+  const handleMoodCuesChange = useCallback((cues: string[]) => {
+    setMoodboardState(prev => ({ 
+      ...prev, 
+      selectedMoodCues: cues,
+      // Clear recommendations when cues change to force re-fetch
+      recommendations: cues.length === 0 ? [] : prev.recommendations
+    }));
+  }, []);
+
+  const handleMoodboardRecommendationsChange = useCallback((recs: AnimeRecommendation[]) => {
+    setMoodboardState(prev => ({ ...prev, recommendations: recs }));
+  }, []);
+
+  const handleMoodboardLoadingChange = useCallback((loading: boolean) => {
+    setMoodboardState(prev => ({ ...prev, isLoading: loading }));
+  }, []);
+
+  // ... existing navigation functions ...
   const navigateTo = useCallback((view: CurrentView, options?: { replace?: boolean; data?: any }) => {
     window.scrollTo(0, 0);
     if (options?.replace) {
@@ -261,19 +287,66 @@ export default function MainApp() {
   const renderContent = useCallback(() => {
     const previousViewForBack = historyStack.length > 1 ? historyStack[historyStack.length - 2] : "dashboard";
     switch (currentView) {
-      case "ai_assistant": return <EnhancedAIAssistantPage navigateToDetail={navigateToDetail} />;
-      case "anime_detail": return selectedAnimeId ? <AnimeDetailPage animeId={selectedAnimeId} onBack={navigateBack} /> : <LoadingSpinner className="text-brand-text-primary/80"/>;
-      case "my_list": return <WatchlistPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} onNavigateToCustomLists={navigateToCustomListsOverview} />;
-      case "browse": return <DiscoverPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
-      case "admin_dashboard": return <AdminDashboardPage onNavigateBack={navigateToDashboard} />;
-      case "profile_settings": return <ProfileSettingsPage onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
-      case "custom_lists_overview": return renderCustomListsOverview();
-      case "custom_list_detail": return selectedCustomListId ? <CustomListDetailView listId={selectedCustomListId} onBackToLists={() => navigateTo("my_list")} onViewAnime={navigateToDetail}/> : <LoadingSpinner className="text-brand-text-primary/80"/>;
-      case "moodboard_page": return <MoodboardPage navigateToDetail={navigateToDetail} />;
+      case "ai_assistant": 
+        return <EnhancedAIAssistantPage navigateToDetail={navigateToDetail} />;
+      case "anime_detail": 
+        return selectedAnimeId ? (
+          <AnimeDetailPage 
+            animeId={selectedAnimeId} 
+            onBack={navigateBack} 
+            navigateToDetail={navigateToDetail}
+          />
+        ) : <LoadingSpinner className="text-brand-text-primary/80"/>;
+      case "my_list": 
+        return <WatchlistPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} onNavigateToCustomLists={navigateToCustomListsOverview} />;
+      case "browse": 
+        return <DiscoverPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
+      case "admin_dashboard": 
+        return <AdminDashboardPage onNavigateBack={navigateToDashboard} />;
+      case "profile_settings": 
+        return <ProfileSettingsPage onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
+      case "custom_lists_overview": 
+        return renderCustomListsOverview();
+      case "custom_list_detail": 
+        return selectedCustomListId ? (
+          <CustomListDetailView 
+            listId={selectedCustomListId} 
+            onBackToLists={() => navigateTo("my_list")} 
+            onViewAnime={navigateToDetail}
+          />
+        ) : <LoadingSpinner className="text-brand-text-primary/80"/>;
+      case "moodboard_page": 
+        return (
+          <MoodboardPage 
+            navigateToDetail={navigateToDetail}
+            selectedMoodCues={moodboardState.selectedMoodCues}
+            onMoodCuesChange={handleMoodCuesChange}
+            moodBoardRecommendations={moodboardState.recommendations}
+            onRecommendationsChange={handleMoodboardRecommendationsChange}
+            isLoadingMoodBoard={moodboardState.isLoading}
+            onLoadingChange={handleMoodboardLoadingChange}
+          />
+        );
       case "dashboard":
-      default: return renderDashboard();
+      default: 
+        return renderDashboard();
     }
-  }, [currentView, selectedAnimeId, selectedCustomListId, navigateBack, navigateToDetail, navigateToDashboard, renderDashboard, renderCustomListsOverview, navigateToCustomListsOverview, historyStack]);
+  }, [
+    currentView, 
+    selectedAnimeId, 
+    selectedCustomListId, 
+    navigateBack, 
+    navigateToDetail, 
+    navigateToDashboard, 
+    renderDashboard, 
+    renderCustomListsOverview, 
+    navigateToCustomListsOverview, 
+    historyStack,
+    moodboardState,
+    handleMoodCuesChange,
+    handleMoodboardRecommendationsChange,
+    handleMoodboardLoadingChange
+  ]);
 
   return (
     <div className="w-full pb-20">

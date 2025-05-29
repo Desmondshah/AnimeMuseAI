@@ -1,76 +1,116 @@
-// src/components/animuse/MoodboardPage.tsx
+// In MoodboardPage.tsx - Updated to accept state as props
+
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
-import AnimeCard from "../AnimeCard"; // Renders poster + banner only
+import AnimeCard from "../AnimeCard";
 import { AnimeRecommendation } from "../../../../convex/types";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 const MOOD_BOARD_CUES = [
-  { id: "dark_gritty", label: "Dark & Gritty", emoji: "💀" }, { id: "heartwarming", label: "Heartwarming", emoji: "🥰" },
-  { id: "epic_adventure", label: "Epic Adventure", emoji: "🗺️" }, { id: "mind_bending", label: "Mind-Bending", emoji: "🧠" },
-  { id: "chill_vibes", label: "Chill Vibes", emoji: "😌" }, { id: "nostalgic", label: "Nostalgic", emoji: "⏳" },
-  { id: "action_packed", label: "Action Packed", emoji: "💥" }, { id: "romantic", label: "Romantic", emoji: "💕" },
-  { id: "comedic_relief", label: "Comedic Relief", emoji: "😂" }, { id: "thought_provoking", label: "Thought-Provoking", emoji: "🤔" },
+  { id: "dark_gritty", label: "Dark & Gritty", emoji: "💀" }, 
+  { id: "heartwarming", label: "Heartwarming", emoji: "🥰" },
+  { id: "epic_adventure", label: "Epic Adventure", emoji: "🗺️" }, 
+  { id: "mind_bending", label: "Mind-Bending", emoji: "🧠" },
+  { id: "chill_vibes", label: "Chill Vibes", emoji: "😌" }, 
+  { id: "nostalgic", label: "Nostalgic", emoji: "⏳" },
+  { id: "action_packed", label: "Action Packed", emoji: "💥" }, 
+  { id: "romantic", label: "Romantic", emoji: "💕" },
+  { id: "comedic_relief", label: "Comedic Relief", emoji: "😂" }, 
+  { id: "thought_provoking", label: "Thought-Provoking", emoji: "🤔" },
 ];
 
 interface MoodboardPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
+  // Add props for persistent state
+  selectedMoodCues: string[];
+  onMoodCuesChange: (cues: string[]) => void;
+  moodBoardRecommendations: AnimeRecommendation[];
+  onRecommendationsChange: (recs: AnimeRecommendation[]) => void;
+  isLoadingMoodBoard: boolean;
+  onLoadingChange: (loading: boolean) => void;
 }
 
 const LoadingSpinnerComponent: React.FC<{ message?: string; className?: string }> = ({ message = "Loading...", className = "" }) => (
     <div className={`flex flex-col justify-center items-center py-10 ${className}`}>
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
-      {message && <p className="mt-3 text-sm text-brand-text-primary/80">{message}</p>} {/* Text for light bg */}
+      {message && <p className="mt-3 text-sm text-brand-text-primary/80">{message}</p>}
     </div>
 );
 const LoadingSpinner = memo(LoadingSpinnerComponent);
 
-const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({ navigateToDetail }) => {
-  const [selectedMoodCues, setSelectedMoodCues] = useState<string[]>([]);
-  const [moodBoardRecommendations, setMoodBoardRecommendations] = useState<AnimeRecommendation[]>([]);
-  const [isLoadingMoodBoard, setIsLoadingMoodBoard] = useState(false);
-  
+const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({ 
+  navigateToDetail, 
+  selectedMoodCues, 
+  onMoodCuesChange, 
+  moodBoardRecommendations, 
+  onRecommendationsChange,
+  isLoadingMoodBoard,
+  onLoadingChange
+}) => {
   const userProfile = useQuery(api.users.getMyUserProfile);
   const getRecommendationsByMoodTheme = useAction(api.ai.getRecommendationsByMoodTheme);
 
   const handleMoodCueToggle = useCallback((cueLabel: string) => {
-    setSelectedMoodCues(prev => prev.includes(cueLabel) ? prev.filter(c => c !== cueLabel) : [...prev, cueLabel]);
-  }, []);
+    const newCues = selectedMoodCues.includes(cueLabel) 
+      ? selectedMoodCues.filter(c => c !== cueLabel) 
+      : [...selectedMoodCues, cueLabel];
+    onMoodCuesChange(newCues);
+  }, [selectedMoodCues, onMoodCuesChange]);
 
   const fetchMoodBoardRecommendations = useCallback(async () => {
     if (selectedMoodCues.length === 0) {
-      setMoodBoardRecommendations([]);
+      onRecommendationsChange([]);
       return;
     }
-    setIsLoadingMoodBoard(true);
-    setMoodBoardRecommendations([]);
+    
+    onLoadingChange(true);
+    onRecommendationsChange([]);
+    
     try {
       const profileForAI = userProfile ? {
-        name: userProfile.name, moods: userProfile.moods, genres: userProfile.genres, favoriteAnimes: userProfile.favoriteAnimes, experienceLevel: userProfile.experienceLevel, dislikedGenres: userProfile.dislikedGenres, dislikedTags: userProfile.dislikedTags, characterArchetypes: userProfile.characterArchetypes, tropes: userProfile.tropes, artStyles: userProfile.artStyles, narrativePacing: userProfile.narrativePacing
+        name: userProfile.name, 
+        moods: userProfile.moods, 
+        genres: userProfile.genres, 
+        favoriteAnimes: userProfile.favoriteAnimes, 
+        experienceLevel: userProfile.experienceLevel, 
+        dislikedGenres: userProfile.dislikedGenres, 
+        dislikedTags: userProfile.dislikedTags, 
+        characterArchetypes: userProfile.characterArchetypes, 
+        tropes: userProfile.tropes, 
+        artStyles: userProfile.artStyles, 
+        narrativePacing: userProfile.narrativePacing
       } : undefined;
-      const result = await getRecommendationsByMoodTheme({ selectedCues: selectedMoodCues, userProfile: profileForAI, count: 6, messageId: `moodpage-${Date.now()}`});
+      
+      const result = await getRecommendationsByMoodTheme({ 
+        selectedCues: selectedMoodCues, 
+        userProfile: profileForAI, 
+        count: 6, 
+        messageId: `moodpage-${Date.now()}`
+      });
+      
       if (result.error && result.error !== "OpenAI API key not configured.") {
         toast.error(`Mood board error: ${result.error.substring(0,100)}`);
       } else {
-        setMoodBoardRecommendations(result.recommendations || []);
+        onRecommendationsChange(result.recommendations || []);
       }
     } catch (e: any) {
       toast.error(`Error fetching mood board: ${e.message}`);
     } finally {
-      setIsLoadingMoodBoard(false);
+      onLoadingChange(false);
     }
-  }, [selectedMoodCues, userProfile, getRecommendationsByMoodTheme]);
+  }, [selectedMoodCues, userProfile, getRecommendationsByMoodTheme, onRecommendationsChange, onLoadingChange]);
 
+  // Only fetch if we have mood cues but no recommendations yet
   useEffect(() => {
-    if (selectedMoodCues.length > 0) {
+    if (selectedMoodCues.length > 0 && moodBoardRecommendations.length === 0 && !isLoadingMoodBoard) {
       fetchMoodBoardRecommendations();
-    } else {
-      setMoodBoardRecommendations([]);
+    } else if (selectedMoodCues.length === 0) {
+      onRecommendationsChange([]);
     }
-  }, [selectedMoodCues, fetchMoodBoardRecommendations]); // fetchMoodBoardRecommendations is stable due to useCallback
+  }, [selectedMoodCues, moodBoardRecommendations.length, isLoadingMoodBoard, fetchMoodBoardRecommendations, onRecommendationsChange]);
 
   return (
     <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-4 sm:p-6 space-y-6">
@@ -80,6 +120,7 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({ navigateToDetail
       <p className="text-sm text-brand-text-primary/80 text-center mb-4 sm:mb-5">
         Select vibes to find anime that match your current mood!
       </p>
+      
       <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-5 sm:mb-6 p-3 bg-brand-accent-peach/10 rounded-lg">
         {MOOD_BOARD_CUES.map(cue => (
           <StyledButton 
@@ -93,6 +134,20 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({ navigateToDetail
           </StyledButton>
         ))}
       </div>
+
+      {/* Refresh button to manually re-fetch */}
+      {selectedMoodCues.length > 0 && (
+        <div className="text-center mb-4">
+          <StyledButton 
+            onClick={fetchMoodBoardRecommendations} 
+            variant="secondary_small"
+            disabled={isLoadingMoodBoard}
+            className="!text-xs"
+          >
+            {isLoadingMoodBoard ? "Loading..." : "🔄 Refresh Recommendations"}
+          </StyledButton>
+        </div>
+      )}
 
       {isLoadingMoodBoard && <LoadingSpinner message="Brewing suggestions..." className="text-brand-text-primary/80" />}
       
