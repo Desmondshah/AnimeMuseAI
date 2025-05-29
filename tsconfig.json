@@ -6,8 +6,16 @@
   ],
   "compilerOptions": {
     "baseUrl": ".",
+    "jsx": "preserve", // Or "react-jsx" depending on your setup
+    "esModuleInterop": true,
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+      ],
+      "exclude": ["node_modules"]
 }

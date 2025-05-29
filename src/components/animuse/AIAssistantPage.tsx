@@ -1,33 +1,45 @@
-// src/components/animuse/AIAssistantPage.tsx
-// Full refactor based on user's original code and new UI theme.
+// src/components/animuse/AIAssistantPage.tsx - Advanced Artistic Version
 import React, { useState, FormEvent, useRef, useEffect, useCallback, memo } from "react";
 import { useAction, useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "./shared/StyledButton";
 import { toast } from "sonner";
-import { AnimeRecommendation } from "../../../convex/types"; 
-import AnimeCard from "./AnimeCard"; 
+import { AnimeRecommendation } from "../../../convex/types";
+import AnimeCard from "./AnimeCard";
 
-// Define the possible return types from AI actions
-type RecommendationResult = {
-  recommendations: AnimeRecommendation[];
-  error?: string;
-};
-
-type AnalysisResult = {
-  analysis: any; 
-  error?: string;
-};
-
-type GuideResult = {
-  guide: any; 
-  error?: string;
-};
-
+// --- Types ---
+type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
+type AnalysisResult = { analysis: any; error?: string; }; // Define more specific type if possible
+type GuideResult = { guide: FranchiseGuide; error?: string; };
 type AIActionResult = RecommendationResult | AnalysisResult | GuideResult;
 
-// Type guard functions
+interface FranchiseGuideItem {
+  accessibilityRating: string;
+  description: string;
+  importance: string;
+  notes?: string;
+  title: string;
+  type: string;
+  year: number | string;
+}
+
+interface AlternativeOrder {
+  description: string;
+  items: string[];
+  orderName: string;
+}
+
+interface FranchiseGuide {
+  alternativeOrders?: AlternativeOrder[];
+  complexity?: string;
+  entryPoints?: string[];
+  franchiseName: string;
+  overview: string;
+  recommendedOrder: FranchiseGuideItem[];
+  tips?: string[];
+}
+
 function isRecommendationResult(result: AIActionResult): result is RecommendationResult {
   return 'recommendations' in result;
 }
@@ -40,14 +52,13 @@ function isGuideResult(result: AIActionResult): result is GuideResult {
   return 'guide' in result;
 }
 
-// Enhanced interface for different types of AI responses
 interface ChatMessage {
   id: string;
   type: "user" | "ai" | "error" | "analysis" | "guide";
   content: string;
   recommendations?: AnimeRecommendation[];
   analysis?: any;
-  guide?: any;
+  guide?: FranchiseGuide;
   feedback?: "up" | "down" | null;
   rawAiResponse?: any[];
   rawAiText?: string;
@@ -56,18 +67,98 @@ interface ChatMessage {
 
 type AIMode = "general" | "character" | "trope" | "art_style" | "compare" | "hidden_gems" | "franchise";
 
-// Props for AIAssistantPage, including navigateToDetail
 interface EnhancedAIAssistantPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
 }
 
-// Simplified Loading Spinner for this page
-const LocalSpinner: React.FC<{ size?: string; colorClass?: string }> = memo(({ size = "h-5 w-5", colorClass = "border-brand-primary-action" }) => (
-    <div className={`animate-spin rounded-full ${size} border-b-2 ${colorClass}`}></div>
+// Artistic Loading Component with particle effects
+const ArtisticLoadingSpinner: React.FC<{ size?: string; message?: string }> = memo(({
+  size = "h-12 w-12",
+  message = "AniMuse is thinking..."
+}) => (
+  <div className="flex flex-col items-center justify-center py-8">
+    <div className="relative">
+      {/* Main spinning ring */}
+      <div className={`${size} border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin`}></div>
+      {/* Inner counter-rotating ring */}
+      <div className={`absolute top-1 left-1 ${size === "h-12 w-12" ? "h-10 w-10" : "h-[calc(100%-8px)] w-[calc(100%-8px)]"} border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse`}></div>
+      {/* Pulsing core */}
+      <div className={`absolute top-3 left-3 ${size === "h-12 w-12" ? "h-6 w-6" : "h-[calc(100%-24px)] w-[calc(100%-24px)]"} bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse`}></div>
+      {/* Orbiting particles */}
+      <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+        <div className="absolute top-0 left-1/2 w-1 h-1 -ml-0.5 bg-brand-accent-gold rounded-full"></div>
+        <div className="absolute bottom-0 left-1/2 w-1 h-1 -ml-0.5 bg-brand-primary-action rounded-full"></div>
+      </div>
+      <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
+        <div className="absolute top-1/2 left-0 w-1 h-1 -mt-0.5 bg-brand-accent-peach rounded-full"></div>
+        <div className="absolute top-1/2 right-0 w-1 h-1 -mt-0.5 bg-white/70 rounded-full"></div>
+      </div>
+    </div>
+    {message && (
+      <div className="mt-4 text-center">
+        <p className="text-white/90 text-sm font-medium animate-pulse">{message}</p>
+        <div className="flex justify-center mt-2 space-x-1">
+          <div className="w-2 h-2 bg-brand-primary-action rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-brand-accent-gold rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+          <div className="w-2 h-2 bg-brand-accent-peach rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        </div>
+      </div>
+    )}
+  </div>
 ));
 
+// Floating Particle Component
+const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string }> = memo(({
+  delay = 0,
+  size = "w-2 h-2",
+  color = "bg-brand-accent-gold/30"
+}) => (
+  <div
+    className={`absolute ${size} ${color} rounded-full animate-ping`}
+    style={{
+      animationDelay: `${delay}s`,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDuration: `${2 + Math.random() * 3}s`
+    }}
+  ></div>
+));
 
-
+// Enhanced Mode Card Component
+const ModeCard: React.FC<{
+  mode: { id: string; label: string; desc: string; icon: string; gradient: string };
+  isActive: boolean;
+  onClick: () => void;
+}> = memo(({ mode, isActive, onClick }) => (
+  <div className="group relative">
+    {/* Glow effect */}
+    <div className={`absolute -inset-2 bg-gradient-to-r ${mode.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-300 ${isActive ? 'opacity-40' : ''}`}></div>
+    <button
+      onClick={onClick}
+      className={`relative w-full p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
+        isActive
+          ? `bg-gradient-to-br ${mode.gradient} border-white/30 shadow-2xl scale-105`
+          : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-white/30 hover:bg-black/60'
+      }`}
+    >
+      {/* Animated background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
+      </div>
+      <div className="relative z-10 text-center space-y-2">
+        <div className={`text-3xl transition-transform duration-300 ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>
+          {mode.icon}
+        </div>
+        <div className="text-sm font-medium text-white/90">{mode.label}</div>
+        <div className="text-xs text-white/60 leading-relaxed">{mode.desc}</div>
+      </div>
+      {/* Selection indicator */}
+      {isActive && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary-action rounded-full border-2 border-white animate-pulse"></div>
+      )}
+    </button>
+  </div>
+));
 
 const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> = ({ navigateToDetail }) => {
   const [prompt, setPrompt] = useState("");
@@ -80,6 +171,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const [surpriseLevel, setSurpriseLevel] = useState<"mild" | "moderate" | "wild">("moderate");
   const [avoidPopular, setAvoidPopular] = useState(false);
 
+  // AI Actions
   const getAnimeRecommendationAction = useAction(api.ai.getAnimeRecommendation);
   const getCharacterBasedRecommendationsAction = useAction(api.ai.getCharacterBasedRecommendations);
   const getTropeBasedRecommendationsAction = useAction(api.ai.getTropeBasedRecommendations);
@@ -89,24 +181,36 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
 
   const userProfileQuery = useQuery(api.users.getMyUserProfile);
-  const storeAiFeedback = useMutation(api.ai.storeAiFeedback); 
+  const storeAiFeedback = useMutation(api.ai.storeAiFeedback);
   const { isAuthenticated, isLoading: authIsLoading } = useConvexAuth();
 
-  // Mutations for adding to watchlist
   const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
   const upsertToWatchlistMutation = useMutation(api.anime.upsertToWatchlist);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Enhanced mode configurations with gradients
+  const modeConfigs = [
+    { id: "general", label: "General", desc: "Personalized recommendations", icon: "🎯", gradient: "from-blue-500/50 to-cyan-400/50" },
+    { id: "character", label: "Character", desc: "Character-focused finds", icon: "👤", gradient: "from-purple-500/50 to-pink-400/50" },
+    { id: "trope", label: "Plot/Trope", desc: "Story structure based", icon: "📖", gradient: "from-green-500/50 to-emerald-400/50" },
+    { id: "art_style", label: "Art Style", desc: "Visual aesthetics focused", icon: "🎨", gradient: "from-orange-500/50 to-yellow-400/50" },
+    { id: "compare", label: "Compare", desc: "Analyze two anime", icon: "⚖️", gradient: "from-red-500/50 to-pink-400/50" },
+    { id: "hidden_gems", label: "Hidden Gems", desc: "Surprise discoveries", icon: "💎", gradient: "from-indigo-500/50 to-purple-400/50" },
+    { id: "franchise", label: "Franchise", desc: "Series watch guides", icon: "📚", gradient: "from-teal-500/50 to-blue-400/50" },
+  ];
+
   const getModeExamples = useCallback(() => {
-    switch (aiMode) {
-      case "character": return ["Characters like L from Death Note", "Strong female protagonists", "Anti-heroes with complex morals"];
-      case "trope": return ["Time loop stories done right", "Found family but make it heartbreaking", "Tournament arcs that serve plot"];
-      case "art_style": return ["Retro 90s aesthetic like Cowboy Bebop", "Studio Ghibli-esque art", "Dark, gritty animation"];
-      case "hidden_gems": return ["Surprise me!", "Hidden gems from the 2000s", "Weird but wonderful anime"];
-      case "franchise": return ["How do I watch Fate series?", "Monogatari series order", "Gundam guide"];
-      default: return ["Suggest something to watch", "Similar to Your Name?", "Anime that'll make me cry"];
-    }
+    const examples: Record<AIMode, string[]> = {
+      general: ["Suggest something to watch tonight", "I'm feeling nostalgic", "Something like Your Name"],
+      character: ["Characters like L from Death Note", "Strong female protagonists", "Anti-heroes with depth"],
+      trope: ["Time loop stories done right", "Found family but emotional", "Tournament arcs that matter"],
+      art_style: ["Studio Ghibli aesthetic", "Dark, gritty animation", "Retro 90s style"],
+      compare: ["Naruto vs One Piece", "Your Name vs Weathering With You", "Attack on Titan vs Death Note"],
+      hidden_gems: ["Surprise me with something weird", "Hidden 2000s classics", "Underrated masterpieces"],
+      franchise: ["How to watch Fate series?", "Monogatari order guide", "Gundam for beginners"],
+    };
+    return examples[aiMode] || examples.general;
   }, [aiMode]);
 
   useEffect(() => {
@@ -119,43 +223,35 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
   const executeAIAction = useCallback(async (currentPrompt: string, aiMessageId: string): Promise<AIActionResult> => {
     const profileDataForAI = userProfileQuery ? {
-        name: userProfileQuery.name, moods: userProfileQuery.moods, genres: userProfileQuery.genres,
-        favoriteAnimes: userProfileQuery.favoriteAnimes, experienceLevel: userProfileQuery.experienceLevel,
-        dislikedGenres: userProfileQuery.dislikedGenres, dislikedTags: userProfileQuery.dislikedTags,
-        characterArchetypes: userProfileQuery.characterArchetypes, tropes: userProfileQuery.tropes,
-        artStyles: userProfileQuery.artStyles, narrativePacing: userProfileQuery.narrativePacing,
+      name: userProfileQuery.name, moods: userProfileQuery.moods, genres: userProfileQuery.genres,
+      favoriteAnimes: userProfileQuery.favoriteAnimes, experienceLevel: userProfileQuery.experienceLevel,
+      dislikedGenres: userProfileQuery.dislikedGenres, dislikedTags: userProfileQuery.dislikedTags,
+      characterArchetypes: userProfileQuery.characterArchetypes, tropes: userProfileQuery.tropes,
+      artStyles: userProfileQuery.artStyles, narrativePacing: userProfileQuery.narrativePacing,
     } : undefined;
 
-     switch (aiMode) {
-        case "character":
-          return await getCharacterBasedRecommendationsAction({ characterDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
-        case "trope":
-          return await getTropeBasedRecommendationsAction({ plotDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
-        case "art_style":
-          return await getArtStyleRecommendationsAction({ artStyleDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
-        case "compare":
-          if (!animeA || !animeB) throw new Error("Please enter both anime titles to compare");
-          return await getComparativeAnalysisAction({ animeA, animeB, messageId: aiMessageId });
-        case "hidden_gems":
-          return await getHiddenGemRecommendationsAction({ surpriseLevel, avoidPopular, userProfile: profileDataForAI, messageId: aiMessageId });
-        case "franchise":
-          return await getFranchiseGuideAction({ franchiseName: currentPrompt, userExperience: userProfileQuery?.experienceLevel, messageId: aiMessageId });
-        default: // general
-          return await getAnimeRecommendationAction({ prompt: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
-      }
-  }, [
-    aiMode, userProfileQuery, animeA, animeB, surpriseLevel, avoidPopular,
-    getCharacterBasedRecommendationsAction, getTropeBasedRecommendationsAction,
-    getArtStyleRecommendationsAction, getComparativeAnalysisAction,
-    getHiddenGemRecommendationsAction, getFranchiseGuideAction, getAnimeRecommendationAction
-  ]);
+    switch (aiMode) {
+      case "character":
+        return await getCharacterBasedRecommendationsAction({ characterDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+      case "trope":
+        return await getTropeBasedRecommendationsAction({ plotDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+      case "art_style":
+        return await getArtStyleRecommendationsAction({ artStyleDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+      case "compare":
+        if (!animeA || !animeB) throw new Error("Please enter both anime titles to compare");
+        return await getComparativeAnalysisAction({ animeA, animeB, messageId: aiMessageId });
+      case "hidden_gems":
+        return await getHiddenGemRecommendationsAction({ surpriseLevel, avoidPopular, userProfile: profileDataForAI, messageId: aiMessageId });
+      case "franchise":
+        return await getFranchiseGuideAction({ franchiseName: currentPrompt, userExperience: userProfileQuery?.experienceLevel, messageId: aiMessageId });
+      default:
+        return await getAnimeRecommendationAction({ prompt: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+    }
+  }, [aiMode, userProfileQuery, animeA, animeB, surpriseLevel, avoidPopular, getCharacterBasedRecommendationsAction, getTropeBasedRecommendationsAction, getArtStyleRecommendationsAction, getComparativeAnalysisAction, getHiddenGemRecommendationsAction, getFranchiseGuideAction, getAnimeRecommendationAction]);
 
- const handleSubmit = useCallback(async (e: FormEvent | string) => {
+  const handleSubmit = useCallback(async (e: FormEvent | string) => {
     if (e instanceof Object && typeof e.preventDefault === 'function') e.preventDefault();
-
-    const currentPromptText = typeof e === 'string' ? e :
-      (aiMode === "compare" ? `Compare ${animeA} vs ${animeB}` : prompt);
-
+    const currentPromptText = typeof e === 'string' ? e : (aiMode === "compare" ? `Compare ${animeA} vs ${animeB}` : prompt);
     if (!currentPromptText.trim() && aiMode !== "hidden_gems") return;
     if (aiMode === "compare" && (!animeA.trim() || !animeB.trim())) {
       toast.error("Please enter both anime titles for comparison.");
@@ -163,27 +259,17 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     }
 
     const userMessageId = generateMessageId();
-    const newUserMessage: ChatMessage = {
-      id: userMessageId, type: "user", content: currentPromptText, actionType: aiMode
-    };
+    const newUserMessage: ChatMessage = { id: userMessageId, type: "user", content: currentPromptText, actionType: aiMode };
     setChatHistory((prev) => [...prev, newUserMessage]);
     setIsLoading(true);
-    if (typeof e !== 'string') {
-        setPrompt("");
-    }
+    if (typeof e !== 'string') setPrompt("");
 
     const aiMessageId = generateMessageId();
-    let responseToLog: Partial<ChatMessage> = { 
-        recommendations: undefined,
-        analysis: undefined,
-        guide: undefined,
-        rawAiText: undefined,
-    };
-
+    let responseToLog: Partial<ChatMessage> = { recommendations: undefined, analysis: undefined, guide: undefined, rawAiText: undefined, };
 
     try {
       const result = await executeAIAction(currentPromptText, aiMessageId);
-      let aiResponseMessage!: ChatMessage; 
+      let aiResponseMessage!: ChatMessage;
 
       if (result.error) {
         aiResponseMessage = { id: aiMessageId, type: "error", content: `Error: ${result.error.substring(0,150)}`, rawAiText: result.error, feedback: null, actionType: aiMode };
@@ -204,14 +290,13 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         aiResponseMessage = { id: aiMessageId, type: "ai", content: `Here are some ${modeLabels[aiMode] || "recommendations"}:`, recommendations: result.recommendations, rawAiResponse: result.recommendations, feedback: null, actionType: aiMode };
         responseToLog.recommendations = result.recommendations;
         toast.success(`Found some ${modeLabels[aiMode] || "ideas"}!`);
-      } else { 
+      } else {
         const noRecContent = "I couldn't find specific matches for that request. Try adjusting your criteria or switching modes!";
         aiResponseMessage = { id: aiMessageId, type: "ai", content: noRecContent, rawAiText: noRecContent, feedback: null, actionType: aiMode };
         responseToLog.rawAiText = noRecContent;
         toast.info("No matches found - try a different approach!");
       }
       setChatHistory((prev) => [...prev, aiResponseMessage]);
-
     } catch (error: any) {
       console.error("Failed to get AI response:", error);
       const errorContent = error.message || "Something went wrong on my end.";
@@ -223,51 +308,42 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       setIsLoading(false);
       try {
         await storeAiFeedback({
-            prompt: currentPromptText,
-            aiAction: aiMode,
-            aiResponseRecommendations: responseToLog.recommendations,
-            aiResponseText: responseToLog.rawAiText,
-            feedbackType: "none",
-            messageId: aiMessageId, 
+          prompt: currentPromptText, aiAction: aiMode, aiResponseRecommendations: responseToLog.recommendations,
+          aiResponseText: responseToLog.rawAiText, feedbackType: "none", messageId: aiMessageId,
         });
       } catch (feedbackError) {
-          console.error("Failed to store AI feedback:", feedbackError);
+        console.error("Failed to store AI feedback:", feedbackError);
       }
     }
-  }, [prompt, aiMode, animeA, animeB, executeAIAction, storeAiFeedback]);
-
+  }, [prompt, aiMode, animeA, animeB, executeAIAction, storeAiFeedback, userProfileQuery]);
 
   const handleFeedback = async (messageId: string, feedbackScore: "up" | "down") => {
     setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: feedbackScore } : msg));
     const message = chatHistory.find(msg => msg.id === messageId);
-
     if(message && (message.type === "ai" || message.type === "analysis" || message.type === "guide" || message.type === "error")) {
-        let relatedUserPrompt = "N/A";
-        const messageIndex = chatHistory.findIndex(m => m.id === messageId);
-        if (messageIndex > 0) {
-            for (let i = messageIndex - 1; i >= 0; i--) {
-                if (chatHistory[i].type === "user") {
-                    relatedUserPrompt = chatHistory[i].content;
-                    break;
-                }
-            }
+      let relatedUserPrompt = "N/A";
+      const messageIndex = chatHistory.findIndex(m => m.id === messageId);
+      if (messageIndex > 0) {
+        for (let i = messageIndex - 1; i >= 0; i--) {
+          if (chatHistory[i].type === "user") {
+            relatedUserPrompt = chatHistory[i].content;
+            break;
+          }
         }
-
-        try {
-            await storeAiFeedback({
-                prompt: relatedUserPrompt, 
-                aiAction: message.actionType || aiMode, 
-                aiResponseRecommendations: message.recommendations, 
-                aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || message.content,
-                feedbackType: feedbackScore,
-                messageId: message.id, 
-            });
-            toast.success("Thanks for your feedback!");
-        } catch (error) {
-            console.error("Error storing feedback:", error);
-            setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: null } : msg));
-            toast.error("Could not save feedback at this time.");
-        }
+      }
+      try {
+        await storeAiFeedback({
+          prompt: relatedUserPrompt, aiAction: message.actionType || aiMode,
+          aiResponseRecommendations: message.recommendations,
+          aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || message.content,
+          feedbackType: feedbackScore, messageId: message.id,
+        });
+        toast.success("Thanks for your feedback!");
+      } catch (error) {
+        console.error("Error storing feedback:", error);
+        setChatHistory(prev => prev.map(msg => msg.id === messageId ? {...msg, feedback: null } : msg));
+        toast.error("Could not save feedback at this time.");
+      }
     }
   };
 
@@ -276,10 +352,8 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       toast.error("Please log in to add to watchlist.");
       return;
     }
-  
     const toastId = `ai-watchlist-${recommendedAnime.title}-${Date.now()}`;
     toast.loading(`Adding "${recommendedAnime.title}" to watchlist...`, { id: toastId });
-  
     try {
       const animeDbId = await addAnimeByUserMutation({
         title: recommendedAnime.title,
@@ -292,244 +366,341 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         trailerUrl: recommendedAnime.trailerUrl || undefined,
         studios: recommendedAnime.studios || [],
         themes: recommendedAnime.themes || [],
-        // anilistId: recommendedAnime.anilistId, // Add if your AnimeRecommendation type and addAnimeByUser mutation support it
       });
-  
-      if (!animeDbId) {
-        throw new Error("Failed to add or find the anime in the database.");
-      }
-  
-      await upsertToWatchlistMutation({
-        animeId: animeDbId,
-        status: status, 
-      });
-  
+      if (!animeDbId) throw new Error("Failed to add or find the anime in the database.");
+      await upsertToWatchlistMutation({ animeId: animeDbId, status: status });
       toast.success(`"${recommendedAnime.title}" added to ${status}!`, { id: toastId });
-  
     } catch (error: any) {
       console.error("Failed to add AI recommendation to watchlist:", error);
       toast.error(error.data?.message || error.message || `Could not add "${recommendedAnime.title}" to watchlist.`, { id: toastId });
     }
   };
 
-
-  const renderModeSelector = () => (
-    <div className="mb-3 p-3 bg-brand-background/10 rounded-lg">
-      <h3 className="text-xs font-heading text-brand-accent-gold mb-1.5">AI Mode:</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
-        {[
-          { id: "general", label: "🎯 General", desc: "Standard recommendations" },
-          { id: "character", label: "👤 Character", desc: "Character-focused finds" },
-          { id: "trope", label: "📖 Plot/Trope", desc: "Story structure based" },
-          { id: "art_style", label: "🎨 Art Style", desc: "Visual aesthetics focused" },
-          { id: "compare", label: "⚖️ Compare", desc: "Analyze two anime" },
-          { id: "hidden_gems", label: "💎 Hidden Gems", desc: "Surprise discoveries" },
-          { id: "franchise", label: "📚 Franchise", desc: "Series watch guides" },
-        ].map((mode) => (
-          <StyledButton
-            key={mode.id}
-            onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB("");}}
-            variant={aiMode === mode.id ? "primary_small" : "secondary_small"}
-            selected={aiMode === mode.id}
-            className={`w-full !text-[10px] sm:!text-xs !py-1.5 !px-1 sm:!px-2 ${aiMode !== mode.id ? '!border-brand-accent-peach/50 !text-brand-text-on-dark/80 hover:!bg-brand-accent-peach/20' : ''}`}
-            title={mode.desc}
-          >
-            {mode.label}
-          </StyledButton>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderModeSpecificInputs = () => {
-    const inputClasses = "form-input !bg-brand-surface !border-brand-accent-peach/70 !text-brand-text-on-dark !placeholder-brand-text-on-dark/50 text-sm py-2 focus:!border-brand-primary-action focus:!ring-brand-primary-action";
-    switch (aiMode) {
-      case "compare": return (
-        <div className="mb-3 p-3 bg-brand-accent-peach/10 rounded-lg space-y-2">
-          <input type="text" placeholder="First anime title" value={animeA} onChange={(e) => setAnimeA(e.target.value)} className={inputClasses}/>
-          <input type="text" placeholder="Second anime title" value={animeB} onChange={(e) => setAnimeB(e.target.value)} className={inputClasses}/>
-        </div>
-      );
-      case "hidden_gems": return (
-        <div className="mb-3 p-3 bg-brand-accent-peach/10 rounded-lg space-y-3">
-          <div>
-            <label className="text-xs font-medium text-brand-text-on-dark/80 mb-1 block">Surprise Level:</label>
-            <div className="flex gap-2">
-              {(["mild", "moderate", "wild"] as const).map(level => (
-                <StyledButton key={level} onClick={() => setSurpriseLevel(level)} selected={surpriseLevel === level} variant={surpriseLevel === level ? "primary_small" : "secondary_small"} className={`flex-1 !text-xs !py-1.5 ${surpriseLevel !== level ? '!border-brand-accent-peach/50 !text-brand-text-on-dark/80 hover:!bg-brand-accent-peach/20' : ''}`}>{level.charAt(0).toUpperCase() + level.slice(1)}</StyledButton>
-              ))}
-            </div>
-          </div>
-          <label className="flex items-center text-xs sm:text-sm cursor-pointer text-brand-text-on-dark/90">
-            <input type="checkbox" checked={avoidPopular} onChange={(e) => setAvoidPopular(e.target.checked)} className="mr-2 accent-brand-primary-action h-3.5 w-3.5 rounded border-brand-accent-peach focus:ring-brand-primary-action focus:ring-offset-brand-surface"/>
-            Avoid popular / mainstream anime
-          </label>
-        </div>
-      );
-      default: return null;
-    }
-  };
-
-const renderAnalysisResult = (analysis: any) => (
-    <div className="mt-2 space-y-1.5 text-xs leading-normal">
-      {(Object.keys(analysis) as Array<keyof typeof analysis>).map(key_ => {
+  // --- Render Functions for Analysis and Guide (Styled for "Artistic" UI) ---
+  const renderAnalysisResult = (analysisData: any) => (
+    <div className="mt-3 space-y-2 text-sm text-white/90">
+      {(Object.keys(analysisData) as Array<keyof typeof analysisData>).map(key_ => {
         const key = String(key_);
-        return analysis[key] && typeof analysis[key] === 'string' && (
-          <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded"> 
-            <h4 className="font-heading text-brand-accent-gold font-semibold capitalize text-[11px] mb-0.5">{key.replace(/([A-Z]|\d+)/g, ' $1').trim()}:</h4>
-            <p className="text-brand-text-on-dark/90 whitespace-pre-wrap">{analysis[key]}</p>
-          </div>
-        );
-      })}
-      {analysis.recommendations && Array.isArray(analysis.recommendations) && analysis.recommendations.length > 0 && (
-        <div className="p-1.5 bg-brand-accent-peach/20 rounded">
-           <h4 className="font-heading text-brand-accent-gold font-semibold text-[11px] mb-0.5">Consider Also:</h4>
-           <ul className="list-disc list-inside space-y-0.5 text-brand-text-on-dark/90 pl-1">
-            {analysis.recommendations.map((rec: string, idx: number) => <li key={idx} className="text-[11px]">{rec}</li>)}
-           </ul>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderFranchiseGuide = (guide: any) => (
-    <div className="mt-2 space-y-1.5 text-xs leading-normal">
-      {guide.overview && <div className="p-1.5 bg-brand-accent-peach/20 rounded"><h4 className="font-heading text-brand-accent-gold font-semibold text-[11px] mb-0.5">Overview:</h4><p>{guide.overview}</p></div>}
-      {guide.complexity && <p className="text-[10px] px-1.5 py-0.5 rounded-full inline-block bg-brand-accent-gold text-brand-surface font-medium my-1">Complexity: {guide.complexity}</p>}
-      {guide.recommendedOrder && guide.recommendedOrder.length > 0 && (
-        <div>
-          <h4 className="font-heading text-brand-accent-gold font-semibold my-1 text-[11px]">Recommended Order:</h4>
-          {guide.recommendedOrder.map((item: any, idx: number) => (
-            <div key={idx} className="p-1 my-0.5 bg-brand-accent-peach/10 rounded"> 
-              <p className="font-semibold text-brand-primary-action/90 text-[11px]">{idx + 1}. {item.title} <span className="text-[10px] opacity-70">({item.type}, {item.year})</span></p>
-              <p className="text-[10px] opacity-80">{item.description}</p>
-              <p className="text-[9px] opacity-70 mt-0.5">Importance: {item.importance} | Access: {item.accessibilityRating}/5</p>
+        if (analysisData[key] && typeof analysisData[key] === 'string') {
+          return (
+            <div key={key} className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+              <h4 className="font-heading text-brand-accent-gold font-semibold capitalize text-base mb-1">
+                {key.replace(/([A-Z]|\d+)/g, ' $1').trim()}:
+              </h4>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{analysisData[key]}</p>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        }
+        if (key === 'recommendations' && Array.isArray(analysisData[key]) && analysisData[key].length > 0) {
+          return (
+            <div key={key} className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+               <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-1">Consider Also:</h4>
+               <ul className="list-disc list-inside space-y-1 pl-2">
+                {analysisData[key].map((rec: string, idx: number) => <li key={idx} className="text-sm">{rec}</li>)}
+               </ul>
+            </div>
+          );
+        }
+        return null;
+      })}
     </div>
   );
 
-  return (
-    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-3 sm:p-4 flex flex-col h-[calc(100vh-110px)] sm:h-[calc(100vh-120px)] md:h-[calc(100vh-130px)] max-h-[650px] sm:max-h-[700px] w-full max-w-lg mx-auto">
-      <h2 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-2.5 text-center">
-        AniMuse AI Assistant
-      </h2>
+  const renderFranchiseGuide = (guide: FranchiseGuide) => (
+    <div className="mt-3 space-y-3 text-sm text-white/90">
+      {guide.overview && (
+        <div className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+          <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-1">Overview:</h4>
+          <p className="whitespace-pre-wrap leading-relaxed">{guide.overview}</p>
+        </div>
+      )}
+      {guide.complexity && (
+        <p className="text-sm px-3 py-1 rounded-full inline-block bg-brand-accent-gold/80 text-black font-medium my-2">
+          Complexity: {guide.complexity.charAt(0).toUpperCase() + guide.complexity.slice(1)}
+        </p>
+      )}
 
-      {renderModeSelector()}
-      {renderModeSpecificInputs()}
-
-      {chatHistory.length === 0 && !isLoading && (
-        <div className="mb-2.5 p-2.5 bg-brand-accent-peach/10 rounded-lg overflow-y-auto flex-grow custom-scrollbar">
-          <h3 className="text-xs sm:text-sm font-heading text-brand-accent-gold mb-1.5">Try {aiMode} prompts...</h3>
-          <div className="space-y-1.5">
-            {getModeExamples().slice(0,3).map((example, idx) => (
-              <button
-                key={idx} onClick={() => handleSubmit(example)}
-                className="block w-full text-left p-1.5 sm:p-2 bg-brand-surface hover:bg-brand-accent-peach/30 transition-colors rounded text-[11px] sm:text-xs text-brand-text-on-dark/90 shadow-sm"
-              >
-                "{example}"
-              </button>
+      {guide.recommendedOrder && guide.recommendedOrder.length > 0 && (
+        <div className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+          <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-2">Recommended Order:</h4>
+          <div className="space-y-3">
+            {guide.recommendedOrder.map((item, idx) => (
+              <div key={idx} className="p-2.5 bg-black/30 rounded-md border border-white/5">
+                <p className="font-semibold text-brand-primary-action text-base">
+                  {idx + 1}. {item.title}
+                  <span className="text-xs opacity-80 ml-2">({item.type}, {item.year})</span>
+                </p>
+                <p className="text-sm opacity-90 my-1">{item.description}</p>
+                {item.notes && <p className="text-xs opacity-70 italic mt-1">Note: {item.notes}</p>}
+                <p className="text-xs opacity-70 mt-1">
+                  Importance: <span className="font-medium text-brand-accent-peach">{item.importance}</span> | Accessibility: <span className="font-medium text-brand-accent-peach">{item.accessibilityRating}/5</span>
+                </p>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      <div ref={chatContainerRef} className="flex-grow overflow-y-auto mb-2.5 space-y-2.5 p-1.5 sm:p-2 bg-brand-background/5 rounded-lg min-h-[150px] sm:min-h-[200px] custom-scrollbar">
-        {chatHistory.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] sm:max-w-[80%] p-2 sm:p-2.5 rounded-lg shadow-sm text-xs sm:text-sm ${
-              msg.type === "user" ? "bg-brand-primary-action text-brand-surface rounded-br-none" :
-              msg.type === "error" ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none" :
-              "bg-brand-surface text-brand-text-on-dark border border-brand-accent-peach/30 rounded-bl-none"
-            }`}>
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-              {msg.type === "analysis" && msg.analysis && renderAnalysisResult(msg.analysis)}
-              {msg.type === "guide" && msg.guide && renderFranchiseGuide(msg.guide)}
-              {msg.type === "ai" && msg.recommendations && msg.recommendations.length > 0 && (
-                <div className="mt-2 space-y-2.5">
-                  {msg.recommendations.map((animeRec, idx) => (
-                    <div key={`${msg.id}-rec-${idx}`} className="p-2 bg-brand-accent-peach/10 rounded-md border border-brand-accent-peach/20">
-                      <AnimeCard
-  anime={animeRec}
-  onViewDetails={(id) => navigateToDetail(id as Id<"anime">)}
-/>
-                      <div className="mt-1.5 pt-1.5 border-t border-brand-accent-peach/30 text-brand-text-on-dark">
-                        <h4 className="font-heading text-sm text-brand-primary-action font-semibold">{animeRec.title}</h4>
-                        {animeRec.year && <p className="text-[10px] text-brand-text-on-dark/70 mb-0.5">{animeRec.year}</p>}
-                        {animeRec.description && <p className="text-xs text-brand-text-on-dark/85 my-1 leading-snug line-clamp-3">{animeRec.description}</p>}
-                        {animeRec.reasoning && <p className="text-xs italic text-brand-accent-gold my-1 leading-snug">💡 {animeRec.reasoning}</p>}
-                        {animeRec.genres && animeRec.genres.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1 mb-1.5">
-                            {animeRec.genres.slice(0, 3).map(g => (
-                              <span key={g} className="text-[9px] bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-1.5 py-0.5 rounded-full">{g}</span>
-                            ))}
-                          </div>
-                        )}
-                        {animeRec.characterHighlights && animeRec.characterHighlights.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Chars:</span> {animeRec.characterHighlights.join(", ")}</p>}
-                        {animeRec.plotTropes && animeRec.plotTropes.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Tropes:</span> {animeRec.plotTropes.join(", ")}</p>}
-                        {animeRec.artStyleTags && animeRec.artStyleTags.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Art:</span> {animeRec.artStyleTags.join(", ")}</p>}
-                        {animeRec.surpriseFactors && animeRec.surpriseFactors.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Surprise:</span> {animeRec.surpriseFactors.join(", ")}</p>}
-                        <div className="mt-2 flex gap-1.5">
-                          <StyledButton
-                              onClick={() => handleAiRecommendationAddToWatchlist(animeRec, "Plan to Watch")}
-                              variant="primary_small" className="!text-[10px] !px-1.5 !py-0.5"
-                              disabled={!isAuthenticated || isLoading}
-                          > Add to Watchlist </StyledButton>
-                          {animeRec.trailerUrl && (
-                              <a href={animeRec.trailerUrl} target="_blank" rel="noopener noreferrer">
-                                  <StyledButton variant="secondary_small" className="!text-[10px] !px-1.5 !py-0.5"> Trailer </StyledButton>
-                              </a>
+      {guide.entryPoints && guide.entryPoints.length > 0 && (
+        <div className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+          <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-1">Good Entry Points:</h4>
+          <ul className="list-disc list-inside space-y-1 pl-2">
+            {guide.entryPoints.map((point, idx) => <li key={idx}>{point}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {guide.alternativeOrders && guide.alternativeOrders.length > 0 && (
+        <div className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+          <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-2">Alternative Orders:</h4>
+          {guide.alternativeOrders.map((order, idx) => (
+            <div key={idx} className="mb-3 last:mb-0 p-2.5 bg-black/30 rounded-md border border-white/5">
+              <h5 className="font-semibold text-brand-primary-action/90 text-base mb-1">{order.orderName}</h5>
+              <p className="text-xs opacity-80 mb-1">{order.description}</p>
+              <ul className="list-decimal list-inside space-y-0.5 pl-2 text-xs">
+                {order.items.map((item, itemIdx) => <li key={itemIdx}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {guide.tips && guide.tips.length > 0 && (
+         <div className="p-3 bg-black/50 backdrop-blur-sm rounded-lg border border-white/10">
+          <h4 className="font-heading text-brand-accent-gold font-semibold text-base mb-1">Tips for Watching:</h4>
+          <ul className="list-disc list-inside space-y-1 pl-2">
+            {guide.tips.map((tip, idx) => <li key={idx}>{tip}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
+  // --- JSX Structure (Artistic Version) ---
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-brand-background"> {/* Added bg-brand-background as a base */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10"> {/* Ensure it's behind content */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-brand-primary-action/15 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-32 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <FloatingParticle
+            key={i}
+            delay={i * 0.5}
+            size={Math.random() > 0.7 ? "w-3 h-3" : "w-2 h-2"}
+            color={
+              Math.random() > 0.6 ? "bg-brand-primary-action/20" :
+              Math.random() > 0.3 ? "bg-brand-accent-gold/20" : "bg-brand-accent-peach/20"
+            }
+          />
+        ))}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)',
+            backgroundSize: '50px 50px',
+            animation: 'float 20s ease-in-out infinite'
+          }}></div>
+        </div>
+      </div>
+
+      <div className="relative z-10 min-h-screen flex flex-col p-2 sm:p-4">
+        <div className="text-center py-6 sm:py-8 px-4">
+          <div className="inline-block group">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-4">
+              <span className="bg-gradient-to-r from-brand-primary-action via-brand-accent-gold via-brand-accent-peach to-brand-primary-action bg-clip-text text-transparent animate-pulse">
+                🤖 AniMuse AI
+              </span>
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent animate-pulse group-hover:animate-none transition-opacity duration-500"></div>
+          </div>
+          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-4">
+            Your intelligent anime companion, ready to discover your next obsession
+          </p>
+        </div>
+
+        <div className="px-2 sm:px-4 mb-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-heading text-white text-center mb-4 sm:mb-6">Choose Your AI Experience</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+                  {modeConfigs.map((mode) => (
+                    <ModeCard
+                      key={mode.id}
+                      mode={mode}
+                      isActive={aiMode === mode.id}
+                      onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB(""); }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-2 sm:px-4 mb-6">
+          <div className="max-w-4xl mx-auto">
+            {aiMode === "compare" && (
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-pink-400/20 rounded-2xl blur-lg"></div>
+                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6">
+                  <h3 className="text-lg font-heading text-white mb-4 text-center">⚖️ Compare Two Anime</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" placeholder="First anime title" value={animeA} onChange={(e) => setAnimeA(e.target.value)} className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300" />
+                    <input type="text" placeholder="Second anime title" value={animeB} onChange={(e) => setAnimeB(e.target.value)} className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300" />
+                  </div>
+                </div>
+              </div>
+            )}
+            {aiMode === "hidden_gems" && (
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-400/20 rounded-2xl blur-lg"></div>
+                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6">
+                  <h3 className="text-lg font-heading text-white mb-4 text-center">💎 Hidden Gems Settings</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-2">Surprise Level:</label>
+                      <div className="flex gap-3 justify-center">
+                        {(["mild", "moderate", "wild"] as const).map(level => (
+                          <button key={level} onClick={() => setSurpriseLevel(level)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${surpriseLevel === level ? 'bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg' : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'}`}>
+                            {level.charAt(0).toUpperCase() + level.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <label className="flex items-center justify-center space-x-3 cursor-pointer group">
+                      <input type="checkbox" checked={avoidPopular} onChange={(e) => setAvoidPopular(e.target.checked)} className="w-5 h-5 rounded border-2 border-white/30 bg-transparent checked:bg-brand-primary-action checked:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 transition-all duration-200" />
+                      <span className="text-white/90 group-hover:text-white transition-colors">Avoid mainstream anime</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 px-2 sm:px-4 pb-20 sm:pb-32">
+          <div className="max-w-4xl mx-auto h-full flex flex-col">
+            <div className="relative flex-grow">
+              <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
+              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden h-full flex flex-col">
+                <div ref={chatContainerRef} className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar" style={{ scrollbarWidth: 'thin' }}>
+                  {chatHistory.length === 0 && !isLoading && (
+                    <div className="text-center py-8">
+                      <div className="text-6xl mb-4 animate-bounce">✨</div>
+                      <h3 className="text-xl font-heading text-white mb-4">Ready to discover amazing anime?</h3>
+                      <p className="text-white/70 mb-6">Try these {aiMode} prompts to get started:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                        {getModeExamples().slice(0, 4).map((example, idx) => (
+                          <button key={idx} onClick={() => handleSubmit(example)} className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105">
+                            <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">"{example}"</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {chatHistory.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%]`}>
+                        <div className={`relative p-3 sm:p-4 rounded-2xl shadow-lg ${msg.type === "user" ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white rounded-br-none ml-4" : msg.type === "error" ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none mr-4 backdrop-blur-sm" : "bg-black/40 backdrop-blur-sm text-white border border-white/10 rounded-bl-none mr-4"}`}>
+                          <p className="whitespace-pre-wrap leading-relaxed text-sm">{msg.content}</p>
+                          
+                          {/* CORRECTED: Calling the render functions */}
+                          {msg.type === "analysis" && msg.analysis && renderAnalysisResult(msg.analysis)}
+                          {msg.type === "guide" && msg.guide && renderFranchiseGuide(msg.guide)}
+
+                          {msg.type === "ai" && msg.recommendations && msg.recommendations.length > 0 && (
+                            <div className="mt-4 space-y-4">
+                              {msg.recommendations.map((animeRec, idx) => (
+                                <div key={`${msg.id}-rec-${idx}`} className="relative group">
+                                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  <div className="relative bg-black/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                                    <div className="flex flex-col sm:flex-row gap-4">
+                                      <div className="w-full sm:w-24 h-36 sm:h-32 flex-shrink-0">
+                                        <AnimeCard anime={animeRec} onViewDetails={(id) => navigateToDetail(id as Id<"anime">)} className="w-full h-full" />
+                                      </div>
+                                      <div className="flex-1 space-y-2">
+                                        <h4 className="font-heading text-lg text-brand-primary-action font-semibold">{animeRec.title}</h4>
+                                        {animeRec.year && <p className="text-xs text-white/70">{animeRec.year}</p>}
+                                        {animeRec.description && <p className="text-sm text-white/85 leading-relaxed line-clamp-3">{animeRec.description}</p>}
+                                        {animeRec.reasoning && <p className="text-sm italic text-brand-accent-gold leading-relaxed">💡 {animeRec.reasoning}</p>}
+                                        {animeRec.genres && animeRec.genres.length > 0 && (
+                                          <div className="flex flex-wrap gap-1">
+                                            {animeRec.genres.slice(0, 4).map(g => (<span key={g} className="text-xs bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-2 py-1 rounded-full">{g}</span>))}
+                                          </div>
+                                        )}
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                          <StyledButton onClick={() => handleAiRecommendationAddToWatchlist(animeRec, "Plan to Watch")} variant="primary_small" disabled={!isAuthenticated || isLoading}>📚 Add to Watchlist</StyledButton>
+                                          {animeRec.trailerUrl && (<a href={animeRec.trailerUrl} target="_blank" rel="noopener noreferrer"><StyledButton variant="secondary_small">🎥 Trailer</StyledButton></a>)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && (
+                            <div className="mt-3 flex justify-end gap-2">
+                              <button onClick={() => handleFeedback(msg.id, "up")} className={`p-2 rounded-full text-sm transition-all duration-200 ${msg.feedback === "up" ? "bg-brand-primary-action text-white shadow-lg" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"}`} disabled={!isAuthenticated || isLoading}>👍</button>
+                              <button onClick={() => handleFeedback(msg.id, "down")} className={`p-2 rounded-full text-sm transition-all duration-200 ${msg.feedback === "down" ? "bg-red-500 text-white shadow-lg" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"}`} disabled={!isAuthenticated || isLoading}>👎</button>
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
                   ))}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="max-w-xs">
+                         <ArtisticLoadingSpinner size="h-8 w-8" message="" />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && ( 
-                <div className="mt-2 flex justify-end gap-1">
-                  <StyledButton onClick={() => handleFeedback(msg.id, "up")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "up" ? "!text-brand-primary-action !bg-brand-primary-action/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👍</StyledButton>
-                  <StyledButton onClick={() => handleFeedback(msg.id, "down")} variant="ghost" className={`!text-[10px] !p-0.5 ${msg.feedback === "down" ? "!text-red-500 !bg-red-500/10" : "!text-brand-accent-gold"}`} disabled={!isAuthenticated || isLoading}>👎</StyledButton>
+                <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-3 sm:p-4">
+                  <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                    {(aiMode === "compare" || aiMode === "hidden_gems") ? (
+                      <div className="flex-1 text-center text-sm text-white/60 italic py-3">Use controls above and hit Send ✨</div>
+                    ) : (
+                      <div className="flex-1 relative">
+                        <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={aiMode === "franchise" ? "Enter franchise name..." : "Ask AniMuse anything..."} className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300" disabled={isLoading || authIsLoading || !isAuthenticated} />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">✨</div>
+                      </div>
+                    )}
+                    <div className="relative group">
+                      <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <StyledButton type="submit" variant="primary" className="relative !px-5 sm:!px-6 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500" disabled={isLoading || authIsLoading || !isAuthenticated || (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : aiMode === "hidden_gems" ? false : !prompt.trim())}>
+                        {isLoading ? (<ArtisticLoadingSpinner size="h-5 w-5" message="" />) : (<span className="flex items-center gap-2"><span>Send</span><span className="text-lg">🚀</span></span>)}
+                      </StyledButton>
+                    </div>
+                  </form>
+                  {!isAuthenticated && !authIsLoading && (<p className="text-xs text-brand-accent-gold mt-2 text-center">Please log in to chat with AniMuse AI ✨</p>)}
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="max-w-xs p-2 rounded-lg bg-brand-surface text-brand-text-on-dark shadow-sm border border-brand-accent-peach/30">
-              <div className="flex items-center space-x-1.5">
-                <LocalSpinner size="h-3.5 w-3.5" />
-                <span className="text-xs">AniMuse is thinking...</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-1.5 sm:gap-2 items-center mt-auto pt-2 border-t border-brand-accent-peach/30">
-        {aiMode !== "compare" && aiMode !== "hidden_gems" && (
-          <input
-            type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)}
-            placeholder={ aiMode === "franchise" ? "Franchise name..." : "Ask AniMuse..." }
-            className="form-input flex-grow !text-xs sm:!text-sm !py-2 !px-2.5"
-            disabled={isLoading || authIsLoading || !isAuthenticated}
-          />
-        )}
-         {(aiMode === "compare" || aiMode === "hidden_gems") && ( <div className="flex-grow text-xs text-brand-text-on-dark/60 italic text-center">Use controls above &amp; hit Send</div> )}
-        <StyledButton
-          type="submit" variant="primary" className="!px-3 sm:!px-4 !py-2 !text-xs sm:!text-sm"
-          disabled={ isLoading || authIsLoading || !isAuthenticated || (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : aiMode === "hidden_gems" ? false : !prompt.trim()) }
-        >
-          {isLoading ? <LocalSpinner size="h-4 w-4" colorClass="border-brand-surface"/> : "Send"}
-        </StyledButton>
-      </form>
-      {!isAuthenticated && !authIsLoading && (
-        <p className="text-[10px] sm:text-xs text-brand-accent-gold mt-1 text-center">Please log in to chat with AniMuse.</p>
-      )}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        .animate-spin-reverse { animation: spin 1s linear infinite reverse; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05); }
+      `}</style>
     </div>
   );
 };
+
 export default memo(EnhancedAIAssistantPageComponent);
