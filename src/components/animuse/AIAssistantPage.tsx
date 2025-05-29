@@ -331,7 +331,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
             onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB("");}}
             variant={aiMode === mode.id ? "primary_small" : "secondary_small"}
             selected={aiMode === mode.id}
-            className={`w-full !text-[10px] sm:!text-xs !py-1.5 !px-1 sm:!px-2 ${aiMode !== mode.id ? '!border-brand-accent-peach/50 !text-brand-text-primary/80 hover:!bg-brand-accent-peach/20' : ''}`}
+            className={`w-full !text-[10px] sm:!text-xs !py-1.5 !px-1 sm:!px-2 ${aiMode !== mode.id ? '!border-brand-accent-peach/50 !text-brand-text-on-dark/80 hover:!bg-brand-accent-peach/20' : ''}`}
             title={mode.desc}
           >
             {mode.label}
@@ -342,7 +342,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   );
 
   const renderModeSpecificInputs = () => {
-    const inputClasses = "form-input !bg-brand-surface !border-brand-accent-peach/70 !text-brand-text-primary !placeholder-brand-text-primary/50 text-sm py-2 focus:!border-brand-primary-action focus:!ring-brand-primary-action";
+    const inputClasses = "form-input !bg-brand-surface !border-brand-accent-peach/70 !text-brand-text-on-dark !placeholder-brand-text-on-dark/50 text-sm py-2 focus:!border-brand-primary-action focus:!ring-brand-primary-action";
     switch (aiMode) {
       case "compare": return (
         <div className="mb-3 p-3 bg-brand-accent-peach/10 rounded-lg space-y-2">
@@ -353,14 +353,14 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       case "hidden_gems": return (
         <div className="mb-3 p-3 bg-brand-accent-peach/10 rounded-lg space-y-3">
           <div>
-            <label className="text-xs font-medium text-brand-text-primary/80 mb-1 block">Surprise Level:</label>
+            <label className="text-xs font-medium text-brand-text-on-dark/80 mb-1 block">Surprise Level:</label>
             <div className="flex gap-2">
               {(["mild", "moderate", "wild"] as const).map(level => (
-                <StyledButton key={level} onClick={() => setSurpriseLevel(level)} selected={surpriseLevel === level} variant={surpriseLevel === level ? "primary_small" : "secondary_small"} className={`flex-1 !text-xs !py-1.5 ${surpriseLevel !== level ? '!border-brand-accent-peach/50 !text-brand-text-primary/80 hover:!bg-brand-accent-peach/20' : ''}`}>{level.charAt(0).toUpperCase() + level.slice(1)}</StyledButton>
+                <StyledButton key={level} onClick={() => setSurpriseLevel(level)} selected={surpriseLevel === level} variant={surpriseLevel === level ? "primary_small" : "secondary_small"} className={`flex-1 !text-xs !py-1.5 ${surpriseLevel !== level ? '!border-brand-accent-peach/50 !text-brand-text-on-dark/80 hover:!bg-brand-accent-peach/20' : ''}`}>{level.charAt(0).toUpperCase() + level.slice(1)}</StyledButton>
               ))}
             </div>
           </div>
-          <label className="flex items-center text-xs sm:text-sm cursor-pointer text-brand-text-primary/90">
+          <label className="flex items-center text-xs sm:text-sm cursor-pointer text-brand-text-on-dark/90">
             <input type="checkbox" checked={avoidPopular} onChange={(e) => setAvoidPopular(e.target.checked)} className="mr-2 accent-brand-primary-action h-3.5 w-3.5 rounded border-brand-accent-peach focus:ring-brand-primary-action focus:ring-offset-brand-surface"/>
             Avoid popular / mainstream anime
           </label>
@@ -377,14 +377,14 @@ const renderAnalysisResult = (analysis: any) => (
         return analysis[key] && typeof analysis[key] === 'string' && (
           <div key={key} className="p-1.5 bg-brand-accent-peach/20 rounded"> 
             <h4 className="font-heading text-brand-accent-gold font-semibold capitalize text-[11px] mb-0.5">{key.replace(/([A-Z]|\d+)/g, ' $1').trim()}:</h4>
-            <p className="text-brand-text-primary/90 whitespace-pre-wrap">{analysis[key]}</p>
+            <p className="text-brand-text-on-dark/90 whitespace-pre-wrap">{analysis[key]}</p>
           </div>
         );
       })}
       {analysis.recommendations && Array.isArray(analysis.recommendations) && analysis.recommendations.length > 0 && (
         <div className="p-1.5 bg-brand-accent-peach/20 rounded">
            <h4 className="font-heading text-brand-accent-gold font-semibold text-[11px] mb-0.5">Consider Also:</h4>
-           <ul className="list-disc list-inside space-y-0.5 text-brand-text-primary/90 pl-1">
+           <ul className="list-disc list-inside space-y-0.5 text-brand-text-on-dark/90 pl-1">
             {analysis.recommendations.map((rec: string, idx: number) => <li key={idx} className="text-[11px]">{rec}</li>)}
            </ul>
         </div>
@@ -412,7 +412,7 @@ const renderAnalysisResult = (analysis: any) => (
   );
 
   return (
-    <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-3 sm:p-4 flex flex-col h-[calc(100vh-110px)] sm:h-[calc(100vh-120px)] md:h-[calc(100vh-130px)] max-h-[650px] sm:max-h-[700px] w-full max-w-lg mx-auto">
+    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-3 sm:p-4 flex flex-col h-[calc(100vh-110px)] sm:h-[calc(100vh-120px)] md:h-[calc(100vh-130px)] max-h-[650px] sm:max-h-[700px] w-full max-w-lg mx-auto">
       <h2 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-2.5 text-center">
         AniMuse AI Assistant
       </h2>
@@ -427,7 +427,7 @@ const renderAnalysisResult = (analysis: any) => (
             {getModeExamples().slice(0,3).map((example, idx) => (
               <button
                 key={idx} onClick={() => handleSubmit(example)}
-                className="block w-full text-left p-1.5 sm:p-2 bg-brand-surface hover:bg-brand-accent-peach/30 transition-colors rounded text-[11px] sm:text-xs text-brand-text-primary/90 shadow-sm"
+                className="block w-full text-left p-1.5 sm:p-2 bg-brand-surface hover:bg-brand-accent-peach/30 transition-colors rounded text-[11px] sm:text-xs text-brand-text-on-dark/90 shadow-sm"
               >
                 "{example}"
               </button>
@@ -441,8 +441,8 @@ const renderAnalysisResult = (analysis: any) => (
           <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] sm:max-w-[80%] p-2 sm:p-2.5 rounded-lg shadow-sm text-xs sm:text-sm ${
               msg.type === "user" ? "bg-brand-primary-action text-brand-surface rounded-br-none" :
-              msg.type === "error" ? "bg-red-500/10 text-red-700 border border-red-500/20 rounded-bl-none" :
-              "bg-brand-surface text-brand-text-primary border border-brand-accent-peach/30 rounded-bl-none"
+              msg.type === "error" ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none" :
+              "bg-brand-surface text-brand-text-on-dark border border-brand-accent-peach/30 rounded-bl-none"
             }`}>
               <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               {msg.type === "analysis" && msg.analysis && renderAnalysisResult(msg.analysis)}
@@ -455,10 +455,10 @@ const renderAnalysisResult = (analysis: any) => (
   anime={animeRec}
   onViewDetails={(id) => navigateToDetail(id as Id<"anime">)}
 />
-                      <div className="mt-1.5 pt-1.5 border-t border-brand-accent-peach/30 text-brand-text-primary">
+                      <div className="mt-1.5 pt-1.5 border-t border-brand-accent-peach/30 text-brand-text-on-dark">
                         <h4 className="font-heading text-sm text-brand-primary-action font-semibold">{animeRec.title}</h4>
-                        {animeRec.year && <p className="text-[10px] text-brand-text-primary/70 mb-0.5">{animeRec.year}</p>}
-                        {animeRec.description && <p className="text-xs text-brand-text-primary/85 my-1 leading-snug line-clamp-3">{animeRec.description}</p>}
+                        {animeRec.year && <p className="text-[10px] text-brand-text-on-dark/70 mb-0.5">{animeRec.year}</p>}
+                        {animeRec.description && <p className="text-xs text-brand-text-on-dark/85 my-1 leading-snug line-clamp-3">{animeRec.description}</p>}
                         {animeRec.reasoning && <p className="text-xs italic text-brand-accent-gold my-1 leading-snug">💡 {animeRec.reasoning}</p>}
                         {animeRec.genres && animeRec.genres.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1 mb-1.5">
@@ -467,10 +467,10 @@ const renderAnalysisResult = (analysis: any) => (
                             ))}
                           </div>
                         )}
-                        {animeRec.characterHighlights && animeRec.characterHighlights.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Chars:</span> {animeRec.characterHighlights.join(", ")}</p>}
-                        {animeRec.plotTropes && animeRec.plotTropes.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Tropes:</span> {animeRec.plotTropes.join(", ")}</p>}
-                        {animeRec.artStyleTags && animeRec.artStyleTags.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Art:</span> {animeRec.artStyleTags.join(", ")}</p>}
-                        {animeRec.surpriseFactors && animeRec.surpriseFactors.length > 0 && <p className="text-[10px] text-brand-text-primary/70"><span className="font-semibold text-brand-accent-peach">Surprise:</span> {animeRec.surpriseFactors.join(", ")}</p>}
+                        {animeRec.characterHighlights && animeRec.characterHighlights.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Chars:</span> {animeRec.characterHighlights.join(", ")}</p>}
+                        {animeRec.plotTropes && animeRec.plotTropes.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Tropes:</span> {animeRec.plotTropes.join(", ")}</p>}
+                        {animeRec.artStyleTags && animeRec.artStyleTags.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Art:</span> {animeRec.artStyleTags.join(", ")}</p>}
+                        {animeRec.surpriseFactors && animeRec.surpriseFactors.length > 0 && <p className="text-[10px] text-brand-text-on-dark/70"><span className="font-semibold text-brand-accent-peach">Surprise:</span> {animeRec.surpriseFactors.join(", ")}</p>}
                         <div className="mt-2 flex gap-1.5">
                           <StyledButton
                               onClick={() => handleAiRecommendationAddToWatchlist(animeRec, "Plan to Watch")}
@@ -499,7 +499,7 @@ const renderAnalysisResult = (analysis: any) => (
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-xs p-2 rounded-lg bg-brand-surface text-brand-text-primary shadow-sm border border-brand-accent-peach/30">
+            <div className="max-w-xs p-2 rounded-lg bg-brand-surface text-brand-text-on-dark shadow-sm border border-brand-accent-peach/30">
               <div className="flex items-center space-x-1.5">
                 <LocalSpinner size="h-3.5 w-3.5" />
                 <span className="text-xs">AniMuse is thinking...</span>
@@ -518,7 +518,7 @@ const renderAnalysisResult = (analysis: any) => (
             disabled={isLoading || authIsLoading || !isAuthenticated}
           />
         )}
-         {(aiMode === "compare" || aiMode === "hidden_gems") && ( <div className="flex-grow text-xs text-brand-text-primary/60 italic text-center">Use controls above &amp; hit Send</div> )}
+         {(aiMode === "compare" || aiMode === "hidden_gems") && ( <div className="flex-grow text-xs text-brand-text-on-dark/60 italic text-center">Use controls above &amp; hit Send</div> )}
         <StyledButton
           type="submit" variant="primary" className="!px-3 sm:!px-4 !py-2 !text-xs sm:!text-sm"
           disabled={ isLoading || authIsLoading || !isAuthenticated || (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : aiMode === "hidden_gems" ? false : !prompt.trim()) }

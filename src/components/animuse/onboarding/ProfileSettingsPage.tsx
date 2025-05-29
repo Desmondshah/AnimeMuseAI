@@ -148,7 +148,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
 
   if (userProfile === undefined) return <LoadingSpinnerFullPage />;
   if (userProfile === null) return (
-    <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-6 text-center max-w-md mx-auto">
+    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-6 text-center max-w-md mx-auto">
       <h2 className="text-xl font-heading text-brand-primary-action mb-4">Profile Not Found</h2>
       <p className="mb-4 text-sm">We couldn't load your profile. Please try again later.</p>
       <StyledButton onClick={onBack} variant="primary">Back to App</StyledButton>
@@ -177,7 +177,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
 
 
   return (
-    <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-4 sm:p-5 md:p-6 max-w-2xl mx-auto">
+    <div className="bg-brand-surface text-brand-text-on-dark rounded-xl shadow-xl p-4 sm:p-5 md:p-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-4 pb-3 border-b border-brand-accent-peach/30">
         <h1 className="text-lg sm:text-xl md:text-2xl font-heading text-brand-primary-action">Profile Settings</h1>
         <StyledButton onClick={onBack} variant="ghost" className="!text-sm text-brand-accent-gold hover:!text-brand-primary-action">
@@ -188,11 +188,11 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
       <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
         <SectionWrapper title="Basic Info">
           <div>
-            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Nickname</label>
+            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Nickname</label>
             <input type="text" id="name" name="name" value={formData.name || ""} onChange={handleInputChange} className="form-input w-full !text-sm"/>
           </div>
           <div className="mt-3">
-            <label htmlFor="experienceLevel" className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Anime Experience Level</label>
+            <label htmlFor="experienceLevel" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Anime Experience Level</label>
             <select id="experienceLevel" name="experienceLevel" value={formData.experienceLevel || ""} onChange={handleInputChange} className="form-input w-full !text-sm">
                 <option value="">Select level...</option>
                 {EXPERIENCE_LEVELS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -203,16 +203,16 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         <SectionWrapper title="Content Preferences">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Favorite Genres</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Genres</label>
                     {renderMultiSelectButtons(GENRES_OPTIONS, "genres")}
                 </div>
                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Disliked Genres</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Disliked Genres</label>
                     {renderMultiSelectButtons(DISLIKED_GENRES_OPTIONS, "dislikedGenres")}
                 </div>
             </div>
             <div className="mt-3">
-                 <label htmlFor="dislikedTags" className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Specific Tags to Avoid (comma-separated)</label>
+                 <label htmlFor="dislikedTags" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Specific Tags to Avoid (comma-separated)</label>
                  <input type="text" id="dislikedTags" name="dislikedTags" value={(formData.dislikedTags || []).join(", ")} onChange={(e) => handleTagsChange(e, 'dislikedTags')} className="form-input w-full !text-sm" placeholder="e.g., excessive gore, jump scares"/>
             </div>
         </SectionWrapper>
@@ -220,26 +220,26 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         <SectionWrapper title="Deeper Preferences">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Favorite Character Archetypes</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Character Archetypes</label>
                     {renderMultiSelectButtons(CHARACTER_ARCHETYPES_OPTIONS, "characterArchetypes")}
                 </div>
                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Favorite Tropes/Themes</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Favorite Tropes/Themes</label>
                     {renderMultiSelectButtons(TROPES_OPTIONS, "tropes")}
                 </div>
                 <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Preferred Art Styles</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Preferred Art Styles</label>
                     {renderMultiSelectButtons(ART_STYLES_OPTIONS, "artStyles")}
                 </div>
                 <div>
-                    <label htmlFor="narrativePacing" className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Preferred Narrative Pacing</label>
+                    <label htmlFor="narrativePacing" className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Preferred Narrative Pacing</label>
                     <select id="narrativePacing" name="narrativePacing" value={formData.narrativePacing || ""} onChange={handleInputChange} className="form-input w-full !text-sm">
                         <option value="">No Preference</option>
                         {NARRATIVE_PACING_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 </div>
                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-brand-text-primary/80 mb-1">Current Moods (Optional)</label>
+                    <label className="block text-xs sm:text-sm font-medium text-brand-text-on-dark/80 mb-1">Current Moods (Optional)</label>
                     {renderMultiSelectButtons(MOODS_OPTIONS, "moods")}
                 </div>
             </div>
@@ -251,10 +251,10 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
                 <StyledButton type="button" onClick={addFavoriteAnime} variant="secondary_small" className="flex-shrink-0">Add</StyledButton>
             </div>
             <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar border border-brand-accent-peach/20 rounded-md p-1.5 bg-brand-surface">
-                {(formData.favoriteAnimes || []).length === 0 && <p className="text-xs text-brand-text-primary/60 text-center py-1">No favorites added yet.</p>}
+                {(formData.favoriteAnimes || []).length === 0 && <p className="text-xs text-brand-text-on-dark/60 text-center py-1">No favorites added yet.</p>}
                 {(formData.favoriteAnimes || []).map(anime => (
                     <div key={anime} className="flex justify-between items-center p-1.5 bg-brand-accent-peach/20 rounded text-xs">
-                        <span className="text-brand-text-primary/90">{anime}</span>
+                        <span className="text-brand-text-on-dark/90">{anime}</span>
                         <button type="button" onClick={() => removeFavoriteAnime(anime)} className="text-red-500 hover:text-red-700 font-semibold text-sm leading-none px-1" aria-label={`Remove ${anime}`}>&times;</button>
                     </div>
                 ))}
@@ -263,13 +263,13 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
 
         <SectionWrapper title="Privacy & Other Settings">
             <div className="flex items-center justify-between">
-                <label htmlFor="watchlistIsPublic" className="text-xs sm:text-sm font-medium text-brand-text-primary/90">Make My Watchlist Public</label>
+                <label htmlFor="watchlistIsPublic" className="text-xs sm:text-sm font-medium text-brand-text-on-dark/90">Make My Watchlist Public</label>
                 <input type="checkbox" id="watchlistIsPublic" name="watchlistIsPublic" checked={formData.watchlistIsPublic || false} onChange={handleInputChange} className="form-checkbox h-4 w-4 rounded border-brand-accent-peach text-brand-primary-action focus:ring-brand-primary-action focus:ring-offset-brand-surface accent-brand-primary-action"/>
             </div>
-            <p className="text-[10px] sm:text-xs text-brand-text-primary/70 mt-0.5">If public, other users might see your watchlist (feature in progress).</p>
+            <p className="text-[10px] sm:text-xs text-brand-text-on-dark/70 mt-0.5">If public, other users might see your watchlist (feature in progress).</p>
             
             <div className="mt-3">
-                <h4 className="text-xs sm:text-sm font-medium text-brand-text-primary/90 mb-1">Import Data</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-brand-text-on-dark/90 mb-1">Import Data</h4>
                 <StyledButton type="button" variant="secondary" disabled className="!text-xs">Import from MyAnimeList (Soon)</StyledButton>
             </div>
         </SectionWrapper>

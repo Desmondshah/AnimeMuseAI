@@ -6,35 +6,56 @@ export default {
   ],
   theme: {
     extend: {
-      colors: {
-        'brand-background': '#321D0B', // Dark Brown
-        'brand-surface': '#F7EBE1',    // Cream
-        'brand-text-primary': '#321D0B',   // Dark Brown (on cream surface)
-        'brand-text-on-dark': '#F7EBE1', // Cream (on dark background)
-        'brand-accent-gold': '#B08968', // Muted Gold (adjusted from #80650 for better contrast/use)
-        'brand-accent-peach': '#ECB091',// Soft Peach
-        'brand-primary-action': '#FF6939',// Vibrant Coral
-        'brand-highlight': '#FF6939',   // Vibrant Coral
-        'brand-secondary-action': '#ECB091', // Soft Peach for secondary actions
-
-        // giữ lại một số màu cũ nếu cần thiết cho các component chưa được migrate hoặc cho các sắc thái
-        'sakura-pink': '#FFB7C5',
-        'neon-cyan': '#00FFF7',
-        'electric-blue': '#3B82F6',
-      },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'], // Smart and readable
-        heading: ['Poppins', 'sans-serif'], // Stylish but clear for headings
-        orbitron: ['Orbitron', 'sans-serif'], // Keep if specifically used for a futuristic vibe
+        'sans': ['Inter', 'system-ui', 'sans-serif'],
+        'heading': ['Poppins', 'system-ui', 'sans-serif'],
+        'orbitron': ['Orbitron', 'monospace'],
+      },
+      colors: {
+        // Dark theme colors
+        'brand-background': '#0F0F0F',        // Very dark black for main background
+        'brand-surface': '#1A1A1A',          // Dark black for containers (was cream)
+        
+        // Text colors
+        'brand-text-on-dark': '#FFFFFF',      // White text for dark backgrounds
+        'brand-text-primary': '#FFFFFF',     // White text (was brown)
+        'brand-text-secondary': '#B0B0B0',   // Light gray for secondary text
+        
+        // Keep all orange/gold accent colors
+        'brand-primary-action': '#FF6B35',   // Orange for primary actions
+        'brand-accent-gold': '#B08968',      // Gold accent
+        'brand-accent-peach': '#F4A261',     // Peach accent
+        
+        // Additional colors for theming
+        'electric-blue': '#00D9FF',
+        'neon-cyan': '#39D0D8',
+        'sakura-pink': '#FF8FA3',
       },
       boxShadow: {
-        // Adjusted shadows for the new theme - more subtle
-        'custom-light': '4px 4px 8px #D3CBBF, -4px -4px 8px #FFFFFF', // For light surfaces like F7EBE1
-        'custom-light-inset': 'inset 4px 4px 8px #D3CBBF, inset -4px -4px 8px #FFFFFF',
-        'custom-dark': '4px 4px 8px #2A1707, -4px -4px 8px #3A230F', // For dark surfaces like 321D0B
-        'custom-dark-inset': 'inset 4px 4px 8px #2A1707, inset -4px -4px 8px #3A230F',
-        'top-md': '0 -4px 6px -1px rgba(0, 0, 0, 0.07), 0 -2px 4px -2px rgba(0, 0, 0, 0.05)', // Subtle top shadow
-      }
+        'neumorphic': '12px 12px 24px #0a0a0a, -12px -12px 24px #242424',
+        'neumorphic-inset': 'inset 8px 8px 16px #0a0a0a, inset -8px -8px 16px #242424',
+        'neumorphic-light': '6px 6px 12px #0a0a0a, -6px -6px 12px #242424',
+        'neumorphic-light-inset': 'inset 4px 4px 8px #0a0a0a, inset -4px -4px 8px #242424',
+        'top-md': '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+      },
+      screens: {
+        'xs': '475px',
+      },
     },
   },
   plugins: [],

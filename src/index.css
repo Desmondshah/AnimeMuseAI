@@ -10,7 +10,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar for the new theme */
+/* Custom scrollbar for the dark theme */
 ::-webkit-scrollbar {
   width: 6px; 
   height: 6px;
@@ -26,7 +26,7 @@ body {
 }
 
 .content-card {
-  @apply bg-brand-surface text-brand-text-primary rounded-lg p-4 sm:p-6 shadow-lg;
+  @apply bg-brand-surface text-brand-text-on-dark rounded-lg p-4 sm:p-6 shadow-lg;
 }
 
 .action-button {
@@ -34,12 +34,18 @@ body {
 }
 
 .form-input {
-  @apply bg-brand-surface border border-brand-accent-peach text-brand-text-primary placeholder-brand-accent-peach rounded-md px-3 py-2 w-full;
+  @apply bg-brand-surface border border-brand-accent-peach/30 text-brand-text-on-dark placeholder-brand-accent-peach/70 rounded-md px-3 py-2 w-full;
   @apply focus:border-brand-primary-action focus:ring-1 focus:ring-brand-primary-action outline-none;
 }
 
+/* Form checkbox styling for dark theme */
+.form-checkbox {
+  @apply bg-brand-surface border-brand-accent-peach/30 text-brand-primary-action;
+  @apply focus:ring-brand-primary-action focus:ring-offset-brand-background;
+}
+
 h1, h2, h3, h4, h5, h6 {
-  @apply font-heading;
+  @apply font-heading text-brand-text-on-dark;
 }
 
 h1 { @apply text-2xl sm:text-3xl md:text-4xl; }
@@ -54,7 +60,7 @@ p, span, div, li, button, input, select, textarea {
   height: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-brand-accent-peach/20;
+  @apply bg-brand-background;
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -65,19 +71,19 @@ p, span, div, li, button, input, select, textarea {
   @apply bg-brand-primary-action;
 }
 
-/* Styles for horizontal carousel in MainApp */
+/* Styles for horizontal carousel */
 .horizontal-carousel::-webkit-scrollbar {
-  height: 4px; /* Slimmer for horizontal */
+  height: 4px;
 }
 .horizontal-carousel::-webkit-scrollbar-thumb {
   background-color: #B08968; /* brand-accent-gold */
   border-radius: 10px;
 }
 .horizontal-carousel::-webkit-scrollbar-track {
-  background-color: rgba(50, 29, 11, 0.2); /* Dark Brown transparent for track */
+  background-color: rgba(15, 15, 15, 0.8); /* Dark background for track */
 }
 /* For Firefox */
 .horizontal-carousel {
   scrollbar-width: thin;
-  scrollbar-color: #B08968 rgba(50, 29, 11, 0.2);
+  scrollbar-color: #B08968 rgba(15, 15, 15, 0.8);
 }

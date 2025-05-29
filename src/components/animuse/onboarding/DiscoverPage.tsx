@@ -52,7 +52,7 @@ const DiscoverLoadingSpinner: React.FC<{ message?: string }> = ({ message = "Loa
 
 const FilterPanelSection: React.FC<{title: string; children: React.ReactNode}> = ({title, children}) => (
   <div className="py-2.5 sm:py-3 border-b border-brand-accent-peach/20 last:border-b-0">
-    <h4 className="text-xs sm:text-sm font-semibold text-brand-text-primary/90 mb-1.5">{title}</h4>
+    <h4 className="text-xs sm:text-sm font-semibold text-brand-text-on-dark/90 mb-1.5">{title}</h4>
     {children}
   </div>
 );
@@ -124,8 +124,8 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const hasActiveFilters = activeFilterCount > 0;
   const hasActiveSearch = debouncedSearchQuery.length > 0;
   const hasAnyActive = hasActiveFilters || hasActiveSearch;
-  const filterInputClass = "form-input !text-xs !py-1.5 !px-2 w-full !text-brand-text-primary";
-  const labelBaseClass = "block text-xs font-medium text-brand-text-primary/70 mb-0.5";
+  const filterInputClass = "form-input !text-xs !py-1.5 !px-2 w-full !text-brand-text-on-dark";
+  const labelBaseClass = "block text-xs font-medium text-brand-text-on-dark/70 mb-0.5";
 
   return (
     <div className="p-3 sm:p-4 md:p-0 text-brand-text-on-dark">
@@ -137,18 +137,18 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       <div className="mb-4 p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30">
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
-            <input type="text" placeholder="Search anime titles, genres..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="form-input w-full !text-sm !pl-10 !text-brand-text-primary placeholder:!text-brand-text-primary/60" />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><svg className="w-4 h-4 text-brand-text-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
-            {searchQuery && ( <button onClick={clearSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-brand-text-primary/50 hover:text-brand-primary-action"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button> )}
+            <input type="text" placeholder="Search anime titles, genres..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="form-input w-full !text-sm !pl-10 !text-brand-text-on-dark placeholder:!text-brand-text-on-dark/60" />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2"><svg className="w-4 h-4 text-brand-text-on-dark/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
+            {searchQuery && ( <button onClick={clearSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-brand-text-on-dark/50 hover:text-brand-primary-action"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button> )}
           </div>
           {hasAnyActive && ( <StyledButton onClick={clearAll} variant="ghost" className="!text-xs text-brand-accent-gold hover:!text-brand-primary-action"> Clear All </StyledButton> )}
         </div>
-        {hasActiveSearch && ( <div className="mt-2 text-xs text-brand-text-primary/70">
+        {hasActiveSearch && ( <div className="mt-2 text-xs text-brand-text-on-dark/70">
             {isLoading && status === "LoadingFirstPage" ? "Searching..." : <>{filteredAnimeList?.length || 0} result{filteredAnimeList?.length !== 1 ? 's' : ''} for "<span className="font-medium text-brand-primary-action">{debouncedSearchQuery}</span>"</>}
         </div> )}
       </div>
 
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30 text-brand-text-primary">
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-3 bg-brand-surface rounded-lg shadow-md border border-brand-accent-peach/30 text-brand-text-on-dark">
         <div className="flex flex-wrap gap-2 items-center">
           <StyledButton onClick={() => setShowFilters(!showFilters)} variant={showFilters ? "primary_small" : "secondary_small"} className="!text-xs sm:!text-sm" aria-expanded={showFilters} aria-controls="filter-panel">
             {showFilters ? "Hide Filters" : "Advanced Filters"}
@@ -156,19 +156,19 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </StyledButton>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-center">
-          <label htmlFor="discoverSort" className="text-xs sm:text-sm text-brand-text-primary/80">Sort by:</label>
-          <select id="discoverSort" value={sortBy} onChange={(e) => setSortBy(e.target.value as UISortOption)} className="form-input !text-xs sm:!text-sm !py-1.5 !px-2 w-auto rounded-md !text-brand-text-primary">
+          <label htmlFor="discoverSort" className="text-xs sm:text-sm text-brand-text-on-dark/80">Sort by:</label>
+          <select id="discoverSort" value={sortBy} onChange={(e) => setSortBy(e.target.value as UISortOption)} className="form-input !text-xs sm:!text-sm !py-1.5 !px-2 w-auto rounded-md !text-brand-text-on-dark">
             {sortOptions.map(option => ( <option key={option.value} value={option.value} disabled={option.value === "relevance" && !hasActiveSearch}> {option.label} </option> ))}
           </select>
         </div>
       </div>
 
-      {showFilters && ( <div id="filter-panel" className="mb-5 bg-brand-surface rounded-lg shadow-lg p-3 sm:p-4 border border-brand-accent-peach/30 text-brand-text-primary">
+      {showFilters && ( <div id="filter-panel" className="mb-5 bg-brand-surface rounded-lg shadow-lg p-3 sm:p-4 border border-brand-accent-peach/30 text-brand-text-on-dark">
         <div className="flex justify-between items-center mb-2">
             <h3 className="text-base sm:text-lg font-heading text-brand-accent-gold">Advanced Filters</h3>
             {hasActiveFilters && ( <StyledButton onClick={clearFilters} variant="ghost" className="!text-xs !text-brand-accent-gold hover:!text-brand-primary-action sm:hidden"> Clear Filters </StyledButton> )}
         </div>
-        {!filterOptions && <p className="text-xs text-brand-text-primary/70 py-4 text-center">Loading filter options...</p>}
+        {!filterOptions && <p className="text-xs text-brand-text-on-dark/70 py-4 text-center">Loading filter options...</p>}
         {filterOptions && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3 sm:gap-x-4">
               {filterOptions.genres && filterOptions.genres.length > 0 && (
@@ -182,7 +182,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 <FilterPanelSection title="Release Year">
                   <div className="flex items-center gap-2">
                     <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.min || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, min: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.yearRange.min}`} aria-label="Minimum Year"/>
-                    <span className="text-brand-text-primary/70 text-xs">-</span>
+                    <span className="text-brand-text-on-dark/70 text-xs">-</span>
                     <input type="number" min={filterOptions.yearRange.min} max={filterOptions.yearRange.max} value={filters.yearRange.max || ""} onChange={e => updateFilter("yearRange", { ...filters.yearRange, max: e.target.value ? parseInt(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.yearRange.max}`} aria-label="Maximum Year"/>
                   </div>
                 </FilterPanelSection>
@@ -191,7 +191,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 <FilterPanelSection title="External Rating (0-10)">
                   <div className="flex items-center gap-2">
                     <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.min || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, min: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Min: ${filterOptions.ratingRange.min?.toFixed(1)}`} aria-label="Minimum External Rating"/>
-                    <span className="text-brand-text-primary/70 text-xs">-</span>
+                    <span className="text-brand-text-on-dark/70 text-xs">-</span>
                     <input type="number" min={filterOptions.ratingRange.min} max={filterOptions.ratingRange.max} step="0.1" value={filters.ratingRange.max || ''} onChange={e => updateFilter('ratingRange', { ...filters.ratingRange, max: e.target.value ? parseFloat(e.target.value) : undefined })} className={filterInputClass} placeholder={`Max: ${filterOptions.ratingRange.max?.toFixed(1)}`} aria-label="Maximum External Rating"/>
                   </div>
                 </FilterPanelSection>
