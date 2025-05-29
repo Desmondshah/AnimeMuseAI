@@ -33,6 +33,7 @@ export default {
         'custom-light-inset': 'inset 4px 4px 8px #D3CBBF, inset -4px -4px 8px #FFFFFF',
         'custom-dark': '4px 4px 8px #2A1707, -4px -4px 8px #3A230F', // For dark surfaces like 321D0B
         'custom-dark-inset': 'inset 4px 4px 8px #2A1707, inset -4px -4px 8px #3A230F',
+        'top-md': '0 -4px 6px -1px rgba(0, 0, 0, 0.07), 0 -2px 4px -2px rgba(0, 0, 0, 0.05)', // Subtle top shadow
       }
     },
   },

@@ -1,33 +1,36 @@
 // src/components/animuse/MainApp.tsx
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { useQuery, useAction, useConvexAuth, useMutation } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
-import AIAssistantPage from "./AIAssistantPage"; // Will need its own styling pass
-import AnimeDetailPage from "./AnimeDetailPage"; // Will need its own styling pass
+import AnimeDetailPage from "./AnimeDetailPage";
 import StyledButton from "./shared/StyledButton";
-import WatchlistPage from "./onboarding/WatchlistPage"; // Will need its own styling pass
-import DiscoverPage from "./onboarding/DiscoverPage";   // Will need its own styling pass
-import ProfileStats from "./onboarding/ProfileStats";   // Will need its own styling pass
+import WatchlistPage from "./onboarding/WatchlistPage";
+import DiscoverPage from "./onboarding/DiscoverPage";
+import ProfileStats from "./onboarding/ProfileStats";
 import { AnimeRecommendation } from "../../../convex/types";
 import { toast } from "sonner";
-import AnimeCard from "./AnimeCard"; // Already refactored
-import AdminDashboardPage from "../admin/AdminDashboardPage"; // Will need its own styling pass
-import ProfileSettingsPage from "./onboarding/ProfileSettingsPage"; // Will need its own styling pass
+import AnimeCard from "./AnimeCard"; // Renders poster + banner only
+import AdminDashboardPage from "../admin/AdminDashboardPage";
+import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
 import EnhancedAIAssistantPage from "./AIAssistantPage";
+import BottomNavigationBar from "./BottomNavigationBar";
+import MoodboardPage from "./onboarding/MoodboardPage";
 
 const LoadingSpinnerComponent: React.FC<{ message?: string; className?: string }> = ({ message = "Loading...", className = "" }) => (
-    <div className={`flex flex-col justify-center items-center py-10 ${className}`}> {/* Added py-10 */}
+    <div className={`flex flex-col justify-center items-center py-10 ${className}`}>
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary-action"></div>
       {message && <p className="mt-3 text-sm text-brand-text-on-dark/80">{message}</p>}
     </div>
 );
 const LoadingSpinner = memo(LoadingSpinnerComponent);
 
-type CurrentView =
-  | "dashboard" | "ai_assistant" | "anime_detail" | "watchlist"
-  | "discover" | "admin_dashboard" | "profile_settings"
-  | "custom_lists_overview" | "custom_list_detail";
+export type ValidViewName =
+  | "dashboard" | "ai_assistant" | "anime_detail" | "my_list"
+  | "browse" | "admin_dashboard" | "profile_settings"
+  | "custom_lists_overview" | "custom_list_detail" | "moodboard_page";
+
+export type CurrentView = ValidViewName;
 
 interface WatchlistActivityItem { animeTitle: string; status: string; userRating?: number; }
 interface ForYouCategory {
@@ -37,126 +40,109 @@ interface ForYouCategory {
   fetchArgs?: any;
 }
 
-const MOOD_BOARD_CUES = [
-  { id: "dark_gritty", label: "Dark & Gritty", emoji: "💀" }, { id: "heartwarming", label: "Heartwarming", emoji: "🥰" },
-  { id: "epic_adventure", label: "Epic Adventure", emoji: "🗺️" }, { id: "mind_bending", label: "Mind-Bending", emoji: "🧠" },
-  { id: "chill_vibes", label: "Chill Vibes", emoji: "😌" }, { id: "nostalgic", label: "Nostalgic", emoji: "⏳" },
-  { id: "action_packed", label: "Action Packed", emoji: "💥" }, { id: "romantic", label: "Romantic", emoji: "💕" },
-  { id: "comedic_relief", label: "Comedic Relief", emoji: "😂" }, { id: "thought_provoking", label: "Thought-Provoking", emoji: "🤔" },
-];
-
 export default function MainApp() {
   const userProfile = useQuery(api.users.getMyUserProfile);
   const fullWatchlist = useQuery(api.anime.getMyWatchlist);
   const isUserAdmin = useQuery(api.admin.isCurrentUserAdmin);
   const myCustomLists = useQuery(api.users.getMyCustomLists);
   const getPersonalizedRecommendationsAction = useAction(api.ai.getPersonalizedRecommendations);
-  const getRecommendationsByMoodTheme = useAction(api.ai.getRecommendationsByMoodTheme);
 
   const [currentView, setCurrentView] = useState<CurrentView>("dashboard");
   const [selectedAnimeId, setSelectedAnimeId] = useState<Id<"anime"> | null>(null);
   const [selectedCustomListId, setSelectedCustomListId] = useState<Id<"customLists"> | null>(null);
-  const [previousView, setPreviousView] = useState<CurrentView>("dashboard");
+  const [historyStack, setHistoryStack] = useState<CurrentView[]>(["dashboard"]);
 
   const [forYouCategories, setForYouCategories] = useState<ForYouCategory[]>([]);
-  const [selectedMoodCues, setSelectedMoodCues] = useState<string[]>([]);
-  const [moodBoardRecommendations, setMoodBoardRecommendations] = useState<AnimeRecommendation[]>([]);
-  const [isLoadingMoodBoard, setIsLoadingMoodBoard] = useState(false);
+  const [hasFetchedForYou, setHasFetchedForYou] = useState(false);
 
-  const navigateTo = useCallback((view: CurrentView, prevViewOverride?: CurrentView) => {
-    window.scrollTo(0, 0); // Scroll to top on view change
-    setPreviousView(prevViewOverride || currentView);
+  const navigateTo = useCallback((view: CurrentView, options?: { replace?: boolean; data?: any }) => {
+    window.scrollTo(0, 0);
+    if (options?.replace) {
+        setHistoryStack(prev => {
+            const newStack = [...prev.slice(0, -1), view];
+            return newStack.length > 0 ? newStack : [view];
+        });
+    } else if (historyStack.length === 0 || historyStack[historyStack.length - 1] !== view) {
+        setHistoryStack(prev => [...prev, view]);
+    }
     setCurrentView(view);
     if (view !== "anime_detail") setSelectedAnimeId(null);
     if (view !== "custom_list_detail") setSelectedCustomListId(null);
-  }, [currentView]);
+  }, [historyStack]);
+
+  const navigateBack = useCallback(() => {
+    if (historyStack.length > 1) {
+      const newStack = historyStack.slice(0, -1);
+      const previousView = newStack[newStack.length - 1];
+      setHistoryStack(newStack);
+      setCurrentView(previousView);
+      window.scrollTo(0,0);
+      if (previousView !== "anime_detail") setSelectedAnimeId(null);
+      if (previousView !== "custom_list_detail") setSelectedCustomListId(null);
+    } else {
+      navigateTo("dashboard", {replace: true});
+    }
+  }, [historyStack, navigateTo]);
 
   const navigateToDetail = useCallback((animeId: Id<"anime">) => { navigateTo("anime_detail"); setSelectedAnimeId(animeId); }, [navigateTo]);
   const navigateToDashboard = useCallback(() => navigateTo("dashboard"), [navigateTo]);
-  const navigateToDiscover = useCallback(() => navigateTo("discover"), [navigateTo]);
-  const navigateToWatchlist = useCallback(() => navigateTo("watchlist"), [navigateTo]);
+  const navigateToBrowse = useCallback(() => navigateTo("browse"), [navigateTo]);
+  const navigateToMyList = useCallback(() => navigateTo("my_list"), [navigateTo]);
   const navigateToAIAssistant = useCallback(() => navigateTo("ai_assistant"), [navigateTo]);
   const navigateToAdminDashboard = useCallback(() => navigateTo("admin_dashboard"), [navigateTo]);
   const navigateToProfileSettings = useCallback(() => navigateTo("profile_settings"), [navigateTo]);
   const navigateToCustomListsOverview = useCallback(() => navigateTo("custom_lists_overview"), [navigateTo]);
   const navigateToCustomListDetail = useCallback((listId: Id<"customLists">) => { navigateTo("custom_list_detail"); setSelectedCustomListId(listId); }, [navigateTo]);
-  const navigateBack = useCallback(() => { const targetView = previousView || "dashboard"; navigateTo(targetView, "dashboard"); }, [previousView, navigateTo]);
 
+  const handleTabChange = (view: ValidViewName) => {
+    navigateTo(view);
+  };
 
   useEffect(() => {
-    const fetchForYouCategory = async (categoryIndex: number) => {
-      // ... (fetch logic remains largely the same, ensure profileDataForAI matches expected structure)
-      // Ensure userProfile fields passed to AI actions match the `enhancedUserProfileValidator` in `convex/ai.ts`
-      const category = forYouCategories[categoryIndex];
-      if (!category || !category.fetchFn || !userProfile) return;
-
-      setForYouCategories(prev => prev.map((cat, i) => i === categoryIndex ? { ...cat, isLoading: true, error: null } : cat));
+    const fetchCategoryData = async (categoryToUpdate: ForYouCategory) => {
+      if (!userProfile || !categoryToUpdate.fetchFn) {
+        setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? {...c, isLoading: false, error: "User profile not ready or fetch function missing."} : c));
+        return;
+      }
+      setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { ...c, isLoading: true, error: null } : c));
       try {
-        const profileDataForAI = { // Ensure this matches the validator
+        const profileDataForAI = {
             name: userProfile.name, moods: userProfile.moods, genres: userProfile.genres,
             favoriteAnimes: userProfile.favoriteAnimes, experienceLevel: userProfile.experienceLevel,
             dislikedGenres: userProfile.dislikedGenres, dislikedTags: userProfile.dislikedTags,
             characterArchetypes: userProfile.characterArchetypes, tropes: userProfile.tropes,
             artStyles: userProfile.artStyles, narrativePacing: userProfile.narrativePacing,
-            // watchlistIsPublic is part of userProfile but might not be needed by all AI actions
         };
         const watchlistActivity: WatchlistActivityItem[] = fullWatchlist?.filter(item => item.anime).map(item => ({ animeTitle: item.anime!.title, status: item.status, userRating: item.userRating })).slice(0, 10) || [];
-        const result = await category.fetchFn({ ...category.fetchArgs, userProfile: profileDataForAI, watchlistActivity });
-        setForYouCategories(prev => prev.map((cat, i) => i === categoryIndex ? { ...cat, recommendations: result.recommendations || [], isLoading: false, error: result.error } : cat));
-        if (result.error && result.error !== "OpenAI API key not configured.") toast.error(`Error fetching "${category.title}": ${result.error.substring(0,100)}`);
+        const result = await categoryToUpdate.fetchFn({ ...categoryToUpdate.fetchArgs, userProfile: profileDataForAI, watchlistActivity });
+        setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { ...c, recommendations: result.recommendations || [], isLoading: false, error: result.error } : c));
+        if (result.error && result.error !== "OpenAI API key not configured.") { toast.error(`Personalized: ${result.error.substring(0,60)}`); }
       } catch (e: any) {
-        setForYouCategories(prev => prev.map((cat, i) => i === categoryIndex ? { ...cat, isLoading: false, error: e.message || "Unknown error" } : cat));
-        toast.error(`Failed to fetch "${category.title}".`);
+        setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { ...c, isLoading: false, error: e.message || "Unknown fetch error" } : c));
+        toast.error(`Failed personalized fetch for "${categoryToUpdate.title}".`);
       }
     };
-    // ... (rest of useEffect logic remains the same)
-    if (currentView === "dashboard" && userProfile?.onboardingCompleted && forYouCategories.length === 0) {
-        const initialCategoriesSetup: ForYouCategory[] = [
-            {
-                id: "generalPersonalized", title: "✨ Personalized For You", recommendations: [], isLoading: false, error: null,
-                fetchFn: getPersonalizedRecommendationsAction,
-                fetchArgs: { count: 3, messageId: `foryou-general-${Date.now()}` },
-                reason: "Tailored based on your profile and activity."
-            },
-        ];
-        setForYouCategories(initialCategoriesSetup);
-        initialCategoriesSetup.forEach((_cat, idx) => fetchForYouCategory(idx));
-    } else if (currentView === "dashboard" && userProfile?.onboardingCompleted && forYouCategories.length > 0) {
-        forYouCategories.forEach((cat, idx) => {
-            if (cat.recommendations.length === 0 && !cat.isLoading && !cat.error) {
-                fetchForYouCategory(idx);
-            }
-        });
+
+    if (userProfile && userProfile.onboardingCompleted && !hasFetchedForYou && currentView === "dashboard") {
+      const personalizedCategorySetup: ForYouCategory = {
+          id: "generalPersonalized", title: "✨ Personalized For You", recommendations: [], isLoading: true, error: null,
+          fetchFn: getPersonalizedRecommendationsAction,
+          fetchArgs: { count: 7, messageId: `foryou-general-${Date.now()}` },
+          reason: "Tailored based on your profile and activity."
+      };
+      setForYouCategories([personalizedCategorySetup]); // Initialize with the category
+      fetchCategoryData(personalizedCategorySetup);     // Then fetch data for it
+      setHasFetchedForYou(true); // Mark as fetched to prevent re-fetching on navigation
     }
-  }, [currentView, userProfile, fullWatchlist, getPersonalizedRecommendationsAction, forYouCategories]); // Removed forYouCategories from dep array if it causes re-fetch loops, or manage it carefully
+  }, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist]);
 
-
-  const handleMoodCueToggle = useCallback((cueLabel: string) => { setSelectedMoodCues(prev => prev.includes(cueLabel) ? prev.filter(c => c !== cueLabel) : [...prev, cueLabel]);}, []);
-  const fetchMoodBoardRecommendations = useCallback(async () => {
-    if (selectedMoodCues.length === 0) { setMoodBoardRecommendations([]); return; }
-    setIsLoadingMoodBoard(true); setMoodBoardRecommendations([]);
-    try {
-        const profileForAI = userProfile ? {
-            name: userProfile.name, moods: userProfile.moods, genres: userProfile.genres, favoriteAnimes: userProfile.favoriteAnimes, experienceLevel: userProfile.experienceLevel, dislikedGenres: userProfile.dislikedGenres, dislikedTags: userProfile.dislikedTags, characterArchetypes: userProfile.characterArchetypes, tropes: userProfile.tropes, artStyles: userProfile.artStyles, narrativePacing: userProfile.narrativePacing
-        } : undefined;
-        const result = await getRecommendationsByMoodTheme({ selectedCues: selectedMoodCues, userProfile: profileForAI, count: 3, messageId: `mood-${Date.now()}`});
-        if (result.error && result.error !== "OpenAI API key not configured.") toast.error(`Mood board error: ${result.error.substring(0,100)}`); else setMoodBoardRecommendations(result.recommendations || []);
-    } catch (e: any) { toast.error(`Error fetching mood board: ${e.message}`); }
-    finally { setIsLoadingMoodBoard(false); }
-  }, [selectedMoodCues, userProfile, getRecommendationsByMoodTheme]);
-
-  useEffect(() => { if (selectedMoodCues.length > 0 && currentView === 'dashboard') { const h = setTimeout(() => { fetchMoodBoardRecommendations(); }, 500); return () => clearTimeout(h); } else if (selectedMoodCues.length === 0) { setMoodBoardRecommendations([]); } }, [selectedMoodCues, fetchMoodBoardRecommendations, currentView]);
 
   const renderDashboard = useCallback(() => (
-    // Dashboard main card: bg-brand-surface (Cream), text-brand-text-primary (Dark Brown)
     <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-4 sm:p-6 space-y-8 md:space-y-10">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl sm:text-3xl font-heading text-brand-primary-action">
           Welcome, {userProfile?.name || "Explorer"}!
         </h1>
-        <StyledButton onClick={navigateToProfileSettings} variant="ghost" title="Profile Settings" className="text-brand-accent-gold hover:text-brand-primary-action">
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        </StyledButton>
       </div>
       <div className="text-center">
         <StyledButton onClick={navigateToAIAssistant} variant="primary" className="text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-3.5 shadow-lg">
@@ -164,104 +150,65 @@ export default function MainApp() {
         </StyledButton>
       </div>
 
-      {userProfile?.onboardingCompleted && forYouCategories.map((category) => (
-        <div key={category.id} className="mt-2">
-          <h2 className="text-xl sm:text-2xl font-heading text-brand-accent-gold mb-1 text-center">{category.title}</h2>
-          {category.reason && <p className="text-xs sm:text-sm text-brand-text-primary/70 text-center mb-3 sm:mb-4 italic">{category.reason}</p>}
-          {category.isLoading && <LoadingSpinner className="text-brand-text-primary/80" />}
-          {category.error && <p className="text-red-500 text-center py-4 text-sm">{category.error}</p>}
-          {!category.isLoading && !category.error && category.recommendations.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {category.recommendations.map((rec, index) => (
-                <AnimeCard key={`${category.id}-${index}-${rec.title}`} anime={rec} isRecommendation={true} onViewDetails={navigateToDetail} />
-              ))}
-            </div>
-          )}
-          {!category.isLoading && !category.error && category.recommendations.length === 0 && (
-             <div className="text-center p-4 mt-2 bg-brand-accent-peach/20 rounded-lg"><p className="text-sm text-brand-text-primary/80">No recommendations for "{category.title}" right now.</p></div>
-          )}
-        </div>
+      {userProfile?.onboardingCompleted &&
+        forYouCategories.filter(cat => cat.id === "generalPersonalized").map((category) => (
+          <div key={category.id} className="mt-2">
+            <h2 className="text-xl sm:text-2xl font-heading text-brand-accent-gold mb-1 text-center">{category.title}</h2>
+            {category.reason && <p className="text-xs sm:text-sm text-brand-text-primary/70 text-center mb-3 sm:mb-4 italic">{category.reason}</p>}
+            {category.isLoading && <LoadingSpinner message="Personalizing..." className="text-brand-text-primary/80" />}
+            {category.error && <div className="text-center p-4 mt-2 bg-red-100 border border-red-300 rounded-lg"><p className="text-sm text-red-700">Could not load recommendations: {category.error}</p></div>}
+            {!category.isLoading && !category.error && category.recommendations.length > 0 && (
+              <div className="flex overflow-x-auto space-x-2.5 sm:space-x-3 py-2 custom-scrollbar horizontal-carousel -mx-4 px-4 sm:-mx-6 sm:px-6">
+                {category.recommendations.map((rec, index) => (
+                  <div key={`${category.id}-${index}-${rec.title}`} className="flex-shrink-0 w-28 xs:w-32 sm:w-36 flex flex-col items-center">
+                    <AnimeCard anime={rec} isRecommendation={true} onViewDetails={navigateToDetail} className="w-full"/>
+                    {/* Title rendered below the poster, on the dashboard's cream background */}
+                    <h4
+                      className="mt-1.5 text-xs text-center text-brand-text-primary w-full truncate px-1"
+                      title={rec.title}
+                    >
+                      {rec.title}
+                    </h4>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!category.isLoading && !category.error && category.recommendations.length === 0 && (
+               <div className="text-center p-4 mt-2 bg-brand-accent-peach/20 rounded-lg">
+                 <p className="text-sm text-brand-text-primary/80">We're personalizing your feed! Check back soon.<br/><span className="text-xs">(Or try exploring!)</span></p>
+               </div>
+            )}
+          </div>
       ))}
-
-      <div className="mt-4 sm:mt-6"> {/* Mood Board Section */}
-        <h2 className="text-xl sm:text-2xl font-heading text-brand-accent-gold mb-3 sm:mb-4 text-center">🎨 Mood Board</h2>
-        <p className="text-sm text-brand-text-primary/70 text-center mb-4 sm:mb-5">Select vibes for instant recommendations!</p>
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-5 sm:mb-6">
-          {MOOD_BOARD_CUES.map(cue => <StyledButton key={cue.id} onClick={() => handleMoodCueToggle(cue.label)} selected={selectedMoodCues.includes(cue.label)} variant={selectedMoodCues.includes(cue.label) ? "primary_small" : "secondary_small"} className="text-xs px-2.5 py-1.5 sm:px-3 sm:py-2">{cue.emoji} {cue.label}</StyledButton>)}
-        </div>
-        {isLoadingMoodBoard && <LoadingSpinner message="Brewing suggestions..." className="text-brand-text-primary/80" />}
-        {!isLoadingMoodBoard && moodBoardRecommendations.length > 0 && (
-          <div>
-            <h3 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-3 text-center">Vibes for: {selectedMoodCues.join(" & ")}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {moodBoardRecommendations.map((rec, index) => <AnimeCard key={`mood-${index}-${rec.title}`} anime={rec} isRecommendation={true} onViewDetails={navigateToDetail} />)}
-            </div>
-          </div>
-        )}
-         {!isLoadingMoodBoard && selectedMoodCues.length > 0 && moodBoardRecommendations.length === 0 && (
-            <div className="text-center p-4 mt-2 bg-brand-accent-peach/20 rounded-lg"><p className="text-sm text-brand-text-primary/80">No specific matches for these vibes. Try adjusting!</p></div>
-         )}
-      </div>
-
-      <div className="mt-4 sm:mt-6"> {/* Explore Section */}
-        <h2 className="text-xl sm:text-2xl font-heading text-brand-accent-gold mb-3 sm:mb-4 text-center">Explore More</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          {/* Explore items: bg-brand-background (Dark Brown for contrast on cream), text-brand-text-on-dark (Cream) */}
-          <div className="bg-brand-background p-4 rounded-lg shadow-md hover:shadow-lg cursor-pointer transition-shadow text-center text-brand-text-on-dark" onClick={navigateToDiscover}>
-            <h3 className="font-heading text-brand-primary-action text-lg mb-1">🔍 Discover</h3><p className="text-xs text-brand-text-on-dark/80">Browse & Filter All</p>
-          </div>
-          <div className="bg-brand-background p-4 rounded-lg shadow-md hover:shadow-lg cursor-pointer transition-shadow text-center text-brand-text-on-dark" onClick={navigateToWatchlist}>
-            <h3 className="font-heading text-brand-primary-action text-lg mb-1">📚 My Watchlist</h3><p className="text-xs text-brand-text-on-dark/80">Your Saved Anime</p>
-          </div>
-          <div className="bg-brand-background p-4 rounded-lg shadow-md hover:shadow-lg cursor-pointer transition-shadow text-center text-brand-text-on-dark" onClick={navigateToCustomListsOverview}>
-            <h3 className="font-heading text-brand-primary-action text-lg mb-1">📜 Custom Lists</h3><p className="text-xs text-brand-text-on-dark/80">Curate & Share</p>
-          </div>
-        </div>
-      </div>
-      <ProfileStats /> {/* Assumes ProfileStats will be themed separately */}
+      <ProfileStats />
       {isUserAdmin && <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-brand-accent-peach/30 text-center">
         <StyledButton onClick={navigateToAdminDashboard} variant="secondary" className="!border-brand-accent-gold !text-brand-accent-gold hover:!bg-brand-accent-gold hover:!text-brand-surface">
             🛡️ Admin Dashboard
         </StyledButton>
       </div>}
     </div>
-  ), [userProfile, forYouCategories, isLoadingMoodBoard, moodBoardRecommendations, selectedMoodCues, isUserAdmin, navigateToAIAssistant, navigateToDetail, navigateToDiscover, navigateToWatchlist, handleMoodCueToggle, navigateToAdminDashboard, navigateToProfileSettings, navigateToCustomListsOverview, fullWatchlist]); // Added fullWatchlist
+  ), [userProfile, forYouCategories, isUserAdmin, navigateToAIAssistant, navigateToDetail, navigateToAdminDashboard, navigateToProfileSettings]);
 
-  // --- CreateCustomListModal ---
   const CreateCustomListModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreate: (name: string, description?: string, isPublic?: boolean) => Promise<void>; }> = ({ isOpen, onClose, onCreate }) => {
     const [name, setName] = useState(""); const [description, setDescription] = useState(""); const [isPublic, setIsPublic] = useState(false); const [isCreating, setIsCreating] = useState(false);
     useEffect(() => { if (isOpen) { setName(""); setDescription(""); setIsPublic(false); setIsCreating(false); } }, [isOpen]);
     if (!isOpen) return null;
-    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); if (!name.trim()) { toast.error("List name required."); return; } setIsCreating(true); await onCreate(name, description, isPublic); /* State reset handled by useEffect on isOpen */ };
+    const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); if (!name.trim()) { toast.error("List name required."); return; } setIsCreating(true); await onCreate(name, description, isPublic); };
     return (
       <div className="fixed inset-0 bg-brand-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
         <form onSubmit={handleSubmit} className="bg-brand-surface text-brand-text-primary p-5 sm:p-6 rounded-xl shadow-2xl w-full max-w-md space-y-4">
           <h3 className="text-xl font-heading text-brand-primary-action mb-2">Create New List</h3>
-          <div>
-            <label htmlFor="newListName" className="block text-sm font-medium text-brand-text-primary/80 mb-1">Name*</label>
-            <input type="text" id="newListName" value={name} onChange={e => setName(e.target.value)} className="form-input w-full" required/>
-          </div>
-          <div>
-            <label htmlFor="newListDesc" className="block text-sm font-medium text-brand-text-primary/80 mb-1">Description</label>
-            <textarea id="newListDesc" value={description} onChange={e => setDescription(e.target.value)} className="form-input w-full" rows={3}/>
-          </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="newListPublic" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="form-checkbox accent-brand-primary-action h-4 w-4 rounded text-brand-primary-action focus:ring-brand-primary-action focus:ring-offset-brand-surface"/>
-            <label htmlFor="newListPublic" className="text-sm text-brand-text-primary/90">Make this list public</label>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <StyledButton type="button" onClick={onClose} variant="secondary_small" disabled={isCreating}>Cancel</StyledButton>
-            <StyledButton type="submit" variant="primary_small" disabled={isCreating}>{isCreating ? "Creating..." : "Create List"}</StyledButton>
-          </div>
+          <div><label htmlFor="newListName" className="block text-sm font-medium text-brand-text-primary/80 mb-1">Name*</label><input type="text" id="newListName" value={name} onChange={e => setName(e.target.value)} className="form-input w-full" required/></div>
+          <div><label htmlFor="newListDesc" className="block text-sm font-medium text-brand-text-primary/80 mb-1">Description</label><textarea id="newListDesc" value={description} onChange={e => setDescription(e.target.value)} className="form-input w-full" rows={3}/></div>
+          <div className="flex items-center gap-2"><input type="checkbox" id="newListPublic" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} className="form-checkbox accent-brand-primary-action h-4 w-4 rounded text-brand-primary-action focus:ring-brand-primary-action focus:ring-offset-brand-surface"/><label htmlFor="newListPublic" className="text-sm text-brand-text-primary/90">Make this list public</label></div>
+          <div className="flex justify-end gap-3 pt-2"><StyledButton type="button" onClick={onClose} variant="secondary_small" disabled={isCreating}>Cancel</StyledButton><StyledButton type="submit" variant="primary_small" disabled={isCreating}>{isCreating ? "Creating..." : "Create List"}</StyledButton></div>
         </form>
-      </div>
-    );
-  };
+      </div>);
+   };
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const createCustomListMutation = useMutation(api.users.createCustomList);
   const handleCreateCustomList = async (name: string, description?: string, isPublic?:boolean) => { try { await createCustomListMutation({listName: name, description, isPublic: isPublic || false}); toast.success(`List "${name}" created!`); setIsCreateListModalOpen(false); } catch (error: any) { toast.error(error.data?.message || "Failed to create list."); }};
 
-  // --- Custom Lists Overview View ---
   const renderCustomListsOverview = useCallback(() => {
     return (
         <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-4 sm:p-6">
@@ -275,92 +222,65 @@ export default function MainApp() {
                 <div className="space-y-3 sm:space-y-4">
                     {myCustomLists.map(list => (
                         <div key={list._id} className="p-3 sm:p-4 bg-brand-accent-peach/20 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:shadow-md transition-shadow">
-                            <div className="flex-grow min-w-0">
-                                <h3 className="text-lg font-heading text-brand-primary-action cursor-pointer hover:underline" onClick={() => navigateToCustomListDetail(list._id)}>{list.listName}</h3>
-                                <p className="text-xs text-brand-text-primary/70 truncate" title={list.description}>{list.description || "No description"}</p>
-                                <p className="text-xs text-brand-text-primary/60 mt-0.5">{list.animeIds.length} items • {list.isPublic ? "Public" : "Private"}</p>
-                            </div>
+                            <div className="flex-grow min-w-0"><h3 className="text-lg font-heading text-brand-primary-action cursor-pointer hover:underline" onClick={() => navigateToCustomListDetail(list._id)}>{list.listName}</h3><p className="text-xs text-brand-text-primary/70 truncate" title={list.description}>{list.description || "No description"}</p><p className="text-xs text-brand-text-primary/60 mt-0.5">{list.animeIds.length} items • {list.isPublic ? "Public" : "Private"}</p></div>
                             <StyledButton onClick={() => navigateToCustomListDetail(list._id)} variant="secondary_small" className="mt-2 sm:mt-0 flex-shrink-0">View/Edit</StyledButton>
                         </div>
                     ))}
                 </div>
             )}
             <CreateCustomListModal isOpen={isCreateListModalOpen} onClose={() => setIsCreateListModalOpen(false)} onCreate={handleCreateCustomList} />
-            <StyledButton onClick={navigateToDashboard} variant="ghost" className="mt-6 text-brand-accent-gold hover:text-brand-primary-action text-sm">
-                ← Back to Dashboard
-            </StyledButton>
         </div>);
-  }, [myCustomLists, navigateToCustomListDetail, isCreateListModalOpen, handleCreateCustomList, navigateToDashboard]);
+  }, [myCustomLists, navigateToCustomListDetail, isCreateListModalOpen, handleCreateCustomList]);
 
-
-  // --- Custom List Detail View ---
   const CustomListDetailView: React.FC<{listId: Id<"customLists">, onBackToLists: () => void, onViewAnime: (animeId: Id<"anime">) => void}> = ({listId, onBackToLists, onViewAnime}) => {
       const listDetails = useQuery(api.users.getCustomListById, {listId});
-      // TODO: Add functions for editing list name/desc/privacy, adding/removing anime
       if (listDetails === undefined) return <LoadingSpinner message="Loading list details..." className="text-brand-text-primary/80"/>;
       if (listDetails === null) return <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-6 text-center"><p className="mb-4">List not found or private.</p><StyledButton onClick={onBackToLists} variant="primary">Back to Lists</StyledButton></div>;
       return (
           <div className="bg-brand-surface text-brand-text-primary rounded-xl shadow-xl p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2">
-                <h2 className="text-xl sm:text-2xl font-heading text-brand-primary-action">{listDetails.listName}</h2>
-                <StyledButton variant="secondary_small" onClick={onBackToLists}>← Back to Lists</StyledButton>
-              </div>
-              <p className="text-sm text-brand-text-primary/80 mb-1">{listDetails.description || "No description"}</p>
-              <p className="text-xs text-brand-text-primary/60 mb-6">{listDetails.isPublic ? "Public List" : "Private List"} • {listDetails.anime.length} items</p>
-              {/* TODO: Edit list details UI (e.g., a small "Edit" button here) */}
-              {/* TODO: UI to add anime to this list (e.g., a search bar + add button) */}
-
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2"><h2 className="text-xl sm:text-2xl font-heading text-brand-primary-action">{listDetails.listName}</h2></div>
+              <p className="text-sm text-brand-text-primary/80 mb-1">{listDetails.description || "No description"}</p><p className="text-xs text-brand-text-primary/60 mb-6">{listDetails.isPublic ? "Public List" : "Private List"} • {listDetails.anime.length} items</p>
               {listDetails.anime.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {listDetails.anime.map(anime => (<AnimeCard key={anime._id} anime={anime} onViewDetails={onViewAnime} /> ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6">
+                  {listDetails.anime.map(animeDoc => (
+                    <div key={animeDoc._id} className="flex flex-col items-center">
+                        <AnimeCard anime={animeDoc} onViewDetails={onViewAnime} className="w-full"/>
+                        <h4
+                          className="mt-1.5 text-xs text-center text-brand-text-primary w-full truncate px-1" // Dark text on cream background
+                          title={animeDoc.title}
+                        >
+                          {animeDoc.title}
+                        </h4>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <p className="text-brand-text-primary/70 text-center py-8">This list is empty. Add some anime!</p>
-              )}
+              ) : (<p className="text-brand-text-primary/70 text-center py-8">This list is empty. Add some anime!</p>)}
           </div>);
   };
 
   const renderContent = useCallback(() => {
-    // All page components will need their own theming pass eventually
+    const previousViewForBack = historyStack.length > 1 ? historyStack[historyStack.length - 2] : "dashboard";
     switch (currentView) {
-      // Inside MainApp.tsx, in the renderContent function's switch case
-case "ai_assistant": return <EnhancedAIAssistantPage navigateToDetail={navigateToDetail} />;
+      case "ai_assistant": return <EnhancedAIAssistantPage navigateToDetail={navigateToDetail} />;
       case "anime_detail": return selectedAnimeId ? <AnimeDetailPage animeId={selectedAnimeId} onBack={navigateBack} /> : <LoadingSpinner className="text-brand-text-primary/80"/>;
-      case "watchlist": return <WatchlistPage onViewDetails={navigateToDetail} onBack={navigateBack} onNavigateToCustomLists={navigateToCustomListsOverview} />;
-      case "discover": return <DiscoverPage onViewDetails={navigateToDetail} onBack={navigateBack} />;
+      case "my_list": return <WatchlistPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} onNavigateToCustomLists={navigateToCustomListsOverview} />;
+      case "browse": return <DiscoverPage onViewDetails={navigateToDetail} onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
       case "admin_dashboard": return <AdminDashboardPage onNavigateBack={navigateToDashboard} />;
-      case "profile_settings": return <ProfileSettingsPage onBack={navigateBack} />;
+      case "profile_settings": return <ProfileSettingsPage onBack={() => navigateTo(previousViewForBack, {replace: true})} />;
       case "custom_lists_overview": return renderCustomListsOverview();
-      case "custom_list_detail": return selectedCustomListId ? <CustomListDetailView listId={selectedCustomListId} onBackToLists={() => navigateTo("custom_lists_overview", "dashboard")} onViewAnime={navigateToDetail}/> : <LoadingSpinner className="text-brand-text-primary/80"/>;
-      case "dashboard": default: return renderDashboard();
-      
+      case "custom_list_detail": return selectedCustomListId ? <CustomListDetailView listId={selectedCustomListId} onBackToLists={() => navigateTo("my_list")} onViewAnime={navigateToDetail}/> : <LoadingSpinner className="text-brand-text-primary/80"/>;
+      case "moodboard_page": return <MoodboardPage navigateToDetail={navigateToDetail} />;
+      case "dashboard":
+      default: return renderDashboard();
     }
-  }, [currentView, selectedAnimeId, selectedCustomListId, navigateBack, navigateToDetail, navigateToDashboard, renderDashboard, renderCustomListsOverview, navigateToCustomListsOverview]);
-
-  const getDisplayViewName = useCallback((view: CurrentView): string => {
-    const names: Record<CurrentView, string> = {
-      ai_assistant: "🤖 AI Assistant", anime_detail: "📺 Anime Details", discover: "🔍 Discover",
-      watchlist: "📚 Watchlist", admin_dashboard: "🛡️ Admin", profile_settings: "⚙️ Settings",
-      custom_lists_overview: "📜 My Lists", custom_list_detail: "📝 List Details", dashboard: "🏠 Dashboard",
-    };
-    return names[view] || String(view).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  }, []);
+  }, [currentView, selectedAnimeId, selectedCustomListId, navigateBack, navigateToDetail, navigateToDashboard, renderDashboard, renderCustomListsOverview, navigateToCustomListsOverview, historyStack]);
 
   return (
-    // MainApp content area within App.tsx's max-w-5xl. No specific background here, inherits from body/App.tsx.
-    <div className="w-full pb-8">
-      {currentView !== "dashboard" && (
-        // Breadcrumb styling: bg-brand-background (Dark Brown), text-brand-text-on-dark (Cream) for contrast
-        <div className="mb-4 p-2.5 sm:p-3 text-xs sm:text-sm text-brand-text-on-dark/90 bg-brand-background/60 backdrop-blur-sm rounded-lg shadow flex items-center flex-wrap gap-x-2 sticky top-[60px] sm:top-[68px] z-40"> {/* Adjust top based on header height */}
-          <button onClick={navigateToDashboard} className="hover:text-brand-primary-action font-medium">🏠 Dashboard</button>
-          { previousView && previousView !== "dashboard" && previousView !== currentView && (
-              <> <span className="opacity-50">&bull;</span> <button onClick={navigateBack} className="hover:text-brand-primary-action capitalize">{getDisplayViewName(previousView)}</button> </>
-          )}
-          <span className="opacity-50">&bull;</span>
-          <span className="text-brand-primary-action font-semibold capitalize">{getDisplayViewName(currentView)}</span>
-        </div>
-      )}
-      {renderContent()}
+    <div className="w-full pb-20">
+       <div className="pt-0">
+         {renderContent()}
+       </div>
+      <BottomNavigationBar currentView={currentView} onTabChange={handleTabChange} />
     </div>
   );
 }
