@@ -1,25 +1,56 @@
-// src/SignInForm.tsx
+// src/SignInForm.tsx - Advanced Artistic Version
 "use client";
 import { useAuthActions } from "@convex-dev/auth/react";
-import React, { useState, FormEvent } from "react";
+import React, { useState, FormEvent, useEffect } from "react";
 import { toast } from "sonner";
-import StyledButton from "./components/animuse/shared/StyledButton"; // Ensure path is correct
+import StyledButton from "./components/animuse/shared/StyledButton";
+
+// Floating Particle Component
+const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string }> = ({ 
+  delay = 0, 
+  size = "w-2 h-2", 
+  color = "bg-brand-accent-gold/30" 
+}) => (
+  <div 
+    className={`absolute ${size} ${color} rounded-full animate-ping`}
+    style={{ 
+      animationDelay: `${delay}s`, 
+      left: `${Math.random() * 100}%`, 
+      top: `${Math.random() * 100}%`,
+      animationDuration: `${2 + Math.random() * 3}s`
+    }}
+  ></div>
+);
+
+// Artistic Loading Component
+const ArtisticLoadingSpinner: React.FC<{ size?: string }> = ({ size = "h-5 w-5" }) => (
+  <div className="relative">
+    <div className={`${size} border-2 border-transparent border-t-white border-r-white/70 rounded-full animate-spin`}></div>
+    <div className="absolute top-0.5 left-0.5 w-3 h-3 border-2 border-transparent border-b-white/50 border-l-white/30 rounded-full animate-spin animate-reverse"></div>
+  </div>
+);
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [submitting, setSubmitting] = useState(false);
-  const [email, setEmail] = useState(""); // Added for controlled input
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+  // Animated particles state
+  const [particles, setParticles] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Generate random particles
+    setParticles(Array.from({ length: 15 }, (_, i) => i));
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
-    // Email and password are now taken from state for controlled components
-    // const formData = new FormData(e.target as HTMLFormElement);
-    // const email = formData.get("email") as string;
-    // const currentPassword = formData.get("password") as string;
 
     if (flow === "signUp") {
       if (password !== passwordConfirm) {
@@ -36,16 +67,16 @@ export function SignInForm() {
 
     const convexFormData = new FormData();
     convexFormData.set("email", email);
-    convexFormData.set("password", password); // Use state variable 'password'
+    convexFormData.set("password", password);
     convexFormData.set("flow", flow);
 
     try {
       await signIn("password", convexFormData);
-      // toast.success for sign-in/sign-up is usually handled by the auth flow itself or page navigation
     } catch (error: any) {
       let errorMessage = flow === "signIn"
         ? "Could not sign in. Please check your credentials."
         : "Could not sign up. The email might already be taken or the password is too weak.";
+      
       if (error.data && typeof error.data.message === 'string') {
         errorMessage = error.data.message;
       } else if (error.data && typeof error.data.error === 'string') {
@@ -78,94 +109,288 @@ export function SignInForm() {
   };
 
   return (
-    // Use content-card for the new theme. Max width for mobile, centered.
-    <div className="w-full max-w-sm mx-auto p-6 sm:p-8 bg-brand-surface text-white rounded-xl shadow-lg">
-      <h2 className="text-2xl sm:text-3xl font-heading text-center mb-6 sm:mb-8 text-brand-primary-action">
-        {flow === "signIn" ? "Welcome Back!" : "Create Account"}
-      </h2>
-      <form className="flex flex-col gap-4 sm:gap-5" onSubmit={handleSubmit}>
-         <input
-          className="form-input" // Apply new input style
-          type="email"
-          name="email"
-          placeholder="Email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={submitting}
-        />
-        <input
-          className="form-input" // Apply new input style
-          type="password"
-          name="password"
-          placeholder="Password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete={flow === "signIn" ? "current-password" : "new-password"}
-          disabled={submitting}
-        />
-        {flow === "signUp" && (
-          <input
-            className="form-input" // Apply new input style
-            type="password"
-            name="passwordConfirm"
-            placeholder="Confirm Password"
-            required
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            autoComplete="new-password"
-            disabled={submitting}
-          />
-        )}
-        <StyledButton
-          type="submit"
-          variant="primary"
-          className="w-full py-2.5 sm:py-3 text-base sm:text-lg mt-2" // Adjusted padding and margin
-          disabled={submitting}
-        >
-          {submitting
-            ? (flow === "signIn" ? "Signing In..." : "Signing Up...")
-            : (flow === "signIn" ? "Sign In" : "Sign Up")
-          }
-        </StyledButton>
-        <div className="text-center text-sm text-white">
-          <span>
-            {flow === "signIn"
-              ? "Don't have an account? "
-              : "Already have an account? "}
-          </span>
-          <button
-            type="button"
-            className="font-semibold text-brand-primary-action hover:text-brand-accent-peach cursor-pointer transition-colors"
-            onClick={() => {
-              setFlow(flow === "signIn" ? "signUp" : "signIn");
-              setEmail(""); // Clear email field on flow change
-              setPassword("");
-              setPasswordConfirm("");
-            }}
-            disabled={submitting}
-          >
-            {flow === "signIn" ? "Sign up" : "Sign in"}
-          </button>
-        </div>
-      </form>
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-8 overflow-hidden">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {/* Primary gradient orbs */}
+        <div className="absolute top-10 left-10 w-96 h-96 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/15 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/12 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
+        <div className="absolute top-20 center w-64 h-64 bg-gradient-to-bl from-cyan-400/8 to-transparent rounded-full blur-3xl animate-pulse delay-4000"></div>
 
-      <div className="my-6 flex items-center">
-        <hr className="flex-grow border-t border-brand-accent-peach/50" />
-        <span className="mx-3 text-xs text-white">OR</span>
-        <hr className="flex-grow border-t border-brand-accent-peach/50" />
+        {/* Floating particles */}
+        {particles.map((particle) => (
+          <FloatingParticle
+            key={particle}
+            delay={particle * 0.3}
+            size={Math.random() > 0.7 ? "w-3 h-3" : "w-2 h-2"}
+            color={
+              Math.random() > 0.6
+                ? "bg-brand-primary-action/25"
+                : Math.random() > 0.3
+                  ? "bg-brand-accent-gold/25"
+                  : "bg-brand-accent-peach/25"
+            }
+          />
+        ))}
+
+        {/* Animated grid pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)",
+              backgroundSize: "60px 60px",
+              animation: "float 25s ease-in-out infinite",
+            }}
+          ></div>
+        </div>
       </div>
 
-      <StyledButton
-        variant="secondary" // Using secondary style for anonymous sign-in
-        className="w-full py-2.5 sm:py-3 text-base sm:text-lg"
-        onClick={handleAnonymousSignIn}
-        disabled={submitting}
-      >
-        {submitting ? "Processing..." : "Continue as Guest"}
-      </StyledButton>
+      {/* Main Content */}
+      <div className="relative z-10 w-full max-w-md">
+
+
+        {/* Enhanced Form Card */}
+        <div className="relative">
+          {/* Card Glow Effect */}
+          <div className="absolute -inset-6 bg-gradient-to-r from-brand-primary-action/30 via-brand-accent-gold/20 to-brand-accent-peach/30 rounded-3xl blur-2xl opacity-70 animate-pulse"></div>
+          
+          {/* Main Form Container */}
+          <div className="relative bg-black/40 backdrop-blur-xl border border-white/20 rounded-3xl p-8 sm:p-10 shadow-2xl">
+            {/* Animated background pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
+            </div>
+            
+            <div className="relative z-10">
+              {/* Form Header */}
+              <div className="text-center mb-8">
+                <div className="inline-block p-3 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full mb-4">
+                  <span className="text-3xl">{flow === "signIn" ? "🚀" : "✨"}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2">
+                  {flow === "signIn" ? "Welcome Back!" : "Join AniMuse"}
+                </h2>
+                <p className="text-white/70 text-sm">
+                  {flow === "signIn" 
+                    ? "Continue your anime journey" 
+                    : "Start your personalized anime adventure"
+                  }
+                </p>
+              </div>
+
+              {/* Form */}
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                {/* Email Field */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                      <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      </svg>
+                    </div>
+                    <input
+                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                      type="email"
+                      name="email"
+                      placeholder="your@email.com"
+                      required
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                      <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <input
+                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Your password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+                      disabled={submitting}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white transition-colors"
+                      disabled={submitting}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {showPassword ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464m5.656 5.656L15.536 15.536m-1.414-1.414L15.536 15.536" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password Field (Sign Up Only) */}
+                {flow === "signUp" && (
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <input
+                        className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                        type={showPasswordConfirm ? "text" : "password"}
+                        name="passwordConfirm"
+                        placeholder="Confirm your password"
+                        required
+                        value={passwordConfirm}
+                        onChange={(e) => setPasswordConfirm(e.target.value)}
+                        autoComplete="new-password"
+                        disabled={submitting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                        className="absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white transition-colors"
+                        disabled={submitting}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {showPasswordConfirm ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464m5.656 5.656L15.536 15.536m-1.414-1.414L15.536 15.536" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          )}
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="relative group">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <StyledButton
+                    type="submit"
+                    variant="primary"
+                    className="relative w-full !py-4 !text-lg !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500 !shadow-2xl hover:!shadow-brand-primary-action/25"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-3">
+                        <ArtisticLoadingSpinner />
+                        {flow === "signIn" ? "Signing In..." : "Creating Account..."}
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-3">
+                        <span className="text-xl">{flow === "signIn" ? "🚀" : "✨"}</span>
+                        {flow === "signIn" ? "Sign In" : "Create Account"}
+                        <span className="text-xl">→</span>
+                      </span>
+                    )}
+                  </StyledButton>
+                </div>
+
+                {/* Flow Toggle */}
+                <div className="text-center">
+                  <span className="text-white/70 text-sm">
+                    {flow === "signIn"
+                      ? "New to AniMuse? "
+                      : "Already have an account? "}
+                  </span>
+                  <button
+                    type="button"
+                    className="font-semibold text-brand-primary-action hover:text-brand-accent-gold cursor-pointer transition-colors duration-300 text-sm underline decoration-2 underline-offset-2 hover:decoration-brand-accent-gold"
+                    onClick={() => {
+                      setFlow(flow === "signIn" ? "signUp" : "signIn");
+                      setEmail("");
+                      setPassword("");
+                      setPasswordConfirm("");
+                      setShowPassword(false);
+                      setShowPasswordConfirm(false);
+                    }}
+                    disabled={submitting}
+                  >
+                    {flow === "signIn" ? "Create an account" : "Sign in instead"}
+                  </button>
+                </div>
+              </form>
+
+              {/* Divider */}
+              <div className="my-8 flex items-center">
+                <hr className="flex-grow border-t border-white/20" />
+                <span className="mx-4 text-sm text-white/70 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">OR</span>
+                <hr className="flex-grow border-t border-white/20" />
+              </div>
+
+              {/* Anonymous Sign In */}
+              <div className="relative group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/30 to-blue-500/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <StyledButton
+                  variant="secondary"
+                  className="relative w-full !py-4 !text-lg !bg-black/40 !backdrop-blur-sm !border-white/20 hover:!bg-white/10 !text-white"
+                  onClick={handleAnonymousSignIn}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <ArtisticLoadingSpinner />
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="text-xl">👤</span>
+                      Continue as Guest
+                      <span className="text-lg">✨</span>
+                    </span>
+                  )}
+                </StyledButton>
+              </div>
+
+              {/* Footer Note */}
+              <div className="mt-8 text-center">
+                <p className="text-xs text-white/60 leading-relaxed">
+                  By continuing, you agree to our terms of service and privacy policy.
+                  <br />
+                  Join thousands of anime fans discovering their next favorite series.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Custom CSS for animations */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+          }
+        }
+
+        .animate-spin-reverse {
+          animation: spin 1s linear infinite reverse;
+        }
+      `}</style>
     </div>
   );
 }
