@@ -34,9 +34,38 @@ window.addEventListener('message', async (message) => {
       : null,
     // End of code for taking screenshots on chef.convex.dev.
   ].filter(Boolean),
+  build: {
+    // Optimize for mobile
+    target: 'es2015',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'convex-vendor': ['convex/react'],
+          'ui-components': [
+            './src/components/animuse/AnimeCard.tsx',
+            './src/components/animuse/shared/StyledButton.tsx'
+          ]
+        }
+      }
+    },
+    cssCodeSplit: true,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // Optimize dev server for mobile testing
+  server: {
+    host: '0.0.0.0', // Allow access from mobile devices on same network
+    port: 5173,
   },
 }));

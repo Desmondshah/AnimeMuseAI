@@ -54,7 +54,25 @@ export default {
         },
       },
       screens: {
-        'xs': '475px',
+        'xs': '375px',     // iPhone SE and up
+        'sm': '414px',     // iPhone 6/7/8 Plus
+        'md': '768px',     // iPad portrait
+        'lg': '1024px',    // iPad landscape
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      // Add mobile-first typography
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1.5' }],
+        'sm': ['0.875rem', { lineHeight: '1.5' }],
+        'base': ['1rem', { lineHeight: '1.6' }],
+        'lg': ['1.125rem', { lineHeight: '1.6' }],
       },
     },
   },

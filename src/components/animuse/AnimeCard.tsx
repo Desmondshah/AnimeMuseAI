@@ -74,9 +74,15 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     setImageLoaded(true); 
     console.warn(`[AnimeCard] Failed to load poster for: ${anime.title}, using placeholder`);
   };
+
   
   const handleCardClick = async () => {
     if (isNavigating) return; // Prevent double-clicks
+
+    // Add haptic feedback for iOS (if available)
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
     
     console.log(`[AnimeCard] Card clicked for: ${anime.title}`);
     console.log(`[AnimeCard] Is recommendation: ${isRecommendation}`);
@@ -142,7 +148,13 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     }
     
     setIsNavigating(false);
+
+    
+
+    
   };
+
+  
   
   const displayRatingOrYear = anime.rating !== undefined && anime.rating !== null 
     ? `⭐ ${(anime.rating / 2).toFixed(1)}` 
@@ -151,36 +163,51 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
   return (
     <div 
-        className={`${styles.clickablePoster} ${className || ''} ${isNavigating ? 'opacity-75 cursor-wait' : ''}`} 
-        onClick={handleCardClick}
-        role="button"
-        tabIndex={0}
-        onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
-        aria-label={`View details for ${anime.title || "anime"}`}
-        style={{ cursor: isNavigating ? 'wait' : 'pointer' }}
+      className={`${styles.clickablePoster} ${className || ''} ${isNavigating ? 'opacity-75 cursor-wait' : ''} 
+        touch-manipulation select-none`} // Add touch optimizations
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+      aria-label={`View details for ${anime.title || "anime"}`}
+      style={{ 
+        cursor: isNavigating ? 'wait' : 'pointer',
+        // Prevent text selection on mobile
+        WebkitUserSelect: 'none',
+        userSelect: 'none'
+      }}
     >
-      <div className={styles.imageContainer}>
+      <div className={`${styles.imageContainer} relative overflow-hidden`}>
+        {/* Add loading skeleton for better perceived performance */}
         {!imageLoaded && (
-          <div className={styles.imageLoadingPlaceholder}>
+          <div className={`${styles.imageLoadingPlaceholder} bg-gradient-to-br from-brand-accent-gold/20 to-brand-surface`}>
             <div className="animate-pulse text-center p-2">
-              <div className="text-2xl mb-2">🎭</div>
+              <div className="text-lg sm:text-2xl mb-2">🎭</div>
               <div className="text-xs opacity-70">Loading...</div>
             </div>
           </div>
         )}
+        
         <img
-          ref={imgRef}
-          src={posterToDisplay}
-          alt={anime.title ? `${anime.title} poster` : "Anime Poster"}
-          className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          loading="lazy"
-          style={{ 
-            opacity: imageLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in-out'
-          }}
-        />
+  ref={imgRef}
+  src={posterToDisplay}
+  alt={anime.title ? `${anime.title} poster` : "Anime Poster"}
+  className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
+  onLoad={handleImageLoad}
+  onError={handleImageError}
+  loading="lazy"
+  sizes="(max-width: 375px) 50vw, (max-width: 768px) 33vw, (max-width: 1200px) 25vw, 20vw"
+  style={{ 
+    opacity: imageLoaded ? 1 : 0,
+    transition: 'opacity 0.3s ease-in-out',
+            // Or use a type assertion for WebKit properties
+    ...(({
+      WebkitUserDrag: 'none',
+      userDrag: 'none',
+    }) as React.CSSProperties),
+    pointerEvents: 'none', // Prevent image dragging
+  }}
+/>
       </div>
       {displayRatingOrYear && (
         <div className={styles.cornerRibbon}>

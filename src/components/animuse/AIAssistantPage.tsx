@@ -969,22 +969,26 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 </div>
 
                 {/* Input Area */}
-                <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-4">
-                  <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-                    {(aiMode === "compare" || aiMode === "hidden_gems") ? (
-                      <div className="flex-1 text-center text-sm text-white/60 italic py-3">
-                        Use controls above and hit Send ✨
-                      </div>
-                    ) : (
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
-                          placeholder={aiMode === "franchise" ? "Enter franchise name..." : "Ask AniMuse anything..."}
-                          className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
-                          disabled={isLoading || authIsLoading || !isAuthenticated}
-                        />
+                <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-4 pb-safe-bottom">
+  <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+    {(aiMode === "compare" || aiMode === "hidden_gems") ? (
+      <div className="flex-1 text-center text-sm text-white/60 italic py-3">
+        Use controls above and hit Send ✨
+      </div>
+    ) : (
+      <div className="flex-1 relative">
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder={aiMode === "franchise" ? "Enter franchise name..." : "Ask AniMuse anything..."}
+          className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300
+            text-base" // Prevent zoom on iOS
+          disabled={isLoading || authIsLoading || !isAuthenticated}
+          style={{
+            fontSize: '16px', // Prevent iOS zoom
+          }}
+        />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
                           ✨
                         </div>
@@ -992,12 +996,12 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                     )}
                     
                     <div className="relative group">
-                      <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <StyledButton
-                        type="submit"
-                        variant="primary"
-                        className="relative !px-6 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500"
-                        disabled={
+      <StyledButton
+        type="submit"
+        variant="primary"
+        className="relative !px-4 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500
+          touch-manipulation min-h-[44px] min-w-[44px]" // iOS minimum touch target
+        disabled={
                           isLoading || authIsLoading || !isAuthenticated || 
                           (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : 
                            aiMode === "hidden_gems" ? false : !prompt.trim())
