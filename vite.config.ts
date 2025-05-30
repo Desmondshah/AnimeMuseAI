@@ -35,8 +35,7 @@ window.addEventListener('message', async (message) => {
     // End of code for taking screenshots on chef.convex.dev.
   ].filter(Boolean),
   build: {
-    // Optimize for mobile
-    target: 'es2015',
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
     rollupOptions: {
       output: {
         manualChunks: {
@@ -44,28 +43,43 @@ window.addEventListener('message', async (message) => {
           'convex-vendor': ['convex/react'],
           'ui-components': [
             './src/components/animuse/AnimeCard.tsx',
-            './src/components/animuse/shared/StyledButton.tsx'
+            './src/components/animuse/shared/StyledButton.tsx',
+            './src/components/animuse/BottomNavigationBar.tsx'
+          ],
+          'pages': [
+            './src/components/animuse/AIAssistantPage.tsx',
+            './src/components/animuse/AnimeDetailPage.tsx'
           ]
         }
       }
     },
     cssCodeSplit: true,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-        drop_debugger: mode === 'production',
-      },
-    },
+    // Use esbuild (default and faster than terser)
+    minify: mode === 'production' ? 'esbuild' : false,
+    // esbuild options for better mobile optimization
+    ...(mode === 'production' && {
+      esbuild: {
+        drop: ['console', 'debugger'],
+        legalComments: 'none',
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+      }
+    }),
+    // Optimize chunk size for mobile
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Optimize dev server for mobile testing
   server: {
-    host: '0.0.0.0', // Allow access from mobile devices on same network
+    host: '0.0.0.0',
     port: 5173,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
   },
 }));
