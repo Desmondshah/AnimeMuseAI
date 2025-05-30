@@ -127,32 +127,32 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       <div className="relative z-10 px-4 sm:px-6 py-8 space-y-10">
         {/* Hero Section */}
         <div className="text-center space-y-6">
-          <div className="inline-block">
-            <h1 className="hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
-  🎨 Moodboard Discovery
-</h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
-          </div>
-          <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-            Craft your perfect anime experience by selecting the vibes that resonate with your soul
-          </p>
-        </div>
+  <div className="inline-block">
+    <h1 className="moodboard-title hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+      🎨 Moodboard Discovery
+    </h1>
+    <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
+  </div>
+  <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+    Craft your perfect anime experience by selecting the vibes that resonate with your soul
+  </p>
+</div>
 
         {/* Artistic Mood Selector */}
         <div className="relative">
   <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-    <h2 className="text-2xl sm:text-3xl font-heading text-white mb-6 text-center">Select Your Vibes</h2>
+  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8">
+    <h2 className="text-xl sm:text-2xl md:text-3xl font-heading text-white mb-4 sm:mb-6 text-center">Select Your Vibes</h2>
     
-    {/* Updated grid for 2 columns on mobile */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+    {/* Updated with specific CSS class for mobile override */}
+    <div className="moodboard-vibes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
       {MOOD_BOARD_CUES.map(cue => {
         const isSelected = selectedMoodCues.includes(cue.label);
         return (
           <button
             key={cue.id}
             onClick={() => handleMoodCueToggle(cue.label)}
-            className={`group relative overflow-hidden rounded-2xl p-3 sm:p-4 md:p-6 transition-all duration-300 transform hover:scale-105 ${
+            className={`group relative overflow-hidden rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-105 ${
               isSelected 
                 ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
                 : 'hover:shadow-xl hover:shadow-white/20'
@@ -169,8 +169,8 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
             )}
             
             {/* Content */}
-            <div className="relative z-10 text-center space-y-1 sm:space-y-2">
-              <div className={`text-2xl sm:text-3xl md:text-4xl transition-transform duration-300 ${
+            <div className="relative z-10 text-center space-y-1">
+              <div className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl transition-transform duration-300 ${
                 isSelected ? 'animate-bounce' : 'group-hover:animate-pulse'
               }`}>
                 {cue.emoji}
@@ -185,11 +185,11 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
             {/* Hover Effect */}
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        );
+      })}
+    </div>
+  </div>
+</div>
 
         {/* Selected Vibes Display */}
         {selectedMoodCues.length > 0 && (
@@ -226,7 +226,7 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
         {!isLoadingMoodBoard && moodBoardRecommendations.length > 0 && (
   <div className="space-y-8">
     <div className="text-center">
-      <h3 className="text-3xl sm:text-4xl font-heading text-white mb-2">
+      <h3 className="text-2xl sm:text-3xl md:text-4xl font-heading text-white mb-2">
         Your Curated Collection
       </h3>
       <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full px-6 py-2 backdrop-blur-sm border border-white/10">
@@ -237,12 +237,12 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       </div>
     </div>
     
-    {/* Updated grid for 2 columns on mobile */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+    {/* Updated with specific CSS class for mobile override */}
+    <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
       {moodBoardRecommendations.map((rec, index) => (
         <div 
           key={`mood-${index}-${rec.title}`} 
-          className="group relative transform transition-all duration-500 hover:scale-105"
+          className="group relative transform transition-all duration-300 hover:scale-105"
           style={{ animationDelay: `${index * 100}ms` }}
         >
           {/* Glow Effect */}
@@ -255,7 +255,7 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
               onViewDetails={navigateToDetail}
               className="w-full"
             />
-            <div className="p-2 sm:p-3 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
               <h4 
                 className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
                 style={{

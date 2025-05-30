@@ -77,6 +77,8 @@ window.addEventListener('message', async (message) => {
   server: {
     host: '0.0.0.0',
     port: 5173,
+    strictPort: false, // Allow fallback to other ports
+    open: true, // This should work better now
   },
   preview: {
     host: '0.0.0.0',

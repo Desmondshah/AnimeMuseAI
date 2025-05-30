@@ -265,3 +265,61 @@ body {
     line-height: 1.5rem !important;
   }
 }
+
+/* Force 2-column layout on mobile - add to the end of index.css */
+@media (max-width: 475px) {
+  /* Force 2 columns for discovery grid */
+  .discovery-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  /* Force 2 columns for moodboard vibes */
+  .moodboard-vibes-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  /* Force 2 columns for moodboard results */
+  .moodboard-results-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 414px) {
+  .discovery-grid,
+  .moodboard-vibes-grid,
+  .moodboard-results-grid {
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 475px) {
+  .moodboard-title {
+    font-size: 1.5rem !important; /* 24px */
+    line-height: 1.75rem !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .moodboard-title {
+    font-size: 1.375rem !important; /* 22px */
+    line-height: 1.625rem !important;
+  }
+}
+
+/* For very small screens, make text even smaller */
+@media (max-width: 320px) {
+  .moodboard-title {
+    font-size: 1.25rem !important; /* 20px */
+    line-height: 1.5rem !important;
+  }
+}

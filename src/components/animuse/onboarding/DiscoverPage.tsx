@@ -461,12 +461,12 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       </div>
     </div>
 
-    {/* Mobile-first 2-column grid */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+    {/* Updated with specific CSS class for mobile override */}
+    <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
       {filteredAnimeList.map((anime, index) => (
         <div 
           key={anime._id} 
-          className="group relative transform transition-all duration-500 hover:scale-105"
+          className="group relative transform transition-all duration-300 hover:scale-105"
           style={{ animationDelay: `${index * 50}ms` }}
         >
           {/* Glow Effect */}
@@ -475,8 +475,8 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
             <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
             
-            {/* Title section with better mobile spacing */}
-            <div className="p-2 sm:p-3 bg-gradient-to-t from-black/80 to-transparent">
+            {/* Compact title for mobile */}
+            <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
               <h4 
                 className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
                 style={{
@@ -485,7 +485,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   lineHeight: '1.2',
-                  maxHeight: '2.4em', // 2 lines max
+                  maxHeight: '2.4em',
                 }}
                 title={anime.title}
               >
