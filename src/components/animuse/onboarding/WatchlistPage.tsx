@@ -169,9 +169,9 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
         {/* Hero Header */}
         <div className="text-center space-y-6">
           <div className="inline-block">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
-              📚 My Anime Collection
-            </h1>
+            <h1 className="hero-title font-heading text-white font-bold">
+  📚 My Anime Collection
+</h1>
             <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
           </div>
           <p className="text-lg text-white/80 max-w-2xl mx-auto">

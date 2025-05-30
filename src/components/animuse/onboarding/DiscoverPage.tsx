@@ -192,15 +192,15 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
         {/* Hero Header */}
         <div className="text-center space-y-4">
-          <div className="inline-block">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
-              🌟 Discover Anime
-            </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
-          </div>
-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
-            Explore our curated collection and find your next anime obsession
-          </p>
+  <div className="inline-block">
+    <h1 className="hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+      🌟 Discover Anime
+    </h1>
+    <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
+  </div>
+  <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto">
+    Explore our curated collection and find your next anime obsession
+  </p>
           <div className="flex flex-wrap gap-3 justify-center">
             {onBack && (
               <StyledButton 
@@ -449,39 +449,40 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         
         {/* Results Grid */}
         {filteredAnimeList && filteredAnimeList.length > 0 ? (
-          <div className="space-y-8">
-            <div className="text-center">
-              <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                <span className="text-white/80 text-sm">
-                  Showing <span className="text-brand-accent-gold font-bold">{filteredAnimeList.length}</span>
-                  {!hasActiveSearch && status === "CanLoadMore" && "+"} anime
-                  {hasActiveSearch && " matching your search"}
-                  {hasActiveFilters && " (filtered)"}
-                </span>
-              </div>
-            </div>
+  <div className="space-y-8">
+    <div className="text-center">
+      <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+        <span className="text-white/80 text-sm">
+          Showing <span className="text-brand-accent-gold font-bold">{filteredAnimeList.length}</span>
+          {!hasActiveSearch && status === "CanLoadMore" && "+"} anime
+          {hasActiveSearch && " matching your search"}
+          {hasActiveFilters && " (filtered)"}
+        </span>
+      </div>
+    </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {filteredAnimeList.map((anime, index) => (
-                <div 
-                  key={anime._id} 
-                  className="group relative transform transition-all duration-500 hover:scale-105"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {/* Glow Effect */}
-                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                    <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
-                    <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h4 className="text-sm font-medium text-white text-center truncate" title={anime.title}>
-                        {anime.title}
-                      </h4>
-                    </div>
-                  </div>
-                </div>
-              ))}
+    {/* Updated grid for mobile 2-column layout */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+      {filteredAnimeList.map((anime, index) => (
+        <div 
+          key={anime._id} 
+          className="group relative transform transition-all duration-500 hover:scale-105"
+          style={{ animationDelay: `${index * 50}ms` }}
+        >
+          {/* Glow Effect */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+            <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+            <div className="p-2 sm:p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <h4 className="text-xs sm:text-sm font-medium text-white text-center truncate leading-tight" title={anime.title}>
+                {anime.title}
+              </h4>
             </div>
+          </div>
+        </div>
+      ))}
+    </div>
 
             {/* Load More Button */}
             {status === "CanLoadMore" && !hasActiveSearch && (

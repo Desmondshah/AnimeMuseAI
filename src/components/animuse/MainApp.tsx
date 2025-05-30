@@ -208,16 +208,16 @@ export default function MainApp() {
       <div className="relative z-10 px-4 sm:px-6 py-8 space-y-12">
         {/* Hero Welcome Section */}
         <div className="text-center space-y-6">
-          <div className="inline-block group">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold via-brand-primary-action to-white bg-clip-text text-transparent animate-pulse">
-              Welcome, {userProfile?.name || "Explorer"}!
-            </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
-          </div>
-          <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-            Your personalized anime universe awaits. Let's discover something extraordinary together.
-          </p>
-        </div>
+  <div className="inline-block group">
+    <h1 className="hero-title font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold via-brand-primary-action to-white bg-clip-text text-transparent animate-pulse">
+      Welcome, {userProfile?.name || "Explorer"}!
+    </h1>
+    <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
+  </div>
+  <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto leading-relaxed">
+    Your personalized anime universe awaits. Let's discover something extraordinary together.
+  </p>
+</div>
 
         {/* AI Assistant CTA */}
         <div className="flex justify-center">
@@ -249,9 +249,9 @@ export default function MainApp() {
               {/* Section Header */}
               <div className="text-center space-y-4">
                 <div className="inline-block">
-                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading text-white font-bold mb-2">
-                    {category.title}
-                  </h2>
+                  <h2 className="section-title font-heading text-white font-bold mb-2">
+  {category.title}
+</h2>
                   <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent animate-pulse"></div>
                 </div>
                 {category.reason && (
