@@ -665,7 +665,41 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
               <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
               <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
                 
-                {/* Chat Messages Area */}
+                {chatHistory.length === 0 && !isLoading && chatHistoryLoaded && (
+  <div className="text-center py-8">
+    <div className="text-6xl mb-4 animate-bounce">✨</div>
+    <h3 className="text-xl font-heading text-white mb-4">Ready to discover amazing anime?</h3>
+    <p className="text-white/70 mb-6">Try these {aiMode} prompts to get started:</p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+      {getModeExamples().slice(0, 4).map((example, idx) => (
+        <button key={idx} onClick={() => handleSubmit(example)} className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">"{example}"</p>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
+{/* Add Start New Chat button when there ARE chat messages */}
+{chatHistory.length > 0 && chatHistoryLoaded && (
+  <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
+    <span className="text-sm text-white/70">Chat History</span>
+    <StyledButton
+      onClick={clearChatHistory}
+      variant="ghost"
+      className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
+    >
+      🗑️ Start New Chat
+    </StyledButton>
+  </div>
+)}
+
+{!chatHistoryLoaded && (
+  <div className="text-center py-8">
+    <ArtisticLoadingSpinner message="Loading your chat history..." />
+  </div>
+)}
                 <div 
                   ref={chatContainerRef}
                   className="h-96 overflow-y-auto p-6 space-y-6 custom-scrollbar"
@@ -732,12 +766,13 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           <div className="flex flex-col sm:flex-row gap-4">
             {/* FIXED: Smaller poster container with fixed dimensions */}
             <div className="w-20 h-28 sm:w-16 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
-              <AnimeCard 
-                anime={animeRec} 
-                onViewDetails={(id) => navigateToDetail(id as Id<"anime">)} 
-                className="w-full h-full"
-              />
-            </div>
+  <AnimeCard 
+    anime={animeRec} 
+    onViewDetails={navigateToDetail}
+    isRecommendation={true}  // Make sure this is set to true
+    className="w-full h-full"
+  />
+</div>
             <div className="flex-1 space-y-2 min-w-0"> {/* Added min-w-0 to prevent overflow */}
               <h4 className="font-heading text-lg text-brand-primary-action font-semibold truncate">
                 {animeRec.title}
