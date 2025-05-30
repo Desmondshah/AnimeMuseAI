@@ -369,3 +369,321 @@ body {
     max-width: calc(50% - 0.375rem) !important;
   }
 }
+
+/* Add these mobile optimizations to your existing src/index.css file */
+
+/* Mobile Performance Optimizations */
+/* Use hardware acceleration sparingly and only when needed */
+.gpu-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Disable expensive effects on mobile devices */
+@media (max-width: 768px) {
+  /* Reduce animation complexity */
+  .animate-pulse {
+    animation-duration: 3s !important;
+  }
+  
+  .animate-bounce {
+    animation-duration: 2s !important;
+  }
+  
+  .animate-ping {
+    animation-duration: 2.5s !important;
+  }
+  
+  /* Simplify blur effects */
+  .blur-3xl {
+    filter: blur(12px) !important;
+  }
+  
+  .blur-xl {
+    filter: blur(8px) !important;
+  }
+  
+  .blur-lg {
+    filter: blur(6px) !important;
+  }
+  
+  .blur-md {
+    filter: blur(4px) !important;
+  }
+  
+  /* Reduce backdrop blur complexity */
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+  }
+  
+  .backdrop-blur-sm {
+    backdrop-filter: blur(2px) !important;
+  }
+}
+
+/* Low bandwidth optimizations - triggered by useMobileOptimizations hook */
+.low-bandwidth {
+  /* Disable expensive visual effects */
+}
+
+.low-bandwidth .animate-pulse,
+.low-bandwidth .animate-bounce,
+.low-bandwidth .animate-ping {
+  animation: none !important;
+}
+
+.low-bandwidth .blur-3xl,
+.low-bandwidth .blur-xl,
+.low-bandwidth .blur-lg,
+.low-bandwidth .blur-md {
+  filter: none !important;
+}
+
+.low-bandwidth .backdrop-blur-xl,
+.low-bandwidth .backdrop-blur-sm {
+  backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.low-bandwidth .bg-gradient-to-r,
+.low-bandwidth .bg-gradient-to-br,
+.low-bandwidth .bg-gradient-to-tr,
+.low-bandwidth .bg-gradient-to-tl,
+.low-bandwidth .bg-gradient-to-l {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Mobile device optimizations - triggered by useMobileOptimizations hook */
+.mobile-device {
+  /* Optimize for mobile performance */
+}
+
+.mobile-device .shadow-2xl,
+.mobile-device .shadow-xl {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mobile-device .animate-pulse {
+  animation-duration: 3s !important;
+}
+
+/* Hide complex particle systems on mobile */
+.mobile-device .anime-particles > div:nth-child(n+4),
+.mobile-device .experience-particles > div:nth-child(n+4) {
+  display: none !important;
+}
+
+/* iOS specific optimizations - triggered by useMobileOptimizations hook */
+.ios-device {
+  /* iOS specific fixes */
+}
+
+.ios-device .backdrop-blur-sm,
+.ios-device .backdrop-blur-md,
+.ios-device .backdrop-blur-lg,
+.ios-device .backdrop-blur-xl {
+  backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* iOS scroll improvements */
+.ios-device {
+  -webkit-overflow-scrolling: touch;
+}
+
+.ios-device * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Reduced motion preferences - System level */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Keep essential functionality */
+  .progress-bar,
+  .loading-spinner {
+    animation-duration: 1s !important;
+  }
+}
+
+/* Memory optimization for large lists */
+@media (max-width: 768px) {
+  .custom-scrollbar {
+    contain: layout style paint;
+  }
+  
+  /* Optimize image rendering */
+  img {
+    image-rendering: optimizeSpeed;
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Battery optimization - for devices with limited battery */
+@media (prefers-reduced-motion: reduce), 
+       (prefers-color-scheme: dark) and (max-width: 768px) {
+  /* Further reduce visual complexity */
+  .gradient-complex {
+    background: solid rgba(0, 0, 0, 0.8) !important;
+  }
+  
+  .shadow-glow {
+    box-shadow: none !important;
+  }
+}
+
+/* Specific optimizations for onboarding components */
+@media (max-width: 768px) {
+  /* Favorites Step optimizations */
+  .anime-particles {
+    contain: layout;
+  }
+  
+  .anime-particles > div:nth-child(n+6) {
+    display: none;
+  }
+  
+  /* Experience Step optimizations */
+  .experience-particles {
+    contain: layout;
+  }
+  
+  .experience-particles > div:nth-child(n+8) {
+    display: none;
+  }
+  
+  /* Reduce card complexity on mobile */
+  .experience-card,
+  .favorite-card {
+    contain: layout style;
+  }
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) {
+  /* Ensure adequate touch targets */
+  button,
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve touch responsiveness */
+  button,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+  
+  /* Prevent zoom on inputs */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Network-aware optimizations */
+@media (max-width: 768px) and (prefers-reduced-data: reduce) {
+  /* Disable non-essential animations for data saving */
+  .animate-pulse,
+  .animate-bounce,
+  .animate-ping,
+  .animate-spin {
+    animation: none !important;
+  }
+  
+  /* Use simpler backgrounds */
+  .bg-gradient-to-r,
+  .bg-gradient-to-br,
+  .bg-gradient-to-tr {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+}
+
+/* Performance monitoring styles - only in development */
+.performance-debug {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* GPU acceleration hints for specific animations */
+.animate-bounce,
+.animate-pulse,
+.animate-ping {
+  transform: translateZ(0);
+}
+
+/* Optimize text rendering on mobile */
+@media (max-width: 768px) {
+  body, * {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+  
+  /* Prevent text size adjust on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+}
+
+/* Container queries for advanced optimization (where supported) */
+@container (max-width: 768px) {
+  .particle-system {
+    display: none;
+  }
+  
+  .complex-animation {
+    animation: none;
+  }
+}
+
+/* Intersection Observer optimization styles */
+.lazy-animate {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.lazy-animate.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Critical CSS for above-the-fold content */
+.critical-content {
+  contain: layout style paint;
+  will-change: auto;
+}
+
+/* Memory-efficient scrolling */
+.scrollable-area {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y proximity;
+}
+
+/* Efficient grid layouts */
+.mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  contain: layout;
+}

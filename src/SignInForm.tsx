@@ -1,32 +1,41 @@
-// src/SignInForm.tsx - Advanced Artistic Version
+// src/SignInForm.tsx - Optimized for Mobile Performance
 "use client";
 import { useAuthActions } from "@convex-dev/auth/react";
-import React, { useState, FormEvent, useEffect } from "react";
+import React, { useState, FormEvent, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import StyledButton from "./components/animuse/shared/StyledButton";
+import { useAnimationOptimization, useParticleOptimization, useBackgroundOptimization } from "../convex/useMobileOptimizations";
 
-// Floating Particle Component
-const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string }> = ({ 
-  delay = 0, 
-  size = "w-2 h-2", 
-  color = "bg-brand-accent-gold/30" 
-}) => (
-  <div 
-    className={`absolute ${size} ${color} rounded-full animate-ping`}
-    style={{ 
-      animationDelay: `${delay}s`, 
-      left: `${Math.random() * 100}%`, 
-      top: `${Math.random() * 100}%`,
-      animationDuration: `${2 + Math.random() * 3}s`
-    }}
-  ></div>
-);
+// Optimized Floating Particle Component
+const FloatingParticle: React.FC<{ 
+  delay?: number; 
+  size?: string; 
+  color?: string;
+  shouldAnimate: boolean;
+}> = ({ delay = 0, size = "w-2 h-2", color = "bg-brand-accent-gold/30", shouldAnimate }) => {
+  if (!shouldAnimate) return null;
+  
+  return (
+    <div 
+      className={`absolute ${size} ${color} rounded-full ${shouldAnimate ? 'animate-ping' : ''}`}
+      style={{ 
+        animationDelay: `${delay}s`, 
+        left: `${Math.random() * 100}%`, 
+        top: `${Math.random() * 100}%`,
+        animationDuration: `${2 + Math.random() * 3}s`
+      }}
+    ></div>
+  );
+};
 
-// Artistic Loading Component
-const ArtisticLoadingSpinner: React.FC<{ size?: string }> = ({ size = "h-5 w-5" }) => (
+// Optimized Loading Spinner
+const ArtisticLoadingSpinner: React.FC<{ 
+  size?: string;
+  shouldUseGPUAcceleration: boolean;
+}> = ({ size = "h-5 w-5", shouldUseGPUAcceleration }) => (
   <div className="relative">
-    <div className={`${size} border-2 border-transparent border-t-white border-r-white/70 rounded-full animate-spin`}></div>
-    <div className="absolute top-0.5 left-0.5 w-3 h-3 border-2 border-transparent border-b-white/50 border-l-white/30 rounded-full animate-spin animate-reverse"></div>
+    <div className={`${size} border-2 border-transparent border-t-white border-r-white/70 rounded-full animate-spin ${shouldUseGPUAcceleration ? 'gpu-accelerate' : ''}`}></div>
+    <div className={`absolute top-0.5 left-0.5 w-3 h-3 border-2 border-transparent border-b-white/50 border-l-white/30 rounded-full animate-spin animate-reverse ${shouldUseGPUAcceleration ? 'gpu-accelerate' : ''}`}></div>
   </div>
 );
 
@@ -40,13 +49,17 @@ export function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
-  // Animated particles state
-  const [particles, setParticles] = useState<number[]>([]);
+  // Optimization hooks
+  const { shouldAnimate, shouldUseGPUAcceleration } = useAnimationOptimization();
+  const { shouldShowParticles, getOptimalParticleCount } = useParticleOptimization();
+  const { shouldUseGradients, shouldUseBlur } = useBackgroundOptimization();
 
-  useEffect(() => {
-    // Generate random particles
-    setParticles(Array.from({ length: 15 }, (_, i) => i));
-  }, []);
+  // Optimized particle generation
+  const particles = useMemo(() => {
+    const baseCount = 15;
+    const optimizedCount = getOptimalParticleCount(baseCount);
+    return Array.from({ length: optimizedCount }, (_, i) => i);
+  }, [getOptimalParticleCount]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,20 +123,23 @@ export function SignInForm() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-8 overflow-hidden">
-      {/* Floating Background Elements */}
+      {/* Optimized Floating Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Primary gradient orbs */}
-        <div className="absolute top-10 left-10 w-96 h-96 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/15 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/12 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
-        <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
-        <div className="absolute top-20 center w-64 h-64 bg-gradient-to-bl from-cyan-400/8 to-transparent rounded-full blur-3xl animate-pulse delay-4000"></div>
+        {/* Primary gradient orbs - Conditionally rendered */}
+        {shouldUseGradients && (
+          <>
+            <div className={`absolute top-10 left-10 w-96 h-96 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full ${shouldUseBlur ? 'blur-3xl' : ''} ${shouldAnimate ? 'animate-pulse' : ''}`}></div>
+            <div className={`absolute bottom-20 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/15 to-transparent rounded-full ${shouldUseBlur ? 'blur-3xl' : ''} ${shouldAnimate ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }}></div>
+            <div className={`absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/12 to-transparent rounded-full ${shouldUseBlur ? 'blur-3xl' : ''} ${shouldAnimate ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }}></div>
+          </>
+        )}
 
-        {/* Floating particles */}
-        {particles.map((particle) => (
+        {/* Optimized floating particles */}
+        {shouldShowParticles && particles.map((particle) => (
           <FloatingParticle
             key={particle}
             delay={particle * 0.3}
+            shouldAnimate={shouldAnimate}
             size={Math.random() > 0.7 ? "w-3 h-3" : "w-2 h-2"}
             color={
               Math.random() > 0.6
@@ -135,40 +151,45 @@ export function SignInForm() {
           />
         ))}
 
-        {/* Animated grid pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)",
-              backgroundSize: "60px 60px",
-              animation: "float 25s ease-in-out infinite",
-            }}
-          ></div>
-        </div>
+        {/* Simplified animated grid pattern for low-performance devices */}
+        {shouldUseGradients && (
+          <div className="absolute inset-0 opacity-5">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)",
+                backgroundSize: "60px 60px",
+                ...(shouldAnimate && {
+                  animation: "float 25s ease-in-out infinite",
+                })
+              }}
+            ></div>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-md">
-
-
         {/* Enhanced Form Card */}
         <div className="relative">
-          {/* Card Glow Effect */}
-          <div className="absolute -inset-6 bg-gradient-to-r from-brand-primary-action/30 via-brand-accent-gold/20 to-brand-accent-peach/30 rounded-3xl blur-2xl opacity-70 animate-pulse"></div>
+          {/* Card Glow Effect - Conditionally rendered */}
+          {shouldUseGradients && (
+            <div className={`absolute -inset-6 bg-gradient-to-r from-brand-primary-action/30 via-brand-accent-gold/20 to-brand-accent-peach/30 rounded-3xl ${shouldUseBlur ? 'blur-2xl' : ''} opacity-70 ${shouldAnimate ? 'animate-pulse' : ''}`}></div>
+          )}
           
           {/* Main Form Container */}
-          <div className="relative bg-black/40 backdrop-blur-xl border border-white/20 rounded-3xl p-8 sm:p-10 shadow-2xl">
-            {/* Animated background pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
-            </div>
+          <div className={`relative ${shouldUseGradients ? 'bg-black/40' : 'bg-black/80'} ${shouldUseBlur ? 'backdrop-blur-xl' : ''} border border-white/20 rounded-3xl p-8 sm:p-10 shadow-2xl`}>
+            {/* Simplified background pattern for performance */}
+            {shouldUseGradients && (
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
+              </div>
+            )}
             
             <div className="relative z-10">
               {/* Form Header */}
               <div className="text-center mb-8">
-                <div className="inline-block p-3 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full mb-4">
+                <div className={`inline-block p-3 ${shouldUseGradients ? 'bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20' : 'bg-brand-primary-action/20'} rounded-full mb-4`}>
                   <span className="text-3xl">{flow === "signIn" ? "🚀" : "✨"}</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2">
@@ -186,15 +207,17 @@ export function SignInForm() {
               <form className="space-y-6" onSubmit={handleSubmit}>
                 {/* Email Field */}
                 <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                  {shouldUseGradients && (
+                    <div className={`absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl ${shouldUseBlur ? 'blur-lg' : ''} opacity-0 group-focus-within:opacity-100 transition-opacity duration-300`}></div>
+                  )}
                   <div className="relative">
                     <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                      <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors ${shouldAnimate ? '' : 'transition-none'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                       </svg>
                     </div>
                     <input
-                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                      className={`w-full ${shouldUseGradients ? 'bg-black/40' : 'bg-black/60'} ${shouldUseBlur ? 'backdrop-blur-sm' : ''} border border-white/20 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none ${shouldAnimate ? 'transition-all duration-300' : 'transition-none'}`}
                       type="email"
                       name="email"
                       placeholder="your@email.com"
@@ -209,15 +232,17 @@ export function SignInForm() {
 
                 {/* Password Field */}
                 <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                  {shouldUseGradients && (
+                    <div className={`absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl ${shouldUseBlur ? 'blur-lg' : ''} opacity-0 group-focus-within:opacity-100 transition-opacity duration-300`}></div>
+                  )}
                   <div className="relative">
                     <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                      <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors ${shouldAnimate ? '' : 'transition-none'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                     <input
-                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                      className={`w-full ${shouldUseGradients ? 'bg-black/40' : 'bg-black/60'} ${shouldUseBlur ? 'backdrop-blur-sm' : ''} border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none ${shouldAnimate ? 'transition-all duration-300' : 'transition-none'}`}
                       type={showPassword ? "text" : "password"}
                       name="password"
                       placeholder="Your password"
@@ -230,7 +255,7 @@ export function SignInForm() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white transition-colors"
+                      className={`absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white ${shouldAnimate ? 'transition-colors' : 'transition-none'}`}
                       disabled={submitting}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,15 +272,17 @@ export function SignInForm() {
                 {/* Confirm Password Field (Sign Up Only) */}
                 {flow === "signUp" && (
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                    {shouldUseGradients && (
+                      <div className={`absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl ${shouldUseBlur ? 'blur-lg' : ''} opacity-0 group-focus-within:opacity-100 transition-opacity duration-300`}></div>
+                    )}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                        <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors ${shouldAnimate ? '' : 'transition-none'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                       <input
-                        className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
+                        className={`w-full ${shouldUseGradients ? 'bg-black/40' : 'bg-black/60'} ${shouldUseBlur ? 'backdrop-blur-sm' : ''} border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none ${shouldAnimate ? 'transition-all duration-300' : 'transition-none'}`}
                         type={showPasswordConfirm ? "text" : "password"}
                         name="passwordConfirm"
                         placeholder="Confirm your password"
@@ -268,7 +295,7 @@ export function SignInForm() {
                       <button
                         type="button"
                         onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                        className="absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white transition-colors"
+                        className={`absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white ${shouldAnimate ? 'transition-colors' : 'transition-none'}`}
                         disabled={submitting}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,16 +312,18 @@ export function SignInForm() {
 
                 {/* Submit Button */}
                 <div className="relative group">
-                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  {shouldUseGradients && (
+                    <div className={`absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl ${shouldUseBlur ? 'blur-lg' : ''} opacity-60 group-hover:opacity-100 ${shouldAnimate ? 'transition-opacity duration-300' : 'transition-none'}`}></div>
+                  )}
                   <StyledButton
                     type="submit"
                     variant="primary"
-                    className="relative w-full !py-4 !text-lg !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500 !shadow-2xl hover:!shadow-brand-primary-action/25"
+                    className={`relative w-full !py-4 !text-lg ${shouldUseGradients ? '!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action' : '!bg-brand-primary-action hover:!bg-brand-accent-gold'} ${shouldAnimate ? '!transition-all !duration-500' : '!transition-none'} !shadow-2xl hover:!shadow-brand-primary-action/25`}
                     disabled={submitting}
                   >
                     {submitting ? (
                       <span className="flex items-center justify-center gap-3">
-                        <ArtisticLoadingSpinner />
+                        <ArtisticLoadingSpinner shouldUseGPUAcceleration={shouldUseGPUAcceleration} />
                         {flow === "signIn" ? "Signing In..." : "Creating Account..."}
                       </span>
                     ) : (
@@ -316,7 +345,7 @@ export function SignInForm() {
                   </span>
                   <button
                     type="button"
-                    className="font-semibold text-brand-primary-action hover:text-brand-accent-gold cursor-pointer transition-colors duration-300 text-sm underline decoration-2 underline-offset-2 hover:decoration-brand-accent-gold"
+                    className={`font-semibold text-brand-primary-action hover:text-brand-accent-gold cursor-pointer ${shouldAnimate ? 'transition-colors duration-300' : 'transition-none'} text-sm underline decoration-2 underline-offset-2 hover:decoration-brand-accent-gold`}
                     onClick={() => {
                       setFlow(flow === "signIn" ? "signUp" : "signIn");
                       setEmail("");
@@ -335,22 +364,24 @@ export function SignInForm() {
               {/* Divider */}
               <div className="my-8 flex items-center">
                 <hr className="flex-grow border-t border-white/20" />
-                <span className="mx-4 text-sm text-white/70 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">OR</span>
+                <span className={`mx-4 text-sm text-white/70 ${shouldUseGradients ? 'bg-black/40' : 'bg-black/60'} px-4 py-2 rounded-full ${shouldUseBlur ? 'backdrop-blur-sm' : ''}`}>OR</span>
                 <hr className="flex-grow border-t border-white/20" />
               </div>
 
               {/* Anonymous Sign In */}
               <div className="relative group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/30 to-blue-500/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                {shouldUseGradients && (
+                  <div className={`absolute -inset-2 bg-gradient-to-r from-purple-500/30 to-blue-500/30 rounded-3xl ${shouldUseBlur ? 'blur-lg' : ''} opacity-0 group-hover:opacity-100 ${shouldAnimate ? 'transition-opacity duration-300' : 'transition-none'}`}></div>
+                )}
                 <StyledButton
                   variant="secondary"
-                  className="relative w-full !py-4 !text-lg !bg-black/40 !backdrop-blur-sm !border-white/20 hover:!bg-white/10 !text-white"
+                  className={`relative w-full !py-4 !text-lg ${shouldUseGradients ? '!bg-black/40' : '!bg-black/60'} ${shouldUseBlur ? '!backdrop-blur-sm' : ''} !border-white/20 hover:!bg-white/10 !text-white`}
                   onClick={handleAnonymousSignIn}
                   disabled={submitting}
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center gap-3">
-                      <ArtisticLoadingSpinner />
+                      <ArtisticLoadingSpinner shouldUseGPUAcceleration={shouldUseGPUAcceleration} />
                       Processing...
                     </span>
                   ) : (
@@ -376,7 +407,7 @@ export function SignInForm() {
         </div>
       </div>
 
-      {/* Custom CSS for animations */}
+      {/* Optimized Custom CSS for animations */}
       <style jsx>{`
         @keyframes float {
           0%, 100% {
@@ -389,6 +420,11 @@ export function SignInForm() {
 
         .animate-spin-reverse {
           animation: spin 1s linear infinite reverse;
+        }
+
+        .gpu-accelerate {
+          transform: translateZ(0);
+          will-change: transform;
         }
       `}</style>
     </div>
