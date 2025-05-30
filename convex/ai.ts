@@ -122,7 +122,7 @@ export const enhanceRecommendationsPosters = action({
     console.log(`[Poster Enhancement Action] Starting enhancement for ${args.recommendations.length} recommendations`);
     
     try {
-      const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(args.recommendations);
+      const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, args.recommendations);
       
       console.log(`[Poster Enhancement Action] Successfully enhanced ${enhancedRecommendations.length} recommendations`);
       
@@ -313,82 +313,104 @@ const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: num
   return null;
 };
 
-    
+ const isValidPosterUrl = (posterUrl: string | undefined): boolean => {
+  if (!posterUrl) return false;
+  if (posterUrl === "PLACEHOLDER") return false;
+  if (posterUrl.includes('placehold.co')) return false;
+  if (posterUrl.includes('placeholder')) return false;
+  return posterUrl.startsWith('https://');
+};
+   
 
 
-// Enhanced recommendation post-processing
-const enhanceRecommendationsWithRealPosters = async (recommendations: any[]): Promise<any[]> => {
+// Enhanced version that checks database first
+const enhanceRecommendationsWithDatabaseFirst = async (
+  ctx: any,
+  recommendations: any[]
+): Promise<any[]> => {
   const enhancedRecommendations = [];
   
-  console.log(`[Poster Enhancement] Processing ${recommendations.length} recommendations...`);
+  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations...`);
   
-  // Process in smaller batches to avoid overwhelming external APIs
-  const batchSize = 3;
-  
-  for (let batchStart = 0; batchStart < recommendations.length; batchStart += batchSize) {
-    const batch = recommendations.slice(batchStart, batchStart + batchSize);
+  for (let i = 0; i < recommendations.length; i++) {
+    const rec = recommendations[i];
+    let posterUrl = rec.posterUrl;
+    let foundInDatabase = false;
     
-    // Process batch in parallel but with limited concurrency
-    const batchPromises = batch.map(async (rec, localIndex) => {
-      const globalIndex = batchStart + localIndex;
-      let posterUrl = rec.posterUrl;
-      
-      // Check if we need to find a real poster
-      const needsRealPoster = !posterUrl || 
-                             posterUrl === "PLACEHOLDER" ||
-                             posterUrl.includes('placehold.co') || 
-                             posterUrl.includes('placeholder') ||
-                             posterUrl.includes('via.placeholder');
-      
-      if (needsRealPoster && rec.title) {
-        console.log(`[Poster Enhancement] 🔍 Searching for real poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+    console.log(`[Database-First Enhancement] Processing (${i + 1}/${recommendations.length}): ${rec.title}`);
+    
+    // Step 1: Check database first
+    if (rec.title) {
+      try {
+        const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+          title: rec.title 
+        });
         
-        try {
-          const realPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 1); // Reduced retries for batch processing
+        if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
+          posterUrl = dbAnime.posterUrl;
+          foundInDatabase = true;
+          console.log(`[Database-First Enhancement] ✅ Found in DB with valid poster: ${rec.title}`);
           
-          if (realPosterUrl) {
-            posterUrl = realPosterUrl;
-            console.log(`[Poster Enhancement] ✅ Enhanced poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
-          } else {
-            // Use a clean, high-quality placeholder as fallback
-            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
-            posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-            console.log(`[Poster Enhancement] 📝 Using fallback placeholder (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
-          }
-        } catch (error: any) {
-          console.error(`[Poster Enhancement] Error for "${rec.title}":`, error.message);
-          // Fallback to placeholder
+          // Also enhance other fields from database if they're better
+          rec.description = rec.description || dbAnime.description;
+          rec.genres = rec.genres?.length ? rec.genres : (dbAnime.genres || []);
+          rec.year = rec.year || dbAnime.year;
+          rec.rating = rec.rating || dbAnime.rating;
+          rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
+        } else if (dbAnime) {
+          console.log(`[Database-First Enhancement] Found in DB but poster needs enhancement: ${rec.title}`);
+        } else {
+          console.log(`[Database-First Enhancement] Not found in DB: ${rec.title}`);
+        }
+      } catch (error: any) {
+        console.warn(`[Database-First Enhancement] DB lookup error for "${rec.title}":`, error.message);
+      }
+    }
+    
+    // Step 2: If not found in DB or poster is invalid, use external APIs
+    if (!foundInDatabase && (!posterUrl || !isValidPosterUrl(posterUrl))) {
+      console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
+      
+      try {
+        const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 1);
+        
+        if (externalPosterUrl) {
+          posterUrl = externalPosterUrl;
+          console.log(`[Database-First Enhancement] ✅ Found external poster: ${rec.title}`);
+        } else {
+          // Final fallback to placeholder
           const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
           posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+          console.log(`[Database-First Enhancement] 📝 Using fallback placeholder: ${rec.title}`);
         }
-      } else {
-        console.log(`[Poster Enhancement] ✓ Using existing poster (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+      } catch (error: any) {
+        console.error(`[Database-First Enhancement] External fetch error for "${rec.title}":`, error.message);
+        const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+        posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
       }
-      
-      return {
-        ...rec,
-        posterUrl,
-        title: rec.title || "Unknown Title",
-        description: rec.description || "No description available.",
-        reasoning: rec.reasoning || "AI recommendation.",
-      };
+    }
+    
+    enhancedRecommendations.push({
+      ...rec,
+      posterUrl,
+      title: rec.title || "Unknown Title",
+      description: rec.description || "No description available.",
+      reasoning: rec.reasoning || "AI recommendation.",
+      foundInDatabase, // Add this flag for debugging
     });
     
-    // Wait for batch to complete
-    const batchResults = await Promise.all(batchPromises);
-    enhancedRecommendations.push(...batchResults);
-    
-    // Respectful delay between batches
-    if (batchStart + batchSize < recommendations.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Small delay between external API calls (not needed for DB lookups)
+    if (!foundInDatabase && i < recommendations.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   
+  const dbHits = enhancedRecommendations.filter(rec => rec.foundInDatabase).length;
   const realPostersFound = enhancedRecommendations.filter(rec => 
     rec.posterUrl && !rec.posterUrl.includes('placehold.co')
   ).length;
   
-  console.log(`[Poster Enhancement] ✅ Complete! Found ${realPostersFound}/${recommendations.length} real posters`);
+  console.log(`[Database-First Enhancement] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
   
   return enhancedRecommendations;
 };
@@ -466,7 +488,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
         // Enhance recommendations with real posters
         console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
         const startTime = Date.now();
-        recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+        recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
         const enhancementTime = Date.now() - startTime;
         
         console.log(`[AI Recommendations] Poster enhancement completed in ${enhancementTime}ms`);
@@ -1535,7 +1557,7 @@ export const getSimilarAnimeFromDB = action({
 });
 
 // --- NEW: getPersonalizedRecommendations (can call other AI actions or fetch from DB) ---
-export const getPersonalizedRecommendations = action({
+export const getPersonalizedRecommendationsWithDatabaseFirst = action({
     args: {
         userProfile: enhancedUserProfileValidator,
         watchlistActivity: v.optional(v.array(v.object({
@@ -1551,6 +1573,7 @@ export const getPersonalizedRecommendations = action({
             return { recommendations: [], error: "OpenAI API key not configured." };
         }
 
+        // ... (same system prompt logic as original)
         let systemPrompt = `You are AniMuse, an AI that provides highly personalized anime recommendations.
 Based on the user's detailed profile and recent watchlist activity, suggest ${args.count || 3} anime they might enjoy.
 Provide diverse recommendations that touch upon different aspects of their profile.
@@ -1607,26 +1630,26 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
                 response_format: { type: "json_object" },
             });
 
-            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getPersonalizedRecommendations");
+            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getPersonalizedRecommendationsWithDatabaseFirst");
             if (parsed) {
                 const rawRecommendations = parsed.slice(0, args.count || 3);
                 
-                // Enhance recommendations with real posters
-                console.log(`[Personalized Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
-                recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                // Use database-first enhancement
+                console.log(`[Personalized Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
+                recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
                 
                 console.log(`[Personalized Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
             } else {
                 errorResult = "AI response format error or no recommendations found.";
             }
         } catch (err: any) {
-            console.error("[AI Action - GetPersonalizedRecommendations] Error:", err);
+            console.error("[AI Action - GetPersonalizedRecommendationsWithDatabaseFirst] Error:", err);
             errorResult = `AI Error: ${err.message || "Unknown"}`;
         } finally {
              if (args.messageId) {
                 await ctx.runMutation(api.ai.storeAiFeedback, {
-                    prompt: "Personalized recommendations request",
-                    aiAction: "getPersonalizedRecommendations",
+                    prompt: "Personalized recommendations request (DB-first)",
+                    aiAction: "getPersonalizedRecommendationsWithDatabaseFirst",
                     aiResponseRecommendations: recommendations.length ? recommendations : undefined,
                     aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
                     feedbackType: "none",
@@ -1634,7 +1657,15 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
                 });
             }
         }
-        return { recommendations, error: errorResult };
+        return { 
+            recommendations, 
+            error: errorResult,
+            debug: {
+                dbHits: recommendations.filter(r => r.foundInDatabase).length,
+                totalRecommendations: recommendations.length,
+                realPosters: recommendations.filter(r => r.posterUrl && !r.posterUrl.includes('placehold.co')).length
+            }
+        };
     }
 });
 
@@ -1702,9 +1733,9 @@ If user profile data is available, subtly weave it into the reasoning if it alig
             if (parsed) {
                 const rawRecommendations = parsed.slice(0, args.count || 3);
                 
-                // Enhance recommendations with real posters
-                console.log(`[Mood Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
-                recommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                // Use the new database-first enhancement logic
+                console.log(`[Mood Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
+                recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
                 
                 console.log(`[Mood Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
             } else {
@@ -1725,7 +1756,16 @@ If user profile data is available, subtly weave it into the reasoning if it alig
                 });
             }
         }
-        return { recommendations, error: errorResult };
+        return { 
+            recommendations, 
+            error: errorResult,
+            // Add debug info for monitoring
+            debug: {
+                dbHits: recommendations.filter(r => r.foundInDatabase).length,
+                totalRecommendations: recommendations.length,
+                realPosters: recommendations.filter(r => r.posterUrl && !r.posterUrl.includes('placehold.co')).length
+            }
+        };
     }
 });
 
@@ -1800,7 +1840,7 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
                 
                 // Enhance recommendations with real posters
                 console.log(`[Similar Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
-                const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(rawRecommendations);
+                const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
                 
                 recommendations = enhancedRecommendations.map((rec: any) => ({
                     title: rec.title || "Unknown Title",
@@ -1859,8 +1899,14 @@ export const testPosterFetching = action({
   },
   handler: async (ctx, args) => {
     console.log(`[Debug Poster Test] Testing poster fetching for: ${args.animeTitles.join(", ")}`);
-    
-    const results = [];
+
+    const results: Array<{
+  title: string;
+  posterUrl: string | null;
+  success: boolean;
+  isReal?: boolean;
+  error?: string;
+}> = [];
     
     for (const title of args.animeTitles) {
       try {
@@ -1871,7 +1917,7 @@ export const testPosterFetching = action({
           title,
           posterUrl,
           success: !!posterUrl,
-          isReal: posterUrl && !posterUrl.includes('placehold.co')
+          isReal: !!(posterUrl && !posterUrl.includes('placehold.co'))
         });
         
         // Small delay between tests
@@ -1965,7 +2011,7 @@ export const debugPersonalizedRecommendations = action({
         try {
             // Enhance with real posters
             console.log(`[DEBUG Personalized] Enhancing ${testRecommendations.length} test recommendations with real posters...`);
-            const enhancedRecommendations = await enhanceRecommendationsWithRealPosters(testRecommendations);
+            const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, testRecommendations);
             
             console.log(`[DEBUG Personalized] Enhanced recommendations:`, enhancedRecommendations.map(r => ({
                 title: r.title,
@@ -2009,7 +2055,14 @@ export const debugPosterUrls = action({
   handler: async (ctx, args) => {
     console.log(`[Debug Poster URLs] Testing ${args.titles.length} titles...`);
     
-    const results = [];
+    const results: Array<{
+  title: string;
+  posterUrl: string | null;
+  success: boolean;
+  isReal?: boolean;
+  accessible?: boolean;
+  error?: string;
+}> = [];
     
     for (const title of args.titles) {
       try {
@@ -2022,7 +2075,8 @@ export const debugPosterUrls = action({
           title,
           posterUrl,
           success: !!posterUrl,
-          isReal: posterUrl && !posterUrl.includes('placehold.co'),
+          // FIX: Ensure isReal is always boolean
+          isReal: !!(posterUrl && !posterUrl.includes('placehold.co')),
           accessible: false
         };
 
@@ -2034,6 +2088,7 @@ export const debugPosterUrls = action({
             console.log(`[Debug Poster URLs] URL test for "${title}": ${testResponse.ok ? 'OK' : 'FAILED'} (${testResponse.status})`);
           } catch (error: any) {
             console.log(`[Debug Poster URLs] URL test failed for "${title}":`, error.message);
+            result.accessible = false;
           }
         }
         

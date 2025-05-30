@@ -45,7 +45,7 @@ export default function MainApp() {
   const fullWatchlist = useQuery(api.anime.getMyWatchlist);
   const isUserAdmin = useQuery(api.admin.isCurrentUserAdmin);
   const myCustomLists = useQuery(api.users.getMyCustomLists);
-  const getPersonalizedRecommendationsAction = useAction(api.ai.getPersonalizedRecommendations);
+  const getPersonalizedRecommendationsAction = useAction(api.ai.debugPersonalizedRecommendations);
 
   const [currentView, setCurrentView] = useState<CurrentView>("dashboard");
   const [selectedAnimeId, setSelectedAnimeId] = useState<Id<"anime"> | null>(null);
@@ -140,7 +140,10 @@ export default function MainApp() {
             artStyles: userProfile.artStyles, narrativePacing: userProfile.narrativePacing,
         };
         const watchlistActivity: WatchlistActivityItem[] = fullWatchlist?.filter(item => item.anime).map(item => ({ animeTitle: item.anime!.title, status: item.status, userRating: item.userRating })).slice(0, 10) || [];
-        const result = await categoryToUpdate.fetchFn({ ...categoryToUpdate.fetchArgs, userProfile: profileDataForAI, watchlistActivity });
+        const result = await categoryToUpdate.fetchFn({ 
+  ...categoryToUpdate.fetchArgs, 
+  userProfile: profileDataForAI 
+});
         setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { ...c, recommendations: result.recommendations || [], isLoading: false, error: result.error } : c));
         if (result.error && result.error !== "OpenAI API key not configured.") { toast.error(`Personalized: ${result.error.substring(0,60)}`); }
       } catch (e: any) {
@@ -157,29 +160,29 @@ export default function MainApp() {
     isLoading: true, 
     error: null,
     fetchFn: async (args) => {
-        console.log(`[MainApp Debug] Fetching personalized recommendations with args:`, args);
+    console.log(`[MainApp Debug] Fetching personalized recommendations with args:`, args);
+    
+    try {
+        const result = await getPersonalizedRecommendationsAction({
+            userProfile: args.userProfile,
+            // Remove watchlistActivity from here since it's not in the API
+            count: args.count || 7,
+            messageId: args.messageId
+        });
         
-        try {
-            const result = await getPersonalizedRecommendationsAction({
-                userProfile: args.userProfile,
-                watchlistActivity: args.watchlistActivity,
-                count: args.count || 7,
-                messageId: args.messageId
-            });
-            
-            console.log(`[MainApp Debug] Personalized recommendations result:`, {
-                count: result.recommendations?.length,
-                error: result.error,
-                firstTitle: result.recommendations?.[0]?.title,
-                firstPosterUrl: result.recommendations?.[0]?.posterUrl?.substring(0, 50) + "..."
-            });
-            
-            return result;
-        } catch (error: any) {
-            console.error(`[MainApp Debug] Personalized recommendations error:`, error);
-            throw error;
-        }
-    },
+        console.log(`[MainApp Debug] Personalized recommendations result:`, {
+            count: result.recommendations?.length,
+            error: result.error,
+            firstTitle: result.recommendations?.[0]?.title,
+            firstPosterUrl: result.recommendations?.[0]?.posterUrl?.substring(0, 50) + "..."
+        });
+        
+        return result;
+    } catch (error: any) {
+        console.error(`[MainApp Debug] Personalized recommendations error:`, error);
+        throw error;
+    }
+},
     fetchArgs: { count: 7, messageId: `foryou-debug-${Date.now()}` },
     reason: "Tailored based on your profile and activity (Debug Mode)."
 };
