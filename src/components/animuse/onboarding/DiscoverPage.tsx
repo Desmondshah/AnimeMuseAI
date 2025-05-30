@@ -461,8 +461,8 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       </div>
     </div>
 
-    {/* Updated grid for mobile 2-column layout */}
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+    {/* Mobile-first 2-column grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
       {filteredAnimeList.map((anime, index) => (
         <div 
           key={anime._id} 
@@ -470,12 +470,25 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           style={{ animationDelay: `${index * 50}ms` }}
         >
           {/* Glow Effect */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           
           <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
             <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+            
+            {/* Title section with better mobile spacing */}
             <div className="p-2 sm:p-3 bg-gradient-to-t from-black/80 to-transparent">
-              <h4 className="text-xs sm:text-sm font-medium text-white text-center truncate leading-tight" title={anime.title}>
+              <h4 
+                className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  lineHeight: '1.2',
+                  maxHeight: '2.4em', // 2 lines max
+                }}
+                title={anime.title}
+              >
                 {anime.title}
               </h4>
             </div>
@@ -484,74 +497,75 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       ))}
     </div>
 
-            {/* Load More Button */}
-            {status === "CanLoadMore" && !hasActiveSearch && (
-              <div className="text-center">
-                <StyledButton 
-                  onClick={() => loadMore(20)} 
-                  disabled={isLoading && status === "LoadingMore"} 
-                  variant="ghost"
-                  className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white !px-8 !py-4"
-                >
-                  {isLoading && status === "LoadingMore" ? "Loading More..." : "🔍 Discover More Anime"}
-                </StyledButton>
-              </div>
-            )}
+    {/* Load More Button */}
+    {status === "CanLoadMore" && !hasActiveSearch && (
+      <div className="text-center">
+        <StyledButton 
+          onClick={() => loadMore(20)} 
+          disabled={isLoading && status === "LoadingMore"} 
+          variant="ghost"
+          className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white !px-8 !py-4"
+        >
+          {isLoading && status === "LoadingMore" ? "Loading More..." : "🔍 Discover More Anime"}
+        </StyledButton>
+      </div>
+    )}
 
-            {status === "Exhausted" && filteredAnimeList.length > 0 && !hasActiveSearch && (
-              <div className="text-center">
-                <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                  <span className="text-white/80 text-sm">✨ You've discovered all available anime!</span>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          status !== "LoadingFirstPage" && (
-            <div className="text-center py-16">
-              <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
-                <div className="text-8xl mb-6 animate-bounce">🔍</div>
-                <h3 className="text-2xl font-heading text-white mb-4">No Anime Found</h3>
-                <p className="text-white/80 text-lg mb-6 leading-relaxed">
-                  {hasActiveSearch 
-                    ? `No anime matches "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.`
-                    : hasActiveFilters 
-                    ? "No anime matches your current filters."
-                    : "The anime database is empty right now."
-                  }
-                </p>
-                <div className="flex flex-wrap gap-3 justify-center">
-                  {hasActiveSearch && (
-                    <StyledButton 
-                      onClick={clearSearch} 
-                      variant="ghost"
-                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-                    >
-                      Clear Search
-                    </StyledButton>
-                  )}
-                  {hasActiveFilters && (
-                    <StyledButton 
-                      onClick={clearFilters} 
-                      variant="ghost"
-                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-                    >
-                      Clear Filters
-                    </StyledButton>
-                  )}
-                  {hasAnyActive && (
-                    <StyledButton 
-                      onClick={clearAll} 
-                      variant="primary_small"
-                    >
-                      Start Fresh
-                    </StyledButton>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        )}
+    {status === "Exhausted" && filteredAnimeList.length > 0 && !hasActiveSearch && (
+      <div className="text-center">
+        <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+          <span className="text-white/80 text-sm">✨ You've discovered all available anime!</span>
+        </div>
+      </div>
+    )}
+  </div>
+) : (
+  // Your existing empty state...
+  status !== "LoadingFirstPage" && (
+    <div className="text-center py-16">
+      <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
+        <div className="text-8xl mb-6 animate-bounce">🔍</div>
+        <h3 className="text-2xl font-heading text-white mb-4">No Anime Found</h3>
+        <p className="text-white/80 text-lg mb-6 leading-relaxed">
+          {hasActiveSearch 
+            ? `No anime matches "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.`
+            : hasActiveFilters 
+            ? "No anime matches your current filters."
+            : "The anime database is empty right now."
+          }
+        </p>
+        <div className="flex flex-wrap gap-3 justify-center">
+          {hasActiveSearch && (
+            <StyledButton 
+              onClick={clearSearch} 
+              variant="ghost"
+              className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+            >
+              Clear Search
+            </StyledButton>
+          )}
+          {hasActiveFilters && (
+            <StyledButton 
+              onClick={clearFilters} 
+              variant="ghost"
+              className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+            >
+              Clear Filters
+            </StyledButton>
+          )}
+          {hasAnyActive && (
+            <StyledButton 
+              onClick={clearAll} 
+              variant="primary_small"
+            >
+              Start Fresh
+            </StyledButton>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+)}
       </div>
     </div>
   );

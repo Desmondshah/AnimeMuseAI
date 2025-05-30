@@ -140,49 +140,51 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
 
         {/* Artistic Mood Selector */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-          <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-            <h2 className="text-2xl sm:text-3xl font-heading text-white mb-6 text-center">Select Your Vibes</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {MOOD_BOARD_CUES.map(cue => {
-                const isSelected = selectedMoodCues.includes(cue.label);
-                return (
-                  <button
-                    key={cue.id}
-                    onClick={() => handleMoodCueToggle(cue.label)}
-                    className={`group relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all duration-300 transform hover:scale-105 ${
-                      isSelected 
-                        ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
-                        : 'hover:shadow-xl hover:shadow-white/20'
-                    }`}
-                  >
-                    {/* Background Gradient */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${cue.color} ${
-                      isSelected ? 'opacity-80' : 'opacity-40'
-                    } transition-opacity duration-300`}></div>
-                    
-                    {/* Selected Ring */}
-                    {isSelected && (
-                      <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl animate-pulse"></div>
-                    )}
-                    
-                    {/* Content */}
-                    <div className="relative z-10 text-center space-y-2">
-                      <div className={`text-3xl sm:text-4xl transition-transform duration-300 ${
-                        isSelected ? 'animate-bounce' : 'group-hover:animate-pulse'
-                      }`}>
-                        {cue.emoji}
-                      </div>
-                      <div className={`text-xs sm:text-sm font-medium transition-colors duration-300 ${
-                        isSelected ? 'text-white' : 'text-white/90'
-                      }`}>
-                        {cue.label}
-                      </div>
-                    </div>
-                    
-                    {/* Hover Effect */}
-                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                  </button>
+  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
+    <h2 className="text-2xl sm:text-3xl font-heading text-white mb-6 text-center">Select Your Vibes</h2>
+    
+    {/* Updated grid for 2 columns on mobile */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+      {MOOD_BOARD_CUES.map(cue => {
+        const isSelected = selectedMoodCues.includes(cue.label);
+        return (
+          <button
+            key={cue.id}
+            onClick={() => handleMoodCueToggle(cue.label)}
+            className={`group relative overflow-hidden rounded-2xl p-3 sm:p-4 md:p-6 transition-all duration-300 transform hover:scale-105 ${
+              isSelected 
+                ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
+                : 'hover:shadow-xl hover:shadow-white/20'
+            }`}
+          >
+            {/* Background Gradient */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${cue.color} ${
+              isSelected ? 'opacity-80' : 'opacity-40'
+            } transition-opacity duration-300`}></div>
+            
+            {/* Selected Ring */}
+            {isSelected && (
+              <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl animate-pulse"></div>
+            )}
+            
+            {/* Content */}
+            <div className="relative z-10 text-center space-y-1 sm:space-y-2">
+              <div className={`text-2xl sm:text-3xl md:text-4xl transition-transform duration-300 ${
+                isSelected ? 'animate-bounce' : 'group-hover:animate-pulse'
+              }`}>
+                {cue.emoji}
+              </div>
+              <div className={`text-xs sm:text-sm font-medium transition-colors duration-300 leading-tight ${
+                isSelected ? 'text-white' : 'text-white/90'
+              }`}>
+                {cue.label}
+              </div>
+            </div>
+            
+            {/* Hover Effect */}
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+          </button>
                 );
               })}
             </div>
@@ -222,47 +224,59 @@ const MoodboardPageComponent: React.FC<MoodboardPageProps> = ({
         
         {/* Results Section */}
         {!isLoadingMoodBoard && moodBoardRecommendations.length > 0 && (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h3 className="text-3xl sm:text-4xl font-heading text-white mb-2">
-                Your Curated Collection
-              </h3>
-              <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full px-6 py-2 backdrop-blur-sm border border-white/10">
-                <span className="text-white/80 text-sm">Vibes:</span>
-                <span className="text-brand-accent-gold font-medium text-sm">
-                  {selectedMoodCues.join(" × ")}
-                </span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 sm:gap-8">
-              {moodBoardRecommendations.map((rec, index) => (
-                <div 
-                  key={`mood-${index}-${rec.title}`} 
-                  className="group relative transform transition-all duration-500 hover:scale-105"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {/* Glow Effect */}
-                  <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                    <AnimeCard 
-                      anime={rec} 
-                      isRecommendation={true} 
-                      onViewDetails={navigateToDetail}
-                      className="w-full"
-                    />
-                    <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h4 className="text-sm font-medium text-white text-center truncate" title={rec.title}>
-                        {rec.title}
-                      </h4>
-                    </div>
-                  </div>
-                </div>
-              ))}
+  <div className="space-y-8">
+    <div className="text-center">
+      <h3 className="text-3xl sm:text-4xl font-heading text-white mb-2">
+        Your Curated Collection
+      </h3>
+      <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full px-6 py-2 backdrop-blur-sm border border-white/10">
+        <span className="text-white/80 text-sm">Vibes:</span>
+        <span className="text-brand-accent-gold font-medium text-sm">
+          {selectedMoodCues.join(" × ")}
+        </span>
+      </div>
+    </div>
+    
+    {/* Updated grid for 2 columns on mobile */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+      {moodBoardRecommendations.map((rec, index) => (
+        <div 
+          key={`mood-${index}-${rec.title}`} 
+          className="group relative transform transition-all duration-500 hover:scale-105"
+          style={{ animationDelay: `${index * 100}ms` }}
+        >
+          {/* Glow Effect */}
+          <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+            <AnimeCard 
+              anime={rec} 
+              isRecommendation={true} 
+              onViewDetails={navigateToDetail}
+              className="w-full"
+            />
+            <div className="p-2 sm:p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <h4 
+                className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  lineHeight: '1.2',
+                  maxHeight: '2.4em',
+                }}
+                title={rec.title}
+              >
+                {rec.title || "Unknown Title"}
+              </h4>
             </div>
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         
         {/* Empty States */}
         {!isLoadingMoodBoard && selectedMoodCues.length > 0 && moodBoardRecommendations.length === 0 && (
