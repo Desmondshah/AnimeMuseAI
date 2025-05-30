@@ -438,6 +438,24 @@ const PerformanceMonitorComponent: React.FC<{
                     {mobileOptimizations.shouldUseSimpleBackgrounds ? 'Simple' : 'Complex'}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Reduced Motion:</span>
+                  <span className={mobileOptimizations.prefersReducedMotion ? 'text-yellow-400' : 'text-green-400'}>
+                    {mobileOptimizations.prefersReducedMotion ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Mobile Device:</span>
+                  <span className={mobileOptimizations.isMobile ? 'text-blue-400' : 'text-gray-400'}>
+                    {mobileOptimizations.isMobile ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Low End Device:</span>
+                  <span className={mobileOptimizations.isLowEndDevice ? 'text-red-400' : 'text-green-400'}>
+                    {mobileOptimizations.isLowEndDevice ? 'Yes' : 'No'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
