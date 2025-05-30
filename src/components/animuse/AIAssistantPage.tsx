@@ -524,27 +524,34 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         <div className="absolute bottom-32 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
         <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
-        
+
         {/* Floating particles */}
         {Array.from({ length: 20 }).map((_, i) => (
-          <FloatingParticle 
-            key={i} 
-            delay={i * 0.5} 
+          <FloatingParticle
+            key={i}
+            delay={i * 0.5}
             size={Math.random() > 0.7 ? "w-3 h-3" : "w-2 h-2"}
             color={
-              Math.random() > 0.6 ? "bg-brand-primary-action/20" :
-              Math.random() > 0.3 ? "bg-brand-accent-gold/20" : "bg-brand-accent-peach/20"
+              Math.random() > 0.6
+                ? "bg-brand-primary-action/20"
+                : Math.random() > 0.3
+                  ? "bg-brand-accent-gold/20"
+                  : "bg-brand-accent-peach/20"
             }
           />
         ))}
-        
+
         {/* Animated grid pattern */}
         <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)',
-            backgroundSize: '50px 50px',
-            animation: 'float 20s ease-in-out infinite'
-          }}></div>
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)",
+              backgroundSize: "50px 50px",
+              animation: "float 20s ease-in-out infinite",
+            }}
+          ></div>
         </div>
       </div>
 
@@ -561,34 +568,42 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
             <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent animate-pulse group-hover:animate-none transition-opacity duration-500"></div>
           </div>
           <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-4">
-            Your intelligent anime companion, ready to discover your next obsession
+            Your intelligent anime companion, ready to discover your next
+            obsession
           </p>
         </div>
 
         {/* AI Mode Selector */}
         <div className="px-4 mb-6">
-  <div className="max-w-6xl mx-auto">
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-      <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-        <h2 className="text-xl sm:text-2xl font-heading text-white text-center mb-6">Choose Your AI Experience</h2>
-        
-        {/* Updated grid with CSS classes for mobile layout */}
-        <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-          {modeConfigs.map((mode, index) => (
-            <ModeCard
-              key={mode.id}
-              mode={mode}
-              isActive={aiMode === mode.id}
-              onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB(""); }}
-              className="ai-mode-card"
-            />
-          ))}
+          <div className="max-w-6xl mx-auto">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                <h2 className="text-xl sm:text-2xl font-heading text-white text-center mb-6">
+                  Choose Your AI Experience
+                </h2>
+
+                {/* Updated grid with CSS classes for mobile layout */}
+                <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                  {modeConfigs.map((mode, index) => (
+                    <ModeCard
+                      key={mode.id}
+                      mode={mode}
+                      isActive={aiMode === mode.id}
+                      onClick={() => {
+                        setAiMode(mode.id as AIMode);
+                        setPrompt("");
+                        setAnimeA("");
+                        setAnimeB("");
+                      }}
+                      className="ai-mode-card"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
         {/* Mode-Specific Controls */}
         <div className="px-4 mb-6">
@@ -597,7 +612,9 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-pink-400/20 rounded-2xl blur-lg"></div>
                 <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-lg font-heading text-white mb-4 text-center">⚖️ Compare Two Anime</h3>
+                  <h3 className="text-lg font-heading text-white mb-4 text-center">
+                    ⚖️ Compare Two Anime
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input
                       type="text"
@@ -622,24 +639,30 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-400/20 rounded-2xl blur-lg"></div>
                 <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-lg font-heading text-white mb-4 text-center">💎 Hidden Gems Settings</h3>
+                  <h3 className="text-lg font-heading text-white mb-4 text-center">
+                    💎 Hidden Gems Settings
+                  </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-white/90 mb-2">Surprise Level:</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2">
+                        Surprise Level:
+                      </label>
                       <div className="flex gap-3 justify-center">
-                        {(["mild", "moderate", "wild"] as const).map(level => (
-                          <button
-                            key={level}
-                            onClick={() => setSurpriseLevel(level)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                              surpriseLevel === level
-                                ? 'bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg'
-                                : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                            }`}
-                          >
-                            {level.charAt(0).toUpperCase() + level.slice(1)}
-                          </button>
-                        ))}
+                        {(["mild", "moderate", "wild"] as const).map(
+                          (level) => (
+                            <button
+                              key={level}
+                              onClick={() => setSurpriseLevel(level)}
+                              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                surpriseLevel === level
+                                  ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg"
+                                  : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"
+                              }`}
+                            >
+                              {level.charAt(0).toUpperCase() + level.slice(1)}
+                            </button>
+                          )
+                        )}
                       </div>
                     </div>
                     <label className="flex items-center justify-center space-x-3 cursor-pointer group">
@@ -649,7 +672,9 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                         onChange={(e) => setAvoidPopular(e.target.checked)}
                         className="w-5 h-5 rounded border-2 border-white/30 bg-transparent checked:bg-brand-primary-action checked:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 transition-all duration-200"
                       />
-                      <span className="text-white/90 group-hover:text-white transition-colors">Avoid mainstream anime</span>
+                      <span className="text-white/90 group-hover:text-white transition-colors">
+                        Avoid mainstream anime
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -664,169 +689,188 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
               <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
-                
-                {chatHistory.length === 0 && !isLoading && chatHistoryLoaded && (
-  <div className="text-center py-8">
-    <div className="text-6xl mb-4 animate-bounce">✨</div>
-    <h3 className="text-xl font-heading text-white mb-4">Ready to discover amazing anime?</h3>
-    <p className="text-white/70 mb-6">Try these {aiMode} prompts to get started:</p>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-      {getModeExamples().slice(0, 4).map((example, idx) => (
-        <button key={idx} onClick={() => handleSubmit(example)} className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">"{example}"</p>
-        </button>
-      ))}
-    </div>
-  </div>
-)}
+                {/* Add Start New Chat button when there ARE chat messages */}
+                {chatHistory.length > 0 && chatHistoryLoaded && (
+                  <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
+                    <span className="text-sm text-white/70">Chat History</span>
+                    <StyledButton
+                      onClick={clearChatHistory}
+                      variant="ghost"
+                      className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
+                    >
+                      🗑️ Start New Chat
+                    </StyledButton>
+                  </div>
+                )}
 
-{/* Add Start New Chat button when there ARE chat messages */}
-{chatHistory.length > 0 && chatHistoryLoaded && (
-  <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
-    <span className="text-sm text-white/70">Chat History</span>
-    <StyledButton
-      onClick={clearChatHistory}
-      variant="ghost"
-      className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
-    >
-      🗑️ Start New Chat
-    </StyledButton>
-  </div>
-)}
+                {!chatHistoryLoaded && (
+                  <div className="text-center py-8">
+                    <ArtisticLoadingSpinner message="Loading your chat history..." />
+                  </div>
+                )}
 
-{!chatHistoryLoaded && (
-  <div className="text-center py-8">
-    <ArtisticLoadingSpinner message="Loading your chat history..." />
-  </div>
-)}
-                <div 
+                {chatHistory.length === 0 &&
+                  !isLoading &&
+                  chatHistoryLoaded && (
+                    <div className="text-center py-8">
+                      <div className="text-6xl mb-4 animate-bounce">✨</div>
+                      <h3 className="text-xl font-heading text-white mb-4">
+                        Ready to discover amazing anime?
+                      </h3>
+                      <p className="text-white/70 mb-6">
+                        Try these {aiMode} prompts to get started:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                        {getModeExamples()
+                          .slice(0, 4)
+                          .map((example, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSubmit(example)}
+                              className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">
+                                "{example}"
+                              </p>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                <div
                   ref={chatContainerRef}
                   className="h-96 overflow-y-auto p-6 space-y-6 custom-scrollbar"
-                  style={{ scrollbarWidth: 'thin' }}
+                  style={{ scrollbarWidth: "thin" }}
                 >
-                  {chatHistory.length === 0 && !isLoading && chatHistoryLoaded && (
-  <div className="text-center py-8">
-    <div className="text-6xl mb-4 animate-bounce">✨</div>
-    <h3 className="text-xl font-heading text-white mb-4">Ready to discover amazing anime?</h3>
-    <p className="text-white/70 mb-6">Try these {aiMode} prompts to get started:</p>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-      {getModeExamples().slice(0, 4).map((example, idx) => (
-        <button key={idx} onClick={() => handleSubmit(example)} className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">"{example}"</p>
-        </button>
-      ))}
-    </div>
-    {/* Add clear history button */}
-    {chatHistory.length > 0 && (
-      <div className="mt-6">
-        <button 
-          onClick={clearChatHistory}
-          className="text-xs text-white/50 hover:text-white/80 transition-colors underline"
-        >
-          Clear chat history
-        </button>
-      </div>
-    )}
-  </div>
-)}
-
-
-{!chatHistoryLoaded && (
-  <div className="text-center py-8">
-    <ArtisticLoadingSpinner message="Loading your chat history..." />
-  </div>
-)}
+                  {!chatHistoryLoaded && (
+                    <div className="text-center py-8">
+                      <ArtisticLoadingSpinner message="Loading your chat history..." />
+                    </div>
+                  )}
 
                   {/* Chat Messages */}
                   {chatHistory.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[85%] ${
-                        msg.type === "user" ? "order-2" : "order-1"
-                      }`}>
-                        <div className={`relative p-4 rounded-2xl shadow-lg ${
-                          msg.type === "user" 
-                            ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white rounded-br-none ml-4"
-                            : msg.type === "error"
-                            ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none mr-4 backdrop-blur-sm"
-                            : "bg-black/40 backdrop-blur-sm text-white border border-white/10 rounded-bl-none mr-4"
-                        }`}>
-                          
-                          {/* Message content */}
-                          <p className="whitespace-pre-wrap leading-relaxed text-sm">{msg.content}</p>
-                          
-                          {/* Enhanced Content Display */}
-                          {msg.type === "ai" && msg.recommendations && msg.recommendations.length > 0 && (
-  <div className="mt-4 space-y-4">
-    {msg.recommendations.map((animeRec, idx) => (
-      <div key={`${msg.id}-rec-${idx}`} className="relative group">
-        <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="relative bg-black/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* FIXED: Smaller poster container with fixed dimensions */}
-            <div className="w-20 h-28 sm:w-16 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
-  <AnimeCard 
-    anime={animeRec} 
-    onViewDetails={navigateToDetail}
-    isRecommendation={true}  // Make sure this is set to true
-    className="w-full h-full"
-  />
-</div>
-            <div className="flex-1 space-y-2 min-w-0"> {/* Added min-w-0 to prevent overflow */}
-              <h4 className="font-heading text-lg text-brand-primary-action font-semibold truncate">
-                {animeRec.title}
-              </h4>
-              {animeRec.year && (
-                <p className="text-xs text-white/70">{animeRec.year}</p>
-              )}
-              {animeRec.description && (
-  <ExpandableText 
-    text={animeRec.description}
-    maxLength={200}
-    className="text-sm text-white/85 leading-relaxed"
-  />
-)}
-{animeRec.reasoning && (
-  <ExpandableText 
-    text={`💡 ${animeRec.reasoning}`}
-    maxLength={150}
-    className="text-sm italic text-brand-accent-gold leading-relaxed"
-  />
-)}
-              {animeRec.genres && animeRec.genres.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {animeRec.genres.slice(0, 4).map((g: string) => (
-                    <span 
-                      key={g} 
-                      className="text-xs bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-2 py-1 rounded-full"
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      {g}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2 pt-2">
-                <StyledButton 
-                  onClick={() => handleAiRecommendationAddToWatchlist(animeRec, "Plan to Watch")} 
-                  variant="primary_small" 
-                  disabled={!isAuthenticated || isLoading}
-                >
-                  📚 Add to Watchlist
-                </StyledButton>
-                {animeRec.trailerUrl && (
-                  <a href={animeRec.trailerUrl} target="_blank" rel="noopener noreferrer">
-                    <StyledButton variant="secondary_small">🎥 Trailer</StyledButton>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+                      <div
+                        className={`max-w-[85%] ${
+                          msg.type === "user" ? "order-2" : "order-1"
+                        }`}
+                      >
+                        <div
+                          className={`relative p-4 rounded-2xl shadow-lg ${
+                            msg.type === "user"
+                              ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white rounded-br-none ml-4"
+                              : msg.type === "error"
+                                ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none mr-4 backdrop-blur-sm"
+                                : "bg-black/40 backdrop-blur-sm text-white border border-white/10 rounded-bl-none mr-4"
+                          }`}
+                        >
+                          {/* Message content */}
+                          <p className="whitespace-pre-wrap leading-relaxed text-sm">
+                            {msg.content}
+                          </p>
+
+                          {/* Enhanced Content Display */}
+                          {msg.type === "ai" &&
+                            msg.recommendations &&
+                            msg.recommendations.length > 0 && (
+                              <div className="mt-4 space-y-4">
+                                {msg.recommendations.map((animeRec, idx) => (
+                                  <div
+                                    key={`${msg.id}-rec-${idx}`}
+                                    className="relative group"
+                                  >
+                                    <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="relative bg-black/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                                      <div className="flex flex-col sm:flex-row gap-4">
+                                        {/* FIXED: Smaller poster container with fixed dimensions */}
+                                        <div className="w-20 h-28 sm:w-16 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                                          <AnimeCard
+                                            anime={animeRec}
+                                            onViewDetails={navigateToDetail}
+                                            isRecommendation={true} // Make sure this is set to true
+                                            className="w-full h-full"
+                                          />
+                                        </div>
+                                        <div className="flex-1 space-y-2 min-w-0">
+                                          {" "}
+                                          {/* Added min-w-0 to prevent overflow */}
+                                          <h4 className="font-heading text-lg text-brand-primary-action font-semibold truncate">
+                                            {animeRec.title}
+                                          </h4>
+                                          {animeRec.year && (
+                                            <p className="text-xs text-white/70">
+                                              {animeRec.year}
+                                            </p>
+                                          )}
+                                          {animeRec.description && (
+                                            <ExpandableText
+                                              text={animeRec.description}
+                                              maxLength={200}
+                                              className="text-sm text-white/85 leading-relaxed"
+                                            />
+                                          )}
+                                          {animeRec.reasoning && (
+                                            <ExpandableText
+                                              text={`💡 ${animeRec.reasoning}`}
+                                              maxLength={150}
+                                              className="text-sm italic text-brand-accent-gold leading-relaxed"
+                                            />
+                                          )}
+                                          {animeRec.genres &&
+                                            animeRec.genres.length > 0 && (
+                                              <div className="flex flex-wrap gap-1">
+                                                {animeRec.genres
+                                                  .slice(0, 4)
+                                                  .map((g: string) => (
+                                                    <span
+                                                      key={g}
+                                                      className="text-xs bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-2 py-1 rounded-full"
+                                                    >
+                                                      {g}
+                                                    </span>
+                                                  ))}
+                                              </div>
+                                            )}
+                                          <div className="flex flex-wrap gap-2 pt-2">
+                                            <StyledButton
+                                              onClick={() =>
+                                                handleAiRecommendationAddToWatchlist(
+                                                  animeRec,
+                                                  "Plan to Watch"
+                                                )
+                                              }
+                                              variant="primary_small"
+                                              disabled={
+                                                !isAuthenticated || isLoading
+                                              }
+                                            >
+                                              📚 Add to Watchlist
+                                            </StyledButton>
+                                            {animeRec.trailerUrl && (
+                                              <a
+                                                href={animeRec.trailerUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                              >
+                                                <StyledButton variant="secondary_small">
+                                                  🎥 Trailer
+                                                </StyledButton>
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
                           {/* Analysis Results Display */}
                           {msg.type === "analysis" && msg.analysis && (
@@ -835,16 +879,24 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                 <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
                                   <span>⚖️</span> Comparative Analysis
                                 </h4>
-                                
+
                                 {msg.analysis.animeA && msg.analysis.animeB && (
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                     <div className="bg-brand-accent-peach/10 p-3 rounded-lg">
-                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">Anime A</h5>
-                                      <p className="text-white/90 text-sm">{msg.analysis.animeA}</p>
+                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">
+                                        Anime A
+                                      </h5>
+                                      <p className="text-white/90 text-sm">
+                                        {msg.analysis.animeA}
+                                      </p>
                                     </div>
                                     <div className="bg-brand-accent-gold/10 p-3 rounded-lg">
-                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">Anime B</h5>
-                                      <p className="text-white/90 text-sm">{msg.analysis.animeB}</p>
+                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">
+                                        Anime B
+                                      </h5>
+                                      <p className="text-white/90 text-sm">
+                                        {msg.analysis.animeB}
+                                      </p>
                                     </div>
                                   </div>
                                 )}
@@ -852,42 +904,67 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                 <div className="space-y-3">
                                   {msg.analysis.plotComparison && (
                                     <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">📖 Plot & Story</h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">{msg.analysis.plotComparison}</p>
+                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
+                                        📖 Plot & Story
+                                      </h6>
+                                      <p className="text-white/85 text-sm leading-relaxed">
+                                        {msg.analysis.plotComparison}
+                                      </p>
                                     </div>
                                   )}
                                   {msg.analysis.characterComparison && (
                                     <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">👥 Characters</h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">{msg.analysis.characterComparison}</p>
+                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
+                                        👥 Characters
+                                      </h6>
+                                      <p className="text-white/85 text-sm leading-relaxed">
+                                        {msg.analysis.characterComparison}
+                                      </p>
                                     </div>
                                   )}
                                   {msg.analysis.visualComparison && (
                                     <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">🎨 Visual Style</h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">{msg.analysis.visualComparison}</p>
+                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
+                                        🎨 Visual Style
+                                      </h6>
+                                      <p className="text-white/85 text-sm leading-relaxed">
+                                        {msg.analysis.visualComparison}
+                                      </p>
                                     </div>
                                   )}
                                   {msg.analysis.overallSummary && (
                                     <div className="bg-brand-primary-action/10 p-3 rounded-lg border border-brand-primary-action/30">
-                                      <h6 className="font-semibold text-brand-primary-action text-sm mb-1">🎯 Summary</h6>
-                                      <p className="text-white/90 text-sm leading-relaxed">{msg.analysis.overallSummary}</p>
+                                      <h6 className="font-semibold text-brand-primary-action text-sm mb-1">
+                                        🎯 Summary
+                                      </h6>
+                                      <p className="text-white/90 text-sm leading-relaxed">
+                                        {msg.analysis.overallSummary}
+                                      </p>
                                     </div>
                                   )}
                                 </div>
 
-                                {msg.analysis.recommendations && Array.isArray(msg.analysis.recommendations) && msg.analysis.recommendations.length > 0 && (
-                                  <div className="mt-4 pt-3 border-t border-white/10">
-                                    <h6 className="font-semibold text-brand-accent-gold text-sm mb-2">💡 You Might Also Like</h6>
-                                    <div className="flex flex-wrap gap-2">
-                                      {msg.analysis.recommendations.map((rec: string, idx: number) => (
-                                        <span key={idx} className="bg-brand-accent-gold/20 text-brand-accent-gold text-xs px-2 py-1 rounded-full">
-                                          {rec}
-                                        </span>
-                                      ))}
+                                {msg.analysis.recommendations &&
+                                  Array.isArray(msg.analysis.recommendations) &&
+                                  msg.analysis.recommendations.length > 0 && (
+                                    <div className="mt-4 pt-3 border-t border-white/10">
+                                      <h6 className="font-semibold text-brand-accent-gold text-sm mb-2">
+                                        💡 You Might Also Like
+                                      </h6>
+                                      <div className="flex flex-wrap gap-2">
+                                        {msg.analysis.recommendations.map(
+                                          (rec: string, idx: number) => (
+                                            <span
+                                              key={idx}
+                                              className="bg-brand-accent-gold/20 text-brand-accent-gold text-xs px-2 py-1 rounded-full"
+                                            >
+                                              {rec}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             </div>
                           )}
@@ -897,12 +974,16 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                             <div className="mt-4 space-y-3">
                               <div className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                                 <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
-                                  <span>📚</span> {msg.guide.franchiseName || 'Franchise'} Watch Guide
+                                  <span>📚</span>{" "}
+                                  {msg.guide.franchiseName || "Franchise"} Watch
+                                  Guide
                                 </h4>
 
                                 {msg.guide.overview && (
                                   <div className="bg-brand-accent-peach/10 p-3 rounded-lg mb-4">
-                                    <p className="text-white/90 text-sm leading-relaxed">{msg.guide.overview}</p>
+                                    <p className="text-white/90 text-sm leading-relaxed">
+                                      {msg.guide.overview}
+                                    </p>
                                   </div>
                                 )}
 
@@ -914,65 +995,95 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                   </div>
                                 )}
 
-                                {msg.guide.recommendedOrder && msg.guide.recommendedOrder.length > 0 && (
-                                  <div className="space-y-3">
-                                    <h5 className="font-semibold text-brand-accent-gold text-base">🎯 Recommended Watch Order</h5>
-                                    {msg.guide.recommendedOrder.map((item: any, idx: number) => (
-                                      <div key={idx} className="bg-white/5 p-3 rounded-lg border-l-4 border-brand-primary-action">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="bg-brand-primary-action text-white text-xs font-bold px-2 py-1 rounded-full min-w-[24px] text-center">
-                                            {idx + 1}
-                                          </span>
-                                          <h6 className="font-semibold text-white text-sm">{item.title}</h6>
-                                          <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-                                            {item.type}, {item.year}
-                                          </span>
-                                        </div>
-                                        <p className="text-white/80 text-sm leading-relaxed mb-2 ml-8">{item.description}</p>
-                                        <div className="flex items-center gap-3 ml-8">
-                                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                            item.importance === 'Essential' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                                            item.importance === 'Recommended' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                                            'bg-green-500/20 text-green-300 border border-green-500/30'
-                                          }`}>
-                                            {item.importance}
-                                          </span>
-                                          <span className="text-xs text-white/60">
-                                            Accessibility: {item.accessibilityRating}/5
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                {msg.guide.recommendedOrder &&
+                                  msg.guide.recommendedOrder.length > 0 && (
+                                    <div className="space-y-3">
+                                      <h5 className="font-semibold text-brand-accent-gold text-base">
+                                        🎯 Recommended Watch Order
+                                      </h5>
+                                      {msg.guide.recommendedOrder.map(
+                                        (item: any, idx: number) => (
+                                          <div
+                                            key={idx}
+                                            className="bg-white/5 p-3 rounded-lg border-l-4 border-brand-primary-action"
+                                          >
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="bg-brand-primary-action text-white text-xs font-bold px-2 py-1 rounded-full min-w-[24px] text-center">
+                                                {idx + 1}
+                                              </span>
+                                              <h6 className="font-semibold text-white text-sm">
+                                                {item.title}
+                                              </h6>
+                                              <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
+                                                {item.type}, {item.year}
+                                              </span>
+                                            </div>
+                                            <p className="text-white/80 text-sm leading-relaxed mb-2 ml-8">
+                                              {item.description}
+                                            </p>
+                                            <div className="flex items-center gap-3 ml-8">
+                                              <span
+                                                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                                  item.importance ===
+                                                  "Essential"
+                                                    ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                                                    : item.importance ===
+                                                        "Recommended"
+                                                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                                                      : "bg-green-500/20 text-green-300 border border-green-500/30"
+                                                }`}
+                                              >
+                                                {item.importance}
+                                              </span>
+                                              <span className="text-xs text-white/60">
+                                                Accessibility:{" "}
+                                                {item.accessibilityRating}/5
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
 
-                                {msg.guide.tips && msg.guide.tips.length > 0 && (
-                                  <div className="mt-4 pt-3 border-t border-white/10">
-                                    <h6 className="font-semibold text-brand-accent-gold text-sm mb-2 flex items-center gap-1">
-                                      <span>💡</span> Pro Tips
-                                    </h6>
-                                    <ul className="space-y-1">
-                                      {msg.guide.tips.map((tip: string, idx: number) => (
-                                        <li key={idx} className="text-white/80 text-sm leading-relaxed flex items-start gap-2">
-                                          <span className="text-brand-accent-gold mt-1">•</span>
-                                          <span>{tip}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                {msg.guide.tips &&
+                                  msg.guide.tips.length > 0 && (
+                                    <div className="mt-4 pt-3 border-t border-white/10">
+                                      <h6 className="font-semibold text-brand-accent-gold text-sm mb-2 flex items-center gap-1">
+                                        <span>💡</span> Pro Tips
+                                      </h6>
+                                      <ul className="space-y-1">
+                                        {msg.guide.tips.map(
+                                          (tip: string, idx: number) => (
+                                            <li
+                                              key={idx}
+                                              className="text-white/80 text-sm leading-relaxed flex items-start gap-2"
+                                            >
+                                              <span className="text-brand-accent-gold mt-1">
+                                                •
+                                              </span>
+                                              <span>{tip}</span>
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Feedback buttons */}
-                          {(msg.type === "ai" || msg.type === "analysis" || msg.type === "guide" || msg.type === "error") && (
+                          {(msg.type === "ai" ||
+                            msg.type === "analysis" ||
+                            msg.type === "guide" ||
+                            msg.type === "error") && (
                             <div className="mt-3 flex justify-end gap-2">
                               <button
                                 onClick={() => handleFeedback(msg.id, "up")}
                                 className={`p-2 rounded-full text-sm transition-all duration-200 ${
-                                  msg.feedback === "up" 
-                                    ? "bg-brand-primary-action text-white shadow-lg" 
+                                  msg.feedback === "up"
+                                    ? "bg-brand-primary-action text-white shadow-lg"
                                     : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
                                 }`}
                                 disabled={!isAuthenticated || isLoading}
@@ -982,8 +1093,8 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                               <button
                                 onClick={() => handleFeedback(msg.id, "down")}
                                 className={`p-2 rounded-full text-sm transition-all duration-200 ${
-                                  msg.feedback === "down" 
-                                    ? "bg-red-500 text-white shadow-lg" 
+                                  msg.feedback === "down"
+                                    ? "bg-red-500 text-white shadow-lg"
                                     : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
                                 }`}
                                 disabled={!isAuthenticated || isLoading}
@@ -1009,41 +1120,55 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
                 {/* Input Area */}
                 <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-4 pb-safe-bottom">
-  <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-    {(aiMode === "compare" || aiMode === "hidden_gems") ? (
-      <div className="flex-1 text-center text-sm text-white/60 italic py-3">
-        Use controls above and hit Send ✨
-      </div>
-    ) : (
-      <div className="flex-1 relative">
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder={aiMode === "franchise" ? "Enter franchise name..." : "Ask AniMuse anything..."}
-          className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300
+                  <form
+                    onSubmit={handleSubmit}
+                    className="flex gap-3 items-end"
+                  >
+                    {aiMode === "compare" || aiMode === "hidden_gems" ? (
+                      <div className="flex-1 text-center text-sm text-white/60 italic py-3">
+                        Use controls above and hit Send ✨
+                      </div>
+                    ) : (
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder={
+                            aiMode === "franchise"
+                              ? "Enter franchise name..."
+                              : "Ask AniMuse anything..."
+                          }
+                          className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300
             text-base" // Prevent zoom on iOS
-          disabled={isLoading || authIsLoading || !isAuthenticated}
-          style={{
-            fontSize: '16px', // Prevent iOS zoom
-          }}
-        />
+                          disabled={
+                            isLoading || authIsLoading || !isAuthenticated
+                          }
+                          style={{
+                            fontSize: "16px", // Prevent iOS zoom
+                          }}
+                        />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
                           ✨
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="relative group">
-      <StyledButton
-        type="submit"
-        variant="primary"
-        className="relative !px-4 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500
+                      <StyledButton
+                        type="submit"
+                        variant="primary"
+                        className="relative !px-4 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500
           touch-manipulation min-h-[44px] min-w-[44px]" // iOS minimum touch target
-        disabled={
-                          isLoading || authIsLoading || !isAuthenticated || 
-                          (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : 
-                           aiMode === "hidden_gems" ? false : !prompt.trim())
+                        disabled={
+                          isLoading ||
+                          authIsLoading ||
+                          !isAuthenticated ||
+                          (aiMode === "compare"
+                            ? !animeA.trim() || !animeB.trim()
+                            : aiMode === "hidden_gems"
+                              ? false
+                              : !prompt.trim())
                         }
                       >
                         {isLoading ? (
@@ -1057,7 +1182,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                       </StyledButton>
                     </div>
                   </form>
-                  
+
                   {!isAuthenticated && !authIsLoading && (
                     <p className="text-xs text-brand-accent-gold mt-2 text-center">
                       Please log in to chat with AniMuse AI ✨
@@ -1073,14 +1198,19 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       {/* Custom CSS for animations */}
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+          }
         }
-        
+
         .animate-spin-reverse {
           animation: spin 1s linear infinite reverse;
         }
-        
+
         .line-clamp-3 {
           display: -webkit-box;
           -webkit-line-clamp: 3;
