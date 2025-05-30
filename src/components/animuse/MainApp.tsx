@@ -155,7 +155,7 @@ export default function MainApp() {
     if (userProfile && userProfile.onboardingCompleted && !hasFetchedForYou && currentView === "dashboard") {
       const personalizedCategorySetup: ForYouCategory = {
     id: "generalPersonalized", 
-    title: "✨ Personalized For You (Debug)", 
+    title: "✨ Personalized For You", 
     recommendations: [], 
     isLoading: true, 
     error: null,
