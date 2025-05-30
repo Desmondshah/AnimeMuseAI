@@ -138,8 +138,9 @@ const ModeCard: React.FC<{
   mode: { id: string; label: string; desc: string; icon: string; gradient: string };
   isActive: boolean;
   onClick: () => void;
-}> = memo(({ mode, isActive, onClick }) => (
-  <div className="group relative">
+  className?: string;
+}> = memo(({ mode, isActive, onClick, className }) => (
+  <div className={`group relative ${className || ''}`}>
     {/* Glow effect */}
     <div className={`absolute -inset-2 bg-gradient-to-r ${mode.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-300 ${isActive ? 'opacity-40' : ''}`}></div>
     
@@ -157,11 +158,11 @@ const ModeCard: React.FC<{
       </div>
       
       <div className="relative z-10 text-center space-y-2">
-        <div className={`text-3xl transition-transform duration-300 ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>
+        <div className={`mode-icon text-3xl transition-transform duration-300 ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>
           {mode.icon}
         </div>
-        <div className="text-sm font-medium text-white/90">{mode.label}</div>
-        <div className="text-xs text-white/60 leading-relaxed">{mode.desc}</div>
+        <div className="mode-label text-sm font-medium text-white/90">{mode.label}</div>
+        <div className="mode-desc text-xs text-white/60 leading-relaxed">{mode.desc}</div>
       </div>
       
       {/* Selection indicator */}
@@ -566,25 +567,28 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
         {/* AI Mode Selector */}
         <div className="px-4 mb-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-                <h2 className="text-2xl font-heading text-white text-center mb-6">Choose Your AI Experience</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-                  {modeConfigs.map((mode) => (
-                    <ModeCard
-                      key={mode.id}
-                      mode={mode}
-                      isActive={aiMode === mode.id}
-                      onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB(""); }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+  <div className="max-w-6xl mx-auto">
+    <div className="relative">
+      <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
+      <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+        <h2 className="text-xl sm:text-2xl font-heading text-white text-center mb-6">Choose Your AI Experience</h2>
+        
+        {/* Updated grid with CSS classes for mobile layout */}
+        <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+          {modeConfigs.map((mode, index) => (
+            <ModeCard
+              key={mode.id}
+              mode={mode}
+              isActive={aiMode === mode.id}
+              onClick={() => { setAiMode(mode.id as AIMode); setPrompt(""); setAnimeA(""); setAnimeB(""); }}
+              className="ai-mode-card"
+            />
+          ))}
         </div>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Mode-Specific Controls */}
         <div className="px-4 mb-6">
