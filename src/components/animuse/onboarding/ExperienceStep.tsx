@@ -60,40 +60,45 @@ interface ExperienceStepProps {
 
 // Mobile-optimized experience card
 const ExperienceCard: React.FC<{
-  experience: typeof EXPERIENCE_LEVELS[0];
+  experience: typeof EXPERIENCE_LEVELS[0]; // Make sure EXPERIENCE_LEVELS is defined
   isSelected: boolean;
   onSelect: () => void;
-  index: number;
+  index: number; // Assuming index is still passed for potential animation delays if any
   isMobile: boolean;
 }> = ({ experience, isSelected, onSelect, index, isMobile }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  
+  const [isHovered, setIsHovered] = useState(false); // For desktop hover state
+
+  // --- MOBILE CARD IMPLEMENTATION ---
   if (isMobile) {
-    // Mobile layout - full width cards with better text layout
     return (
       <div className="w-full">
-        {/* Simplified glow effect for mobile */}
+        {/* Visual indicator for selection (e.g., glow), does not affect layout/interaction layer */}
         {isSelected && (
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-2xl blur-sm"></div>
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-2xl blur-sm pointer-events-none"></div>
         )}
-        
         <button
           onClick={onSelect}
-          className={`relative w-full p-4 rounded-2xl border transition-all duration-200 ${
-            isSelected 
-              ? `bg-gradient-to-r ${experience.color} bg-opacity-20 border-white/40 text-white` 
-              : 'bg-black/40 border-white/20 text-white/90'
-          }`}
+          className={`
+            relative w-full p-4 rounded-2xl border transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-offset-2 focus:ring-offset-brand-background 
+            /* --- Z-INDEX STRATEGY FOR MOBILE --- */
+            ${isSelected
+              ? 'z-0' // Selected card is at base interactive layer
+              : 'z-10 active:z-20 active:scale-105' // Non-selected is above selected; active non-selected is highest & scales
+            }
+            /* --- STYLING BASED ON SELECTION --- */
+            ${isSelected
+              ? `bg-gradient-to-r ${experience.color} bg-opacity-20 border-white/40 text-white`
+              : 'bg-black/40 border-white/20 text-white/90 hover:bg-black/50' // Subtle hover for non-selected
+            }
+          `}
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          {/* Main content row */}
+          {/* Main content row (Emoji, Label, Badge, Level) */}
           <div className="flex items-center gap-3">
-            {/* Emoji */}
-            <div className={`text-3xl flex-shrink-0 ${isSelected ? 'animate-pulse' : ''}`}>
+            <div className={`text-3xl flex-shrink-0 ${isSelected && !isHovered ? 'animate-pulse' : ''}`}>
               {experience.emoji}
             </div>
-            
-            {/* Text content */}
             <div className="flex-1 text-left">
               <div className="flex items-center justify-between">
                 <div>
@@ -104,24 +109,19 @@ const ExperienceCard: React.FC<{
                     {experience.badge}
                   </p>
                 </div>
-                
-                {/* Level indicator */}
                 <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r ${experience.color} flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
                   Lv.{experience.level}
                 </div>
               </div>
-              
-              {/* Description - always visible on mobile */}
               <p className="text-xs text-white/80 mt-2 leading-relaxed">
                 {experience.description}
               </p>
             </div>
           </div>
-          
-          {/* Expandable section for traits and recommendation */}
+
+          {/* Expandable section for traits and recommendation (only if selected) */}
           {isSelected && (
             <div className="mt-3 pt-3 border-t border-white/20 space-y-2 animate-fade-in">
-              {/* Traits */}
               <div className="flex flex-wrap gap-1">
                 {experience.traits.map((trait) => (
                   <span
@@ -132,17 +132,15 @@ const ExperienceCard: React.FC<{
                   </span>
                 ))}
               </div>
-              
-              {/* Recommendation */}
               <p className="text-xs text-white/90 italic">
                 💡 {experience.recommendation}
               </p>
             </div>
           )}
-          
-          {/* Selection Indicator */}
+
+          {/* Selection Indicator Icon */}
           {isSelected && (
-            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white rounded-full border-2 border-current flex items-center justify-center shadow-lg">
+            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white rounded-full border-2 border-current flex items-center justify-center shadow-lg pointer-events-none">
               <svg className="w-3 h-3 text-current" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
               </svg>
@@ -152,40 +150,49 @@ const ExperienceCard: React.FC<{
       </div>
     );
   }
-  
-  // Desktop layout - original card design
+
+  // --- DESKTOP CARD IMPLEMENTATION ---
   return (
     <div className="group relative w-full">
-      {/* Desktop glow effect */}
-      <div className={`absolute -inset-2 bg-gradient-to-r ${experience.color} rounded-3xl blur-xl transition-all duration-300 ${
-        isSelected 
-          ? 'opacity-80' 
-          : isHovered 
-          ? 'opacity-40' 
+      {/* Desktop glow effect (visual only, pointer-events-none) */}
+      <div className={`absolute -inset-2 bg-gradient-to-r ${experience.color} rounded-3xl blur-xl transition-all duration-300 pointer-events-none ${
+        (isSelected && !isHovered) // Persistent but subtle glow for selected
+          ? 'opacity-50'
+          : isHovered // Stronger glow on hover
+          ? 'opacity-40 scale-105' // Match hover scale for glow
           : 'opacity-0'
       }`}></div>
       
-      {/* Selection ring */}
-      {isSelected && (
-        <div className="absolute -inset-1 bg-gradient-to-r from-white/40 to-white/20 rounded-3xl"></div>
+      {/* Selection ring for selected items (visual cue without scaling, pointer-events-none) */}
+      {isSelected && !isHovered && (
+        <div className="absolute -inset-1 bg-gradient-to-r from-white/40 to-white/20 rounded-3xl pointer-events-none"></div>
       )}
       
       <button
         onClick={onSelect}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`relative w-full p-6 rounded-3xl border transition-all duration-300 transform hover:scale-105 ${
-          isSelected 
-            ? `bg-gradient-to-br ${experience.color} border-white/30 text-white shadow-xl` 
+        className={`
+          relative w-full p-6 rounded-3xl border transition-all duration-300 transform 
+          focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-offset-2 focus:ring-offset-brand-background
+          /* --- Z-INDEX STRATEGY FOR DESKTOP --- */
+          ${isSelected
+            ? 'z-0' // Selected card: base interactive layer
+            : 'z-10 hover:z-20 hover:scale-105' // Non-selected: above selected; hovered non-selected is highest & scales
+          }
+          /* --- STYLING BASED ON SELECTION --- */
+          ${isSelected 
+            ? `bg-gradient-to-br ${experience.color} border-white/30 text-white shadow-xl`
             : 'bg-black/40 backdrop-blur-sm border-white/20 hover:border-white/40 hover:bg-black/60 text-white/90'
-        }`}
+          }
+        `}
       >
-        <div className="relative z-10 space-y-4">
-          {/* Header */}
+        {/* Desktop card content (Emoji, Label, Badge, Level, Description, Traits, Recommendation) */}
+        <div className="relative z-10 space-y-4"> {/* Ensure content is above potential pseudo-elements if any */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <div className={`text-4xl flex-shrink-0 transition-transform duration-300 ${
-                isSelected ? 'animate-bounce' : ''
+                isSelected && !isHovered ? 'animate-bounce' : '' 
               }`}>
                 {experience.emoji}
               </div>
@@ -196,19 +203,13 @@ const ExperienceCard: React.FC<{
                 <p className="text-xs opacity-80">{experience.badge}</p>
               </div>
             </div>
-            
-            {/* Level Badge */}
             <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${experience.color} flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0`}>
               <span className="text-sm">{experience.level}</span>
             </div>
           </div>
-          
-          {/* Description */}
           <p className="text-sm leading-relaxed opacity-80">
             {experience.description}
           </p>
-          
-          {/* Traits */}
           <div className="flex flex-wrap gap-2">
             {experience.traits.map((trait) => (
               <span
@@ -223,8 +224,6 @@ const ExperienceCard: React.FC<{
               </span>
             ))}
           </div>
-          
-          {/* Recommendation - show when selected */}
           {isSelected && (
             <div className="pt-3 border-t border-white/20 animate-fade-in">
               <p className="text-xs opacity-80 italic leading-relaxed">
@@ -234,9 +233,9 @@ const ExperienceCard: React.FC<{
           )}
         </div>
         
-        {/* Selection Indicator */}
+        {/* Selection Indicator Icon */}
         {isSelected && (
-          <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full border-4 border-current flex items-center justify-center shadow-lg">
+          <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full border-4 border-current flex items-center justify-center shadow-lg pointer-events-none">
             <svg className="w-4 h-4 text-current" fill="currentColor" viewBox="0 0 20 20">
               <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
             </svg>
