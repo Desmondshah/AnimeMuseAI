@@ -687,3 +687,541 @@ body {
   gap: 1rem;
   contain: layout;
 }
+
+/* Add these styles to your src/index.css file to improve mobile theme organization */
+
+/* ===== MOBILE THEME SELECTION OPTIMIZATIONS ===== */
+
+/* Base mobile grid improvements */
+@media (max-width: 640px) {
+  /* Force consistent 2-column layout for all theme grids */
+  .theme-selection-grid,
+  .mood-selection-grid,
+  .genre-selection-grid,
+  .experience-selection-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important; /* 12px gap */
+    padding: 0 0.5rem !important; /* Add horizontal padding */
+    max-height: none !important; /* Remove height restrictions on mobile */
+    overflow-y: visible !important; /* Show all items without scroll */
+  }
+
+  /* Compact card design for mobile */
+  .theme-card,
+  .mood-card,
+  .genre-card {
+    padding: 0.75rem !important; /* 12px padding */
+    border-radius: 1rem !important; /* 16px rounded corners */
+    min-height: auto !important;
+    transition: transform 0.2s ease !important; /* Faster animations */
+  }
+
+  /* Simplify visual effects on mobile */
+  .theme-card::before,
+  .mood-card::before,
+  .genre-card::before {
+    display: none !important; /* Remove glow effects */
+  }
+
+  /* Organize emoji and text layout */
+  .theme-card-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.25rem !important; /* 4px gap */
+    text-align: center !important;
+  }
+
+  /* Optimize emoji size */
+  .theme-emoji,
+  .mood-emoji,
+  .genre-emoji {
+    font-size: 1.5rem !important; /* 24px */
+    line-height: 1 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* Optimize text size and spacing */
+  .theme-label,
+  .mood-label,
+  .genre-label {
+    font-size: 0.75rem !important; /* 12px */
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Hide descriptions on small screens to reduce clutter */
+  .theme-description,
+  .mood-description,
+  .genre-description {
+    display: none !important;
+  }
+
+  /* Selection indicator optimization */
+  .selection-indicator {
+    width: 1rem !important; /* 16px */
+    height: 1rem !important;
+    top: -0.25rem !important;
+    right: -0.25rem !important;
+    border-width: 1.5px !important;
+  }
+
+  .selection-indicator svg {
+    width: 0.625rem !important; /* 10px */
+    height: 0.625rem !important;
+  }
+
+  /* Header section improvements */
+  .step-header-section {
+    margin-bottom: 1.5rem !important; /* 24px */
+    padding: 0 1rem !important;
+  }
+
+  .step-title {
+    font-size: 1.5rem !important; /* 24px */
+    line-height: 1.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .step-subtitle {
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Counter badge organization */
+  .selection-counter {
+    font-size: 0.75rem !important; /* 12px */
+    padding: 0.375rem 1rem !important; /* 6px 16px */
+    border-radius: 9999px !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Search filter improvements */
+  .search-filter-input {
+    font-size: 0.875rem !important; /* 14px */
+    padding: 0.5rem 2rem !important; /* 8px 32px */
+    border-radius: 9999px !important;
+    margin-bottom: 1rem !important;
+    width: 100% !important;
+    max-width: 20rem !important; /* 320px */
+  }
+}
+
+/* Very small screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  .theme-selection-grid,
+  .mood-selection-grid,
+  .genre-selection-grid {
+    gap: 0.5rem !important; /* 8px gap */
+    padding: 0 0.25rem !important;
+  }
+
+  .theme-card,
+  .mood-card,
+  .genre-card {
+    padding: 0.625rem !important; /* 10px */
+    border-radius: 0.75rem !important; /* 12px */
+  }
+
+  .theme-emoji,
+  .mood-emoji,
+  .genre-emoji {
+    font-size: 1.25rem !important; /* 20px */
+  }
+
+  .theme-label,
+  .mood-label,
+  .genre-label {
+    font-size: 0.6875rem !important; /* 11px */
+  }
+
+  .step-title {
+    font-size: 1.25rem !important; /* 20px */
+  }
+}
+
+/* Landscape orientation fixes */
+@media (max-width: 812px) and (orientation: landscape) {
+  .theme-selection-grid,
+  .mood-selection-grid,
+  .genre-selection-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Touch interaction improvements */
+@media (hover: none) and (pointer: coarse) {
+  .theme-card,
+  .mood-card,
+  .genre-card {
+    /* Ensure adequate touch targets */
+    min-height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    /* Remove hover effects on touch devices */
+    &:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    
+    /* Add active state for touch feedback */
+    &:active {
+      transform: scale(0.98) !important;
+      opacity: 0.9 !important;
+    }
+  }
+}
+
+/* Improved selected state visibility */
+@media (max-width: 640px) {
+  .theme-card.selected,
+  .mood-card.selected,
+  .genre-card.selected {
+    border-width: 2px !important;
+    border-color: #FF6B35 !important; /* brand-primary-action */
+    background-color: rgba(255, 107, 53, 0.15) !important;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2) !important;
+  }
+}
+
+/* Disable complex animations on mobile */
+@media (max-width: 640px) {
+  .animate-bounce {
+    animation: none !important;
+  }
+  
+  .animate-pulse {
+    animation: simple-pulse 2s ease-in-out infinite !important;
+  }
+  
+  @keyframes simple-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+}
+
+/* Quick selection presets - better organization */
+@media (max-width: 640px) {
+  .quick-selection-presets {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    justify-content: center !important;
+    margin-top: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+  
+  .preset-button {
+    font-size: 0.75rem !important; /* 12px */
+    padding: 0.375rem 0.75rem !important; /* 6px 12px */
+    border-radius: 9999px !important;
+    white-space: nowrap !important;
+  }
+}
+
+
+
+/* Feedback messages - better positioning */
+@media (max-width: 640px) {
+  .feedback-message {
+    margin: 1rem 0.5rem !important;
+    padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Scrollbar hiding on mobile for cleaner look */
+@media (max-width: 640px) {
+  .theme-selection-grid::-webkit-scrollbar,
+  .mood-selection-grid::-webkit-scrollbar,
+  .genre-selection-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+  
+  .theme-selection-grid,
+  .mood-selection-grid,
+  .genre-selection-grid {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
+
+/* Bottom spacing for navigation */
+@media (max-width: 640px) {
+  .step-content-wrapper {
+    padding-bottom: 1.5rem !important; /* Space for navigation buttons */
+  }
+}
+
+/* Improve visual hierarchy with sections */
+@media (max-width: 640px) {
+  .section-divider {
+    height: 1px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    margin: 1.5rem 0 !important;
+  }
+  
+  .section-header {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 0.75rem !important;
+    padding: 0 0.5rem !important;
+  }
+}
+
+/* Add these additional styles to your src/index.css for the Experience Level component */
+
+/* ===== EXPERIENCE LEVEL MOBILE OPTIMIZATIONS ===== */
+
+/* Mobile-specific layout for experience cards */
+@media (max-width: 640px) {
+  /* Full-width card layout on mobile */
+  .experience-step-container {
+    padding: 0 0.5rem;
+  }
+
+  /* Experience cards on mobile */
+  .experience-card-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    min-height: auto;
+    width: 100%;
+  }
+
+  /* Ensure text doesn't get cut off */
+  .experience-card-mobile .text-content {
+    flex: 1;
+    min-width: 0; /* Important for text truncation */
+  }
+
+  .experience-card-mobile h4 {
+    font-size: 1rem;
+    line-height: 1.25rem;
+    margin-bottom: 0.125rem;
+    word-wrap: break-word;
+  }
+
+  .experience-card-mobile .badge-text {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+  }
+
+  .experience-card-mobile .description {
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    opacity: 0.8;
+    display: block; /* Always show on mobile */
+  }
+
+  /* Level indicator positioning */
+  .experience-card-mobile .level-badge {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* Traits layout */
+  .experience-traits-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .experience-traits-mobile span {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* Selected state enhancements */
+  .experience-card-mobile.selected {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(176, 137, 104, 0.15));
+    border-color: rgba(255, 107, 53, 0.6);
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
+  }
+
+  /* Animation improvements */
+  .experience-card-mobile .emoji {
+    transition: transform 0.3s ease;
+  }
+
+  .experience-card-mobile.selected .emoji {
+    animation: gentle-bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes gentle-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* Progress bar on mobile */
+  .experience-progress-mobile {
+    margin: 1rem auto;
+    max-width: 280px;
+  }
+
+  /* Quick guide section */
+  .experience-quick-guide {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .experience-quick-guide-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    font-size: 0.75rem;
+    transition: color 0.2s ease;
+  }
+
+  .experience-quick-guide-item.active {
+    color: #FF6B35;
+    font-weight: 500;
+  }
+}
+
+/* Tablet optimization (portrait) */
+@media (min-width: 641px) and (max-width: 768px) {
+  .experience-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .experience-card {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
+
+/* Very small screens optimization */
+@media (max-width: 375px) {
+  .experience-card-mobile {
+    padding: 0.875rem;
+  }
+
+  .experience-card-mobile h4 {
+    font-size: 0.9375rem;
+  }
+
+  .experience-card-mobile .description {
+    font-size: 0.6875rem;
+    line-height: 1.125rem;
+  }
+
+  .experience-card-mobile .level-badge {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.75rem;
+  }
+
+  .experience-traits-mobile span {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* Landscape orientation fixes */
+@media (max-width: 812px) and (orientation: landscape) {
+  .experience-step-container {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .experience-card-mobile {
+    padding: 0.75rem;
+  }
+
+  .experience-card-mobile .description {
+    font-size: 0.6875rem;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .experience-card-mobile,
+  .experience-card-mobile * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .experience-card-mobile {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .experience-card-mobile.selected {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(176, 137, 104, 0.2));
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .experience-card-mobile {
+    border-width: 2px;
+  }
+
+  .experience-card-mobile.selected {
+    border-width: 3px;
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+  }
+}
+
+/* Touch target optimization */
+@supports (padding: max(0px)) {
+  .experience-card-mobile {
+    min-height: max(60px, env(safe-area-inset-bottom));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Font loading optimization */
+.experience-card-mobile {
+  font-display: swap;
+}
+
+/* Smooth scrolling for the container */
+@media (max-width: 640px) {
+  .experience-step-scroll-container {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Focus styles for accessibility */
+.experience-card-mobile:focus-within {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .experience-card-mobile {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

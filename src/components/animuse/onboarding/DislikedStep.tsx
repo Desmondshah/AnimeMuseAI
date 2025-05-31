@@ -1,4 +1,4 @@
-// src/components/animuse/onboarding/DislikedStep.tsx - Advanced Artistic Version
+// src/components/animuse/onboarding/DislikedStep.tsx - Mobile-Optimized Version
 import React, { useState, useEffect } from "react";
 import StyledButton from "../shared/StyledButton";
 
@@ -32,29 +32,19 @@ interface DislikedStepProps {
   updateData: (data: { dislikedGenres: string[]; dislikedTags?: string[] }) => void;
 }
 
-// Floating "Avoid" Particle
-const AvoidParticle: React.FC<{ delay?: number }> = ({ delay = 0 }) => (
-  <div 
-    className="absolute animate-ping"
-    style={{ 
-      animationDelay: `${delay}s`, 
-      left: `${Math.random() * 100}%`, 
-      top: `${Math.random() * 100}%`,
-      animationDuration: `${3 + Math.random() * 2}s`
-    }}
-  >
-    <span className="text-lg opacity-40">🚫</span>
-  </div>
-);
-
 export default function DislikedStep({ data, updateData }: DislikedStepProps) {
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
-  const [particles, setParticles] = useState<number[]>([]);
   const [showOptional, setShowOptional] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Generate avoid particles
-    setParticles(Array.from({ length: 8 }, (_, i) => i));
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const toggleDislikedGenre = (genre: string) => {
@@ -67,65 +57,59 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
   const selectedCount = data.dislikedGenres.length;
 
   return (
-    <div className="relative min-h-[400px] space-y-6">
-      {/* Floating Background Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Base ambient effects with warning colors */}
-        <div className="absolute top-4 left-8 w-20 h-20 bg-gradient-to-br from-red-500/15 to-transparent rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-6 right-12 w-24 h-24 bg-gradient-to-tl from-orange-500/10 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
-        
-        {/* Dynamic avoid particles */}
-        {particles.map((particle) => (
-          <AvoidParticle key={particle} delay={particle * 0.4} />
-        ))}
-      </div>
+    <div className="relative min-h-[400px] space-y-4 sm:space-y-6">
+      {/* Simplified floating background for mobile */}
+      {!isMobile && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-4 left-8 w-20 h-20 bg-gradient-to-br from-red-500/15 to-transparent rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute bottom-6 right-12 w-24 h-24 bg-gradient-to-tl from-orange-500/10 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
+        </div>
+      )}
 
-      {/* Header Section */}
-      <div className="text-center space-y-4">
+      {/* Header Section - Mobile Optimized */}
+      <div className="step-header-section text-center space-y-3 sm:space-y-4">
         <div className="relative inline-block">
-          <div className="absolute -inset-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-2xl blur-lg opacity-60 animate-pulse"></div>
-          <div className="relative bg-black/30 backdrop-blur-sm border border-red-500/20 rounded-2xl p-6">
-            <div className="flex items-center justify-center space-x-3 mb-3">
-              <span className="text-3xl animate-bounce">🚫</span>
-              <h3 className="text-2xl sm:text-3xl font-heading font-bold">
+          <div className={`relative ${isMobile ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'} border border-red-500/20 rounded-2xl p-4 sm:p-6`}>
+            <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+              <span className="text-2xl sm:text-3xl">🚫</span>
+              <h3 className="step-title text-xl sm:text-2xl md:text-3xl font-heading font-bold">
                 <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
-                  Any Genres to Avoid?
+                  {isMobile ? "Genres to Avoid?" : "Any Genres to Avoid?"}
                 </span>
               </h3>
-              <span className="text-3xl animate-bounce delay-200">⚠️</span>
+              <span className="text-2xl sm:text-3xl">⚠️</span>
             </div>
-            <p className="text-white/80 text-sm sm:text-base leading-relaxed">
-              Knowing what you *don't* like is just as important for filtering your recommendations.
-              <br />
-              <span className="text-red-400 font-medium">This helps us avoid suggesting content you won't enjoy.</span>
+            <p className="step-subtitle text-white/80 text-sm sm:text-base leading-relaxed">
+              {isMobile 
+                ? "Help us filter out what you don't enjoy"
+                : "Knowing what you *don't* like is just as important for filtering your recommendations."
+              }
             </p>
           </div>
         </div>
 
-        {/* Skip Option */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          {selectedCount === 0 && (
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500/20 to-emerald-400/20 backdrop-blur-sm rounded-full px-6 py-2 border border-green-500/20">
-              <span className="text-lg">😊</span>
-              <span className="text-white font-medium text-sm">
-                I'm open to most genres!
+        {/* Skip Option / Counter - Mobile Layout */}
+        <div className="flex flex-col items-center gap-3">
+          {selectedCount === 0 ? (
+            <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-green-500/20 to-emerald-400/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-green-500/20">
+              <span className="text-base sm:text-lg">😊</span>
+              <span className="text-white font-medium text-xs sm:text-sm">
+                {isMobile ? "Open to most!" : "I'm open to most genres!"}
               </span>
             </div>
-          )}
-
-          {selectedCount > 0 && (
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-sm rounded-full px-6 py-2 border border-red-500/20">
-              <span className="text-lg">🛡️</span>
-              <span className="text-white font-medium text-sm">
-                {selectedCount} genre{selectedCount > 1 ? 's' : ''} to avoid
+          ) : (
+            <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-red-500/20">
+              <span className="text-base sm:text-lg">🛡️</span>
+              <span className="text-white font-medium text-xs sm:text-sm">
+                {selectedCount} to avoid
               </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Disliked Genres Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-2">
+      {/* Disliked Genres Grid - Mobile Optimized */}
+      <div className={`genre-selection-grid ${isMobile ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 lg:grid-cols-4 gap-3'} ${!isMobile && 'max-h-[280px] overflow-y-auto custom-scrollbar pr-2'}`}>
         {DISLIKED_GENRES_OPTIONS.map((genre, index) => {
           const isSelected = data.dislikedGenres.includes(genre.label);
           const isHovered = hoveredGenre === genre.id;
@@ -136,49 +120,52 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
               className="relative group"
               style={{ animationDelay: `${index * 0.05}s` }}
             >
-              {/* Selection Glow with warning colors */}
-              <div className={`absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-md transition-all duration-300 ${
-                isSelected ? 'opacity-60 scale-105' : isHovered ? 'opacity-20' : 'opacity-0'
-              }`}></div>
+              {/* Selection Glow with warning colors - Hidden on mobile */}
+              {!isMobile && (
+                <div className={`absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-md transition-all duration-300 ${
+                  isSelected ? 'opacity-60 scale-105' : isHovered ? 'opacity-20' : 'opacity-0'
+                }`}></div>
+              )}
               
               {/* Genre Card */}
               <button
                 onClick={() => toggleDislikedGenre(genre.label)}
-                onMouseEnter={() => setHoveredGenre(genre.id)}
-                onMouseLeave={() => setHoveredGenre(null)}
-                className={`relative w-full p-3 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
+                onMouseEnter={() => !isMobile && setHoveredGenre(genre.id)}
+                onMouseLeave={() => !isMobile && setHoveredGenre(null)}
+                className={`genre-card relative w-full p-3 rounded-xl border transition-all duration-200 ${
                   isSelected 
-                    ? 'bg-gradient-to-br from-red-500/80 to-orange-500/80 border-red-300/50 text-white shadow-xl scale-102' 
+                    ? isMobile
+                      ? 'selected bg-gradient-to-br from-red-500/20 to-orange-500/20 border-red-500 text-white'
+                      : 'bg-gradient-to-br from-red-500/80 to-orange-500/80 border-red-300/50 text-white shadow-xl scale-102'
                     : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-red-300/30 hover:bg-black/60 text-white/90'
-                }`}
+                } ${!isMobile && 'transform hover:scale-105'}`}
               >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
-                </div>
-                
-                <div className="relative z-10 text-center space-y-1">
+                <div className="theme-card-content relative z-10 text-center space-y-1">
                   {/* Emoji with Animation */}
-                  <div className={`text-2xl transition-transform duration-300 ${
-                    isSelected ? 'animate-bounce' : isHovered ? 'animate-pulse scale-110' : ''
+                  <div className={`genre-emoji text-2xl ${!isMobile && 'transition-transform duration-300'} ${
+                    isSelected && !isMobile ? 'animate-bounce' : ''
                   }`}>
                     {isSelected ? '🚫' : genre.emoji}
                   </div>
                   
                   {/* Label */}
-                  <div className="font-medium text-xs">{genre.label}</div>
-                  
-                  {/* Description - Show on hover or selection */}
-                  <div className={`text-xs leading-tight transition-all duration-300 ${
-                    isSelected || isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0'
-                  }`}>
-                    {genre.description}
+                  <div className="genre-label font-medium text-xs">
+                    {genre.label}
                   </div>
+                  
+                  {/* Description - Hidden on mobile */}
+                  {!isMobile && (
+                    <div className={`genre-description text-xs leading-tight transition-all duration-300 ${
+                      isSelected || isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0'
+                    }`}>
+                      {genre.description}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Selection Indicator with X */}
                 {isSelected && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full border-2 border-red-500 flex items-center justify-center animate-pulse">
+                  <div className="selection-indicator absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-red-500 flex items-center justify-center animate-pulse">
                     <svg className="w-2.5 h-2.5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
                     </svg>
@@ -190,46 +177,43 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
         })}
       </div>
 
-      {/* Quick Skip Button */}
+      {/* Quick Skip Button - Mobile Friendly */}
       {selectedCount === 0 && (
         <div className="text-center">
           <div className="relative inline-block group">
-            <div className="absolute -inset-2 bg-gradient-to-r from-green-500/30 to-emerald-400/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <button
               onClick={() => updateData({ ...data, dislikedGenres: [] })}
-              className="relative bg-gradient-to-r from-green-500/20 to-emerald-400/20 hover:from-green-500/30 hover:to-emerald-400/30 backdrop-blur-sm border border-green-500/30 rounded-2xl px-6 py-3 text-white transition-all duration-300"
+              className={`relative ${isMobile ? 'bg-green-500/20' : 'bg-gradient-to-r from-green-500/20 to-emerald-400/20'} hover:from-green-500/30 hover:to-emerald-400/30 backdrop-blur-sm border border-green-500/30 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 text-white transition-all duration-300`}
             >
               <div className="flex items-center space-x-2">
-                <span className="text-lg">✨</span>
-                <span className="font-medium">I'm open to everything!</span>
-                <span className="text-lg">🌟</span>
+                <span className="text-base sm:text-lg">✨</span>
+                <span className="font-medium text-sm sm:text-base">{isMobile ? "Skip this!" : "I'm open to everything!"}</span>
+                <span className="text-base sm:text-lg">🌟</span>
               </div>
             </button>
           </div>
         </div>
       )}
 
-      {/* Feedback Messages */}
+      {/* Feedback Messages - Mobile Optimized */}
       {selectedCount > 0 && selectedCount <= 3 && (
-        <div className="relative animate-fade-in">
-          <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-indigo-400/20 rounded-2xl blur-lg opacity-60"></div>
-          <div className="relative bg-gradient-to-r from-blue-500/10 to-indigo-400/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-4">
-            <div className="flex items-center justify-center space-x-3">
-              <span className="text-2xl">👍</span>
+        <div className="feedback-message relative animate-fade-in">
+          <div className={`relative ${isMobile ? 'bg-blue-500/20' : 'bg-gradient-to-r from-blue-500/10 to-indigo-400/10 backdrop-blur-sm'} border border-blue-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4`}>
+            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+              <span className="text-xl sm:text-2xl">👍</span>
               <div className="text-center">
-                <p className="text-white font-medium text-sm">
-                  Good choices! We'll make sure to filter out these genres from your recommendations.
+                <p className="text-white font-medium text-xs sm:text-sm">
+                  {isMobile ? "We'll filter these out!" : "Good choices! We'll make sure to filter out these genres from your recommendations."}
                 </p>
               </div>
-              <span className="text-2xl">🎯</span>
+              <span className="text-xl sm:text-2xl">🎯</span>
             </div>
           </div>
         </div>
       )}
 
-      {selectedCount > 3 && (
-        <div className="relative animate-fade-in">
-          <div className="absolute -inset-2 bg-gradient-to-r from-yellow-500/20 to-orange-400/20 rounded-2xl blur-lg opacity-60"></div>
+      {selectedCount > 3 && !isMobile && (
+        <div className="feedback-message relative animate-fade-in">
           <div className="relative bg-gradient-to-r from-yellow-500/10 to-orange-400/10 backdrop-blur-sm border border-yellow-500/20 rounded-2xl p-4">
             <div className="flex items-center justify-center space-x-3">
               <span className="text-2xl">⚠️</span>
@@ -244,18 +228,18 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
         </div>
       )}
 
-      {/* Optional: Additional Filters */}
+      {/* Optional: Additional Filters - Mobile Optimized */}
       <div className="text-center">
         <button
           onClick={() => setShowOptional(!showOptional)}
-          className="text-white/60 hover:text-white text-sm underline decoration-1 underline-offset-2 transition-colors duration-200"
+          className="text-white/60 hover:text-white text-xs sm:text-sm underline decoration-1 underline-offset-2 transition-colors duration-200"
         >
-          {showOptional ? 'Hide' : 'Show'} additional content filters
+          {showOptional ? 'Hide' : 'Show'} {isMobile ? 'more' : 'additional content'} filters
         </button>
         
         {showOptional && (
-          <div className="mt-4 p-4 bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl">
-            <p className="text-white/80 text-sm mb-3">Specific content you'd rather avoid:</p>
+          <div className={`mt-4 p-3 sm:p-4 ${isMobile ? 'bg-black/40' : 'bg-black/20 backdrop-blur-sm'} border border-white/10 rounded-xl sm:rounded-2xl`}>
+            <p className="text-white/80 text-xs sm:text-sm mb-3">{isMobile ? "Avoid:" : "Specific content you'd rather avoid:"}</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {['Excessive Violence', 'Fan Service', 'Dark Themes', 'Complex Plots', 'Long Series'].map((tag) => (
                 <button
@@ -267,13 +251,13 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
                       : [...currentTags, tag];
                     updateData({ ...data, dislikedTags: newTags });
                   }}
-                  className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  className={`text-xs px-2.5 sm:px-3 py-1 rounded-full border transition-all duration-200 ${
                     (data.dislikedTags || []).includes(tag)
                       ? 'bg-red-500/20 border-red-500/40 text-red-300'
                       : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
                   }`}
                 >
-                  {(data.dislikedTags || []).includes(tag) ? '🚫 ' : ''}{tag}
+                  {(data.dislikedTags || []).includes(tag) ? '🚫 ' : ''}{isMobile && tag.length > 12 ? tag.substring(0, 12) + '...' : tag}
                 </button>
               ))}
             </div>
@@ -294,6 +278,14 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
         
         .scale-102 {
           transform: scale(1.02);
+        }
+
+        /* Touch feedback for mobile */
+        @media (hover: none) and (pointer: coarse) {
+          .genre-card:active {
+            transform: scale(0.98) !important;
+            opacity: 0.9 !important;
+          }
         }
       `}</style>
     </div>
