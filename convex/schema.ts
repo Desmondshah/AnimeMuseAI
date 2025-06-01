@@ -48,6 +48,21 @@ const applicationTables = {
         source: v.string(), // e.g., "jikan", "anilist"
         timestamp: v.number(),
     })),
+    // NEW: Episode and streaming data
+    streamingEpisodes: v.optional(v.array(v.object({
+      title: v.optional(v.string()),
+      thumbnail: v.optional(v.string()),
+      url: v.optional(v.string()),
+      site: v.optional(v.string()),
+    }))),
+    totalEpisodes: v.optional(v.number()),
+    episodeDuration: v.optional(v.number()), // in minutes
+    airingStatus: v.optional(v.string()), // "RELEASING", "FINISHED", "NOT_YET_RELEASED", "CANCELLED"
+    nextAiringEpisode: v.optional(v.object({
+      airingAt: v.optional(v.number()), // timestamp
+      episode: v.optional(v.number()),
+      timeUntilAiring: v.optional(v.number()), // seconds
+    })),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
@@ -56,6 +71,7 @@ const applicationTables = {
   .index("by_year_rating", ["year", "rating"])
   .index("by_year_averageUserRating", ["year", "averageUserRating"])
   .index("by_reviewCount", ["reviewCount"])
+  .index("by_airingStatus", ["airingStatus"]) // NEW: For querying currently airing anime
   .searchIndex("search_title", { searchField: "title" })
   .searchIndex("search_description", { searchField: "description" })
   .searchIndex("search_genres", { searchField: "genres" })

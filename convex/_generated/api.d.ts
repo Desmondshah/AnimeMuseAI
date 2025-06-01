@@ -19,6 +19,7 @@ import type * as anime from "../anime.js";
 import type * as animeQueries from "../animeQueries.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
+import type * as autoRefresh from "../autoRefresh.js";
 import type * as crons from "../crons.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   animeQueries: typeof animeQueries;
   auth: typeof auth;
   authActions: typeof authActions;
+  autoRefresh: typeof autoRefresh;
   crons: typeof crons;
   externalApis: typeof externalApis;
   http: typeof http;

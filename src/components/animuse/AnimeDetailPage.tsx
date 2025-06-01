@@ -1,4 +1,4 @@
-// src/components/animuse/AnimeDetailPage.tsx - Advanced Artistic Version
+// src/components/animuse/AnimeDetailPage.tsx - Enhanced with Smart Auto-Refresh
 import React, { useState, useEffect, useCallback, memo, FormEvent, JSX } from "react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -26,6 +26,62 @@ interface AnimeDetailPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
 }
 
+// Smart refresh indicator component
+const DataFreshnessIndicator: React.FC<{ 
+  freshnessScore: number; 
+  priority: string; 
+  lastFetched?: number; 
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+}> = ({ freshnessScore, priority, lastFetched, isRefreshing, onRefresh }) => {
+  const getStatusColor = () => {
+    if (priority === "critical") return "text-red-400 bg-red-500/20 border-red-500/30";
+    if (priority === "high") return "text-orange-400 bg-orange-500/20 border-orange-500/30";
+    if (priority === "medium") return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
+    if (priority === "low") return "text-blue-400 bg-blue-500/20 border-blue-500/30";
+    return "text-green-400 bg-green-500/20 border-green-500/30";
+  };
+
+  const getStatusIcon = () => {
+    if (isRefreshing) return "🔄";
+    if (priority === "critical") return "⚠️";
+    if (priority === "high") return "📊";
+    if (priority === "medium") return "📈";
+    if (priority === "low") return "📉";
+    return "✅";
+  };
+
+  const getStatusText = () => {
+    if (isRefreshing) return "Updating...";
+    if (priority === "critical") return "Critical Update Needed";
+    if (priority === "high") return "Update Recommended";
+    if (priority === "medium") return "Consider Updating";
+    if (priority === "low") return "Minor Updates Available";
+    return "Data is Fresh";
+  };
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border backdrop-blur-sm ${getStatusColor()}`}>
+      <span className={isRefreshing ? "animate-spin" : ""}>{getStatusIcon()}</span>
+      <span className="font-medium">{getStatusText()}</span>
+      {lastFetched && (
+        <span className="opacity-75">
+          • {formatDistanceToNow(new Date(lastFetched), { addSuffix: true })}
+        </span>
+      )}
+      {onRefresh && priority !== "skip" && !isRefreshing && (
+        <button
+          onClick={onRefresh}
+          className="ml-1 opacity-75 hover:opacity-100 transition-opacity"
+          title="Refresh now"
+        >
+          🔄
+        </button>
+      )}
+    </div>
+  );
+};
+
 const LoadingSpinnerComponent: React.FC<{ message?: string; className?: string }> = ({ message = "Loading...", className = "" }) => (
     <div className={`flex flex-col justify-center items-center py-16 ${className}`}>
       <div className="relative">
@@ -44,7 +100,10 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
   const anime = useQuery(api.anime.getAnimeById, animeId ? { animeId } : "skip");
   const watchlistEntry = useQuery(api.anime.getWatchlistItem, animeId ? { animeId } : "skip");
   const upsertToWatchlistMutation = useMutation(api.anime.upsertToWatchlist);
-  const triggerFetchExternalDetailsAction = useAction(api.externalApis.callTriggerFetchExternalAnimeDetails);
+  
+  // Smart auto-refresh actions
+  const smartAutoRefreshAction = useAction(api.autoRefresh.callSmartAutoRefreshAnime);
+  const getRefreshRecommendationAction = useAction(api.autoRefresh.getRefreshRecommendation);
 
   const { isLoading: authIsLoading, isAuthenticated } = useConvexAuth();
   const loggedInUser = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
@@ -54,6 +113,13 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
   const [watchlistNotes, setWatchlistNotes] = useState(watchlistEntry?.notes || "");
   const [showNotesInput, setShowNotesInput] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Smart refresh state
+  const [refreshRecommendation, setRefreshRecommendation] = useState<any>(null);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [lastRefreshResult, setLastRefreshResult] = useState<any>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [showRefreshDetails, setShowRefreshDetails] = useState(false);
 
   const { results: reviewsFromBackend, status: reviewsStatus, loadMore: reviewsLoadMore, isLoading: reviewsIsLoadingInitial } = usePaginatedQuery(
     api.reviews.getReviewsForAnime, animeId ? { animeId, sortOption: reviewSortOption } : "skip", { initialNumItems: 3 }
@@ -86,7 +152,6 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [editingReview, setEditingReview] = useState<ClientReviewProps | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [isFetchingExternal, setIsFetchingExternal] = useState(false);
 
   const [similarAnime, setSimilarAnime] = useState<AnimeRecommendation[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
@@ -98,7 +163,91 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
   const canUserReview = isAuthenticated && !!currentUserId && !authIsLoading;
   const userHasExistingReview = !!userReviewDoc;
 
+  // Load refresh recommendation when anime loads
+  useEffect(() => {
+    if (anime && animeId) {
+      getRefreshRecommendationAction({ animeId })
+        .then(setRefreshRecommendation)
+        .catch(console.error);
+    }
+  }, [anime, animeId, getRefreshRecommendationAction]);
+
+  // Auto-refresh on page visit (smart logic)
+  useEffect(() => {
+    if (anime && animeId && autoRefreshEnabled && refreshRecommendation) {
+      const shouldAutoRefresh = refreshRecommendation.priority === "critical" || 
+                               refreshRecommendation.priority === "high" ||
+                               refreshRecommendation.freshnessScore < 50; // More aggressive for missing episodes
+      
+      if (shouldAutoRefresh && !isAutoRefreshing) {
+        console.log(`[Auto-Refresh] Triggering auto-refresh for ${anime.title} (${refreshRecommendation.priority} priority)`);
+        handleSmartRefresh("user_visit");
+      }
+    }
+  }, [anime, animeId, autoRefreshEnabled, refreshRecommendation, isAutoRefreshing]);
+
   useEffect(() => { setWatchlistNotes(watchlistEntry?.notes || ""); }, [watchlistEntry]);
+
+  // Smart refresh handler
+  const handleSmartRefresh = useCallback(async (triggerType: "user_visit" | "manual" | "background" = "manual", forceRefresh = false) => {
+    if (!anime || isAutoRefreshing) return;
+
+    setIsAutoRefreshing(true);
+    const toastId = `smart-refresh-${anime._id}`;
+    
+    if (triggerType === "manual") {
+      toast.loading("Intelligently updating anime data...", { id: toastId });
+    }
+
+    try {
+      const result = await smartAutoRefreshAction({
+        animeId: anime._id,
+        triggerType,
+        forceRefresh
+      });
+
+      setLastRefreshResult(result);
+
+      // Update recommendation after refresh
+      const updatedRecommendation = await getRefreshRecommendationAction({ animeId: anime._id });
+      setRefreshRecommendation(updatedRecommendation);
+
+      if (triggerType === "manual") {
+        if (result.refreshed) {
+          if (result.dataChanged) {
+            toast.success(
+              `✨ Updated! ${result.message}`, 
+              { id: toastId, duration: 4000 }
+            );
+          } else {
+            toast.info(
+              `✅ Refreshed - no new data found`, 
+              { id: toastId }
+            );
+          }
+        } else {
+          toast.info(
+            `ℹ️ ${result.message}`, 
+            { id: toastId }
+          );
+        }
+      } else if (triggerType === "user_visit" && result.refreshed && result.dataChanged) {
+        // Show subtle notification for background refreshes with new data
+        toast.success(
+          `📡 Fresh data loaded for ${anime.title}`, 
+          { duration: 3000 }
+        );
+      }
+
+    } catch (error: any) {
+      console.error("Smart refresh error:", error);
+      if (triggerType === "manual") {
+        toast.error(`Failed to refresh: ${error.message}`, { id: toastId });
+      }
+    } finally {
+      setIsAutoRefreshing(false);
+    }
+  }, [anime, isAutoRefreshing, smartAutoRefreshAction, getRefreshRecommendationAction]);
 
   // Handle watchlist status changes
   const handleWatchlistAction = useCallback(async (status: string) => {
@@ -199,27 +348,6 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
       setIsSavingNotes(false);
     }
   }, [isAuthenticated, anime, watchlistEntry, watchlistNotes, upsertToWatchlistMutation]);
-
-  const handleFetchExternalData = useCallback(async () => {
-    if (!anime) return;
-    
-    setIsFetchingExternal(true);
-    const toastId = `fetch-external-${anime._id}`;
-    toast.loading("Enriching anime data...", { id: toastId });
-    
-    try {
-      await triggerFetchExternalDetailsAction({ 
-        animeIdInOurDB: anime._id,
-        titleToSearch: anime.title
-      });
-      toast.success("Anime data updated successfully!", { id: toastId });
-    } catch (error: any) {
-      console.error("Failed to fetch external data:", error);
-      toast.error(error.data?.message || "Failed to enrich anime data.", { id: toastId });
-    } finally {
-      setIsFetchingExternal(false);
-    }
-  }, [anime, triggerFetchExternalDetailsAction]);
 
   // Handle review submission
   const handleReviewSubmit = useCallback(async (data: { 
@@ -449,6 +577,74 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
           </StyledButton>
         </div>
 
+        {/* Data Freshness Indicator */}
+        {refreshRecommendation && (
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl">
+            <DataFreshnessIndicator
+              freshnessScore={refreshRecommendation.freshnessScore}
+              priority={refreshRecommendation.priority}
+              lastFetched={refreshRecommendation.anime?.lastFetched}
+              isRefreshing={isAutoRefreshing}
+              onRefresh={() => handleSmartRefresh("manual")}
+            />
+            
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-white/70 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoRefreshEnabled}
+                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  className="rounded border-white/30 bg-white/10 text-brand-primary-action focus:ring-brand-primary-action"
+                />
+                Auto-update
+              </label>
+              
+              <StyledButton
+                onClick={() => setShowRefreshDetails(!showRefreshDetails)}
+                variant="ghost"
+                className="!text-xs !py-1 !px-2 !bg-white/10 hover:!bg-white/20 !text-white/70"
+              >
+                {showRefreshDetails ? "Hide Details" : "Details"}
+              </StyledButton>
+            </div>
+          </div>
+        )}
+
+        {/* Refresh Details Panel */}
+        {showRefreshDetails && refreshRecommendation && (
+          <div className="p-4 bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl">
+            <h4 className="text-white font-medium mb-3">Data Status Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-white/60 mb-1">Freshness Score:</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-white/10 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+                      style={{ width: `${refreshRecommendation.freshnessScore}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-white">{refreshRecommendation.freshnessScore}/100</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-white/60 mb-1">Reason:</p>
+                <p className="text-white">{refreshRecommendation.reason}</p>
+              </div>
+              <div>
+                <p className="text-white/60 mb-1">Recommended Action:</p>
+                <p className="text-white capitalize">{refreshRecommendation.recommendedAction}</p>
+              </div>
+              <div>
+                <p className="text-white/60 mb-1">Last Refresh Result:</p>
+                <p className="text-white">
+                  {lastRefreshResult ? lastRefreshResult.message : "No recent refresh"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section with Poster and Info */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
@@ -482,6 +678,20 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
                       <div className="bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
                         <span className="text-lg">⭐</span>
                         <span className="text-white font-medium">{(anime.rating / 2).toFixed(1)}/5</span>
+                      </div>
+                    )}
+                    {anime.totalEpisodes && (
+                      <div className="bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
+                        <span className="text-lg">📺</span>
+                        <span className="text-white font-medium">{anime.totalEpisodes} episodes</span>
+                      </div>
+                    )}
+                    {anime.airingStatus && anime.airingStatus !== "FINISHED" && (
+                      <div className="bg-green-500/80 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
+                        <span className="text-lg">🔴</span>
+                        <span className="text-white font-medium">
+                          {anime.airingStatus === "RELEASING" ? "Airing" : anime.airingStatus}
+                        </span>
                       </div>
                     )}
                     {anime.genres && anime.genres.length > 0 && (
@@ -520,6 +730,150 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
             </p>
           </div>
         </div>
+
+        {/* Episodes & Streaming Section */}
+        {anime.streamingEpisodes && anime.streamingEpisodes.length > 0 && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full">
+                    <span className="text-2xl">📺</span>
+                  </div>
+                  <h3 className="text-2xl font-heading text-white font-bold">Episodes & Streaming</h3>
+                </div>
+                <div className="text-sm text-white/60">
+                  {anime.streamingEpisodes.length} episodes available
+                </div>
+              </div>
+
+              {/* Episode Grid */}
+              <div className="max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {anime.streamingEpisodes.map((episode, index) => (
+                    <div
+                      key={`episode-${index}`}
+                      className="group relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-300"
+                    >
+                      {/* Episode Thumbnail */}
+                      {episode.thumbnail && (
+                        <div className="relative aspect-video overflow-hidden">
+                          <img
+                            src={episode.thumbnail}
+                            alt={episode.title || `Episode ${index + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          
+                          {/* Play Icon Overlay */}
+                          {episode.url && (
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <div className="w-12 h-12 bg-brand-primary-action/90 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Episode Info */}
+                      <div className="p-4">
+                        <h4 className="text-white font-medium text-sm mb-2 line-clamp-2">
+                          {episode.title || `Episode ${index + 1}`}
+                        </h4>
+                        
+                        {episode.site && (
+                          <div className="text-xs text-white/60 mb-3 flex items-center gap-1">
+                            <span className="text-sm">🌐</span>
+                            <span>Available on {episode.site}</span>
+                          </div>
+                        )}
+
+                        {/* Watch Button */}
+                        {episode.url ? (
+                          <a
+                            href={episode.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <StyledButton
+                              variant="primary"
+                              className="w-full !text-xs !py-2 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                            >
+                              Watch on {episode.site || 'External Site'}
+                            </StyledButton>
+                          </a>
+                        ) : (
+                          <div className="text-center py-2 text-xs text-white/50">
+                            No streaming link available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Next Airing Episode Info */}
+              {anime.nextAiringEpisode && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-green-500/20 to-emerald-400/20 border border-green-500/30 rounded-2xl">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xl">⏰</span>
+                    <h4 className="text-white font-medium">Next Episode</h4>
+                  </div>
+                  <p className="text-white/80 text-sm">
+                    Episode {anime.nextAiringEpisode.episode} airs{' '}
+                    {anime.nextAiringEpisode.airingAt && 
+                      formatDistanceToNow(new Date(anime.nextAiringEpisode.airingAt * 1000), { addSuffix: true })
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* No Episode Data Message */}
+        {(!anime.streamingEpisodes || anime.streamingEpisodes.length === 0) && (
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-3xl blur-xl"></div>
+            <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-gradient-to-r from-gray-500/20 to-slate-500/20 rounded-full">
+                  <span className="text-2xl">📺</span>
+                </div>
+                <h3 className="text-2xl font-heading text-white font-bold">Episodes & Streaming</h3>
+              </div>
+              
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4 opacity-50">📺</div>
+                <h4 className="text-xl text-white/70 mb-2">No Episode Information</h4>
+                <p className="text-white/50 text-sm max-w-md mx-auto">
+                  Episode streaming data is not yet available for this anime. 
+                  {refreshRecommendation?.priority === "critical" && refreshRecommendation.reason.includes("episode") ? (
+                    <span className="block mt-2 text-brand-accent-gold">
+                      💡 Try refreshing to check for new episode data!
+                    </span>
+                  ) : (
+                    " Check back later as we continue to update our database."
+                  )}
+                </p>
+                {anime.totalEpisodes && (
+                  <p className="text-white/60 text-sm mt-3">
+                    This anime has {anime.totalEpisodes} episodes total.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -596,13 +950,13 @@ export default function AnimeDetailPage({ animeId, onBack, navigateToDetail }: A
           </StyledButton>
 
           <StyledButton 
-            onClick={handleFetchExternalData} 
+            onClick={() => handleSmartRefresh("manual", true)} 
             variant="ghost" 
             className="w-full !py-3 !bg-white/5 !backdrop-blur-sm !border-white/10 hover:!bg-white/10 !text-white/80 flex items-center justify-center gap-2"
-            disabled={isFetchingExternal}
+            disabled={isAutoRefreshing}
           >
-            <span className="text-lg">🔄</span>
-            {isFetchingExternal ? "Updating..." : "Refresh Data"}
+            <span className={`text-lg ${isAutoRefreshing ? "animate-spin" : ""}`}>🔄</span>
+            {isAutoRefreshing ? "Updating..." : "Smart Refresh"}
           </StyledButton>
         </div>
 

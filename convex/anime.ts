@@ -1,4 +1,5 @@
-// convex/anime.ts
+// convex/anime.ts - Complete file with fixes
+
 import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { Doc, Id, DataModel } from "./_generated/dataModel";
@@ -49,7 +50,6 @@ export const getAnimeByTitleInternal = internalQuery({
     return anime;
   },
 });
-
 
 export const getMyWatchlist = query({
   handler: async (ctx) => {
@@ -104,7 +104,6 @@ export const getPublicWatchlistForUser = query({
         return { userProfile: targetUserProfile, watchlist: fullWatchlist };
     }
 });
-
 
 export const getWatchlistItem = query({
     args: { animeId: v.id("anime") },
@@ -381,14 +380,36 @@ export const addAnimeInternal = internalMutation({
     }
 });
 
+// UPDATED: Enhanced mutation to handle episode data and additional fields
 export const updateAnimeWithExternalData = internalMutation({
   args: {
     animeId: v.id("anime"),
     updates: v.object({ 
-      description: v.optional(v.string()), posterUrl: v.optional(v.string()), genres: v.optional(v.array(v.string())),
-      year: v.optional(v.number()), rating: v.optional(v.number()), emotionalTags: v.optional(v.array(v.string())),
-      trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
+      description: v.optional(v.string()), 
+      posterUrl: v.optional(v.string()), 
+      genres: v.optional(v.array(v.string())),
+      year: v.optional(v.number()), 
+      rating: v.optional(v.number()), 
+      emotionalTags: v.optional(v.array(v.string())),
+      trailerUrl: v.optional(v.string()), 
+      studios: v.optional(v.array(v.string())), 
+      themes: v.optional(v.array(v.string())),
       anilistId: v.optional(v.number()), // Phase 2
+      // NEW: Episode and streaming data fields
+      streamingEpisodes: v.optional(v.array(v.object({
+        title: v.optional(v.string()),
+        thumbnail: v.optional(v.string()),
+        url: v.optional(v.string()),
+        site: v.optional(v.string()),
+      }))),
+      totalEpisodes: v.optional(v.number()),
+      episodeDuration: v.optional(v.number()),
+      airingStatus: v.optional(v.string()),
+      nextAiringEpisode: v.optional(v.object({
+        airingAt: v.optional(v.number()),
+        episode: v.optional(v.number()),
+        timeUntilAiring: v.optional(v.number()),
+      })),
     }),
     sourceApi: v.string(), // Phase 2: e.g., "jikan", "anilist"
   },
@@ -401,27 +422,104 @@ export const updateAnimeWithExternalData = internalMutation({
     const updatesToApply: Partial<Doc<"anime">> = {
         lastFetchedFromExternal: { source: args.sourceApi, timestamp: Date.now() } // Phase 2
     };
+    
+    // Track episode data changes specifically
+    let episodeDataChanged = false;
+    
     for (const key in args.updates) {
         const typedKey = key as keyof typeof args.updates;
         const newValue = args.updates[typedKey];
         const existingValue = existingAnime[typedKey];
+        
         if (newValue !== undefined) {
             let applyChange = true;
-            if (typeof existingValue === 'string' && existingValue.trim() !== "" && typeof newValue === 'string' && newValue.trim() === "") {
+            
+            // Special handling for episode data
+            if (typedKey === 'streamingEpisodes') {
+                if (Array.isArray(newValue) && newValue.length > 0) {
+                    const existingEpisodes = existingValue as any[] || [];
+                    // Always update if we have new episode data and existing is empty or different
+                    if (existingEpisodes.length === 0 || JSON.stringify(existingEpisodes) !== JSON.stringify(newValue)) {
+                        applyChange = true;
+                        episodeDataChanged = true;
+                        console.log(`[Update Anime External] Episode data will be updated for ${existingAnime.title}: ${newValue.length} episodes`);
+                    } else {
+                        applyChange = false;
+                    }
+                } else {
+                    applyChange = false; // Don't clear existing episode data with empty array
+                }
+            }
+            // Special handling for next airing episode (always update if different)
+            else if (typedKey === 'nextAiringEpisode') {
+                if (JSON.stringify(existingValue) !== JSON.stringify(newValue)) {
+                    applyChange = true;
+                    console.log(`[Update Anime External] Next airing episode updated for ${existingAnime.title}`);
+                } else {
+                    applyChange = false;
+                }
+            }
+            // Standard validation for other fields
+            else if (typeof existingValue === 'string' && existingValue.trim() !== "" && typeof newValue === 'string' && newValue.trim() === "") {
                 applyChange = false;
             } else if (Array.isArray(existingValue) && Array.isArray(newValue) && JSON.stringify(existingValue.slice().sort()) === JSON.stringify(newValue.slice().sort())) {
                 applyChange = false;
             } else if (JSON.stringify(existingValue) === JSON.stringify(newValue)) {
                 applyChange = false;
             }
+            
             if (applyChange) (updatesToApply as any)[typedKey] = newValue;
         }
     }
+    
     if (Object.keys(updatesToApply).length > 1) { // Greater than 1 because lastFetchedFromExternal is always added
         await ctx.db.patch(args.animeId, updatesToApply);
-        console.log(`[Update Anime External - ${args.sourceApi}] Patched ${args.animeId} with ${Object.keys(updatesToApply).length -1} fields.`);
+        const episodeMessage = episodeDataChanged ? ' (including episode data)' : '';
+        console.log(`[Update Anime External - ${args.sourceApi}] Patched ${args.animeId} with ${Object.keys(updatesToApply).length - 1} fields${episodeMessage}.`);
     } else {
         console.log(`[Update Anime External - ${args.sourceApi}] No new changes for ${args.animeId}.`);
     }
+  },
+});
+
+// NEW: Query to get anime that are currently airing
+export const getCurrentlyAiringAnime = query({
+  args: { paginationOpts: v.any() },
+  handler: async (ctx, args): Promise<PaginationResult<Doc<"anime">>> => {
+    return await ctx.db
+      .query("anime")
+      .withIndex("by_airingStatus", q => q.eq("airingStatus", "RELEASING"))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+// NEW: Internal query to get all anime (for batch operations)
+export const getAllAnimeInternal = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<Doc<"anime">[]> => {
+    return await ctx.db.query("anime").collect();
+  },
+});
+
+// NEW: Query to get anime with episode data
+export const getAnimeWithEpisodes = query({
+  args: { 
+    paginationOpts: v.any(),
+    hasEpisodes: v.optional(v.boolean())
+  },
+  handler: async (ctx, args): Promise<PaginationResult<Doc<"anime">>> => {
+    const results = await ctx.db.query("anime").order("desc").paginate(args.paginationOpts);
+    
+    if (args.hasEpisodes !== undefined) {
+      const filteredPage = results.page.filter((anime: Doc<"anime">) => {
+        const hasEpisodeData = anime.streamingEpisodes && anime.streamingEpisodes.length > 0;
+        return args.hasEpisodes ? hasEpisodeData : !hasEpisodeData;
+      });
+      
+      return { ...results, page: filteredPage };
+    }
+    
+    return results;
   },
 });

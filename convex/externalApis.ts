@@ -1,4 +1,4 @@
-// convex/externalApis.ts - Enhanced version with better image quality
+// convex/externalApis.ts - Enhanced version with episode data fetching
 
 "use node";
 import { action, internalAction } from "./_generated/server";
@@ -62,7 +62,6 @@ interface SampleTestResult {
   results?: TestResult[];
 }
 
-
 // Add interface for poster stats
 interface PosterStats {
   total: number;
@@ -122,6 +121,15 @@ interface ExternalApiResult {
   source?: string;
 }
 
+// NEW: Interface for episode batch update result
+interface EpisodeBatchUpdateResult {
+  success: boolean;
+  message: string;
+  totalProcessed: number;
+  totalEnhanced: number;
+  errors: string[];
+}
+
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1000;
 
@@ -156,6 +164,7 @@ const fetchFromAnilist = async (title: string, existingAnilistId?: number): Prom
           seasonYear
           episodes
           duration
+          status
           countryOfOrigin
           source (version: 2)
           hashtag
@@ -216,6 +225,21 @@ const fetchFromAnilist = async (title: string, existingAnilistId?: number): Prom
     }
 };
 
+// NEW: Helper function to map episode data from AniList
+const mapEpisodeData = (streamingEpisodes: any[]): any[] => {
+    if (!Array.isArray(streamingEpisodes)) return [];
+    
+    return streamingEpisodes
+        .filter(ep => ep && (ep.title || ep.url)) // Only include episodes with at least title or URL
+        .map(ep => ({
+            title: ep.title || `Episode ${streamingEpisodes.indexOf(ep) + 1}`,
+            thumbnail: ep.thumbnail || undefined,
+            url: ep.url || undefined,
+            site: ep.site || undefined,
+        }))
+        .slice(0, 50); // Limit to first 50 episodes to avoid overwhelming storage
+};
+
 export const triggerFetchExternalAnimeDetails = internalAction({
   args: { animeIdInOurDB: v.id("anime"), titleToSearch: v.string() },
   handler: async (ctx: ActionCtx, args): Promise<ExternalApiResult> => {
@@ -225,7 +249,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
     let apiData: any = null;
     let sourceApiUsed: string = "none";
 
-    // Try AniList first (higher quality images)
+    // Try AniList first (higher quality images and episode data)
     if (existingAnime.anilistId) {
         apiData = await fetchFromAnilist(args.titleToSearch, existingAnime.anilistId);
         if (apiData) sourceApiUsed = "anilist";
@@ -282,6 +306,10 @@ export const triggerFetchExternalAnimeDetails = internalAction({
               trailerUrl: getString(apiData, 'trailer.url', existingAnime.trailerUrl),
               studios: getStringArray(apiData, 'studios', 'name') || existingAnime.studios,
               themes: getStringArray(apiData, 'themes', 'name') || existingAnime.themes,
+              // NEW: Episode data from Jikan (limited)
+              totalEpisodes: apiData.episodes || existingAnime.totalEpisodes,
+              episodeDuration: apiData.duration || existingAnime.episodeDuration,
+              airingStatus: apiData.status || existingAnime.airingStatus,
             };
         } else if (sourceApiUsed === "anilist" && apiData) {
             fetchedTitle = apiData.title?.english || apiData.title?.romaji || apiData.title?.native;
@@ -325,6 +353,27 @@ export const triggerFetchExternalAnimeDetails = internalAction({
 
             mappedData.themes = anilistThemesFromTags.length ? [...new Set([...(existingAnime.themes || []), ...anilistThemesFromTags])] : existingAnime.themes;
             mappedData.emotionalTags = anilistEmotionalFromTags.length ? [...new Set([...(existingAnime.emotionalTags || []), ...anilistEmotionalFromTags])] : existingAnime.emotionalTags;
+            
+            // NEW: Episode and streaming data from AniList
+            if (apiData.streamingEpisodes?.length > 0) {
+                mappedData.streamingEpisodes = mapEpisodeData(apiData.streamingEpisodes);
+                console.log(`[External API - AniList] Found ${mappedData.streamingEpisodes.length} streaming episodes for "${existingAnime.title}"`);
+            }
+            
+            // Additional episode metadata
+            if (apiData.episodes) mappedData.totalEpisodes = apiData.episodes;
+            if (apiData.duration) mappedData.episodeDuration = apiData.duration;
+            if (apiData.status) mappedData.airingStatus = apiData.status;
+            
+            // Next airing episode info
+            if (apiData.nextAiringEpisode) {
+                mappedData.nextAiringEpisode = {
+                    airingAt: apiData.nextAiringEpisode.airingAt,
+                    episode: apiData.nextAiringEpisode.episode,
+                    timeUntilAiring: apiData.nextAiringEpisode.timeUntilAiring,
+                };
+            }
+            
             console.log(`[External API - AniList] Mapped data for (AniList ID: ${apiData.id}). Title in DB: "${existingAnime.title}"`);
         }
 
@@ -336,13 +385,117 @@ export const triggerFetchExternalAnimeDetails = internalAction({
               updates: updatesForMutation,
               sourceApi: sourceApiUsed,
             });
-            return { success: true, message: `High-quality data from ${sourceApiUsed} applied.`, source: sourceApiUsed };
+            const episodeCount = mappedData.streamingEpisodes?.length || 0;
+            const episodeMessage = episodeCount > 0 ? ` (${episodeCount} episodes)` : '';
+            return { success: true, message: `High-quality data from ${sourceApiUsed} applied${episodeMessage}.`, source: sourceApiUsed };
         } else {
             return { success: true, message: `No new data from ${sourceApiUsed} to update.`, source: sourceApiUsed };
         }
     } else {
         return { success: false, message: `No data found from any external API for "${args.titleToSearch}".`, source: sourceApiUsed };
     }
+  },
+});
+
+// NEW: Batch update episode data for all anime
+export const batchUpdateEpisodeDataForAllAnime = internalAction({
+  args: {
+    batchSize: v.optional(v.number()),
+    maxAnimeToProcess: v.optional(v.number()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<EpisodeBatchUpdateResult> => {
+    const batchSize = args.batchSize || 5;
+    const maxAnimeToProcess = args.maxAnimeToProcess || 25;
+    
+    console.log(`[Episode Batch Update] Starting batch update for anime episode data...`);
+    
+    // Get all anime, prioritizing those without episode data or with old data
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    
+    const animeNeedingEpisodeUpdate = allAnime
+      .filter((anime: Doc<"anime">) => {
+        // Prioritize anime without episode data
+        if (!anime.streamingEpisodes || anime.streamingEpisodes.length === 0) return true;
+        
+        // Also update anime with very old episode data (30+ days)
+        if (!anime.lastFetchedFromExternal) return true;
+        const daysSinceLastFetch = (Date.now() - anime.lastFetchedFromExternal.timestamp) / (24 * 60 * 60 * 1000);
+        return daysSinceLastFetch > 30;
+      })
+      .slice(0, maxAnimeToProcess);
+
+    if (animeNeedingEpisodeUpdate.length === 0) {
+      return {
+        success: true,
+        message: "No anime need episode data updates",
+        totalProcessed: 0,
+        totalEnhanced: 0,
+        errors: []
+      };
+    }
+
+    console.log(`[Episode Batch Update] Found ${animeNeedingEpisodeUpdate.length} anime needing episode updates`);
+    
+    let totalProcessed = 0;
+    let totalEnhanced = 0;
+    const errors: string[] = [];
+
+    // Process in batches with rate limiting
+    for (let i = 0; i < animeNeedingEpisodeUpdate.length; i += batchSize) {
+      const batch = animeNeedingEpisodeUpdate.slice(i, i + batchSize);
+      
+      console.log(`[Episode Batch Update] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(animeNeedingEpisodeUpdate.length / batchSize)}`);
+
+      // Process batch with individual error handling
+      const batchPromises = batch.map(async (anime: Doc<"anime">): Promise<boolean> => {
+        try {
+          console.log(`[Episode Batch Update] Processing: ${anime.title}`);
+          
+          const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+            animeIdInOurDB: anime._id,
+            titleToSearch: anime.title
+          });
+          
+          totalProcessed++;
+          
+          if (result.success) {
+            totalEnhanced++;
+            console.log(`[Episode Batch Update] ✅ Enhanced: ${anime.title}`);
+            return true;
+          } else {
+            console.log(`[Episode Batch Update] ❌ Failed: ${anime.title} - ${result.message}`);
+            return false;
+          }
+          
+        } catch (error: any) {
+          totalProcessed++;
+          const errorMsg = `${anime.title}: ${error.message}`;
+          errors.push(errorMsg);
+          console.error(`[Episode Batch Update] Error processing ${anime.title}:`, error.message);
+          return false;
+        }
+      });
+      
+      // Wait for batch to complete
+      await Promise.all(batchPromises);
+      
+      // Respectful delay between batches (longer for episode updates)
+      if (i + batchSize < animeNeedingEpisodeUpdate.length) {
+        console.log(`[Episode Batch Update] Waiting 8 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 8000)); // 8 second delay for AniList rate limiting
+      }
+    }
+    
+    const message = `Episode batch update completed! Processed: ${totalProcessed}, Enhanced: ${totalEnhanced}, Errors: ${errors.length}`;
+    console.log(`[Episode Batch Update] ${message}`);
+    
+    return {
+      success: true,
+      message,
+      totalProcessed,
+      totalEnhanced,
+      errors: errors.slice(0, 10) // Limit error array size
+    };
   },
 });
 
@@ -353,7 +506,7 @@ export const enhanceExistingAnimePosters = internalAction({
     console.log("[Poster Enhancement] Starting batch enhancement of existing anime posters...");
     
     // Get anime with potentially low-quality posters
-    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     const animesToEnhance = allAnime.filter(anime => {
       const poster = anime.posterUrl;
       // Target placeholder images or very old/low quality URLs
@@ -515,7 +668,7 @@ export const enhanceExistingAnimePostersBetter = internalAction({
     console.log("[Enhanced Poster Enhancement] Starting comprehensive poster enhancement...");
     
     // Get anime with potentially low-quality posters
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     const animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
       const poster = anime.posterUrl;
       // Target placeholder images, very old/low quality URLs, or never-fetched anime
@@ -607,7 +760,7 @@ export const checkPosterQuality = action({
       animeToCheck = animeResults.filter((anime): anime is Doc<"anime"> => anime !== null);
     } else {
       // Check random sample
-      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
       animeToCheck = allAnime.slice(0, limit);
     }
 
@@ -670,7 +823,7 @@ export const checkPosterQuality = action({
 export const getPosterQualityStats = action({
   args: {},
   handler: async (ctx: ActionCtx): Promise<PosterStatsResult> => {
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+        const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     
     const stats: PosterStats = {
       total: allAnime.length,
@@ -740,7 +893,7 @@ export const testPosterEnhancementSample = action({
     
     console.log(`[Test Poster Enhancement] Testing on ${sampleSize} anime sample...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     const animesToTest = allAnime
       .filter((anime: Doc<"anime">) => !anime.posterUrl || anime.posterUrl.includes('placeholder'))
       .slice(0, sampleSize);
@@ -808,7 +961,7 @@ export const quickFixPlaceholderPosters = action({
     
     console.log(`[Quick Fix] Finding anime with placeholder posters...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     const placeholderAnime = allAnime
       .filter((anime: Doc<"anime">) => anime.posterUrl && anime.posterUrl.includes('placehold'))
       .slice(0, limit);
@@ -899,5 +1052,16 @@ export const debugManualPosterEnhancement = action({
         details: error
       };
     }
+  },
+});
+
+// NEW: Public action to manually trigger episode data update for specific anime
+export const callBatchUpdateEpisodeData = action({
+  args: {
+    batchSize: v.optional(v.number()),
+    maxAnimeToProcess: v.optional(v.number()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<EpisodeBatchUpdateResult> => {
+    return await ctx.runAction(internal.externalApis.batchUpdateEpisodeDataForAllAnime, args);
   },
 });
