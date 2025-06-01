@@ -100,16 +100,19 @@ export const storeAiFeedback = mutation({
     messageId: v.string(),
   },
   handler: async (ctx, args) => {
-     await ctx.db.insert("aiInteractionFeedback", {
-       userId: "system" as any, // Replace with actual userId if available and authenticated
-       prompt: args.prompt,
-       aiAction: args.aiAction,
-       aiResponseRecommendations: args.aiResponseRecommendations,
-       aiResponseText: args.aiResponseText,
-       feedbackType: args.feedbackType,
-       messageId: args.messageId,
-       timestamp: Date.now(),
-     });
+    const result = await ctx.db.insert("aiInteractionFeedback", {
+      userId: "system" as any, // Replace with actual userId if available and authenticated
+      prompt: args.prompt,
+      aiAction: args.aiAction,
+      aiResponseRecommendations: args.aiResponseRecommendations,
+      aiResponseText: args.aiResponseText,
+      feedbackType: args.feedbackType,
+      messageId: args.messageId,
+      timestamp: Date.now(),
+    });
+    
+    // Return the inserted ID if you need to use it in a condition
+    return result;
   },
 });
 
@@ -151,161 +154,160 @@ export const enhanceRecommendationsPosters = action({
   },
 });
 
-const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: number = 2): Promise<string | null> => {
+const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: number = 1): Promise<string | null> => {
+  // Pre-defined mappings for common titles that have API naming differences
+  const titleMappings: { [key: string]: string[] } = {
+    "Demon Slayer": ["Kimetsu no Yaiba", "Demon Slayer: Kimetsu no Yaiba"],
+    "Attack on Titan": ["Shingeki no Kyojin", "Attack on Titan"],
+    "Dr. Stone": ["Dr. Stone", "Doctor Stone"],
+    "My Hero Academia": ["Boku no Hero Academia", "My Hero Academia"],
+    "One Piece": ["One Piece"],
+    "Jujutsu Kaisen": ["Jujutsu Kaisen"],
+    "Tokyo Ghoul": ["Tokyo Ghoul"],
+    "Death Note": ["Death Note"],
+    "Fullmetal Alchemist": ["Fullmetal Alchemist: Brotherhood", "Fullmetal Alchemist"],
+    "Your Name": ["Kimi no Na wa", "Your Name"],
+    "Spirited Away": ["Sen to Chihiro no Kamikakushi", "Spirited Away"]
+  };
+
+  // Get possible titles to search
+  const searchTitles = titleMappings[animeTitle] || [animeTitle];
+  
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Clean the title for better search results
-      const cleanTitle = animeTitle
-        .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
-        .replace(/\s+/g, ' ') // Normalize spaces
-        .trim();
+      console.log(`[Real Poster Fetch] Attempt ${attempt + 1} for: "${animeTitle}"`);
 
-      console.log(`[Real Poster Fetch] Attempt ${attempt + 1} for: "${cleanTitle}"`);
+      // Try each possible title variant
+      for (const searchTitle of searchTitles) {
+        console.log(`[Real Poster Fetch] Trying variant: "${searchTitle}"`);
+        
+        // Clean the title for better search results
+        const cleanTitle = searchTitle
+          .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+          .replace(/\s+/g, ' ') // Normalize spaces
+          .trim();
 
-      // Try AniList first (highest quality images) with timeout
-      const anilistQuery = `
-        query ($search: String) {
-          Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
-            id
-            title { romaji english native }
-            coverImage { 
-              extraLarge 
-              large 
-              medium 
+        // Try AniList first with shorter timeout for faster failure
+        try {
+          const anilistQuery = `
+            query ($search: String) {
+              Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
+                id
+                title { romaji english native }
+                coverImage { 
+                  extraLarge 
+                  large 
+                  medium 
+                }
+                averageScore
+              }
             }
-            averageScore
-          }
-        }
-      `;
+          `;
 
-      try {
-        const anilistController = new AbortController();
-        const anilistTimeout = setTimeout(() => anilistController.abort(), 8000); // 8 second timeout
+          const anilistController = new AbortController();
+          const anilistTimeout = setTimeout(() => anilistController.abort(), 4000); // Reduced to 4 seconds
 
-        const anilistResponse = await fetch('https://graphql.anilist.co', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            'Accept': 'application/json',
-            'User-Agent': 'AniMuse-App/1.0'
-          },
-          body: JSON.stringify({ 
-            query: anilistQuery, 
-            variables: { search: cleanTitle }
-          }),
-          signal: anilistController.signal
-        });
+          const anilistResponse = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json',
+              'User-Agent': 'AniMuse-App/1.0'
+            },
+            body: JSON.stringify({ 
+              query: anilistQuery, 
+              variables: { search: cleanTitle }
+            }),
+            signal: anilistController.signal
+          });
 
-        clearTimeout(anilistTimeout);
+          clearTimeout(anilistTimeout);
 
-        if (anilistResponse.ok) {
-          const anilistData = await anilistResponse.json();
-          const media = anilistData?.data?.Media;
-          if (media?.coverImage) {
-            const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
-            if (posterUrl && posterUrl.startsWith('https://')) {
-              console.log(`[Real Poster Fetch] ✅ Found AniList poster for: "${cleanTitle}" (ID: ${media.id})`);
-              // Verify the URL is accessible
-              try {
-                const testController = new AbortController();
-                const testTimeout = setTimeout(() => testController.abort(), 3000);
-                const testResponse = await fetch(posterUrl, { 
-                  method: 'HEAD', 
-                  signal: testController.signal 
-                });
-                clearTimeout(testTimeout);
-                if (testResponse.ok) {
+          if (anilistResponse.ok) {
+            const anilistData = await anilistResponse.json();
+            const media = anilistData?.data?.Media;
+            if (media?.coverImage) {
+              const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
+              if (posterUrl && posterUrl.startsWith('https://')) {
+                console.log(`[Real Poster Fetch] ✅ AniList success for: "${searchTitle}" (ID: ${media.id})`);
+                
+                // Quick URL validation (no HEAD request to save time)
+                if (posterUrl.includes('anilist.co') || posterUrl.includes('media.anilist.co')) {
                   return posterUrl;
                 }
-              } catch (testError) {
-                console.warn(`[Real Poster Fetch] AniList URL test failed for: "${cleanTitle}"`);
               }
             }
           }
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn(`[Real Poster Fetch] AniList timeout for: "${searchTitle}"`);
+          } else {
+            console.warn(`[Real Poster Fetch] AniList error for: "${searchTitle}":`, error.message);
+          }
         }
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.warn(`[Real Poster Fetch] AniList timeout for: "${cleanTitle}"`);
-        } else {
-          console.warn(`[Real Poster Fetch] AniList error for: "${cleanTitle}":`, error.message);
-        }
-      }
 
-      // Small delay before trying Jikan
-      await new Promise(resolve => setTimeout(resolve, 500));
+        // Small delay before trying Jikan
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Fallback to Jikan API with better error handling and timeout
-      try {
-        const encodedTitle = encodeURIComponent(cleanTitle);
-        const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
-        
-        const jikanController = new AbortController();
-        const jikanTimeout = setTimeout(() => jikanController.abort(), 8000); // 8 second timeout
-        
-        const jikanResponse = await fetch(jikanUrl, {
-          headers: { 
-            'Accept': 'application/json',
-            'User-Agent': 'AniMuse-App/1.0'
-          },
-          signal: jikanController.signal
-        });
-        
-        clearTimeout(jikanTimeout);
-        
-        if (jikanResponse.ok) {
-          const jikanData = await jikanResponse.json();
-          const anime = jikanData?.data?.[0];
-          if (anime?.images) {
-            const posterUrl = anime.images.jpg?.large_image_url || 
-                            anime.images.webp?.large_image_url || 
-                            anime.images.jpg?.image_url || 
-                            anime.images.webp?.image_url;
-            
-            if (posterUrl && posterUrl.startsWith('https://')) {
-              console.log(`[Real Poster Fetch] ✅ Found Jikan poster for: "${cleanTitle}" (MAL ID: ${anime.mal_id})`);
-              // Verify the URL is accessible
-              try {
-                const testController = new AbortController();
-                const testTimeout = setTimeout(() => testController.abort(), 3000);
-                const testResponse = await fetch(posterUrl, { 
-                  method: 'HEAD', 
-                  signal: testController.signal 
-                });
-                clearTimeout(testTimeout);
-                if (testResponse.ok) {
-                  return posterUrl;
-                }
-              } catch (testError) {
-                console.warn(`[Real Poster Fetch] Jikan URL test failed for: "${cleanTitle}"`);
+        // Try Jikan API with shorter timeout
+        try {
+          const encodedTitle = encodeURIComponent(cleanTitle);
+          const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
+          
+          const jikanController = new AbortController();
+          const jikanTimeout = setTimeout(() => jikanController.abort(), 4000); // Reduced to 4 seconds
+          
+          const jikanResponse = await fetch(jikanUrl, {
+            headers: { 
+              'Accept': 'application/json',
+              'User-Agent': 'AniMuse-App/1.0'
+            },
+            signal: jikanController.signal
+          });
+          
+          clearTimeout(jikanTimeout);
+          
+          if (jikanResponse.ok) {
+            const jikanData = await jikanResponse.json();
+            const anime = jikanData?.data?.[0];
+            if (anime?.images) {
+              const posterUrl = anime.images.jpg?.large_image_url || 
+                              anime.images.webp?.large_image_url || 
+                              anime.images.jpg?.image_url || 
+                              anime.images.webp?.image_url;
+              
+              if (posterUrl && posterUrl.startsWith('https://')) {
+                console.log(`[Real Poster Fetch] ✅ Jikan success for: "${searchTitle}" (MAL ID: ${anime.mal_id})`);
+                return posterUrl;
               }
             }
+          } else if (jikanResponse.status === 429) {
+            console.log(`[Real Poster Fetch] Rate limited on Jikan, skipping retries for: "${searchTitle}"`);
+            break; // Skip remaining variants if rate limited
           }
-        } else if (jikanResponse.status === 429) {
-          // Rate limited, wait longer before retry
-          const waitTime = (attempt + 1) * 2000;
-          console.log(`[Real Poster Fetch] Rate limited, waiting ${waitTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn(`[Real Poster Fetch] Jikan timeout for: "${searchTitle}"`);
+          } else {
+            console.warn(`[Real Poster Fetch] Jikan error for: "${searchTitle}":`, error.message);
+          }
         }
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.warn(`[Real Poster Fetch] Jikan timeout for: "${cleanTitle}"`);
-        } else {
-          console.warn(`[Real Poster Fetch] Jikan error for: "${cleanTitle}":`, error.message);
+
+        // Delay between title variants
+        if (searchTitles.indexOf(searchTitle) < searchTitles.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
 
-      // If both APIs failed, return null for this attempt
-      return null;
+      // If we reach here, all title variants failed for this attempt
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 500; // Reduced wait time
+        console.log(`[Real Poster Fetch] All variants failed, waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
 
     } catch (error: any) {
       console.error(`[Real Poster Fetch] Attempt ${attempt + 1} failed for "${animeTitle}":`, error.message);
-      
-      if (attempt < maxRetries) {
-        // Wait before retry, with exponential backoff
-        const waitTime = Math.pow(2, attempt) * 1000;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
     }
   }
 
@@ -313,95 +315,93 @@ const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: num
   return null;
 };
 
- const isValidPosterUrl = (posterUrl: string | undefined): boolean => {
-  if (!posterUrl) return false;
-  if (posterUrl === "PLACEHOLDER") return false;
-  if (posterUrl.includes('placehold.co')) return false;
-  if (posterUrl.includes('placeholder')) return false;
-  return posterUrl.startsWith('https://');
-};
-   
-
-
-// Enhanced version that checks database first
+// Enhanced version that checks database first with better concurrency control
 const enhanceRecommendationsWithDatabaseFirst = async (
   ctx: any,
   recommendations: any[]
 ): Promise<any[]> => {
   const enhancedRecommendations = [];
+  const concurrentLimit = 2; // Process only 2 at a time to avoid overwhelming APIs
   
-  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations...`);
+  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with concurrency limit ${concurrentLimit}...`);
   
-  for (let i = 0; i < recommendations.length; i++) {
-    const rec = recommendations[i];
-    let posterUrl = rec.posterUrl;
-    let foundInDatabase = false;
+  // Process recommendations in batches to avoid connection timeouts
+  for (let i = 0; i < recommendations.length; i += concurrentLimit) {
+    const batch = recommendations.slice(i, i + concurrentLimit);
     
-    console.log(`[Database-First Enhancement] Processing (${i + 1}/${recommendations.length}): ${rec.title}`);
-    
-    // Step 1: Check database first
-    if (rec.title) {
-      try {
-        const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
-          title: rec.title 
-        });
+    const batchResults = await Promise.all(
+      batch.map(async (rec, batchIndex) => {
+        const globalIndex = i + batchIndex;
+        let posterUrl = rec.posterUrl;
+        let foundInDatabase = false;
         
-        if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
-          posterUrl = dbAnime.posterUrl;
-          foundInDatabase = true;
-          console.log(`[Database-First Enhancement] ✅ Found in DB with valid poster: ${rec.title}`);
+        console.log(`[Database-First Enhancement] Processing (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+        
+        // Step 1: Check database first
+        if (rec.title) {
+          try {
+            const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+              title: rec.title 
+            });
+            
+            if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
+              posterUrl = dbAnime.posterUrl;
+              foundInDatabase = true;
+              console.log(`[Database-First Enhancement] ✅ Found in DB with valid poster: ${rec.title}`);
+              
+              // Enhance other fields from database if they're better
+              rec.description = rec.description || dbAnime.description;
+              rec.genres = rec.genres?.length ? rec.genres : (dbAnime.genres || []);
+              rec.year = rec.year || dbAnime.year;
+              rec.rating = rec.rating || dbAnime.rating;
+              rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
+            } else {
+              console.log(`[Database-First Enhancement] Not found in DB or poster invalid: ${rec.title}`);
+            }
+          } catch (error: any) {
+            console.warn(`[Database-First Enhancement] DB lookup error for "${rec.title}":`, error.message);
+          }
+        }
+        
+        // Step 2: If not found in DB or poster is invalid, use external APIs
+        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
+          console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
           
-          // Also enhance other fields from database if they're better
-          rec.description = rec.description || dbAnime.description;
-          rec.genres = rec.genres?.length ? rec.genres : (dbAnime.genres || []);
-          rec.year = rec.year || dbAnime.year;
-          rec.rating = rec.rating || dbAnime.rating;
-          rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
-        } else if (dbAnime) {
-          console.log(`[Database-First Enhancement] Found in DB but poster needs enhancement: ${rec.title}`);
-        } else {
-          console.log(`[Database-First Enhancement] Not found in DB: ${rec.title}`);
+          try {
+            const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 0); // No retries for speed
+            
+            if (externalPosterUrl) {
+              posterUrl = externalPosterUrl;
+              console.log(`[Database-First Enhancement] ✅ Found external poster: ${rec.title}`);
+            } else {
+              // Final fallback to placeholder
+              const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+              posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+              console.log(`[Database-First Enhancement] 📝 Using fallback placeholder: ${rec.title}`);
+            }
+          } catch (error: any) {
+            console.error(`[Database-First Enhancement] External fetch error for "${rec.title}":`, error.message);
+            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+            posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+          }
         }
-      } catch (error: any) {
-        console.warn(`[Database-First Enhancement] DB lookup error for "${rec.title}":`, error.message);
-      }
-    }
-    
-    // Step 2: If not found in DB or poster is invalid, use external APIs
-    if (!foundInDatabase && (!posterUrl || !isValidPosterUrl(posterUrl))) {
-      console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
-      
-      try {
-        const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 1);
         
-        if (externalPosterUrl) {
-          posterUrl = externalPosterUrl;
-          console.log(`[Database-First Enhancement] ✅ Found external poster: ${rec.title}`);
-        } else {
-          // Final fallback to placeholder
-          const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
-          posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-          console.log(`[Database-First Enhancement] 📝 Using fallback placeholder: ${rec.title}`);
-        }
-      } catch (error: any) {
-        console.error(`[Database-First Enhancement] External fetch error for "${rec.title}":`, error.message);
-        const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
-        posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-      }
-    }
+        return {
+          ...rec,
+          posterUrl,
+          title: rec.title || "Unknown Title",
+          description: rec.description || "No description available.",
+          reasoning: rec.reasoning || "AI recommendation.",
+          foundInDatabase,
+        };
+      })
+    );
     
-    enhancedRecommendations.push({
-      ...rec,
-      posterUrl,
-      title: rec.title || "Unknown Title",
-      description: rec.description || "No description available.",
-      reasoning: rec.reasoning || "AI recommendation.",
-      foundInDatabase, // Add this flag for debugging
-    });
+    enhancedRecommendations.push(...batchResults);
     
-    // Small delay between external API calls (not needed for DB lookups)
-    if (!foundInDatabase && i < recommendations.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Small delay between batches to avoid overwhelming the system
+    if (i + concurrentLimit < recommendations.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
   
@@ -485,8 +485,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
         const rawRecommendations = parsed.slice(0, args.count || 3);
         console.log(`[AI Recommendations] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, posterUrl: r.posterUrl })));
         
-        // Enhance recommendations with real posters
-        console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
+        console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
         const startTime = Date.now();
         recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
         const enhancementTime = Date.now() - startTime;
@@ -507,15 +506,20 @@ Focus on providing diverse and relevant choices with accurate information.`;
       console.error("[AI Action - GetAnimeRecommendation] Error:", err);
       errorResult = `AI Error: ${err.message || "Unknown"}`;
     } finally {
+      // FIXED: Don't use the result of runMutation in a condition
       if (args.messageId) {
-         await ctx.runMutation(api.ai.storeAiFeedback, {
-          prompt: args.prompt,
-          aiAction: "getAnimeRecommendation",
-          aiResponseRecommendations: recommendations.length ? recommendations : undefined,
-          aiResponseText: recommendations.length === 0 ? errorResult : undefined,
-          feedbackType: "none",
-          messageId: args.messageId,
-        });
+        try {
+          await ctx.runMutation(api.ai.storeAiFeedback, {
+            prompt: args.prompt,
+            aiAction: "getAnimeRecommendation",
+            aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+            aiResponseText: recommendations.length === 0 ? errorResult : undefined,
+            feedbackType: "none",
+            messageId: args.messageId,
+          });
+        } catch (feedbackError) {
+          console.warn("Failed to store feedback:", feedbackError);
+        }
       }
     }
     return { recommendations, error: errorResult };
@@ -1946,7 +1950,8 @@ export const testPosterFetching = action({
   },
 });
 
-// Debug version of getPersonalizedRecommendations with extra logging
+// This adds a database lookup to attach real IDs to test recommendations
+
 export const debugPersonalizedRecommendations = action({
     args: {
         userProfile: enhancedUserProfileValidator,
@@ -1955,91 +1960,95 @@ export const debugPersonalizedRecommendations = action({
     },
     handler: async (ctx, args) => {
         console.log(`[DEBUG Personalized] Starting debug personalized recommendations`);
-        console.log(`[DEBUG Personalized] User profile:`, {
-            name: args.userProfile.name,
-            genres: args.userProfile.genres,
-            favoriteAnimes: args.userProfile.favoriteAnimes,
-            experienceLevel: args.userProfile.experienceLevel
-        });
 
         if (!process.env.CONVEX_OPENAI_API_KEY) {
             return { recommendations: [], error: "OpenAI API key not configured." };
         }
 
-        // Simplified test recommendations for debugging
+        // Test recommendations with potential database matches
         const testRecommendations = [
-            {
-                title: "Attack on Titan",
-                description: "Humanity fights for survival against giant humanoid Titans.",
-                posterUrl: "PLACEHOLDER",
-                genres: ["Action", "Drama", "Fantasy"],
-                year: 2013,
-                rating: 9.0,
-                emotionalTags: ["intense", "dramatic"],
-                studios: ["Studio Pierrot"],
-                themes: ["survival", "freedom"],
-                reasoning: "Perfect for testing poster fetching and navigation"
-            },
-            {
-                title: "Demon Slayer",
-                description: "A young boy becomes a demon slayer to save his sister.",
-                posterUrl: "PLACEHOLDER", 
-                genres: ["Action", "Supernatural"],
-                year: 2019,
-                rating: 8.7,
-                emotionalTags: ["emotional", "action-packed"],
-                studios: ["Ufotable"],
-                themes: ["family", "determination"],
-                reasoning: "Another test anime for poster enhancement"
-            },
-            {
-                title: "Your Name",
-                description: "Two teenagers share a profound, magical connection.",
-                posterUrl: "PLACEHOLDER",
-                genres: ["Romance", "Drama", "Supernatural"],
-                year: 2016,
-                rating: 8.4,
-                emotionalTags: ["romantic", "beautiful"],
-                studios: ["CoMix Wave Films"],
-                themes: ["love", "destiny"],
-                reasoning: "Movie test for poster system"
-            }
+            { title: "Attack on Titan", description: "Humanity fights for survival against giant humanoid Titans.", posterUrl: "PLACEHOLDER", genres: ["Action", "Drama", "Fantasy"], year: 2013, rating: 9.0, emotionalTags: ["intense", "dramatic"], studios: ["Studio Pierrot"], themes: ["survival", "freedom"], reasoning: "Perfect for testing poster fetching and navigation" },
+            { title: "Demon Slayer", description: "A young boy becomes a demon slayer to save his sister.", posterUrl: "PLACEHOLDER", genres: ["Action", "Supernatural"], year: 2019, rating: 8.7, emotionalTags: ["emotional", "action-packed"], studios: ["Ufotable"], themes: ["family", "determination"], reasoning: "Another test anime for poster enhancement" },
+            { title: "Your Name", description: "Two teenagers share a profound, magical connection.", posterUrl: "PLACEHOLDER", genres: ["Romance", "Drama", "Supernatural"], year: 2016, rating: 8.4, emotionalTags: ["romantic", "beautiful"], studios: ["CoMix Wave Films"], themes: ["love", "destiny"], reasoning: "Movie test for poster system" },
+            { title: "Spirited Away", description: "A girl enters a world ruled by gods and witches.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Family", "Fantasy"], year: 2001, rating: 9.3, emotionalTags: ["magical", "heartwarming"], studios: ["Studio Ghibli"], themes: ["courage", "growth"], reasoning: "Classic Ghibli for diverse testing" },
+            { title: "Death Note", description: "A student gains the power to kill with a supernatural notebook.", posterUrl: "PLACEHOLDER", genres: ["Thriller", "Psychological", "Supernatural"], year: 2006, rating: 9.0, emotionalTags: ["dark", "intense"], studios: ["Madhouse"], themes: ["justice", "morality"], reasoning: "Psychological thriller for variety" },
+            { title: "One Piece", description: "A pirate crew searches for the ultimate treasure.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Comedy", "Shounen"], year: 1999, rating: 8.9, emotionalTags: ["adventurous", "friendship"], studios: ["Toei Animation"], themes: ["friendship", "adventure"], reasoning: "Long-running series for testing" },
+            { title: "My Hero Academia", description: "Students train to become professional superheroes.", posterUrl: "PLACEHOLDER", genres: ["Action", "School", "Superhero"], year: 2016, rating: 8.6, emotionalTags: ["inspiring", "heroic"], studios: ["Studio Bones"], themes: ["heroism", "growth"], reasoning: "Modern shounen for testing" },
+            { title: "Naruto", description: "A young ninja seeks recognition and dreams of becoming Hokage.", posterUrl: "PLACEHOLDER", genres: ["Action", "Martial Arts", "Shounen"], year: 2002, rating: 8.4, emotionalTags: ["determined", "friendship"], studios: ["Studio Pierrot"], themes: ["perseverance", "friendship"], reasoning: "Classic shounen for testing" },
+            { title: "Princess Mononoke", description: "A young warrior gets involved in a struggle between forest gods and humans.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Drama", "Fantasy"], year: 1997, rating: 8.9, emotionalTags: ["epic", "thought-provoking"], studios: ["Studio Ghibli"], themes: ["nature", "conflict"], reasoning: "Environmental epic for testing" },
+            { title: "Fullmetal Alchemist: Brotherhood", description: "Brothers use alchemy to search for the Philosopher's Stone.", posterUrl: "PLACEHOLDER", genres: ["Action", "Adventure", "Drama"], year: 2009, rating: 9.5, emotionalTags: ["emotional", "epic"], studios: ["Studio Bones"], themes: ["sacrifice", "truth"], reasoning: "Highly rated series for testing" }
         ];
 
-        console.log(`[DEBUG Personalized] Using test recommendations:`, testRecommendations.map(r => r.title));
-
         try {
-            // Enhance with real posters
-            console.log(`[DEBUG Personalized] Enhancing ${testRecommendations.length} test recommendations with real posters...`);
-            const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, testRecommendations);
+            const requestedCount = args.count || 10;
+            let selectedRecommendations = testRecommendations.slice(0, requestedCount);
             
-            console.log(`[DEBUG Personalized] Enhanced recommendations:`, enhancedRecommendations.map(r => ({
-                title: r.title,
-                posterUrl: r.posterUrl?.substring(0, 50) + "...",
-                isReal: !r.posterUrl?.includes('placehold.co')
-            })));
+            // QUICK FIX: Try to attach real database IDs to test recommendations
+            console.log(`[DEBUG Personalized] Looking up database IDs for ${selectedRecommendations.length} recommendations...`);
+            
+            const enhancedWithIds = await Promise.all(
+                selectedRecommendations.map(async (rec) => {
+                    try {
+                        // Try to find this anime in the database
+                        const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title: rec.title });
+                        
+                        if (dbAnime) {
+                            console.log(`[DEBUG Personalized] Found database match for "${rec.title}" with ID: ${dbAnime._id}`);
+                            // Attach the real database ID
+                            return {
+                                ...rec,
+                                _id: dbAnime._id, // This will make navigation work!
+                                // Also use database data if it's better
+                                description: dbAnime.description || rec.description,
+                                posterUrl: dbAnime.posterUrl || rec.posterUrl,
+                                genres: dbAnime.genres || rec.genres,
+                                year: dbAnime.year || rec.year,
+                                rating: dbAnime.rating || rec.rating,
+                                foundInDatabase: true
+                            };
+                        } else {
+                            console.log(`[DEBUG Personalized] No database match for "${rec.title}"`);
+                            return { ...rec, foundInDatabase: false };
+                        }
+                    } catch (error) {
+                        console.warn(`[DEBUG Personalized] Error looking up "${rec.title}":`, error);
+                        return { ...rec, foundInDatabase: false };
+                    }
+                })
+            );
+            
+            // Now enhance with posters (this will skip database lookup for items that already have IDs)
+            console.log(`[DEBUG Personalized] Enhancing posters for recommendations...`);
+            const finalRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, enhancedWithIds);
+            
+            const dbMatches = finalRecommendations.filter(r => r._id).length;
+            const realPosters = finalRecommendations.filter(r => r.posterUrl && !r.posterUrl.includes('placehold.co')).length;
+            
+            console.log(`[DEBUG Personalized] Final results: ${dbMatches}/${finalRecommendations.length} have database IDs, ${realPosters}/${finalRecommendations.length} have real posters`);
 
             await ctx.runMutation(api.ai.storeAiFeedback, {
-                prompt: "Debug personalized recommendations test",
+                prompt: "Debug personalized recommendations with database lookup",
                 aiAction: "debugPersonalizedRecommendations",
-                aiResponseRecommendations: enhancedRecommendations,
+                aiResponseRecommendations: finalRecommendations,
                 feedbackType: "none",
                 messageId: args.messageId,
             });
 
             return { 
-                recommendations: enhancedRecommendations, 
+                recommendations: finalRecommendations, 
                 debug: {
                     originalCount: testRecommendations.length,
-                    enhancedCount: enhancedRecommendations.length,
-                    realPostersFound: enhancedRecommendations.filter(r => !r.posterUrl?.includes('placehold.co')).length
+                    requestedCount: requestedCount,
+                    finalCount: finalRecommendations.length,
+                    databaseMatches: dbMatches,
+                    realPostersFound: realPosters
                 },
                 error: undefined 
             };
         } catch (err: any) {
             console.error("[DEBUG Personalized] Error:", err);
             return { 
-                recommendations: testRecommendations, 
+                recommendations: testRecommendations.slice(0, args.count || 10), 
                 debug: { error: err.message },
                 error: `Debug Error: ${err.message}` 
             };
@@ -2120,3 +2129,7 @@ export const debugPosterUrls = action({
     return { results };
   },
 });
+
+function isValidPosterUrl(posterUrl: any) {
+  throw new Error("Function not implemented.");
+}

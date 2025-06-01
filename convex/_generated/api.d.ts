@@ -16,6 +16,7 @@ import type {
 import type * as admin from "../admin.js";
 import type * as ai from "../ai.js";
 import type * as anime from "../anime.js";
+import type * as animeQueries from "../animeQueries.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
 import type * as crons from "../crons.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   ai: typeof ai;
   anime: typeof anime;
+  animeQueries: typeof animeQueries;
   auth: typeof auth;
   authActions: typeof authActions;
   crons: typeof crons;
