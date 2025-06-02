@@ -115,6 +115,7 @@ p, span, div, li, button, input, select, textarea {
 .horizontal-carousel::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -413,10 +414,12 @@ body {
   
   /* Reduce backdrop blur complexity */
   .backdrop-blur-xl {
+     -webkit-backdrop-filter: blur(8px) !important;
     backdrop-filter: blur(8px) !important;
   }
   
   .backdrop-blur-sm {
+     -webkit-backdrop-filter: blur(2px) !important;
     backdrop-filter: blur(2px) !important;
   }
 }
@@ -441,6 +444,7 @@ body {
 
 .low-bandwidth .backdrop-blur-xl,
 .low-bandwidth .backdrop-blur-sm {
+   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
 }
@@ -482,6 +486,7 @@ body {
 .ios-device .backdrop-blur-md,
 .ios-device .backdrop-blur-lg,
 .ios-device .backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(2px) !important;
   backdrop-filter: none !important;
   background-color: rgba(0, 0, 0, 0.75) !important;
 }
@@ -641,6 +646,7 @@ body {
   html {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%; 
   }
 }
 

@@ -256,6 +256,7 @@ export function SignInForm() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className={`absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white ${shouldAnimate ? 'transition-colors' : 'transition-none'}`}
+                      aria-label={showPasswordConfirm ? "Hide confirm password" : "Show confirm password"}
                       disabled={submitting}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,6 +297,7 @@ export function SignInForm() {
                         type="button"
                         onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
                         className={`absolute inset-y-0 right-4 flex items-center text-white/60 hover:text-white ${shouldAnimate ? 'transition-colors' : 'transition-none'}`}
+                        aria-label={showPasswordConfirm ? "Hide confirm password" : "Show confirm password"}
                         disabled={submitting}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

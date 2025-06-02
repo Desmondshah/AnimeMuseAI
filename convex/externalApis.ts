@@ -296,7 +296,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
             // Enhanced image selection for Jikan
             const bestImageUrl = selectBestImageUrl(apiData.images);
             
-            mappedData = {
+              mappedData = {
               description: getString(apiData, 'synopsis', existingAnime.description),
               posterUrl: bestImageUrl || existingAnime.posterUrl,
               genres: getStringArray(apiData, 'genres', 'name') || existingAnime.genres,
@@ -307,9 +307,9 @@ export const triggerFetchExternalAnimeDetails = internalAction({
               studios: getStringArray(apiData, 'studios', 'name') || existingAnime.studios,
               themes: getStringArray(apiData, 'themes', 'name') || existingAnime.themes,
               // NEW: Episode data from Jikan (limited)
-              totalEpisodes: apiData.episodes || existingAnime.totalEpisodes,
-              episodeDuration: apiData.duration || existingAnime.episodeDuration,
-              airingStatus: apiData.status || existingAnime.airingStatus,
+              totalEpisodes: getNumber(apiData, 'episodes', existingAnime.totalEpisodes), // Also good to use getNumber here if apiData.episodes might not be a number
+              episodeDuration: getNumber(apiData, 'duration', existingAnime.episodeDuration), // <<< FIX APPLIED HERE
+              airingStatus: getString(apiData, 'status', existingAnime.airingStatus), // getString might be more appropriate for status
             };
         } else if (sourceApiUsed === "anilist" && apiData) {
             fetchedTitle = apiData.title?.english || apiData.title?.romaji || apiData.title?.native;
