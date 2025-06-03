@@ -72,21 +72,12 @@ const applicationTables = {
   .index("by_year_averageUserRating", ["year", "averageUserRating"])
   .index("by_reviewCount", ["reviewCount"])
   .index("by_airingStatus", ["airingStatus"]) // NEW: For querying currently airing anime
-  .searchIndex("search_title", { searchField: "title" })
-  .searchIndex("search_description", { searchField: "description" })
+  .searchIndex("search_title", { searchField: "title", filterFields: ["genres", "year", "rating", "studios"] })
+  .searchIndex("search_description", { searchField: "description", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_genres", { searchField: "genres" })
   .searchIndex("search_studios", { searchField: "studios" })
   .searchIndex("search_themes", { searchField: "themes" })
-  .searchIndex("search_emotionalTags", { searchField: "emotionalTags" })
-
-  .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["genres", "year", "rating", "studios"]
-    })
-    .searchIndex("search_description", {
-      searchField: "description", 
-      filterFields: ["genres", "year", "rating", "studios"]
-    }),
+  .searchIndex("search_emotionalTags", { searchField: "emotionalTags" }),
 
   watchlist: defineTable({
     userId: v.id("users"),
