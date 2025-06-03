@@ -20,6 +20,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "../src/components/animuse/onboarding/useSmartContext.ts", "../src/components/animuse/onboarding/moodBoardTesting.ts"],
   "exclude": ["./_generated"]
 }

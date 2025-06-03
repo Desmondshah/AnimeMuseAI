@@ -1674,15 +1674,26 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
 });
 
 
-// --- NEW: getRecommendationsByMoodTheme (for Mood Board on Dashboard) ---
-export const getRecommendationsByMoodTheme = action({
+// Enhanced AI backend improvements for convex/ai.ts
+// Add these enhancements to your existing getRecommendationsByMoodTheme action
+
+// Enhanced mood theme recommendation with intensity weighting and category analysis
+export const getEnhancedRecommendationsByMoodTheme = action({
     args: {
         selectedCues: v.array(v.string()),
+        cueIntensities: v.optional(v.object({})), // Dynamic object for intensities
         userProfile: v.optional(enhancedUserProfileValidator),
         count: v.optional(v.number()),
         messageId: v.string(),
+        advancedMode: v.optional(v.boolean()),
+        dominantCategory: v.optional(v.string()),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args): Promise<{
+        recommendations: any[];
+        error?: string;
+        moodAnalysis?: any;
+        debug?: any;
+    }> => {
         if (!process.env.CONVEX_OPENAI_API_KEY) {
             return { recommendations: [], error: "OpenAI API key not configured." };
         }
@@ -1690,97 +1701,495 @@ export const getRecommendationsByMoodTheme = action({
             return { recommendations: [], error: "No mood cues selected." };
         }
 
-        let systemPrompt = `You are AniMuse, an AI specializing in recommending anime based on mood, themes, and vibes.
-The user has selected the following mood/theme cues: ${args.selectedCues.join(", ")}.
-Suggest ${args.count || 3} anime that strongly evoke these combined vibes.
+        console.log(`[Enhanced Mood AI] Processing ${args.selectedCues.length} cues with ${args.advancedMode ? 'advanced' : 'simple'} mode`);
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
-If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+        // Analyze mood cue patterns and intensities
+        const moodAnalysis = analyzeMoodCombination(args.selectedCues, args.cueIntensities || {});
+        
+        let systemPrompt = `You are AniMuse, an expert AI specializing in mood-based anime recommendations.
+The user has selected a specific combination of mood cues that creates a unique emotional profile.
+Your task is to recommend anime that authentically captures this exact emotional blend.
 
-Each recommendation MUST include: 
-- title (string, REQUIRED): Exact anime title
-- description (string): Brief synopsis
-- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
-- genres (array of strings): Key genres
-- year (number): Release year if known
-- rating (number 0-10): External rating if known
-- emotionalTags (array of strings): Emotional descriptors
-- studios (array of strings): Animation studios
-- themes (array of strings): Major themes
-- reasoning (string, REQUIRED): DETAILED reasoning explaining *why* this anime fits the selected mood cues
+SELECTED MOOD CUES: ${args.selectedCues.join(", ")}
 
-If user profile data is available, subtly weave it into the reasoning if it aligns, but prioritize the mood cues.`;
+MOOD ANALYSIS:
+- Primary Emotional Tone: ${moodAnalysis.primaryTone}
+- Energy Level: ${moodAnalysis.energyLevel}/5
+- Complexity Score: ${moodAnalysis.complexityScore}/5
+- Mood Categories: ${moodAnalysis.categories.join(", ")}
+- Dominant Theme: ${moodAnalysis.dominantTheme}`;
 
-        if (args.userProfile) {
-            systemPrompt += "\n\nUser Profile Context (use for subtle tie-ins if relevant):";
-            if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-            if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
-             if (args.userProfile.moods?.length) systemPrompt += `\n- General Moods Liked: ${args.userProfile.moods.join(", ")}`;
+        // Add intensity information if available
+        if (args.cueIntensities && Object.keys(args.cueIntensities).length > 0) {
+            systemPrompt += `\n\nCUE INTENSITIES (1=subtle, 5=overwhelming):`;
+            Object.entries(args.cueIntensities).forEach(([cueId, intensity]) => {
+                const cueName = findCueNameById(cueId);
+                if (cueName) {
+                    systemPrompt += `\n- ${cueName}: ${intensity}/5 (${getIntensityLabel(intensity as number)})`;
+                }
+            });
         }
-         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
+
+        // Add advanced mode instructions
+        if (args.advancedMode) {
+            systemPrompt += `\n\nADVANCED MODE INSTRUCTIONS:
+- Pay careful attention to the intensity levels specified
+- High intensity (4-5) cues should be CENTRAL to the anime's identity
+- Medium intensity (3) cues should be clearly present but balanced
+- Low intensity (1-2) cues should be subtle undertones
+- Prioritize anime that authentically blend these specific intensity levels`;
+        }
+
+        // Add user profile context
+        if (args.userProfile) {
+            systemPrompt += `\n\nUSER PROFILE CONTEXT:`;
+            if (args.userProfile.experienceLevel) {
+                systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
+                if (args.userProfile.experienceLevel === "beginner") {
+                    systemPrompt += ` (Prioritize accessible anime with clear emotional beats)`;
+                } else if (args.userProfile.experienceLevel === "veteran") {
+                    systemPrompt += ` (Can handle complex, nuanced emotional narratives)`;
+                }
+            }
+            if (args.userProfile.genres?.length) {
+                systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")} (Use as secondary filter)`;
+            }
+            if (args.userProfile.dislikedGenres?.length) {
+                systemPrompt += `\n- Avoid Genres: ${args.userProfile.dislikedGenres.join(", ")} (Unless mood match is exceptional)`;
+            }
+            if (args.userProfile.moods?.length) {
+                systemPrompt += `\n- General Mood Preferences: ${args.userProfile.moods.join(", ")}`;
+            }
+        }
+
+        // Add mood-specific recommendation strategy
+        systemPrompt += `\n\nRECOMMENDATION STRATEGY:
+${getMoodStrategy(moodAnalysis)}
+
+IMPORTANT GUIDELINES:
+1. Each recommendation must authentically capture the selected mood combination
+2. Provide diverse options that approach the mood from different angles
+3. Consider both obvious and unexpected anime that fit the emotional profile
+4. Balance popular accessibility with hidden gems
+5. Ensure each recommendation genuinely evokes the specified emotional experience
+
+OUTPUT REQUIREMENTS:
+For posterUrl, try to provide real anime poster URLs if you know them. If unknown, use "PLACEHOLDER" for automatic enhancement.
+
+Each recommendation must include:
+- title (REQUIRED): Exact anime title
+- description: Brief synopsis focusing on mood relevance
+- reasoning (REQUIRED): Detailed explanation of how it matches the mood combination and intensities
+- posterUrl: Real URL or "PLACEHOLDER"
+- genres: Array of relevant genres
+- year: Release year if known
+- rating: External rating (0-10) if known
+- emotionalTags: Specific emotional descriptors that match the mood
+- moodMatchScore: 1-10 score for how well it matches the mood combination
+- moodReasoningDetailed: Specific breakdown of how each major mood cue is represented
+- themes: Major thematic elements
+- studios: Animation studios
+- targetEmotionalImpact: The primary emotional experience this anime delivers`;
+
+        systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}
+        
+Provide ${args.count || 6} carefully curated recommendations that create a cohesive mood journey.
+Make each recommendation distinctive while staying true to the emotional profile.`;
 
         let recommendations: any[] = [];
         let errorResult: string | undefined = undefined;
 
         try {
+            console.log(`[Enhanced Mood AI] Calling OpenAI with ${systemPrompt.length} character prompt...`);
+            
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: `Find anime for vibes: ${args.selectedCues.join(" & ")}.` }
+                    { role: "user", content: `Find anime that perfectly captures this mood combination: ${args.selectedCues.join(" + ")}. Focus on authentic emotional resonance.` }
                 ],
                 response_format: { type: "json_object" },
+                temperature: 0.7, // Slightly higher for creative mood matching
             });
 
-            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getRecommendationsByMoodTheme");
+            const parsed = tryParseAIResponse(completion.choices[0].message.content, "getEnhancedRecommendationsByMoodTheme");
             if (parsed) {
-                const rawRecommendations = parsed.slice(0, args.count || 3);
+                const rawRecommendations = parsed.slice(0, args.count || 6);
                 
-                // Use the new database-first enhancement logic
-                console.log(`[Mood Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
+                console.log(`[Enhanced Mood AI] Enhancing ${rawRecommendations.length} mood-based recommendations...`);
                 recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
                 
-                console.log(`[Mood Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
+                // Add mood-specific metadata
+                recommendations = recommendations.map((rec: any) => ({
+                    ...rec,
+                    moodCombination: args.selectedCues,
+                    moodAnalysis: moodAnalysis,
+                    isEnhancedMoodRecommendation: true,
+                    recommendationMode: args.advancedMode ? 'advanced' : 'simple',
+                    // Ensure moodMatchScore is present (required by AnimeRecommendation type)
+                    moodMatchScore: rec.moodMatchScore || 7 // Default score if AI didn't provide one
+                }));
+                
+                console.log(`[Enhanced Mood AI] Successfully processed ${recommendations.length} mood recommendations`);
             } else {
                 errorResult = "AI response format error or no mood-based recommendations found.";
             }
         } catch (err: any) {
-            console.error("[AI Action - GetRecommendationsByMoodTheme] Error:", err);
-            errorResult = `AI Error: ${err.message || "Unknown"}`;
+            console.error("[Enhanced Mood AI] Error:", err);
+            errorResult = `Enhanced Mood AI Error: ${err.message || "Unknown"}`;
         } finally {
             if (args.messageId) {
                 await ctx.runMutation(api.ai.storeAiFeedback, {
-                    prompt: `Mood board: ${args.selectedCues.join(", ")}`,
-                    aiAction: "getRecommendationsByMoodTheme",
+                    prompt: `Enhanced mood: ${args.selectedCues.join(", ")} (${args.advancedMode ? 'advanced' : 'simple'} mode)`,
+                    aiAction: "getEnhancedRecommendationsByMoodTheme",
                     aiResponseRecommendations: recommendations.length ? recommendations : undefined,
-                    aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
+                    aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(moodAnalysis),
                     feedbackType: "none",
                     messageId: args.messageId,
                 });
             }
         }
+        
         return { 
             recommendations, 
             error: errorResult,
-            // Add debug info for monitoring
+            moodAnalysis: moodAnalysis,
             debug: {
-                dbHits: recommendations.filter(r => r.foundInDatabase).length,
+                cueCombination: args.selectedCues,
+                intensityMode: args.advancedMode,
+                analysisResult: moodAnalysis,
                 totalRecommendations: recommendations.length,
-                realPosters: recommendations.filter(r => r.posterUrl && !r.posterUrl.includes('placehold.co')).length
+                realPosters: recommendations.filter((r: any) => r.posterUrl && !r.posterUrl.includes('placehold.co')).length
             }
         };
     }
 });
 
-export const getSimilarAnimeRecommendations = action({
+// Helper function to analyze mood combination
+function analyzeMoodCombination(selectedCues: string[], intensities: Record<string, number>) {
+    // Define mood characteristics and their emotional characteristics
+    const MOOD_CHARACTERISTICS: Record<string, {
+        energy: number;
+        complexity: number;
+        category: string;
+        theme: string;
+    }> = {
+        // Emotional Tones
+        'Dark & Gritty': { energy: 4, complexity: 5, category: 'emotional', theme: 'mature realism' },
+        'Heartwarming': { energy: 2, complexity: 2, category: 'emotional', theme: 'human connection' },
+        'Comedic': { energy: 4, complexity: 1, category: 'emotional', theme: 'joy and humor' },
+        'Romantic': { energy: 3, complexity: 3, category: 'emotional', theme: 'love and relationships' },
+        'Melancholic': { energy: 1, complexity: 4, category: 'emotional', theme: 'bittersweet reflection' },
+        'Inspiring': { energy: 5, complexity: 2, category: 'emotional', theme: 'hope and growth' },
+        
+        // Visual Styles
+        'Stunning Visuals': { energy: 3, complexity: 3, category: 'visual', theme: 'artistic excellence' },
+        'Retro/Classic': { energy: 2, complexity: 2, category: 'visual', theme: 'nostalgic appeal' },
+        'Modern & Sleek': { energy: 3, complexity: 2, category: 'visual', theme: 'contemporary aesthetics' },
+        'Unique Art Style': { energy: 3, complexity: 4, category: 'visual', theme: 'artistic innovation' },
+        
+        // Pacing & Energy
+        'Action Packed': { energy: 5, complexity: 2, category: 'pacing', theme: 'high intensity thrills' },
+        'Chill Vibes': { energy: 1, complexity: 1, category: 'pacing', theme: 'peaceful relaxation' },
+        'Edge of Seat': { energy: 5, complexity: 3, category: 'pacing', theme: 'suspenseful tension' },
+        'Slow Burn': { energy: 2, complexity: 4, category: 'pacing', theme: 'gradual development' },
+        
+        // Themes & Messages
+        'Mind-Bending': { energy: 3, complexity: 5, category: 'thematic', theme: 'intellectual complexity' },
+        'Thought-Provoking': { energy: 2, complexity: 5, category: 'thematic', theme: 'philosophical depth' },
+        'Coming of Age': { energy: 3, complexity: 3, category: 'thematic', theme: 'personal growth' },
+        'Social Commentary': { energy: 3, complexity: 4, category: 'thematic', theme: 'societal examination' },
+        
+        // Atmosphere & Setting
+        'Epic Adventure': { energy: 5, complexity: 3, category: 'atmospheric', theme: 'grand journeys' },
+        'Nostalgic': { energy: 2, complexity: 3, category: 'atmospheric', theme: 'wistful memories' },
+        'Supernatural': { energy: 4, complexity: 3, category: 'atmospheric', theme: 'otherworldly mystery' },
+        'Urban & Modern': { energy: 3, complexity: 2, category: 'atmospheric', theme: 'contemporary life' },
+        'Fantasy & Magical': { energy: 4, complexity: 3, category: 'atmospheric', theme: 'magical wonder' },
+        
+        // Character Dynamics
+        'Strong Friendships': { energy: 3, complexity: 2, category: 'character', theme: 'bonds and loyalty' },
+        'Complex Characters': { energy: 3, complexity: 5, category: 'character', theme: 'psychological depth' },
+        'Mentor & Student': { energy: 2, complexity: 3, category: 'character', theme: 'wisdom and learning' },
+        'Ensemble Cast': { energy: 4, complexity: 4, category: 'character', theme: 'group dynamics' }
+    };
+
+    let totalEnergy = 0;
+    let totalComplexity = 0;
+    let categories: string[] = [];
+    let themes: string[] = [];
+    let weightedValues: { energy: number; complexity: number; count: number } = { energy: 0, complexity: 0, count: 0 };
+
+    selectedCues.forEach(cue => {
+        const characteristics = MOOD_CHARACTERISTICS[cue];
+        if (characteristics) {
+            // Apply intensity weighting if available
+            const cueId = findCueIdByName(cue);
+            const intensity = (cueId && intensities[cueId]) || 3;
+            const weight = intensity / 3; // Normalize around 3 (standard intensity)
+
+            weightedValues.energy += characteristics.energy * weight;
+            weightedValues.complexity += characteristics.complexity * weight;
+            weightedValues.count += weight;
+
+            if (!categories.includes(characteristics.category)) {
+                categories.push(characteristics.category);
+            }
+            themes.push(characteristics.theme);
+        }
+    });
+
+    const avgEnergy = weightedValues.count > 0 ? Math.round(weightedValues.energy / weightedValues.count) : 3;
+    const avgComplexity = weightedValues.count > 0 ? Math.round(weightedValues.complexity / weightedValues.count) : 3;
+
+    // Determine primary emotional tone
+    let primaryTone = 'balanced';
+    if (selectedCues.some(cue => ['Dark & Gritty', 'Melancholic'].includes(cue))) {
+        primaryTone = 'dark/serious';
+    } else if (selectedCues.some(cue => ['Heartwarming', 'Inspiring', 'Comedic'].includes(cue))) {
+        primaryTone = 'uplifting/positive';
+    } else if (selectedCues.some(cue => ['Action Packed', 'Edge of Seat', 'Epic Adventure'].includes(cue))) {
+        primaryTone = 'intense/thrilling';
+    } else if (selectedCues.some(cue => ['Chill Vibes', 'Nostalgic', 'Slow Burn'].includes(cue))) {
+        primaryTone = 'calm/reflective';
+    }
+
+    // Determine dominant theme
+    const themeFrequency: Record<string, number> = {};
+    themes.forEach(theme => {
+        themeFrequency[theme] = (themeFrequency[theme] || 0) + 1;
+    });
+    const dominantTheme = Object.entries(themeFrequency)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'diverse experience';
+
+    return {
+        energyLevel: Math.max(1, Math.min(5, avgEnergy)),
+        complexityScore: Math.max(1, Math.min(5, avgComplexity)),
+        categories: categories,
+        primaryTone: primaryTone,
+        dominantTheme: dominantTheme,
+        cueCount: selectedCues.length,
+        isIntenseWeighted: Object.values(intensities).some(i => i >= 4),
+        isSubtleWeighted: Object.values(intensities).some(i => i <= 2)
+    };
+}
+
+// Helper function to get mood strategy based on analysis
+function getMoodStrategy(analysis: any): string {
+    let strategy = "";
+
+    // Energy-based strategy
+    if (analysis.energyLevel >= 4) {
+        strategy += "Focus on high-energy anime with dynamic pacing and exciting developments. ";
+    } else if (analysis.energyLevel <= 2) {
+        strategy += "Prioritize calm, contemplative anime with gentle pacing and introspective moments. ";
+    } else {
+        strategy += "Balance energy levels with moderate pacing that allows for both excitement and reflection. ";
+    }
+
+    // Complexity-based strategy
+    if (analysis.complexityScore >= 4) {
+        strategy += "Include anime with layered narratives, complex themes, and sophisticated storytelling. ";
+    } else if (analysis.complexityScore <= 2) {
+        strategy += "Focus on straightforward, accessible anime with clear emotional beats. ";
+    }
+
+    // Category-specific strategies
+    if (analysis.categories.includes('emotional')) {
+        strategy += "Emotional resonance is key - prioritize anime that create genuine feelings. ";
+    }
+    if (analysis.categories.includes('visual')) {
+        strategy += "Visual presentation matters - include anime known for exceptional animation or art. ";
+    }
+    if (analysis.categories.includes('thematic')) {
+        strategy += "Thematic depth is important - look for anime with meaningful messages. ";
+    }
+
+    // Primary tone strategy
+    switch (analysis.primaryTone) {
+        case 'dark/serious':
+            strategy += "Embrace mature themes and serious subject matter while maintaining emotional authenticity.";
+            break;
+        case 'uplifting/positive':
+            strategy += "Focus on feel-good anime that inspire and warm the heart.";
+            break;
+        case 'intense/thrilling':
+            strategy += "Prioritize anime that create excitement and keep viewers engaged.";
+            break;
+        case 'calm/reflective':
+            strategy += "Select anime that create a peaceful, meditative viewing experience.";
+            break;
+        default:
+            strategy += "Create a well-rounded selection that balances different emotional experiences.";
+    }
+
+    return strategy;
+}
+
+// Helper functions for cue mapping
+function findCueNameById(cueId: string): string | null {
+    const EXPANDED_MOOD_CUES = [
+        { id: "dark_gritty", label: "Dark & Gritty" },
+        { id: "heartwarming", label: "Heartwarming" },
+        { id: "comedic_relief", label: "Comedic" },
+        { id: "romantic", label: "Romantic" },
+        { id: "melancholic", label: "Melancholic" },
+        { id: "inspiring", label: "Inspiring" },
+        { id: "stunning_visuals", label: "Stunning Visuals" },
+        { id: "retro_classic", label: "Retro/Classic" },
+        { id: "modern_sleek", label: "Modern & Sleek" },
+        { id: "unique_artstyle", label: "Unique Art Style" },
+        { id: "action_packed", label: "Action Packed" },
+        { id: "chill_vibes", label: "Chill Vibes" },
+        { id: "edge_of_seat", label: "Edge of Seat" },
+        { id: "slow_burn", label: "Slow Burn" },
+        { id: "mind_bending", label: "Mind-Bending" },
+        { id: "thought_provoking", label: "Thought-Provoking" },
+        { id: "coming_of_age", label: "Coming of Age" },
+        { id: "social_commentary", label: "Social Commentary" },
+        { id: "epic_adventure", label: "Epic Adventure" },
+        { id: "nostalgic", label: "Nostalgic" },
+        { id: "supernatural", label: "Supernatural" },
+        { id: "urban_modern", label: "Urban & Modern" },
+        { id: "fantasy_magical", label: "Fantasy & Magical" },
+        { id: "strong_friendships", label: "Strong Friendships" },
+        { id: "complex_characters", label: "Complex Characters" },
+        { id: "mentor_student", label: "Mentor & Student" },
+        { id: "ensemble_cast", label: "Ensemble Cast" }
+    ];
+    
+    const cue = EXPANDED_MOOD_CUES.find(c => c.id === cueId);
+    return cue ? cue.label : null;
+}
+
+function findCueIdByName(cueName: string): string | null {
+    const EXPANDED_MOOD_CUES = [
+        { id: "dark_gritty", label: "Dark & Gritty" },
+        { id: "heartwarming", label: "Heartwarming" },
+        { id: "comedic_relief", label: "Comedic" },
+        { id: "romantic", label: "Romantic" },
+        { id: "melancholic", label: "Melancholic" },
+        { id: "inspiring", label: "Inspiring" },
+        { id: "stunning_visuals", label: "Stunning Visuals" },
+        { id: "retro_classic", label: "Retro/Classic" },
+        { id: "modern_sleek", label: "Modern & Sleek" },
+        { id: "unique_artstyle", label: "Unique Art Style" },
+        { id: "action_packed", label: "Action Packed" },
+        { id: "chill_vibes", label: "Chill Vibes" },
+        { id: "edge_of_seat", label: "Edge of Seat" },
+        { id: "slow_burn", label: "Slow Burn" },
+        { id: "mind_bending", label: "Mind-Bending" },
+        { id: "thought_provoking", label: "Thought-Provoking" },
+        { id: "coming_of_age", label: "Coming of Age" },
+        { id: "social_commentary", label: "Social Commentary" },
+        { id: "epic_adventure", label: "Epic Adventure" },
+        { id: "nostalgic", label: "Nostalgic" },
+        { id: "supernatural", label: "Supernatural" },
+        { id: "urban_modern", label: "Urban & Modern" },
+        { id: "fantasy_magical", label: "Fantasy & Magical" },
+        { id: "strong_friendships", label: "Strong Friendships" },
+        { id: "complex_characters", label: "Complex Characters" },
+        { id: "mentor_student", label: "Mentor & Student" },
+        { id: "ensemble_cast", label: "Ensemble Cast" }
+    ];
+    
+    const cue = EXPANDED_MOOD_CUES.find(c => c.label === cueName);
+    return cue ? cue.id : null;
+}
+
+function getIntensityLabel(intensity: number): string {
+    switch (intensity) {
+        case 1: return "subtle";
+        case 2: return "light";
+        case 3: return "moderate";
+        case 4: return "strong";
+        case 5: return "overwhelming";
+        default: return "moderate";
+    }
+}
+
+export const getMoodPresetRecommendations = action({
+    args: {
+        presetId: v.string(),
+        userProfile: v.optional(enhancedUserProfileValidator),
+        messageId: v.string(),
+    },
+    handler: async (ctx, args): Promise<{
+        recommendations: any[];
+        error?: string;
+        moodAnalysis?: any;
+        debug?: any;
+    }> => {
+        if (!process.env.CONVEX_OPENAI_API_KEY) {
+            return { recommendations: [], error: "OpenAI API key not configured." };
+        }
+
+        // Define presets with their mood combinations
+        const PRESET_COMBINATIONS: Record<string, { cues: string[], description: string, strategy: string }> = {
+            feel_good_journey: {
+                cues: ["Heartwarming", "Inspiring", "Strong Friendships", "Coming of Age"],
+                description: "Uplifting adventures that warm your heart and inspire personal growth",
+                strategy: "Focus on anime that combine emotional warmth with character development and meaningful relationships"
+            },
+            mind_bender: {
+                cues: ["Mind-Bending", "Thought-Provoking", "Complex Characters", "Unique Art Style"],
+                description: "Complex narratives that challenge your thinking and expand your perspective",
+                strategy: "Prioritize anime with layered storytelling, psychological depth, and distinctive visual presentation"
+            },
+            action_spectacle: {
+                cues: ["Action Packed", "Stunning Visuals", "Edge of Seat", "Epic Adventure"],
+                description: "High-octane thrills with amazing visuals and epic scope",
+                strategy: "Select anime known for exceptional action choreography, visual spectacle, and thrilling pacing"
+            },
+            cozy_comfort: {
+                cues: ["Chill Vibes", "Heartwarming", "Slow Burn", "Nostalgic"],
+                description: "Relaxing, comforting anime perfect for unwinding and feeling at peace",
+                strategy: "Focus on gentle pacing, comfort food anime that create a safe, warm emotional space"
+            },
+            dark_mature: {
+                cues: ["Dark & Gritty", "Complex Characters", "Social Commentary", "Thought-Provoking"],
+                description: "Mature themes and complex narratives for experienced viewers",
+                strategy: "Include anime that tackle serious subjects with sophistication and emotional intelligence"
+            },
+            visual_feast: {
+                cues: ["Stunning Visuals", "Unique Art Style", "Fantasy & Magical", "Modern & Sleek"],
+                description: "Anime that prioritizes artistic excellence and visual innovation",
+                strategy: "Prioritize anime celebrated for their visual artistry, animation quality, and aesthetic innovation"
+            }
+        };
+
+        const preset = PRESET_COMBINATIONS[args.presetId];
+        if (!preset) {
+            return { recommendations: [], error: "Unknown preset ID" };
+        }
+
+        // Use the enhanced mood recommendation system
+        const result = await ctx.runAction(api.ai.getEnhancedRecommendationsByMoodTheme, {
+            selectedCues: preset.cues,
+            cueIntensities: {}, // Default intensities for presets
+            userProfile: args.userProfile,
+            count: 6,
+            messageId: args.messageId,
+            advancedMode: false,
+            dominantCategory: "preset"
+        });
+
+        return result;
+    }
+});
+
+export const getSimilarAnimeRecommendationsFixed = action({
     args: {
         animeId: v.id("anime"),
         userProfile: v.optional(enhancedUserProfileValidator),
         count: v.optional(v.number()),
         messageId: v.string(),
     },
-    handler: async (ctx, args): Promise<{ recommendations: AnimeRecommendation[]; error?: string }> => {
+    handler: async (ctx, args): Promise<{ 
+        recommendations: any[]; 
+        error?: string 
+    }> => {
         if (!process.env.CONVEX_OPENAI_API_KEY) {
             return { recommendations: [], error: "OpenAI API key not configured." };
         }
@@ -1810,11 +2219,8 @@ For each recommendation, provide:
 - emotionalTags: (array of strings, optional)
 - studios: (array of strings, optional)
 - themes: (array of strings, optional)
-
-If user profile data is available, use it to refine the type of similarities highlighted or to filter out suggestions the user might dislike.
-Ensure the output is a JSON object with a single key "recommendations".
-Prioritize well-known anime if they are good fits, but also include lesser-known gems if highly relevant.
-MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly formatted for each recommendation.`;
+- moodMatchScore: (number, REQUIRED) 1-10 score for similarity to the target anime
+- similarityScore: (number, optional) Alternative similarity metric`;
 
         if (args.userProfile) {
             systemPrompt += "\n\nUser Profile Context (use to refine similarity focus):";
@@ -1823,7 +2229,7 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
         }
         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
 
-        let recommendations: AnimeRecommendation[] = [];
+        let recommendations: any[] = [];
         let errorResult: string | undefined = undefined;
 
         try {
@@ -1837,12 +2243,11 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
                 response_format: { type: "json_object" },
             });
 
-            const parsedResponse = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendations");
+            const parsedResponse = tryParseAIResponse(completion.choices[0].message.content, "getSimilarAnimeRecommendationsFixed");
             
             if (parsedResponse) {
                 const rawRecommendations = parsedResponse.slice(0, args.count || 3);
                 
-                // Enhance recommendations with real posters
                 console.log(`[Similar Recommendations] Enhancing ${rawRecommendations.length} recommendations with real posters...`);
                 const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
                 
@@ -1862,7 +2267,9 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
                     artStyleTags: Array.isArray(rec.artStyleTags) ? rec.artStyleTags : undefined,
                     surpriseFactors: Array.isArray(rec.surpriseFactors) ? rec.surpriseFactors : undefined,
                     similarityScore: typeof rec.similarityScore === 'number' ? rec.similarityScore : undefined,
-                })).filter(rec => rec.title && rec.title !== "Unknown Title" && rec.posterUrl);
+                    // FIXED: Ensure moodMatchScore is always present
+                    moodMatchScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : (rec.similarityScore || 8)
+                })).filter((rec: any) => rec.title && rec.title !== "Unknown Title" && rec.posterUrl);
                 
                 console.log(`[Similar Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
 
@@ -1876,13 +2283,13 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
                 errorResult = "AI response format error or no similar anime found by AI.";
             }
         } catch (err: any) {
-            console.error("[AI Action - GetSimilarAnimeRecommendations] Error:", err);
+            console.error("[AI Action - GetSimilarAnimeRecommendationsFixed] Error:", err);
             errorResult = `AI Error: ${err.message || "Unknown"}`;
         } finally {
             if (args.messageId) {
                  await ctx.runMutation(api.ai.storeAiFeedback, {
                     prompt: `Similar to: ${targetAnime.title} (ID: ${targetAnime._id.toString()})`,
-                    aiAction: "getSimilarAnimeRecommendations",
+                    aiAction: "getSimilarAnimeRecommendationsFixed",
                     aiResponseRecommendations: recommendations.length ? recommendations : undefined,
                     aiResponseText: recommendations.length === 0 ? errorResult : JSON.stringify(recommendations),
                     feedbackType: "none",
@@ -1892,8 +2299,6 @@ MAKE SURE 'title' and 'posterUrl' fields are ALWAYS present and correctly format
         }
         return { recommendations, error: errorResult };
     }
-
-    
 });
 
 export const testPosterFetching = action({

@@ -1231,3 +1231,580 @@ body {
     page-break-inside: avoid;
   }
 }
+
+/* Add these styles to your existing src/index.css file */
+
+/* ===== ENHANCED MOODBOARD STYLES ===== */
+
+/* Intensity Slider Styling */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FF6B35;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #E55A2B;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FF6B35;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #E55A2B;
+  transform: scale(1.1);
+}
+
+/* Category Filter Improvements */
+.category-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .category-filter-container {
+    gap: 0.375rem;
+    padding: 0 0.5rem;
+  }
+}
+
+/* Preset Button Animations */
+.preset-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.preset-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.preset-button:hover::before {
+  left: 100%;
+}
+
+.preset-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(255, 107, 53, 0.2);
+}
+
+/* Enhanced Grid Responsiveness */
+@media (max-width: 475px) {
+  .moodboard-vibes-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+  
+  .moodboard-results-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (min-width: 476px) and (max-width: 640px) {
+  .moodboard-vibes-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+  
+  .moodboard-results-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .moodboard-vibes-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1rem !important;
+  }
+  
+  .moodboard-results-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .moodboard-vibes-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 1rem !important;
+  }
+  
+  .moodboard-results-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .moodboard-vibes-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+  
+  .moodboard-results-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* Advanced Mode Enhancements */
+.advanced-mode .mood-cue-card {
+  margin-bottom: 1rem;
+}
+
+.advanced-mode .intensity-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Selection Counter Animation */
+.selection-counter {
+  animation: counterPulse 0.3s ease;
+}
+
+@keyframes counterPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Mood Combination Summary */
+.mood-combination-summary {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 53, 0.1) 0%, 
+    rgba(176, 137, 104, 0.1) 50%, 
+    rgba(231, 111, 81, 0.1) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.mood-tag {
+  background: rgba(255, 107, 53, 0.2);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  color: rgba(176, 137, 104, 1);
+  transition: all 0.2s ease;
+}
+
+.mood-tag:hover {
+  background: rgba(255, 107, 53, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Saved Moodboards Section */
+.saved-moodboard-item {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.saved-moodboard-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 107, 53, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Search Filter Enhancements */
+.search-filter-container {
+  position: relative;
+  max-width: 400px;
+  width: 100%;
+}
+
+.search-filter-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  color: white;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.search-filter-input:focus {
+  outline: none;
+  border-color: rgba(255, 107, 53, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.search-filter-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+/* Mode Toggle Switch */
+.mode-toggle-container {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 0.25rem;
+  display: inline-flex;
+}
+
+.mode-toggle-button {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.mode-toggle-button.active {
+  background: linear-gradient(135deg, #FF6B35, #E55A2B);
+  color: white;
+  box-shadow: 0 2px 4px rgba(255, 107, 53, 0.3);
+}
+
+.mode-toggle-button:not(.active) {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mode-toggle-button:not(.active):hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced Loading Animation */
+.enhanced-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.enhanced-spinner {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.enhanced-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-top-color: #FF6B35;
+  border-right-color: #B08968;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.enhanced-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 3px solid transparent;
+  border-bottom-color: #E76F51;
+  border-left-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite reverse;
+}
+
+/* Tooltip Styles */
+.mood-cue-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 1000;
+  margin-bottom: 0.5rem;
+}
+
+.mood-cue-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.mood-cue-card:hover .mood-cue-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Accessibility Improvements */
+.mood-cue-card:focus-visible {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+}
+
+.preset-button:focus-visible {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .mood-cue-card {
+    border-width: 2px;
+  }
+  
+  .mood-cue-card.selected {
+    border-width: 3px;
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+  
+  .mood-tag {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .mood-cue-card,
+  .preset-button,
+  .mood-tag,
+  .saved-moodboard-item {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .enhanced-spinner::before,
+  .enhanced-spinner::after {
+    animation: none !important;
+  }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+  .search-filter-input {
+    background: rgba(0, 0, 0, 0.6);
+  }
+  
+  .mood-combination-summary {
+    background: linear-gradient(135deg, 
+      rgba(255, 107, 53, 0.15) 0%, 
+      rgba(176, 137, 104, 0.15) 50%, 
+      rgba(231, 111, 81, 0.15) 100%);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .mood-cue-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  .enhanced-loading-container {
+    display: none;
+  }
+}
+
+/* Container Queries for Progressive Enhancement */
+@supports (container-type: inline-size) {
+  .moodboard-container {
+    container-type: inline-size;
+  }
+  
+  @container (max-width: 600px) {
+    .moodboard-vibes-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @container (min-width: 601px) and (max-width: 900px) {
+    .moodboard-vibes-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @container (min-width: 901px) {
+    .moodboard-vibes-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+}
+
+/* Smooth Scrolling for Sections */
+.moodboard-section {
+  scroll-margin-top: 2rem;
+}
+
+/* Enhanced Animation for Mood Selection */
+.mood-selection-animation {
+  animation: moodSelect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes moodSelect {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+/* Improved Focus Indicators */
+.enhanced-focus {
+  position: relative;
+}
+
+.enhanced-focus::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  background: linear-gradient(45deg, #FF6B35, #B08968) border-box;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.enhanced-focus:focus-visible::after {
+  opacity: 1;
+}
+
+/* Intensity Visualization */
+.intensity-visual {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.intensity-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: background-color 0.2s ease;
+}
+
+.intensity-dot.active {
+  background: #B08968;
+}
+
+/* Mobile Touch Improvements */
+@media (hover: none) and (pointer: coarse) {
+  .mood-cue-card {
+    min-height: 70px;
+    min-width: 70px;
+  }
+  
+  .mood-cue-tooltip {
+    display: none; /* Hide tooltips on touch devices */
+  }
+  
+  .preset-button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Performance Optimizations */
+.gpu-layer {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Optimize animations for mobile */
+@media (max-width: 768px) {
+  .animate-bounce {
+    animation-duration: 2s;
+  }
+  
+  .animate-pulse {
+    animation-duration: 3s;
+  }
+}
+
+/* Memory-efficient grid */
+.efficient-grid {
+  contain: layout style paint;
+}
+
+/* Lazy loading for mood cues */
+.mood-cue-lazy {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.mood-cue-lazy.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+

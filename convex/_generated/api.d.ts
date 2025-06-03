@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as admin from "../admin.js";
+import type * as advancedPresets from "../advancedPresets.js";
 import type * as ai from "../ai.js";
 import type * as anime from "../anime.js";
 import type * as animeQueries from "../animeQueries.js";
@@ -23,13 +24,18 @@ import type * as autoRefresh from "../autoRefresh.js";
 import type * as crons from "../crons.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
+import type * as moodSuggestionEngine from "../moodSuggestionEngine.js";
 import type * as notifications from "../notifications.js";
 import type * as openaiProxy from "../openaiProxy.js";
+import type * as performanceMonitor from "../performanceMonitor.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useMobileOptimizations from "../useMobileOptimizations.js";
+import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
+import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
+import type * as useMoodBoardState from "../useMoodBoardState.js";
 import type * as usePersistentChatHistory from "../usePersistentChatHistory.js";
 import type * as users from "../users.js";
 
@@ -43,6 +49,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  advancedPresets: typeof advancedPresets;
   ai: typeof ai;
   anime: typeof anime;
   animeQueries: typeof animeQueries;
@@ -52,13 +59,18 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   externalApis: typeof externalApis;
   http: typeof http;
+  moodSuggestionEngine: typeof moodSuggestionEngine;
   notifications: typeof notifications;
   openaiProxy: typeof openaiProxy;
+  performanceMonitor: typeof performanceMonitor;
   reviews: typeof reviews;
   router: typeof router;
   twilioSender: typeof twilioSender;
   types: typeof types;
   useMobileOptimizations: typeof useMobileOptimizations;
+  useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
+  useMoodBoardPerformance: typeof useMoodBoardPerformance;
+  useMoodBoardState: typeof useMoodBoardState;
   usePersistentChatHistory: typeof usePersistentChatHistory;
   users: typeof users;
 }>;

@@ -2,29 +2,30 @@
 import { Id } from "../convex/_generated/dataModel";
 
 export interface AnimeRecommendation {
-  _id?: Id<"anime">;
   title: string;
   description: string;
-  reasoning?: string;
   posterUrl: string;
-  genres: string[];
+  genres?: string[];
   year?: number;
   rating?: number;
+  reasoning: string;
   emotionalTags?: string[];
-  trailerUrl?: string;
   studios?: string[];
   themes?: string[];
-  // Enhanced fields from new AI actions
   characterHighlights?: string[];
   plotTropes?: string[];
   artStyleTags?: string[];
   surpriseFactors?: string[];
   similarityScore?: number;
-  hiddenGemRating?: number;
-  personalizationScore?: number;
-  moodTags?: string[];
-  roleSpecificInsight?: string;
-  refinementExplanation?: string;
-  narrativeComplexity?: number;
-  animationQuality?: number;
+  moodMatchScore: number; // FIXED: Added required property
+  trailerUrl?: string;
+  targetEmotionalImpact?: string;
+  moodReasoningDetailed?: string;
+  // Additional optional fields for enhanced mood board
+  moodCombination?: string[];
+  moodAnalysis?: any;
+  isEnhancedMoodRecommendation?: boolean;
+  recommendationMode?: 'simple' | 'advanced';
+  _id?: string; // For database navigation
+  foundInDatabase?: boolean;
 }
