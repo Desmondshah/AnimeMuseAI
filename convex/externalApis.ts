@@ -225,7 +225,21 @@ const fetchFromAnilist = async (title: string, existingAnilistId?: number): Prom
     }
 };
 
-// NEW: Helper function to map episode data from AniList
+const mapCharacterData = (charactersEdges: any[]): any[] => {
+    if (!Array.isArray(charactersEdges)) return [];
+    
+    return charactersEdges
+        .filter(edge => edge && edge.node && edge.node.name && edge.node.name.full) // Only include characters with valid names
+        .map(edge => ({
+            id: edge.node.id || undefined,
+            name: edge.node.name.full,
+            imageUrl: edge.node.image?.large || undefined,
+            role: edge.role || "BACKGROUND", // Default to BACKGROUND if role is missing
+        }))
+        .slice(0, 20); // Limit to first 20 characters to avoid overwhelming storage
+};
+
+// NEW: Helper function to map episode data from AniList  
 const mapEpisodeData = (streamingEpisodes: any[]): any[] => {
     if (!Array.isArray(streamingEpisodes)) return [];
     
@@ -249,7 +263,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
     let apiData: any = null;
     let sourceApiUsed: string = "none";
 
-    // Try AniList first (higher quality images and episode data)
+    // Try AniList first (higher quality images, episode data, and character data)
     if (existingAnime.anilistId) {
         apiData = await fetchFromAnilist(args.titleToSearch, existingAnime.anilistId);
         if (apiData) sourceApiUsed = "anilist";
@@ -306,10 +320,11 @@ export const triggerFetchExternalAnimeDetails = internalAction({
               trailerUrl: getString(apiData, 'trailer.url', existingAnime.trailerUrl),
               studios: getStringArray(apiData, 'studios', 'name') || existingAnime.studios,
               themes: getStringArray(apiData, 'themes', 'name') || existingAnime.themes,
-              // NEW: Episode data from Jikan (limited)
-              totalEpisodes: getNumber(apiData, 'episodes', existingAnime.totalEpisodes), // Also good to use getNumber here if apiData.episodes might not be a number
-              episodeDuration: getNumber(apiData, 'duration', existingAnime.episodeDuration), // <<< FIX APPLIED HERE
-              airingStatus: getString(apiData, 'status', existingAnime.airingStatus), // getString might be more appropriate for status
+              // Episode data from Jikan (limited)
+              totalEpisodes: getNumber(apiData, 'episodes', existingAnime.totalEpisodes),
+              episodeDuration: getNumber(apiData, 'duration', existingAnime.episodeDuration),
+              airingStatus: getString(apiData, 'status', existingAnime.airingStatus),
+              // Note: Jikan doesn't provide character data in the main anime endpoint
             };
         } else if (sourceApiUsed === "anilist" && apiData) {
             fetchedTitle = apiData.title?.english || apiData.title?.romaji || apiData.title?.native;
@@ -354,7 +369,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
             mappedData.themes = anilistThemesFromTags.length ? [...new Set([...(existingAnime.themes || []), ...anilistThemesFromTags])] : existingAnime.themes;
             mappedData.emotionalTags = anilistEmotionalFromTags.length ? [...new Set([...(existingAnime.emotionalTags || []), ...anilistEmotionalFromTags])] : existingAnime.emotionalTags;
             
-            // NEW: Episode and streaming data from AniList
+            // Episode and streaming data from AniList
             if (apiData.streamingEpisodes?.length > 0) {
                 mappedData.streamingEpisodes = mapEpisodeData(apiData.streamingEpisodes);
                 console.log(`[External API - AniList] Found ${mappedData.streamingEpisodes.length} streaming episodes for "${existingAnime.title}"`);
@@ -373,6 +388,12 @@ export const triggerFetchExternalAnimeDetails = internalAction({
                     timeUntilAiring: apiData.nextAiringEpisode.timeUntilAiring,
                 };
             }
+
+            // NEW: Character data from AniList
+            if (apiData.characters?.edges?.length > 0) {
+                mappedData.characters = mapCharacterData(apiData.characters.edges);
+                console.log(`[External API - AniList] Found ${mappedData.characters.length} characters for "${existingAnime.title}"`);
+            }
             
             console.log(`[External API - AniList] Mapped data for (AniList ID: ${apiData.id}). Title in DB: "${existingAnime.title}"`);
         }
@@ -386,8 +407,10 @@ export const triggerFetchExternalAnimeDetails = internalAction({
               sourceApi: sourceApiUsed,
             });
             const episodeCount = mappedData.streamingEpisodes?.length || 0;
+            const characterCount = mappedData.characters?.length || 0;
             const episodeMessage = episodeCount > 0 ? ` (${episodeCount} episodes)` : '';
-            return { success: true, message: `High-quality data from ${sourceApiUsed} applied${episodeMessage}.`, source: sourceApiUsed };
+            const characterMessage = characterCount > 0 ? ` (${characterCount} characters)` : '';
+            return { success: true, message: `High-quality data from ${sourceApiUsed} applied${episodeMessage}${characterMessage}.`, source: sourceApiUsed };
         } else {
             return { success: true, message: `No new data from ${sourceApiUsed} to update.`, source: sourceApiUsed };
         }
@@ -1065,3 +1088,6 @@ export const callBatchUpdateEpisodeData = action({
     return await ctx.runAction(internal.externalApis.batchUpdateEpisodeDataForAllAnime, args);
   },
 });
+
+
+

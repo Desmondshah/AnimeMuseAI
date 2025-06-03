@@ -491,7 +491,7 @@ export const addAnimeInternal = internalMutation({
     }
 });
 
-// UPDATED: Enhanced mutation to handle episode data and additional fields
+// UPDATED: Enhanced mutation to handle episode data, additional fields, and character data
 export const updateAnimeWithExternalData = internalMutation({
   args: {
     animeId: v.id("anime"),
@@ -506,7 +506,7 @@ export const updateAnimeWithExternalData = internalMutation({
       studios: v.optional(v.array(v.string())), 
       themes: v.optional(v.array(v.string())),
       anilistId: v.optional(v.number()), // Phase 2
-      // NEW: Episode and streaming data fields
+      // Episode and streaming data fields
       streamingEpisodes: v.optional(v.array(v.object({
         title: v.optional(v.string()),
         thumbnail: v.optional(v.string()),
@@ -521,6 +521,13 @@ export const updateAnimeWithExternalData = internalMutation({
         episode: v.optional(v.number()),
         timeUntilAiring: v.optional(v.number()),
       })),
+      // NEW: Character data
+      characters: v.optional(v.array(v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        imageUrl: v.optional(v.string()),
+        role: v.string(),
+      }))),
     }),
     sourceApi: v.string(), // Phase 2: e.g., "jikan", "anilist"
   },
@@ -534,8 +541,9 @@ export const updateAnimeWithExternalData = internalMutation({
         lastFetchedFromExternal: { source: args.sourceApi, timestamp: Date.now() } // Phase 2
     };
     
-    // Track episode data changes specifically
+    // Track episode data and character data changes specifically
     let episodeDataChanged = false;
+    let characterDataChanged = false;
     
     for (const key in args.updates) {
         const typedKey = key as keyof typeof args.updates;
@@ -559,6 +567,22 @@ export const updateAnimeWithExternalData = internalMutation({
                     }
                 } else {
                     applyChange = false; // Don't clear existing episode data with empty array
+                }
+            }
+            // Special handling for character data
+            else if (typedKey === 'characters') {
+                if (Array.isArray(newValue) && newValue.length > 0) {
+                    const existingCharacters = existingValue as any[] || [];
+                    // Always update if we have new character data and existing is empty or different
+                    if (existingCharacters.length === 0 || JSON.stringify(existingCharacters) !== JSON.stringify(newValue)) {
+                        applyChange = true;
+                        characterDataChanged = true;
+                        console.log(`[Update Anime External] Character data will be updated for ${existingAnime.title}: ${newValue.length} characters`);
+                    } else {
+                        applyChange = false;
+                    }
+                } else {
+                    applyChange = false; // Don't clear existing character data with empty array
                 }
             }
             // Special handling for next airing episode (always update if different)
@@ -586,7 +610,8 @@ export const updateAnimeWithExternalData = internalMutation({
     if (Object.keys(updatesToApply).length > 1) { // Greater than 1 because lastFetchedFromExternal is always added
         await ctx.db.patch(args.animeId, updatesToApply);
         const episodeMessage = episodeDataChanged ? ' (including episode data)' : '';
-        console.log(`[Update Anime External - ${args.sourceApi}] Patched ${args.animeId} with ${Object.keys(updatesToApply).length - 1} fields${episodeMessage}.`);
+        const characterMessage = characterDataChanged ? ' (including character data)' : '';
+        console.log(`[Update Anime External - ${args.sourceApi}] Patched ${args.animeId} with ${Object.keys(updatesToApply).length - 1} fields${episodeMessage}${characterMessage}.`);
     } else {
         console.log(`[Update Anime External - ${args.sourceApi}] No new changes for ${args.animeId}.`);
     }

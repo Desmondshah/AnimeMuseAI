@@ -48,7 +48,7 @@ const applicationTables = {
         source: v.string(), // e.g., "jikan", "anilist"
         timestamp: v.number(),
     })),
-    // NEW: Episode and streaming data
+    // Episode and streaming data
     streamingEpisodes: v.optional(v.array(v.object({
       title: v.optional(v.string()),
       thumbnail: v.optional(v.string()),
@@ -63,6 +63,13 @@ const applicationTables = {
       episode: v.optional(v.number()),
       timeUntilAiring: v.optional(v.number()), // seconds
     })),
+    // NEW: Character data
+    characters: v.optional(v.array(v.object({
+      id: v.optional(v.number()), // AniList character ID
+      name: v.string(),
+      imageUrl: v.optional(v.string()),
+      role: v.string(), // "MAIN", "SUPPORTING", "BACKGROUND"
+    }))),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
@@ -71,7 +78,7 @@ const applicationTables = {
   .index("by_year_rating", ["year", "rating"])
   .index("by_year_averageUserRating", ["year", "averageUserRating"])
   .index("by_reviewCount", ["reviewCount"])
-  .index("by_airingStatus", ["airingStatus"]) // NEW: For querying currently airing anime
+  .index("by_airingStatus", ["airingStatus"]) // For querying currently airing anime
   .searchIndex("search_title", { searchField: "title", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_description", { searchField: "description", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_genres", { searchField: "genres" })
