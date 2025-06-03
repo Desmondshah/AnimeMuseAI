@@ -1,4 +1,4 @@
-// convex/anime.ts - Complete file with fixes
+// convex/anime.ts - Updated with server-side search
 
 import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
@@ -144,9 +144,11 @@ export const getFilterOptions = query({
   },
 });
 
+// UPDATED: Modified to include server-side search functionality
 export const getFilteredAnime = query({
   args: {
     paginationOpts: v.any(),
+    searchTerm: v.optional(v.string()), // NEW: Added search term parameter
     filters: v.optional(v.object({
       genres: v.optional(v.array(v.string())),
       yearRange: v.optional(v.object({ min: v.optional(v.number()), max: v.optional(v.number()) })),
@@ -167,7 +169,116 @@ export const getFilteredAnime = query({
     )),
   },
   handler: async (ctx, args): Promise<PaginationResult<Doc<"anime">>> => {
-    const { filters, sortBy = "newest" } = args;
+    const { filters, sortBy = "newest", searchTerm } = args;
+    
+    // NEW: If search term is provided, use search index instead of regular query
+    if (searchTerm && searchTerm.trim()) {
+      console.log(`[Search] Searching for: "${searchTerm}"`);
+      
+      // Use search index to find matching anime
+      const searchResults = await ctx.db
+        .query("anime")
+        .withSearchIndex("search_title", (q) => q.search("title", searchTerm))
+        .take(1000); // Get more results for better filtering/sorting
+      
+      // Also search in description for more comprehensive results
+      const descriptionSearchResults = await ctx.db
+        .query("anime")
+        .withSearchIndex("search_description", (q) => q.search("description", searchTerm))
+        .take(500);
+      
+      // Combine and deduplicate results
+      const allSearchResults = [...searchResults];
+      const existingIds = new Set(searchResults.map(anime => anime._id));
+      
+      descriptionSearchResults.forEach(anime => {
+        if (!existingIds.has(anime._id)) {
+          allSearchResults.push(anime);
+        }
+      });
+      
+      console.log(`[Search] Found ${allSearchResults.length} results for "${searchTerm}"`);
+      
+      // Apply filters to search results
+      let filteredResults = allSearchResults;
+      if (filters) {
+        filteredResults = allSearchResults.filter((anime: Doc<"anime">) => {
+          // Year range filter
+          if (filters.yearRange?.min !== undefined && anime.year !== undefined && anime.year < filters.yearRange.min) return false;
+          if (filters.yearRange?.max !== undefined && anime.year !== undefined && anime.year > filters.yearRange.max) return false;
+          
+          // Rating range filter
+          if (filters.ratingRange?.min !== undefined && anime.rating !== undefined && anime.rating < filters.ratingRange.min) return false;
+          if (filters.ratingRange?.max !== undefined && anime.rating !== undefined && anime.rating > filters.ratingRange.max) return false;
+          
+          // User rating range filter
+          if (filters.userRatingRange?.min !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating < filters.userRatingRange.min) return false;
+          if (filters.userRatingRange?.max !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating > filters.userRatingRange.max) return false;
+          
+          // Minimum reviews filter
+          if (filters.minReviews !== undefined && filters.minReviews > 0) {
+            if (!anime.reviewCount || anime.reviewCount < filters.minReviews) return false;
+          } else if (filters.minReviews === 0) {
+            if (anime.reviewCount && anime.reviewCount > 0) return false;
+          }
+          
+          // Array-based filters
+          if (filters.genres?.length && (!anime.genres || !filters.genres.every(genre => anime.genres!.includes(genre)))) return false;
+          if (filters.studios?.length && (!anime.studios || !filters.studios.some(studio => anime.studios!.includes(studio)))) return false;
+          if (filters.themes?.length && (!anime.themes || !filters.themes.some(theme => anime.themes!.includes(theme)))) return false;
+          if (filters.emotionalTags?.length && (!anime.emotionalTags || !filters.emotionalTags.some(tag => anime.emotionalTags!.includes(tag)))) return false;
+          
+          return true;
+        });
+      }
+      
+      // Apply sorting to search results
+      if (sortBy === "title_asc") {
+        filteredResults.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+      } else if (sortBy === "title_desc") {
+        filteredResults.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+      } else if (sortBy === "year_desc") {
+        filteredResults.sort((a, b) => (b.year || 0) - (a.year || 0));
+      } else if (sortBy === "year_asc") {
+        filteredResults.sort((a, b) => (a.year || 0) - (b.year || 0));
+      } else if (sortBy === "rating_desc") {
+        filteredResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      } else if (sortBy === "rating_asc") {
+        filteredResults.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+      } else if (sortBy === "user_rating_desc") {
+        filteredResults.sort((a, b) => (b.averageUserRating || 0) - (a.averageUserRating || 0));
+      } else if (sortBy === "user_rating_asc") {
+        filteredResults.sort((a, b) => (a.averageUserRating || 0) - (b.averageUserRating || 0));
+      } else if (sortBy === "most_reviewed") {
+        filteredResults.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+      } else if (sortBy === "least_reviewed") {
+        filteredResults.sort((a, b) => (a.reviewCount || 0) - (b.reviewCount || 0));
+      } else if (sortBy === "oldest") {
+        filteredResults.sort((a, b) => a._creationTime - b._creationTime);
+      } else {
+        // newest (default) - sort by creation time descending
+        filteredResults.sort((a, b) => b._creationTime - a._creationTime);
+      }
+      
+      // Manual pagination for search results
+      const { paginationOpts } = args;
+      const startCursor = paginationOpts?.cursor ? parseInt(paginationOpts.cursor) : 0;
+      const numItems = paginationOpts?.numItems || 20;
+      
+      const endIndex = startCursor + numItems;
+      const paginatedResults = filteredResults.slice(startCursor, endIndex);
+      const hasMore = endIndex < filteredResults.length;
+      
+      return {
+        page: paginatedResults,
+        isDone: !hasMore,
+        continueCursor: hasMore ? endIndex.toString() : null,
+        splitCursor: null,
+        pageStatus: hasMore ? "CanLoadMore" : "Exhausted"
+      } as unknown as PaginationResult<Doc<"anime">>;
+    }
+    
+    // EXISTING: Regular filtering without search (keep existing logic)
     let queryBuilder: OrderedQuery<DataModel["anime"]> | Query<DataModel["anime"]>; 
 
     switch (sortBy) {

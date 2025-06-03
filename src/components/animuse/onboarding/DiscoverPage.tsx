@@ -1,4 +1,4 @@
-// Enhanced DiscoverPage.tsx with poster enhancement
+// Enhanced DiscoverPage.tsx with server-side search
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { usePaginatedQuery, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -85,7 +85,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const filterOptions = useQuery(api.anime.getFilterOptions);
   const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
 
-
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
     return () => clearTimeout(timer);
@@ -101,27 +100,26 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     return option?.backendValue || (uiSortOption as SortOption);
   };
 
+  // UPDATED: Now using server-side search by passing searchTerm to the backend
   const {
     results: animeList, status, loadMore, isLoading,
   } = usePaginatedQuery(
     api.anime.getFilteredAnime,
     {
-      filters: Object.values(filters).some(value => Array.isArray(value) ? value.length > 0 : typeof value === 'object' ? Object.values(value).some(v => v !== undefined) : value !== undefined) ? filters : undefined,
+      searchTerm: debouncedSearchQuery || undefined, // NEW: Pass search term to backend
+      filters: Object.values(filters).some(value => 
+        Array.isArray(value) ? value.length > 0 : 
+        typeof value === 'object' ? Object.values(value).some(v => v !== undefined) : 
+        value !== undefined
+      ) ? filters : undefined,
       sortBy: getBackendSortOption(sortBy),
     },
     { initialNumItems: 20 }
   );
 
-  const filteredAnimeList = React.useMemo(() => {
-    if (!animeList || !debouncedSearchQuery) return animeList;
-    const searchTerm = debouncedSearchQuery.toLowerCase();
-    return animeList.filter(anime =>
-      anime.title?.toLowerCase().includes(searchTerm) ||
-      anime.description?.toLowerCase().includes(searchTerm) ||
-      anime.genres?.some(genre => genre.toLowerCase().includes(searchTerm)) ||
-      anime.studios?.some(studio => studio.toLowerCase().includes(searchTerm))
-    );
-  }, [animeList, debouncedSearchQuery]);
+  // REMOVED: Client-side filtering is no longer needed since backend handles search
+  // All search functionality now happens server-side
+  const filteredAnimeList = animeList; // Backend already returns filtered/searched results
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -192,15 +190,15 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
         {/* Hero Header */}
         <div className="text-center space-y-4">
-  <div className="inline-block">
-    <h1 className="hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
-      🌟 Discover Anime
-    </h1>
-    <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
-  </div>
-  <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto">
-    Explore our curated collection and find your next anime obsession
-  </p>
+          <div className="inline-block">
+            <h1 className="hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
+              🌟 Discover Anime
+            </h1>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
+          </div>
+          <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto">
+            Explore our curated collection and find your next anime obsession
+          </p>
           <div className="flex flex-wrap gap-3 justify-center">
             {onBack && (
               <StyledButton 
@@ -256,7 +254,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 </div>
                 <input 
                   type="text" 
-                  placeholder="Search anime titles, genres, studios..." 
+                  placeholder="Search anime titles, descriptions, genres..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
                   className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-12 pr-12 py-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
@@ -317,14 +315,22 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
         </div>
 
-        {/* Search Results Summary */}
+        {/* Search Results Summary - UPDATED to reflect server-side search */}
         {hasActiveSearch && (
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
               <span className="text-white/80 text-sm">
-                {isLoading && status === "LoadingFirstPage" ? "Searching..." : 
-                  <>Found <span className="text-brand-accent-gold font-bold">{filteredAnimeList?.length || 0}</span> results for <span className="text-brand-primary-action font-medium">"{debouncedSearchQuery}"</span></>
-                }
+                {isLoading && status === "LoadingFirstPage" ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Searching database...
+                  </span>
+                ) : (
+                  <>
+                    🔍 Found <span className="text-brand-accent-gold font-bold">{filteredAnimeList?.length || 0}</span>
+                    {status === "CanLoadMore" && "+"} results for <span className="text-brand-primary-action font-medium">"{debouncedSearchQuery}"</span>
+                  </>
+                )}
               </span>
             </div>
           </div>
@@ -445,127 +451,140 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         )}
 
         {/* Loading State */}
-        {isLoading && status === "LoadingFirstPage" && <DiscoverLoadingSpinner />}
+        {isLoading && status === "LoadingFirstPage" && (
+          <DiscoverLoadingSpinner message={hasActiveSearch ? "Searching your anime database..." : "Discovering anime..."} />
+        )}
         
         {/* Results Grid */}
         {filteredAnimeList && filteredAnimeList.length > 0 ? (
-  <div className="space-y-8">
-    <div className="text-center">
-      <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-        <span className="text-white/80 text-sm">
-          Showing <span className="text-brand-accent-gold font-bold">{filteredAnimeList.length}</span>
-          {!hasActiveSearch && status === "CanLoadMore" && "+"} anime
-          {hasActiveSearch && " matching your search"}
-          {hasActiveFilters && " (filtered)"}
-        </span>
-      </div>
-    </div>
-
-    {/* Updated with specific CSS class for mobile override */}
-    <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-      {filteredAnimeList.map((anime, index) => (
-        <div 
-          key={anime._id} 
-          className="group relative transform transition-all duration-300 hover:scale-105"
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          {/* Glow Effect */}
-          <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          
-          <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-            <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
-            
-            {/* Compact title for mobile */}
-            <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
-              <h4 
-                className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  lineHeight: '1.2',
-                  maxHeight: '2.4em',
-                }}
-                title={anime.title}
-              >
-                {anime.title}
-              </h4>
+          <div className="space-y-8">
+            <div className="text-center">
+              <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                <span className="text-white/80 text-sm">
+                  Showing <span className="text-brand-accent-gold font-bold">{filteredAnimeList.length}</span>
+                  {!hasActiveSearch && status === "CanLoadMore" && "+"} anime
+                  {hasActiveSearch && " matching your search"}
+                  {hasActiveFilters && " (filtered)"}
+                </span>
+              </div>
             </div>
+
+            {/* Updated with specific CSS class for mobile override */}
+            <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+              {filteredAnimeList.map((anime, index) => (
+                <div 
+                  key={anime._id} 
+                  className="group relative transform transition-all duration-300 hover:scale-105"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Glow Effect */}
+                  <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                    <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+                    
+                    {/* Compact title for mobile */}
+                    <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
+                      <h4 
+                        className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: '1.2',
+                          maxHeight: '2.4em',
+                        }}
+                        title={anime.title}
+                      >
+                        {anime.title}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Load More Button - UPDATED for search context */}
+            {status === "CanLoadMore" && (
+              <div className="text-center">
+                <StyledButton 
+                  onClick={() => loadMore(20)} 
+                  disabled={isLoading && status === "LoadingMore"} 
+                  variant="ghost"
+                  className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white !px-8 !py-4"
+                >
+                  {isLoading && status === "LoadingMore" ? (
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading More...
+                    </span>
+                  ) : hasActiveSearch ? (
+                    "🔍 Load More Search Results"
+                  ) : (
+                    "🔍 Discover More Anime"
+                  )}
+                </StyledButton>
+              </div>
+            )}
+
+            {status === "Exhausted" && filteredAnimeList.length > 0 && (
+              <div className="text-center">
+                <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                  <span className="text-white/80 text-sm">
+                    ✨ {hasActiveSearch ? "All search results shown!" : "You've discovered all available anime!"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
-    </div>
-
-    {/* Load More Button */}
-    {status === "CanLoadMore" && !hasActiveSearch && (
-      <div className="text-center">
-        <StyledButton 
-          onClick={() => loadMore(20)} 
-          disabled={isLoading && status === "LoadingMore"} 
-          variant="ghost"
-          className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white !px-8 !py-4"
-        >
-          {isLoading && status === "LoadingMore" ? "Loading More..." : "🔍 Discover More Anime"}
-        </StyledButton>
-      </div>
-    )}
-
-    {status === "Exhausted" && filteredAnimeList.length > 0 && !hasActiveSearch && (
-      <div className="text-center">
-        <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-          <span className="text-white/80 text-sm">✨ You've discovered all available anime!</span>
-        </div>
-      </div>
-    )}
-  </div>
-) : (
-  // Your existing empty state...
-  status !== "LoadingFirstPage" && (
-    <div className="text-center py-16">
-      <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
-        <div className="text-8xl mb-6 animate-bounce">🔍</div>
-        <h3 className="text-2xl font-heading text-white mb-4">No Anime Found</h3>
-        <p className="text-white/80 text-lg mb-6 leading-relaxed">
-          {hasActiveSearch 
-            ? `No anime matches "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.`
-            : hasActiveFilters 
-            ? "No anime matches your current filters."
-            : "The anime database is empty right now."
-          }
-        </p>
-        <div className="flex flex-wrap gap-3 justify-center">
-          {hasActiveSearch && (
-            <StyledButton 
-              onClick={clearSearch} 
-              variant="ghost"
-              className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-            >
-              Clear Search
-            </StyledButton>
-          )}
-          {hasActiveFilters && (
-            <StyledButton 
-              onClick={clearFilters} 
-              variant="ghost"
-              className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-            >
-              Clear Filters
-            </StyledButton>
-          )}
-          {hasAnyActive && (
-            <StyledButton 
-              onClick={clearAll} 
-              variant="primary_small"
-            >
-              Start Fresh
-            </StyledButton>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-)}
+        ) : (
+          // Empty state
+          status !== "LoadingFirstPage" && (
+            <div className="text-center py-16">
+              <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
+                <div className="text-8xl mb-6 animate-bounce">🔍</div>
+                <h3 className="text-2xl font-heading text-white mb-4">No Anime Found</h3>
+                <p className="text-white/80 text-lg mb-6 leading-relaxed">
+                  {hasActiveSearch 
+                    ? `No anime matches "${debouncedSearchQuery}"${hasActiveFilters ? " with current filters" : ""}.`
+                    : hasActiveFilters 
+                    ? "No anime matches your current filters."
+                    : "The anime database is empty right now."
+                  }
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {hasActiveSearch && (
+                    <StyledButton 
+                      onClick={clearSearch} 
+                      variant="ghost"
+                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                    >
+                      Clear Search
+                    </StyledButton>
+                  )}
+                  {hasActiveFilters && (
+                    <StyledButton 
+                      onClick={clearFilters} 
+                      variant="ghost"
+                      className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                    >
+                      Clear Filters
+                    </StyledButton>
+                  )}
+                  {hasAnyActive && (
+                    <StyledButton 
+                      onClick={clearAll} 
+                      variant="primary_small"
+                    >
+                      Start Fresh
+                    </StyledButton>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
