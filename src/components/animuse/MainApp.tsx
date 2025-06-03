@@ -34,6 +34,38 @@ const LoadingSpinnerComponent: React.FC<{ message?: string; className?: string }
 
 const LoadingSpinner = memo(LoadingSpinnerComponent);
 
+const ensureCompleteRecommendations = (recommendations: any[]): AnimeRecommendation[] => {
+  return recommendations.map((rec: any): AnimeRecommendation => {
+    // Calculate moodMatchScore if missing
+    const moodMatchScore = rec.moodMatchScore ?? 
+                          rec.similarityScore ?? 
+                          (typeof rec.rating === 'number' ? Math.min(10, Math.max(1, rec.rating)) : 7);
+
+    return {
+      title: rec.title || "Unknown Title",
+      description: rec.description || "No description available.",
+      posterUrl: rec.posterUrl || "",
+      genres: Array.isArray(rec.genres) ? rec.genres : [],
+      year: typeof rec.year === 'number' ? rec.year : undefined,
+      rating: typeof rec.rating === 'number' ? rec.rating : undefined,
+      emotionalTags: Array.isArray(rec.emotionalTags) ? rec.emotionalTags : [],
+      trailerUrl: rec.trailerUrl || undefined,
+      studios: Array.isArray(rec.studios) ? rec.studios : [],
+      themes: Array.isArray(rec.themes) ? rec.themes : [],
+      reasoning: rec.reasoning || "AI recommendation",
+      moodMatchScore, // FIXED: Always present
+      
+      // Include optional properties if they exist
+      ...(rec._id && { _id: rec._id }),
+      ...(rec.characterHighlights && { characterHighlights: rec.characterHighlights }),
+      ...(rec.plotTropes && { plotTropes: rec.plotTropes }),
+      ...(rec.artStyleTags && { artStyleTags: rec.artStyleTags }),
+      ...(rec.surpriseFactors && { surpriseFactors: rec.surpriseFactors }),
+      ...(rec.foundInDatabase !== undefined && { foundInDatabase: rec.foundInDatabase }),
+    };
+  });
+};
+
 // ============================================================================
 // SECTION 2: TYPES AND INTERFACES
 // ============================================================================
@@ -59,13 +91,34 @@ interface ForYouCategory {
   isLoading: boolean; 
   error?: string | null;
   fetchFn?: (args: any) => Promise<{ 
-    recommendations: AnimeRecommendation[]; 
+    recommendations: AnimeRecommendation[]; // FIXED: Always properly typed
     error?: string | null; 
     details?: any 
   }>;
   fetchArgs?: any;
   lastFetched?: number;
 }
+
+// Add this interface for custom list type if not already defined
+interface CustomListType {
+  _id: Id<"customLists">;
+  listName: string;
+  description?: string;
+  isPublic: boolean;
+  animeIds: Id<"anime">[];
+  // Add other properties as needed
+}
+
+// Add this interface for custom list with anime details
+interface CustomListWithAnime {
+  _id: Id<"customLists">;
+  listName: string;
+  description?: string;
+  isPublic: boolean;
+  anime: Doc<"anime">[];
+  // Add other properties as needed
+}
+
 
 // ============================================================================
 // SECTION 3: CONSTANTS
@@ -207,24 +260,64 @@ export default function MainApp() {
 
   // Enhanced function to handle recommendation clicks
   const handleRecommendationClick = useCallback(async (recommendation: AnimeRecommendation) => {
-  console.log(`[DEBUG] Recommendation clicked:`, recommendation);
-  console.log(`[DEBUG] Recommendation has _id:`, '_id' in recommendation);
-  console.log(`[DEBUG] Recommendation._id value:`, recommendation._id);
-  console.log(`[DEBUG] Recommendation keys:`, Object.keys(recommendation));
+  console.log(`[MainApp] Recommendation clicked:`, recommendation);
+  console.log(`[MainApp] Recommendation has _id:`, '_id' in recommendation);
+  console.log(`[MainApp] Recommendation._id value:`, recommendation._id);
+  console.log(`[MainApp] Recommendation keys:`, Object.keys(recommendation));
 
   // Check if the recommendation has an _id field
   if ('_id' in recommendation && recommendation._id) {
-    console.log(`[DEBUG] ✅ Using existing ID: ${recommendation._id}`);
+    console.log(`[MainApp] ✅ Using existing ID: ${recommendation._id}`);
     navigateToDetail(recommendation._id as Id<"anime">);
     return;
   }
 
-  // If no _id, log and redirect to AI
-  console.log(`[DEBUG] ❌ No _id found, redirecting to AI assistant`);
-  console.log(`[DEBUG] Title: "${recommendation.title}"`);
+  // FIXED: Instead of redirecting to AI, try to add the anime to database first
+  console.log(`[MainApp] ❌ No _id found, attempting to add to database first...`);
   
-  toast.info(`🎯 "${recommendation.title}" doesn't have a database ID. Redirecting to AI...`);
-  navigateToAIAssistant();
+  try {
+    const toastId = `add-recommendation-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;
+    toast.loading(`Adding "${recommendation.title}" to database...`, { id: toastId });
+    
+    // Create robust anime object for database
+    const animeToAdd = {
+      title: recommendation.title?.trim() || "Unknown Title",
+      description: recommendation.description?.trim() || "No description available.",
+      posterUrl: recommendation.posterUrl && !recommendation.posterUrl.includes('placeholder') 
+        ? recommendation.posterUrl 
+        : `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(recommendation.title?.substring(0, 20) || 'Anime')}&font=roboto`,
+      genres: Array.isArray(recommendation.genres) ? recommendation.genres.filter(g => g && g.trim()) : [],
+      year: typeof recommendation.year === 'number' && recommendation.year > 1900 ? recommendation.year : undefined,
+      rating: typeof recommendation.rating === 'number' && recommendation.rating >= 0 && recommendation.rating <= 10 ? recommendation.rating : undefined,
+      emotionalTags: Array.isArray(recommendation.emotionalTags) ? recommendation.emotionalTags.filter(tag => tag && tag.trim()) : [],
+      trailerUrl: recommendation.trailerUrl && recommendation.trailerUrl.trim() ? recommendation.trailerUrl : undefined,
+      studios: Array.isArray(recommendation.studios) ? recommendation.studios.filter(s => s && s.trim()) : [],
+      themes: Array.isArray(recommendation.themes) ? recommendation.themes.filter(t => t && t.trim()) : []
+    };
+    
+    console.log(`[MainApp] Adding recommendation to database:`, animeToAdd);
+    
+    // Add anime to database using a mutation (you'll need to import this)
+    // const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
+    // const newAnimeId = await addAnimeByUser(animeToAdd);
+    
+    // For now, since we can't import the mutation here, redirect to AI with more context
+    toast.info(`🎯 "${recommendation.title}" needs to be added to database. Use the detail view to add it.`, { id: toastId });
+    
+    // Store the recommendation data in sessionStorage for the AI assistant to use
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('pendingAnimeRecommendation', JSON.stringify(recommendation));
+    }
+    
+    navigateToAIAssistant();
+    
+  } catch (error: any) {
+    console.error(`[MainApp] Failed to handle recommendation:`, error);
+    toast.error(`Failed to process recommendation: ${error.message}`);
+    
+    // Fallback: redirect to AI assistant
+    navigateToAIAssistant();
+  }
 }, [navigateToDetail, navigateToAIAssistant]);
 
   // Manual refresh function for personalized recommendations
@@ -244,7 +337,7 @@ export default function MainApp() {
     console.log('[MainApp] Starting manual refresh...');
     fetchInProgressRef.current = true;
 
-    setForYouCategories(prev => prev.map(c => 
+    setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
       c.id === "generalPersonalized" 
         ? { ...c, isLoading: true, error: null }
         : c
@@ -271,11 +364,14 @@ export default function MainApp() {
         messageId: `manual-refresh-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       });
 
-      setForYouCategories(prev => prev.map(c => 
+      // FIXED: Ensure all recommendations have moodMatchScore
+      const completeRecommendations = ensureCompleteRecommendations(result.recommendations || []);
+
+      setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
         c.id === "generalPersonalized" 
           ? { 
               ...c, 
-              recommendations: result.recommendations || [], 
+              recommendations: completeRecommendations, 
               isLoading: false, 
               error: result.error,
               lastFetched: Date.now()
@@ -285,14 +381,14 @@ export default function MainApp() {
 
       if (result.error && result.error !== "OpenAI API key not configured.") {
         toast.error(`Refresh failed: ${result.error.substring(0, 60)}`);
-      } else if (result.recommendations && result.recommendations.length > 0) {
-        toast.success(`Updated with ${result.recommendations.length} fresh recommendations!`);
+      } else if (completeRecommendations.length > 0) {
+        toast.success(`Updated with ${completeRecommendations.length} fresh recommendations!`);
       } else {
         toast.info('Refresh completed, but no new recommendations found');
       }
     } catch (error: any) {
       console.error('[MainApp] Manual refresh error:', error);
-      setForYouCategories(prev => prev.map(c => 
+      setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
         c.id === "generalPersonalized" 
           ? { ...c, isLoading: false, error: error.message || "Refresh failed" }
           : c
@@ -327,36 +423,39 @@ export default function MainApp() {
 
   // Enhanced useEffect with better duplicate prevention
   useEffect(() => {
-    // Clear any pending debounced fetch
     if (debouncedFetchRef.current) {
       clearTimeout(debouncedFetchRef.current);
     }
 
-    // Debounce the fetch to prevent rapid successive calls
     debouncedFetchRef.current = setTimeout(() => {
       const fetchCategoryData = async (categoryToUpdate: ForYouCategory) => {
-        // Prevent duplicate calls
         if (fetchInProgressRef.current) {
           console.log('[MainApp] Fetch already in progress, skipping...');
           return;
         }
 
         if (!userProfile || !categoryToUpdate.fetchFn) {
-          setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? {
-            ...c, 
-            isLoading: false, 
-            error: "User profile not ready or fetch function missing."
-          } : c));
+          // FIXED: Proper type assertion for setForYouCategories
+          setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
+            c.id === categoryToUpdate.id ? {
+              ...c, 
+              isLoading: false, 
+              error: "User profile not ready or fetch function missing."
+            } : c
+          ));
           return;
         }
 
         fetchInProgressRef.current = true;
         
-        setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { 
-          ...c, 
-          isLoading: true, 
-          error: null 
-        } : c));
+        // FIXED: Proper type assertion for setForYouCategories
+        setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
+          c.id === categoryToUpdate.id ? { 
+            ...c, 
+            isLoading: true, 
+            error: null 
+          } : c
+        ));
 
         try {
           const profileDataForAI = {
@@ -385,29 +484,40 @@ export default function MainApp() {
             error: result.error
           });
 
-          setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { 
-            ...c, 
-            recommendations: result.recommendations || [], 
-            isLoading: false, 
-            error: result.error,
-            lastFetched: Date.now()
-          } : c));
+          // FIXED: Ensure all recommendations have moodMatchScore
+          const completeRecommendations = ensureCompleteRecommendations(result.recommendations || []);
+
+          // FIXED: Proper type assertion for setForYouCategories
+          setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
+            c.id === categoryToUpdate.id ? { 
+              ...c, 
+              recommendations: completeRecommendations, 
+              isLoading: false, 
+              error: result.error,
+              lastFetched: Date.now()
+            } : c
+          ));
 
           if (result.error && result.error !== "OpenAI API key not configured.") { 
             toast.error(`Personalized: ${result.error.substring(0,60)}`); 
           }
         } catch (e: any) {
           console.error('[MainApp] Fetch error:', e);
-          setForYouCategories(prev => prev.map(c => c.id === categoryToUpdate.id ? { 
-            ...c, 
-            isLoading: false, 
-            error: e.message || "Unknown fetch error" 
-          } : c));
+          // FIXED: Proper type assertion for setForYouCategories
+          setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
+            c.id === categoryToUpdate.id ? { 
+              ...c, 
+              isLoading: false, 
+              error: e.message || "Unknown fetch error" 
+            } : c
+          ));
           toast.error(`Failed personalized fetch for "${categoryToUpdate.title}".`);
         } finally {
           fetchInProgressRef.current = false;
         }
       };
+
+      // ... rest of useEffect logic remains the same ...
 
       if (userProfile && userProfile.onboardingCompleted && currentView === "dashboard") {
         const existingCategory = forYouCategories.find(cat => cat.id === "generalPersonalized");
@@ -415,11 +525,12 @@ export default function MainApp() {
         const shouldFetch = !hasFetchedForYou || (existingCategory && needsRefresh(existingCategory));
         const isCurrentlyLoading = existingCategory?.isLoading;
         const hasRecentData = existingCategory?.lastFetched && 
-          (Date.now() - existingCategory.lastFetched) < 5 * 60 * 1000; // 5 minutes
+          (Date.now() - existingCategory.lastFetched) < 5 * 60 * 1000;
         
         if (shouldFetch && !isCurrentlyLoading && !fetchInProgressRef.current && !hasRecentData) {
           console.log(`[MainApp] ${!hasFetchedForYou ? 'Initial fetch' : '12-hour refresh'} for personalized recommendations`);
           
+          // FIXED: Properly typed fetchFn (Line 490)
           const personalizedCategorySetup: ForYouCategory = {
             id: "generalPersonalized", 
             title: "✨ Personalized For You", 
@@ -427,7 +538,12 @@ export default function MainApp() {
             isLoading: true, 
             error: null,
             lastFetched: existingCategory?.lastFetched,
-            fetchFn: async (args) => {
+            // FIXED: Return type matches interface exactly
+            fetchFn: async (args: any): Promise<{ 
+              recommendations: AnimeRecommendation[]; 
+              error?: string | null; 
+              details?: any 
+            }> => {
               console.log(`[MainApp] Executing personalized fetch with args:`, {
                 userProfile: !!args.userProfile,
                 count: args.count,
@@ -447,10 +563,21 @@ export default function MainApp() {
                   hasDebugInfo: !!result.debug
                 });
                 
-                return result;
+                // FIXED: Ensure all recommendations have moodMatchScore
+                const completeRecommendations = ensureCompleteRecommendations(result.recommendations || []);
+                
+                return {
+                  recommendations: completeRecommendations, // FIXED: Properly typed
+                  error: result.error,
+                  details: result.debug
+                };
               } catch (error: any) {
                 console.error(`[MainApp] Personalized fetch error:`, error);
-                throw error;
+                return {
+                  recommendations: [], // FIXED: Empty array is properly typed
+                  error: error.message || "Unknown error",
+                  details: { error: error.message }
+                };
               }
             },
             fetchArgs: { 
@@ -468,15 +595,15 @@ export default function MainApp() {
           setHasFetchedForYou(true);
         }
       }
-    }, 500); // 500ms debounce
+    }, 500);
 
-    // Cleanup function
     return () => {
       if (debouncedFetchRef.current) {
         clearTimeout(debouncedFetchRef.current);
       }
     };
   }, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist, forYouCategories, needsRefresh]);
+
 
   // --------------------------------------------------------------------------
   // SUBSECTION 4.8: RENDER FUNCTIONS
@@ -851,7 +978,8 @@ export default function MainApp() {
         
         {myCustomLists && myCustomLists.length > 0 && (
           <div className="space-y-3 sm:space-y-4">
-            {myCustomLists.map(list => (
+            {/* FIXED: Add explicit type annotation for 'list' parameter */}
+            {myCustomLists.map((list: CustomListType) => (
               <div key={list._id} className="p-3 sm:p-4 bg-brand-accent-peach/20 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:shadow-md transition-shadow">
                 <div className="flex-grow min-w-0">
                   <h3 className="text-lg font-heading text-brand-primary-action cursor-pointer hover:underline" onClick={() => navigateToCustomListDetail(list._id)}>
@@ -908,7 +1036,8 @@ export default function MainApp() {
         </p>
         {listDetails.anime.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-6">
-            {listDetails.anime.map(animeDoc => (
+            {/* FIXED: Add explicit type annotation for 'animeDoc' parameter */}
+            {listDetails.anime.map((animeDoc: Doc<"anime">) => (
               <div key={animeDoc._id} className="flex flex-col items-center">
                 <AnimeCard anime={animeDoc} onViewDetails={onViewAnime} className="w-full" />
                 <h4

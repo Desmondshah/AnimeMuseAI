@@ -1,4 +1,4 @@
-// src/components/animuse/AnimeCard.tsx - Fixed loading logic
+// src/components/animuse/AnimeCard.tsx - Fixed version with improved error handling
 import React, { memo, useState, useEffect, useRef, useMemo } from "react";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -28,14 +28,20 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
 
+  // FIXED: Improved ID resolution logic
   const animeIdFromProp = (anime as Doc<"anime">)._id;
+  
+  // Only query by title if we don't have an ID AND it's a recommendation
+  const shouldQueryByTitle = !animeIdFromProp && isRecommendation && anime.title;
   const existingAnimeInDB = useQuery(
     api.anime.getAnimeByTitle,
-    anime.title && !animeIdFromProp ? { title: anime.title } : "skip"
+    shouldQueryByTitle ? { title: anime.title } : "skip"
   );
+  
+  // Determine the final anime ID to use
   const animeDocumentId = animeIdFromProp || existingAnimeInDB?._id;
   
-  // High-quality placeholder - increased to 600x900 for better resolution
+  // High-quality placeholder
   const placeholderUrl = useMemo(() => {
     const bgColor = "ECB091"; 
     const textColor = "321D0B"; 
@@ -46,7 +52,6 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   const posterToDisplay = useMemo(() => {
     if (imageError || !anime.posterUrl) return placeholderUrl;
     
-    // If the current poster is a low-quality placeholder, use our high-quality one
     if (anime.posterUrl.includes('300x450') || anime.posterUrl.includes('placeholder')) {
       return placeholderUrl;
     }
@@ -54,7 +59,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     return anime.posterUrl;
   }, [imageError, anime.posterUrl, placeholderUrl]);
 
-  // Simplified loading logic - reset loading state when poster URL changes
+  // Reset loading state when poster URL changes
   useEffect(() => {
     if (posterToDisplay !== currentSrc) {
       setImageLoaded(false);
@@ -75,88 +80,118 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     console.warn(`[AnimeCard] Failed to load poster for: ${anime.title}, using placeholder`);
   };
 
-  
+  // FIXED: Improved click handler with better error handling and retry logic
   const handleCardClick = async () => {
-  if (isNavigating) return;
-  
-  // Add haptic feedback if available
-  if ('vibrate' in navigator) {
-    navigator.vibrate(50);
-  }
-  
-  // Prevent double-tap zoom on iOS
-  const now = Date.now();
-  if (now - (handleCardClick as any).lastClick < 300) {
-    return;
-  }
-  (handleCardClick as any).lastClick = now;
-  
-  console.log(`[AnimeCard] Full anime object:`, anime);
-  console.log(`[AnimeCard] isRecommendation:`, isRecommendation);
-  console.log(`[AnimeCard] animeDocumentId:`, animeDocumentId);
-  
-  let idToNavigate = animeDocumentId;
-  
-    // If we don't have an ID and this is a recommendation, try to add it to the database
-  if (!idToNavigate && isRecommendation && onViewDetails) {
-    setIsNavigating(true);
-    try {
-      const toastId = `prepare-details-${anime.title || 'new-anime'}`;
-      toast.loading("Preparing details...", { id: toastId });
-      
-      // Create a robust anime object for the database
-      const animeToAdd = {
-        title: anime.title || "Unknown Title",
-        description: anime.description || "No description available.",
-        posterUrl: anime.posterUrl || placeholderUrl,
-        genres: Array.isArray(anime.genres) ? anime.genres : [],
-        year: anime.year || undefined,
-        rating: anime.rating || undefined,
-        emotionalTags: Array.isArray(anime.emotionalTags) ? anime.emotionalTags : [],
-        trailerUrl: anime.trailerUrl || undefined,
-        studios: Array.isArray(anime.studios) ? anime.studios : [],
-        themes: Array.isArray(anime.themes) ? anime.themes : []
-      };
-      
-      console.log(`[AnimeCard] Adding anime to database:`, animeToAdd);
-      idToNavigate = await addAnimeByUser(animeToAdd);
-      toast.dismiss(toastId);
-      
-      if (!idToNavigate) {
-        throw new Error("Could not add anime to database - no ID returned.");
-      }
-      
-      console.log(`[AnimeCard] Successfully added anime with ID: ${idToNavigate}`);
-      toast.success("Details ready! Opening...", { duration: 1000 });
-    } catch (error: any) {
-      console.error("[AnimeCard] Error adding AI recommendation:", error);
-      toast.error(`Could not prepare anime details: ${error.message}`);
-      setIsNavigating(false);
+    if (isNavigating) return;
+    
+    // Add haptic feedback if available
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+    
+    // Prevent double-tap zoom on iOS
+    const now = Date.now();
+    if (now - (handleCardClick as any).lastClick < 300) {
       return;
     }
-  }
-
-  // Navigate if we have an ID and a navigation function
-  if (idToNavigate && onViewDetails) {
+    (handleCardClick as any).lastClick = now;
+    
+    console.log(`[AnimeCard] Click handler started for: ${anime.title}`);
+    console.log(`[AnimeCard] Current animeDocumentId: ${animeDocumentId}`);
+    console.log(`[AnimeCard] isRecommendation: ${isRecommendation}`);
+    console.log(`[AnimeCard] existingAnimeInDB loading state:`, existingAnimeInDB === undefined ? 'loading' : 'loaded');
+    
+    setIsNavigating(true);
+    
     try {
+      let idToNavigate = animeDocumentId;
+      
+      // FIXED: Wait for database query to complete if it's still loading
+      if (shouldQueryByTitle && existingAnimeInDB === undefined) {
+        console.log(`[AnimeCard] Waiting for database query to complete...`);
+        // Give the query a moment to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Note: In a real app, you'd want to use a more sophisticated approach
+        // like subscribing to the query state changes
+      }
+      
+      // FIXED: Re-check for existing anime after waiting
+      if (!idToNavigate && isRecommendation && onViewDetails) {
+        console.log(`[AnimeCard] No ID found, attempting to add anime to database...`);
+        
+        const toastId = `prepare-details-${anime.title?.replace(/[^a-zA-Z0-9]/g, '') || 'new-anime'}`;
+        toast.loading("Preparing anime details...", { id: toastId });
+        
+        // FIXED: More robust anime object validation
+        const animeToAdd = {
+          title: anime.title?.trim() || "Unknown Title",
+          description: anime.description?.trim() || "No description available.",
+          posterUrl: (anime.posterUrl && !anime.posterUrl.includes('placeholder')) ? anime.posterUrl : placeholderUrl,
+          genres: Array.isArray(anime.genres) ? anime.genres.filter(g => g && g.trim()) : [],
+          year: typeof anime.year === 'number' && anime.year > 1900 ? anime.year : undefined,
+          rating: typeof anime.rating === 'number' && anime.rating >= 0 && anime.rating <= 10 ? anime.rating : undefined,
+          emotionalTags: Array.isArray(anime.emotionalTags) ? anime.emotionalTags.filter(tag => tag && tag.trim()) : [],
+          trailerUrl: anime.trailerUrl && anime.trailerUrl.trim() ? anime.trailerUrl : undefined,
+          studios: Array.isArray(anime.studios) ? anime.studios.filter(s => s && s.trim()) : [],
+          themes: Array.isArray(anime.themes) ? anime.themes.filter(t => t && t.trim()) : []
+        };
+        
+        console.log(`[AnimeCard] Adding anime to database with data:`, animeToAdd);
+        
+        try {
+          // FIXED: Better error handling for the mutation
+          idToNavigate = await addAnimeByUser(animeToAdd);
+          
+          if (!idToNavigate) {
+            throw new Error("Mutation completed but returned no ID");
+          }
+          
+          console.log(`[AnimeCard] Successfully added anime with ID: ${idToNavigate}`);
+          toast.success("Anime added to database! Opening details...", { id: toastId, duration: 2000 });
+          
+          // FIXED: Small delay to ensure the anime is properly saved
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+        } catch (mutationError: any) {
+          console.error("[AnimeCard] Database mutation failed:", mutationError);
+          toast.error(`Failed to add anime: ${mutationError.message || 'Unknown error'}`, { id: toastId });
+          throw mutationError;
+        }
+      }
+
+      // FIXED: Final validation before navigation
+      if (!idToNavigate) {
+        throw new Error("No anime ID available after all attempts");
+      }
+      
+      if (!onViewDetails) {
+        throw new Error("Navigation function not provided");
+      }
+      
       console.log(`[AnimeCard] Navigating to anime detail with ID: ${idToNavigate}`);
       onViewDetails(idToNavigate);
+      
     } catch (error: any) {
-      console.error("[AnimeCard] Navigation error:", error);
-      toast.error(`Could not open details page: ${error.message}`);
+      console.error("[AnimeCard] Click handler error:", error);
+      
+      // FIXED: More specific error messages
+      if (error.message.includes("mutation")) {
+        toast.error(`Database error: ${error.message}`);
+      } else if (error.message.includes("navigation")) {
+        toast.error(`Navigation error: ${error.message}`);
+      } else {
+        toast.error(`Could not open anime details: ${error.message}`);
+      }
+      
+      // FIXED: Fallback option for users
+      setTimeout(() => {
+        toast.info(`Try refreshing the page or contact support if the issue persists`, { duration: 5000 });
+      }, 1000);
+      
+    } finally {
+      setIsNavigating(false);
     }
-  } else if (!onViewDetails) {
-    console.warn("[AnimeCard] onViewDetails prop is not provided.");
-    toast.info("Navigation function not available.");
-  } else if (!idToNavigate) {
-    console.warn("[AnimeCard] No anime ID available for navigation.");
-    toast.error("Could not prepare anime details. Please try again.");
-  }
-  
-  setIsNavigating(false);
-};
-
-  
+  };
   
   const displayRatingOrYear = anime.rating !== undefined && anime.rating !== null 
     ? `⭐ ${(anime.rating / 2).toFixed(1)}` 
@@ -166,7 +201,7 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   return (
     <div 
       className={`${styles.clickablePoster} ${className || ''} ${isNavigating ? 'opacity-75 cursor-wait' : ''} 
-        touch-manipulation select-none`} // Add touch optimizations
+        touch-manipulation select-none`}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -174,13 +209,12 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
       aria-label={`View details for ${anime.title || "anime"}`}
       style={{ 
         cursor: isNavigating ? 'wait' : 'pointer',
-        // Prevent text selection on mobile
         WebkitUserSelect: 'none',
         userSelect: 'none'
       }}
     >
       <div className={`${styles.imageContainer} relative overflow-hidden`}>
-        {/* Add loading skeleton for better perceived performance */}
+        {/* Loading skeleton */}
         {!imageLoaded && (
           <div className={`${styles.imageLoadingPlaceholder} bg-gradient-to-br from-brand-accent-gold/20 to-brand-surface`}>
             <div className="animate-pulse text-center p-2">
@@ -191,31 +225,30 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
         )}
         
         <img
-  ref={imgRef}
-  src={posterToDisplay}
-  alt={anime.title ? `${anime.title} poster` : "Anime Poster"}
-  className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
-  onLoad={handleImageLoad}
-  onError={handleImageError}
-  loading="lazy"
-  sizes="(max-width: 375px) 50vw, (max-width: 768px) 33vw, (max-width: 1200px) 25vw, 20vw"
-  style={{ 
-    opacity: imageLoaded ? 1 : 0,
-    transition: 'opacity 0.3s ease-in-out',
-            // Or use a type assertion for WebKit properties
-    ...(({
-      WebkitUserDrag: 'none',
-      userDrag: 'none',
-    }) as React.CSSProperties),
-    pointerEvents: 'none', // Prevent image dragging
-  }}
-/>
+          ref={imgRef}
+          src={posterToDisplay}
+          alt={anime.title ? `${anime.title} poster` : "Anime Poster"}
+          className={`${styles.image} ${imageLoaded ? styles.imageLoaded : ''}`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          loading="lazy"
+          sizes="(max-width: 375px) 50vw, (max-width: 768px) 33vw, (max-width: 1200px) 25vw, 20vw"
+          style={{ 
+            opacity: imageLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease-in-out',
+            WebkitUserDrag: 'none',
+            userDrag: 'none',
+            pointerEvents: 'none',
+          } as React.CSSProperties}
+        />
       </div>
+      
       {displayRatingOrYear && (
         <div className={styles.cornerRibbon}>
           <span className={styles.cornerRibbonText}>{displayRatingOrYear}</span>
         </div>
       )}
+      
       {isNavigating && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>

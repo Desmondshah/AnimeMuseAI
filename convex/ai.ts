@@ -6,6 +6,37 @@ import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
 
+// Interface for debug anime addition response
+interface DebugAnimeAdditionResponse {
+  success: boolean;
+  animeId?: Id<"anime">;
+  message?: string;
+  existing?: boolean;
+  error?: string;
+  validationErrors?: string[];
+}
+
+interface AnimeDocumentType {
+  _id: Id<"anime">;
+  title: string;
+  description?: string;
+  posterUrl?: string;
+  genres?: string[];
+  year?: number;
+  rating?: number;
+  emotionalTags?: string[];
+  themes?: string[];
+  studios?: string[];
+}
+
+// Interface for test anime addition response
+interface TestAnimeAdditionResponse {
+  success: boolean;
+  animeId?: Id<"anime">;
+  message?: string;
+  existing?: boolean;
+  error?: string;
+}
 
 interface AnimeDocument {
     _id: Id<"anime">;
@@ -2538,3 +2569,180 @@ export const debugPosterUrls = action({
 function isValidPosterUrl(posterUrl: any) {
   throw new Error("Function not implemented.");
 }
+
+export const debugAnimeAddition = action({
+  args: {
+    animeData: v.object({
+      title: v.string(),
+      description: v.optional(v.string()),
+      posterUrl: v.optional(v.string()),
+      genres: v.optional(v.array(v.string())),
+      year: v.optional(v.number()),
+      rating: v.optional(v.number()),
+      emotionalTags: v.optional(v.array(v.string())),
+      trailerUrl: v.optional(v.string()),
+      studios: v.optional(v.array(v.string())),
+      themes: v.optional(v.array(v.string()))
+    }),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args): Promise<DebugAnimeAdditionResponse> => {
+    console.log(`[Debug Anime Addition] Attempting to add:`, args.animeData);
+    
+    try {
+      // Check if anime already exists
+      const existingAnime: any = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+        title: args.animeData.title 
+      });
+      
+      if (existingAnime) {
+        console.log(`[Debug Anime Addition] Anime already exists with ID: ${existingAnime._id}`);
+        return { 
+          success: true, 
+          animeId: existingAnime._id, 
+          message: "Anime already exists in database",
+          existing: true 
+        };
+      }
+      
+      // Validate the anime data
+      const validationErrors: string[] = [];
+      
+      if (!args.animeData.title || args.animeData.title.trim().length === 0) {
+        validationErrors.push("Title is required and cannot be empty");
+      }
+      
+      if (args.animeData.year && (args.animeData.year < 1900 || args.animeData.year > new Date().getFullYear() + 5)) {
+        validationErrors.push(`Invalid year: ${args.animeData.year}`);
+      }
+      
+      if (args.animeData.rating && (args.animeData.rating < 0 || args.animeData.rating > 10)) {
+        validationErrors.push(`Invalid rating: ${args.animeData.rating}`);
+      }
+      
+      if (validationErrors.length > 0) {
+        console.error(`[Debug Anime Addition] Validation errors:`, validationErrors);
+        return { 
+          success: false, 
+          error: `Validation failed: ${validationErrors.join(', ')}`,
+          validationErrors 
+        };
+      }
+      
+      // Try to add the anime
+      console.log(`[Debug Anime Addition] Adding new anime to database...`);
+      
+      // FIXED: Transform the data to match mutation requirements
+      const animeDataForMutation = {
+        title: args.animeData.title,
+        description: args.animeData.description || "No description available.",
+        posterUrl: args.animeData.posterUrl || `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(args.animeData.title.substring(0, 20))}&font=roboto`,
+        genres: args.animeData.genres || [], // FIXED: Always array
+        year: args.animeData.year,
+        rating: args.animeData.rating,
+        emotionalTags: args.animeData.emotionalTags || [], // FIXED: Always array
+        trailerUrl: args.animeData.trailerUrl,
+        studios: args.animeData.studios || [], // FIXED: Always array
+        themes: args.animeData.themes || [], // FIXED: Always array
+      };
+      
+      const newAnimeId: Id<"anime"> = await ctx.runMutation(api.anime.addAnimeByUser, animeDataForMutation);
+      
+      if (!newAnimeId) {
+        console.error(`[Debug Anime Addition] Mutation returned null/undefined ID`);
+        return { 
+          success: false, 
+          error: "Database mutation completed but returned no ID" 
+        };
+      }
+      
+      console.log(`[Debug Anime Addition] Successfully added anime with ID: ${newAnimeId}`);
+      
+      // Store debug feedback
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: `Debug anime addition: ${args.animeData.title}`,
+        aiAction: "debugAnimeAddition",
+        aiResponseText: JSON.stringify({ 
+          success: true, 
+          animeId: newAnimeId, 
+          animeData: args.animeData 
+        }),
+        feedbackType: "none",
+        messageId: args.messageId,
+      });
+      
+      return { 
+        success: true, 
+        animeId: newAnimeId, 
+        message: "Successfully added new anime to database",
+        existing: false 
+      };
+      
+    } catch (error: any) {
+      console.error(`[Debug Anime Addition] Error:`, error);
+      
+      // Store error feedback
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: `Debug anime addition failed: ${args.animeData.title}`,
+        aiAction: "debugAnimeAddition",
+        aiResponseText: JSON.stringify({ 
+          success: false, 
+          error: error.message,
+          animeData: args.animeData 
+        }),
+        feedbackType: "down",
+        messageId: args.messageId,
+      });
+      
+      return { 
+        success: false, 
+        error: error.message || "Unknown error during anime addition" 
+      };
+    }
+  },
+});
+
+// Test function to verify anime addition workflow
+export const testAnimeAddition = action({
+  args: {
+    testTitle: v.string(),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args): Promise<TestAnimeAdditionResponse> => {
+    // FIXED: Ensure all array fields are provided as arrays, not undefined
+    const testAnime = {
+      title: args.testTitle,
+      description: "Test anime for debugging addition issues",
+      posterUrl: `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(args.testTitle)}&font=roboto`,
+      genres: ["Test", "Debug"], // FIXED: Always an array
+      year: 2024,
+      rating: 7.5,
+      emotionalTags: ["test"], // FIXED: Always an array
+      studios: ["Test Studio"], // FIXED: Always an array
+      themes: ["debugging"] // FIXED: Always an array
+    };
+    
+    console.log(`[Test Anime Addition] Testing with:`, testAnime);
+    
+    try {
+      const result: DebugAnimeAdditionResponse = await ctx.runAction(api.ai.debugAnimeAddition, {
+        animeData: testAnime,
+        messageId: args.messageId
+      });
+      
+      return {
+        success: result.success,
+        animeId: result.animeId,
+        message: result.message,
+        existing: result.existing,
+        error: result.error
+      };
+    } catch (error: any) {
+      console.error(`[Test Anime Addition] Error:`, error);
+      return {
+        success: false,
+        error: error.message || "Unknown error during test"
+      };
+    }
+  },
+});
