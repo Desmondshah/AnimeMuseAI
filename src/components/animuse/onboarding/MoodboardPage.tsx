@@ -745,14 +745,9 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
         </div>
 
         {/* Enhanced Mood Selector */}
-        <div className="relative">
+<div className="relative moodboard-container">
   <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 mood-cues-section" 
-       style={{ 
-         minHeight: 'auto', 
-         height: 'auto', 
-         overflow: 'visible' 
-       }}>
+  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 mood-cues-section">
     
     {/* Section Header with Counter */}
     <div className="flex items-center justify-between mb-6">
@@ -769,20 +764,16 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       </div>
     </div>
     
-    {/* FIXED: Properly structured mood cues grid */}
+    {/* FIXED: Properly contained mood cues grid */}
     <div className={`moodboard-vibes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 ${
       advancedMode ? 'advanced-mode' : ''
-    }`} 
-    style={{ 
-      alignItems: 'start',
-      rowGap: advancedMode ? '2rem' : '1rem'
-    }}>
+    }`}>
       {filteredCues.map(cue => {
         const isSelected = selectedMoodCues.includes(cue.label);
         const intensity = cueIntensities[cue.id] || cue.intensity || 3;
         
         return (
-          <div key={cue.id} className="mood-cue-wrapper" style={{ overflow: 'visible' }}>
+          <div key={cue.id} className="mood-cue-wrapper">
             <button
               onClick={() => handleMoodCueToggle(cue.label)}
               className={`w-full relative overflow-hidden rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-105 ${
@@ -791,7 +782,6 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                   : 'hover:shadow-xl hover:shadow-white/20'
               }`}
               title={`${cue.label}: ${cue.description}`}
-              style={{ height: 'auto', minHeight: 'auto' }}
             >
               {/* Background Gradient */}
               <div className={`absolute inset-0 bg-gradient-to-br ${cue.color} ${
@@ -828,16 +818,11 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
             </button>
             
-            {/* Advanced Mode: Intensity Slider */}
+            {/* Advanced Mode: Intensity Slider - FIXED CONTAINER */}
             {advancedMode && isSelected && (
-              <div className="intensity-slider-container mt-3 transition-all duration-300" 
-                   style={{ 
-                     width: '100%', 
-                     boxSizing: 'border-box',
-                     overflow: 'visible'
-                   }}>
+              <div className="intensity-slider-container">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/60 w-8">Low</span>
+                  <span className="text-xs text-white/60 w-8 flex-shrink-0">Low</span>
                   <input
                     type="range"
                     min="1"
@@ -850,9 +835,9 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                     }}
                     aria-label={`Intensity for ${cue.label}`}
                   />
-                  <span className="text-xs text-white/60 w-8">High</span>
+                  <span className="text-xs text-white/60 w-8 flex-shrink-0">High</span>
                 </div>
-                <div className="text-center mt-1 intensity-stars">
+                <div className="intensity-stars">
                   <span className="text-xs text-brand-accent-gold">{"★".repeat(intensity)}</span>
                 </div>
               </div>
