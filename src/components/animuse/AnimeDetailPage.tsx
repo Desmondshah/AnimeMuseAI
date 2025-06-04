@@ -10,6 +10,7 @@ import ReviewForm from "./onboarding/ReviewForm";
 import AnimeCard from "./AnimeCard";
 import { AnimeRecommendation } from "../../../convex/types";
 import { formatDistanceToNow } from 'date-fns';
+import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 
 interface BackendReviewProps extends Doc<"reviews"> {
   userName: string; userAvatarUrl?: string; upvotes: number; downvotes: number;
@@ -26,6 +27,62 @@ interface AnimeDetailPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
   // ADD NEW PROP:
   onCharacterClick: (character: any, animeName: string) => void; // NEW: Handler for character clicks
+}
+
+interface EnhancedCharacterType {
+  id?: number;
+  name: string;
+  imageUrl?: string;
+  role: string;
+  description?: string;
+  status?: string;
+  gender?: string;
+  age?: string;
+  dateOfBirth?: {
+    year?: number;
+    month?: number;
+    day?: number;
+  };
+  bloodType?: string;
+  height?: string;
+  weight?: string;
+  species?: string;
+  powersAbilities?: string[];
+  weapons?: string[];
+  nativeName?: string;
+  siteUrl?: string;
+  voiceActors?: {
+    id?: number;
+    name: string;
+    language: string;
+    imageUrl?: string;
+  }[];
+  relationships?: {
+    relatedCharacterId?: number;
+    relationType: string;
+  }[];
+  // AI enhancement properties
+  isAIEnriched?: boolean;
+  personalityAnalysis?: string;
+  keyRelationships?: Array<{
+    relatedCharacterName: string;
+    relationshipDescription: string;
+    relationType: string;
+  }>;
+  detailedAbilities?: Array<{
+    abilityName: string;
+    abilityDescription: string;
+    powerLevel?: string;
+  }>;
+  majorCharacterArcs?: string[];
+  trivia?: string[];
+  backstoryDetails?: string;
+  characterDevelopment?: string;
+  notableQuotes?: string[];
+  symbolism?: string;
+  fanReception?: string;
+  culturalSignificance?: string;
+  enrichmentTimestamp?: number;
 }
 
 // Smart refresh indicator component
@@ -80,9 +137,65 @@ const DataFreshnessIndicator: React.FC<{
           🔄
         </button>
       )}
+      
     </div>
   );
 };
+
+const useEnrichedCharacters = (characters: EnhancedCharacterType[], animeName: string) => {
+  const [enrichedCharacters, setEnrichedCharacters] = useState<EnhancedCharacterType[]>(characters);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
+
+  const enrichMainCharacters = async () => {
+    setIsEnriching(true);
+    
+    // Only enrich main characters to avoid rate limits
+    const mainCharacters = characters.filter(char => char.role === 'MAIN');
+    
+    try {
+      const enrichmentPromises = mainCharacters.map(async (character) => {
+        const result = await enrichCharacterDetails({
+          characterName: character.name,
+          animeName: animeName,
+          existingData: {
+            description: character.description,
+            role: character.role,
+            gender: character.gender,
+            age: character.age,
+            species: character.species,
+            powersAbilities: character.powersAbilities,
+            voiceActors: character.voiceActors,
+          },
+          enrichmentLevel: 'basic' as const, // Type assertion
+          messageId: `batch_enrich_${character.name}_${Date.now()}`,
+        });
+        
+        return result.error ? character : { ...character, ...result.mergedCharacter, isAIEnriched: true };
+      });
+      
+      const enrichedMains = await Promise.all(enrichmentPromises);
+      
+      // Merge enriched main characters with unchanged supporting characters
+      const allEnriched = characters.map(char => {
+        if (char.role === 'MAIN') {
+          const enriched = enrichedMains.find(e => e.name === char.name);
+          return enriched || char;
+        }
+        return char;
+      });
+      
+      setEnrichedCharacters(allEnriched);
+    } catch (error) {
+      console.error('Batch enrichment failed:', error);
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
+  return { enrichedCharacters, isEnriching, enrichMainCharacters };
+};
+
 
 const LoadingSpinnerComponent: React.FC<{ message?: string; className?: string }> = ({ message = "Loading...", className = "" }) => (
     <div className={`flex flex-col justify-center items-center py-16 ${className}`}>
@@ -107,7 +220,14 @@ export default function AnimeDetailPage({
   const anime = useQuery(api.anime.getAnimeById, animeId ? { animeId } : "skip");
   const watchlistEntry = useQuery(api.anime.getWatchlistItem, animeId ? { animeId } : "skip");
   const upsertToWatchlistMutation = useMutation(api.anime.upsertToWatchlist);
-  
+  const [selectedCharacter, setSelectedCharacter] = useState<any | null>(null);
+  const [showCharacterDetail, setShowCharacterDetail] = useState(false);
+  const { 
+    enrichedCharacters, 
+    isEnriching, 
+    enrichMainCharacters 
+  } = useEnrichedCharacters(anime?.characters || [], anime?.title || '');
+
   // Smart auto-refresh actions
   const smartAutoRefreshAction = useAction(api.autoRefresh.callSmartAutoRefreshAnime);
   const getRefreshRecommendationAction = useAction(api.autoRefresh.getRefreshRecommendation);
@@ -178,6 +298,12 @@ export default function AnimeDetailPage({
         .catch(console.error);
     }
   }, [anime, animeId, getRefreshRecommendationAction]);
+
+  useEffect(() => {
+  if (anime?.characters?.some((char: any) => char.role === 'MAIN' && !char.isAIEnriched)) {
+    enrichMainCharacters();
+  }
+}, [anime?._id]);
 
   // Auto-refresh on page visit (smart logic)
   useEffect(() => {
@@ -505,6 +631,13 @@ export default function AnimeDetailPage({
       return;
     }
 
+    const handleCharacterClick = useCallback(async (character: any, animeName: string) => {
+  // Navigate to character detail page
+  setSelectedCharacter(character);
+  setShowCharacterDetail(true);
+}, []);
+
+
     const commentText = parentId ? newReplyText : newCommentText[reviewId] || "";
     
     if (!commentText.trim()) {
@@ -553,6 +686,19 @@ export default function AnimeDetailPage({
           <StyledButton onClick={onBack} variant="primary">Back to Collection</StyledButton>
         </div>
       </div>
+    );
+  }
+
+  if (showCharacterDetail && selectedCharacter) {
+    return (
+      <CharacterDetailPage
+        character={selectedCharacter}
+        animeName={anime.title}
+        onBack={() => {
+          setShowCharacterDetail(false);
+          setSelectedCharacter(null);
+        }}
+      />
     );
   }
 
@@ -883,163 +1029,239 @@ export default function AnimeDetailPage({
         )}
 
          {/* 🆕 Characters Section - Place here, after Episodes but before Action Buttons */}
-        {anime.characters && anime.characters.length > 0 && (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl"></div>
-      <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full">
-              <span className="text-2xl">👥</span>
-            </div>
-            <h3 className="text-2xl font-heading text-white font-bold">Characters</h3>
-          </div>
-          <div className="text-sm text-white/60">
-            {anime.characters.length} characters • Click to view details
-          </div>
-        </div>
-
-        {/* Characters Grid */}
-        <div className="max-h-96 overflow-y-auto custom-scrollbar pr-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {anime.characters.map((character, index) => (
-              <div
-                key={`character-${character.id || index}`}
-                onClick={() => onCharacterClick(character, anime.title)} // NEW: Click handler
-                className="group relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-105 cursor-pointer" // NEW: Added cursor-pointer
-              >
-                {/* Character Image */}
-                <div className="relative aspect-[3/4] overflow-hidden">
-                  {character.imageUrl ? (
-                    <img
-                      src={character.imageUrl}
-                      alt={character.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" // NEW: Enhanced hover effect
-                      onError={(e) => {
-                        // Fallback to a placeholder if image fails to load
-                        (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-brand-primary-action/20 to-brand-accent-gold/20 flex items-center justify-center">
-                      <div className="text-4xl font-bold text-white/60">
-                        {character.name.charAt(0).toUpperCase()}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Role Badge */}
-                  <div className="absolute top-2 right-2">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm ${
-                      character.role === "MAIN" 
-                        ? "bg-yellow-500/80 text-yellow-100" 
-                        : character.role === "SUPPORTING"
-                        ? "bg-blue-500/80 text-blue-100"
-                        : "bg-gray-500/80 text-gray-100"
-                    }`}>
-                      {character.role === "MAIN" && "⭐"}
-                      {character.role === "SUPPORTING" && "🎭"}
-                      {character.role === "BACKGROUND" && "👤"}
-                      {character.role === "MAIN" ? "Main" : character.role === "SUPPORTING" ? "Support" : "Background"}
-                    </span>
-                  </div>
-
-                  {/* NEW: Click Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-2 left-2 right-2">
-                      <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20">
-                        <p className="text-white text-xs text-center font-medium">Click for details</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* NEW: Click Icon */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-brand-primary-action/90 backdrop-blur-sm rounded-full p-3 border border-white/30">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Character Info */}
-                <div className="p-3">
-                  <h4 className="text-white font-medium text-sm text-center leading-tight group-hover:text-brand-accent-gold transition-colors duration-300" title={character.name}>
-                    <span className="line-clamp-2">
-                      {character.name}
-                    </span>
-                  </h4>
-                  
-                  {/* NEW: Additional info hint */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
-                    <p className="text-xs text-white/60 text-center">
-                      {character.age && `Age: ${character.age}`}
-                      {character.age && character.gender && " • "}
-                      {character.gender}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Character Role Legend - Enhanced */}
-        <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs">
-          <div className="flex items-center gap-1 text-yellow-400">
-            <span>⭐</span>
-            <span>Main Characters</span>
-          </div>
-          <div className="flex items-center gap-1 text-blue-400">
-            <span>🎭</span>
-            <span>Supporting Characters</span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-400">
-            <span>👤</span>
-            <span>Background Characters</span>
-          </div>
-          <div className="flex items-center gap-1 text-brand-accent-gold">
-            <span>👆</span>
-            <span>Click any character for details</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
-
-
-  {/* No Character Data Message - Enhanced */}
-  {(!anime.characters || anime.characters.length === 0) && (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-3xl blur-xl"></div>
-      <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-r from-gray-500/20 to-slate-500/20 rounded-full">
+        {enrichedCharacters && enrichedCharacters.length > 0 && (
+  <div className="relative">
+    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl"></div>
+    <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full">
             <span className="text-2xl">👥</span>
           </div>
           <h3 className="text-2xl font-heading text-white font-bold">Characters</h3>
         </div>
         
-        <div className="text-center py-8">
-          <div className="text-6xl mb-4 opacity-50">👥</div>
-          <h4 className="text-xl text-white/70 mb-2">No Character Information</h4>
-          <p className="text-white/50 text-sm max-w-md mx-auto">
-            Character data is not yet available for this anime. 
-            {refreshRecommendation?.priority === "critical" && refreshRecommendation.reason.includes("character") ? (
-              <span className="block mt-2 text-brand-accent-gold">
-                💡 Try refreshing to check for new character data!
-              </span>
-            ) : (
-              " Check back later as we continue to update our database."
-            )}
-          </p>
+        {/* Enhanced Header with AI Status */}
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-white/60">
+            {enrichedCharacters.length} characters • Click for AI-enhanced details
+          </div>
+          
+          {/* AI Enrichment Status */}
+          {isEnriching && (
+            <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
+              <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-blue-300 text-xs font-medium">Enriching characters...</span>
+            </div>
+          )}
+          
+          {/* Manual Enrichment Button */}
+          {!isEnriching && enrichedCharacters.some(char => char.role === 'MAIN' && !char.isAIEnriched) && (
+            <button
+              onClick={enrichMainCharacters}
+              className="flex items-center gap-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 border border-brand-primary-action/30 rounded-full px-3 py-1 hover:bg-brand-primary-action/30 transition-all duration-300"
+              title="Enhance main characters with AI"
+            >
+              <span className="text-sm">🤖</span>
+              <span className="text-brand-accent-gold text-xs font-medium">Enhance Main Characters</span>
+            </button>
+          )}
+          
+          {/* All Enhanced Indicator */}
+          {!isEnriching && enrichedCharacters.filter(char => char.role === 'MAIN').every(char => char.isAIEnriched) && enrichedCharacters.some(char => char.role === 'MAIN') && (
+            <div className="flex items-center gap-2 bg-green-500/20 border border-green-500/30 rounded-full px-3 py-1">
+              <span className="text-green-400 text-sm">✨</span>
+              <span className="text-green-300 text-xs font-medium">AI Enhanced</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Characters Grid */}
+      <div className="max-h-96 overflow-y-auto custom-scrollbar pr-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {enrichedCharacters.map((character, index) => (
+            <div
+              key={`character-${character.id || index}`}
+              onClick={() => onCharacterClick(character, anime.title)}
+              className="group relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-105 cursor-pointer"
+            >
+              {/* Character Image */}
+              <div className="relative aspect-[3/4] overflow-hidden">
+                {character.imageUrl ? (
+                  <img
+                    src={character.imageUrl}
+                    alt={character.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-brand-primary-action/20 to-brand-accent-gold/20 flex items-center justify-center">
+                    <div className="text-4xl font-bold text-white/60">
+                      {character.name.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Enhanced Role Badge */}
+                <div className="absolute top-2 right-2">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border ${
+                    character.role === "MAIN" 
+                      ? "bg-yellow-500/80 text-yellow-100 border-yellow-400/50" 
+                      : character.role === "SUPPORTING"
+                      ? "bg-blue-500/80 text-blue-100 border-blue-400/50"
+                      : "bg-gray-500/80 text-gray-100 border-gray-400/50"
+                  }`}>
+                    {character.role === "MAIN" && "⭐"}
+                    {character.role === "SUPPORTING" && "🎭"}
+                    {character.role === "BACKGROUND" && "👤"}
+                    {character.role === "MAIN" ? "Main" : character.role === "SUPPORTING" ? "Support" : "Background"}
+                  </span>
+                </div>
+
+                {/* AI Enhancement Badge */}
+                {character.isAIEnriched && (
+                  <div className="absolute top-2 left-2">
+                    <span className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm bg-green-500/80 text-green-100 border border-green-400/50 flex items-center gap-1">
+                      <span className="text-xs">🤖</span>
+                      <span>AI</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Enhanced Click Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20">
+                      <p className="text-white text-xs text-center font-medium">
+                        {character.isAIEnriched ? "View AI-enhanced details" : "Click for details"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Click Icon */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className={`backdrop-blur-sm rounded-full p-3 border border-white/30 ${
+                    character.isAIEnriched 
+                      ? "bg-gradient-to-r from-brand-primary-action/90 to-brand-accent-gold/90" 
+                      : "bg-brand-primary-action/90"
+                  }`}>
+                    {character.isAIEnriched ? (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Character Info */}
+              <div className="p-3">
+                <h4 className="text-white font-medium text-sm text-center leading-tight group-hover:text-brand-accent-gold transition-colors duration-300" title={character.name}>
+                  <span className="line-clamp-2">
+                    {character.name}
+                  </span>
+                </h4>
+                
+                {/* Enhanced Additional Info */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
+                  <div className="text-xs text-white/60 text-center space-y-1">
+                    {/* Basic Info */}
+                    {(character.age || character.gender) && (
+                      <p>
+                        {character.age && `Age: ${character.age}`}
+                        {character.age && character.gender && " • "}
+                        {character.gender}
+                      </p>
+                    )}
+                    
+                    {/* AI Enhancement Indicator */}
+                    {character.isAIEnriched && (
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-green-400 text-xs">✨</span>
+                        <span className="text-green-300 text-xs font-medium">AI Enhanced</span>
+                      </div>
+                    )}
+                    
+                    {/* Enhancement Available */}
+                    {!character.isAIEnriched && character.role === 'MAIN' && (
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-brand-accent-gold text-xs">🤖</span>
+                        <span className="text-brand-accent-gold text-xs font-medium">Enhancement Available</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Enhanced Character Role Legend */}
+      <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs">
+        <div className="flex items-center gap-1 text-yellow-400">
+          <span>⭐</span>
+          <span>Main Characters</span>
+        </div>
+        <div className="flex items-center gap-1 text-blue-400">
+          <span>🎭</span>
+          <span>Supporting Characters</span>
+        </div>
+        <div className="flex items-center gap-1 text-gray-400">
+          <span>👤</span>
+          <span>Background Characters</span>
+        </div>
+        <div className="flex items-center gap-1 text-green-400">
+          <span>🤖</span>
+          <span>AI Enhanced</span>
+        </div>
+        <div className="flex items-center gap-1 text-brand-accent-gold">
+          <span>👆</span>
+          <span>Click for detailed character pages</span>
         </div>
       </div>
     </div>
-  )}
+  </div>
+)}
 
+{/* No Character Data Message - Enhanced */}
+{(!enrichedCharacters || enrichedCharacters.length === 0) && (
+  <div className="relative">
+    <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-3xl blur-xl"></div>
+    <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-gradient-to-r from-gray-500/20 to-slate-500/20 rounded-full">
+          <span className="text-2xl">👥</span>
+        </div>
+        <h3 className="text-2xl font-heading text-white font-bold">Characters</h3>
+      </div>
+      
+      <div className="text-center py-8">
+        <div className="text-6xl mb-4 opacity-50">👥</div>
+        <h4 className="text-xl text-white/70 mb-2">No Character Information</h4>
+        <p className="text-white/50 text-sm max-w-md mx-auto">
+          Character data is not yet available for this anime. 
+          {refreshRecommendation?.priority === "critical" && refreshRecommendation.reason.includes("character") ? (
+            <span className="block mt-2 text-brand-accent-gold">
+              💡 Try refreshing to check for new character data!
+            </span>
+          ) : (
+            " Check back later as we continue to update our database."
+          )}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

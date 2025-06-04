@@ -51,6 +51,30 @@ interface AnimeDocument {
     studios?: string[];
 }
 
+// Enhanced character data interface for AI enrichment
+interface EnrichedCharacterData {
+  detailedBio?: string;
+  personalityAnalysis?: string;
+  keyRelationships?: Array<{
+    relatedCharacterName: string;
+    relationshipDescription: string;
+    relationType: string;
+  }>;
+  detailedAbilities?: Array<{
+    abilityName: string;
+    abilityDescription: string;
+    powerLevel?: string;
+  }>;
+  majorCharacterArcs?: string[];
+  trivia?: string[];
+  backstoryDetails?: string;
+  characterDevelopment?: string;
+  notableQuotes?: string[];
+  symbolism?: string;
+  fanReception?: string;
+  culturalSignificance?: string;
+}
+
 // Enhanced user profile validator (ensure this matches your schema and needs)
 const enhancedUserProfileValidator = v.object({
     name: v.optional(v.string()),
@@ -2746,3 +2770,383 @@ export const testAnimeAddition = action({
     }
   },
 });
+
+// Main character enrichment action
+export const fetchEnrichedCharacterDetails = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    existingData: v.optional(v.object({
+      description: v.optional(v.string()),
+      role: v.optional(v.string()),
+      gender: v.optional(v.string()),
+      age: v.optional(v.string()),
+      species: v.optional(v.string()),
+      powersAbilities: v.optional(v.array(v.string())),
+      voiceActors: v.optional(v.array(v.any())),
+    })),
+    enrichmentLevel: v.optional(v.union(
+      v.literal("basic"),
+      v.literal("detailed"), 
+      v.literal("comprehensive")
+    )),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    enrichedData: EnrichedCharacterData;
+    mergedCharacter: any;
+    error?: string;
+    sources?: string[];
+  }> => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { 
+        enrichedData: {}, 
+        mergedCharacter: args.existingData || {},
+        error: "OpenAI API key not configured." 
+      };
+    }
+
+    const enrichmentLevel = args.enrichmentLevel || "detailed";
+    
+    console.log(`[Character AI Enrichment] Enriching ${args.characterName} from ${args.animeName} (${enrichmentLevel} level)`);
+
+    let systemPrompt = `You are an expert anime character researcher and analyst with access to comprehensive databases including Fandom wikis, MyAnimeList, character analysis sites, and official sources.
+
+Your task is to provide ${enrichmentLevel} character information for "${args.characterName}" from "${args.animeName}".
+
+EXISTING DATA (from AniList):`;
+
+    if (args.existingData) {
+      systemPrompt += `
+- Basic Description: ${args.existingData.description || "Not provided"}
+- Role: ${args.existingData.role || "Not provided"}
+- Gender: ${args.existingData.gender || "Not provided"}
+- Age: ${args.existingData.age || "Not provided"}
+- Species: ${args.existingData.species || "Not provided"}
+- Known Abilities: ${args.existingData.powersAbilities?.join(", ") || "Not provided"}`;
+    } else {
+      systemPrompt += "\n- No existing structured data provided";
+    }
+
+    systemPrompt += `\n\nENRICHMENT LEVEL: ${enrichmentLevel.toUpperCase()}`;
+
+    // Customize depth based on enrichment level
+    if (enrichmentLevel === "basic") {
+      systemPrompt += `
+FOCUS: Enhance and expand the basic information with 2-3 well-sourced details per category.`;
+    } else if (enrichmentLevel === "detailed") {
+      systemPrompt += `
+FOCUS: Provide comprehensive character analysis with detailed explanations and multiple examples.`;
+    } else { // comprehensive
+      systemPrompt += `
+FOCUS: Deep-dive analysis with extensive details, cultural context, fan theories, and scholarly perspectives.`;
+    }
+
+    systemPrompt += `
+
+RESEARCH PRIORITIES:
+1. **Detailed Biography**: Expand beyond basic descriptions with rich backstory details, childhood, formative experiences
+2. **Personality Analysis**: Deep psychological profile, motivations, fears, growth patterns, contradictions
+3. **Relationships**: Detailed analysis of connections with other characters, how relationships evolve
+4. **Abilities & Powers**: Comprehensive breakdown of abilities with explanations of how they work, limitations, evolution
+5. **Character Development**: How the character changes throughout the series, major growth moments
+6. **Cultural & Thematic Significance**: What the character represents, symbolism, cultural context
+7. **Fan Reception & Analysis**: How fans interpret the character, popular theories, community insights
+
+IMPORTANT GUIDELINES:
+- Use multiple sources (Fandom wikis, official guides, fan analyses, reviews)
+- Prioritize official and well-documented information
+- When including fan theories or interpretations, clearly mark them as such
+- Avoid spoilers beyond what's commonly known
+- Be specific with examples from the source material
+- If existing data conflicts with your research, note the discrepancy
+
+OUTPUT REQUIREMENTS:
+Return a JSON object with the following structure:
+
+{
+  "enrichedData": {
+    "detailedBio": "Comprehensive biography expanding on basic info...",
+    "personalityAnalysis": "Deep psychological analysis...",
+    "keyRelationships": [
+      {
+        "relatedCharacterName": "Character Name",
+        "relationshipDescription": "Detailed explanation of their relationship dynamics...",
+        "relationType": "friend/rival/mentor/family/romantic/etc"
+      }
+    ],
+    "detailedAbilities": [
+      {
+        "abilityName": "Ability Name",
+        "abilityDescription": "Detailed explanation of how it works, its limits, evolution...",
+        "powerLevel": "weak/moderate/strong/legendary"
+      }
+    ],
+    "majorCharacterArcs": [
+      "Arc 1: Description of character development...",
+      "Arc 2: How they evolved..."
+    ],
+    "trivia": [
+      "Interesting fact 1...",
+      "Fun detail 2..."
+    ],
+    "backstoryDetails": "Rich background information not in basic bio...",
+    "characterDevelopment": "How the character evolves throughout the series...",
+    "notableQuotes": [
+      "\"Memorable quote 1\"",
+      "\"Iconic line 2\""
+    ],
+    "symbolism": "What this character represents thematically...",
+    "fanReception": "How the character is received by fans, popular interpretations...",
+    "culturalSignificance": "Cultural context, real-world inspirations..."
+  },
+  "sources": ["Source 1", "Source 2", "Source 3"],
+  "confidence": 0.0-1.0,
+  "spoilerLevel": "none/mild/moderate/major"
+}
+
+Make this character profile comprehensive and engaging while maintaining accuracy.`;
+
+    let enrichedData: EnrichedCharacterData = {};
+    let sources: string[] = [];
+    let errorResult: string | undefined = undefined;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Research and provide ${enrichmentLevel} enriched details for ${args.characterName} from ${args.animeName}. Focus on information that goes beyond what's typically available in structured databases.` }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3, // Lower temperature for more factual responses
+      });
+
+      const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+      
+      if (parsed.enrichedData) {
+        enrichedData = parsed.enrichedData;
+        sources = parsed.sources || [];
+        
+        console.log(`[Character AI Enrichment] Successfully enriched ${args.characterName} with ${Object.keys(enrichedData).length} data fields`);
+      } else {
+        errorResult = "AI response format error - no enriched data found.";
+      }
+    } catch (err: any) {
+      console.error("[Character AI Enrichment] Error:", err);
+      errorResult = `Character AI Error: ${err.message || "Unknown"}`;
+    }
+
+    // Merge existing data with enriched data
+    const mergedCharacter = mergeCharacterData(args.existingData || {}, enrichedData);
+
+    // Store feedback
+    if (args.messageId) {
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: `Character enrichment: ${args.characterName} from ${args.animeName} (${enrichmentLevel})`,
+        aiAction: "fetchEnrichedCharacterDetails",
+        aiResponseText: JSON.stringify({ enrichedData, sources }),
+        feedbackType: "none",
+        messageId: args.messageId,
+      });
+    }
+
+    return { 
+      enrichedData, 
+      mergedCharacter, 
+      error: errorResult,
+      sources 
+    };
+  },
+});
+
+// Character relationship analyzer
+export const analyzeCharacterRelationships = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    focusCharacters: v.optional(v.array(v.string())),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { relationships: [], error: "OpenAI API key not configured." };
+    }
+
+    let systemPrompt = `You are an expert anime relationship analyst. Analyze the relationships of "${args.characterName}" from "${args.animeName}".
+
+Focus on providing nuanced relationship analysis that goes beyond basic labels.`;
+
+    if (args.focusCharacters?.length) {
+      systemPrompt += `\n\nPay special attention to relationships with: ${args.focusCharacters.join(", ")}`;
+    }
+
+    systemPrompt += `
+
+For each significant relationship, provide:
+1. **Relationship Evolution**: How it develops over time
+2. **Emotional Dynamics**: The underlying emotional currents
+3. **Conflict & Resolution**: Major tensions and how they're addressed
+4. **Mutual Influence**: How each character affects the other
+5. **Symbolic Significance**: What the relationship represents thematically
+
+Output JSON: {
+  "relationships": [
+    {
+      "characterName": "Name",
+      "relationshipType": "detailed type",
+      "emotionalDynamics": "analysis...",
+      "evolution": "how it changes...",
+      "significance": "thematic importance...",
+      "keyMoments": ["moment 1", "moment 2"],
+      "mutualInfluence": "how they affect each other..."
+    }
+  ]
+}`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Analyze the relationships of ${args.characterName} from ${args.animeName}` }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: `Relationship analysis: ${args.characterName} from ${args.animeName}`,
+        aiAction: "analyzeCharacterRelationships",
+        aiResponseText: JSON.stringify(result),
+        feedbackType: "none",
+        messageId: args.messageId,
+      });
+
+      return { relationships: result.relationships || [], error: undefined };
+    } catch (err: any) {
+      console.error("[Character Relationship Analysis] Error:", err);
+      return { relationships: [], error: `Analysis Error: ${err.message}` };
+    }
+  },
+});
+
+// Character development timeline analyzer
+export const getCharacterDevelopmentTimeline = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    includeArcs: v.optional(v.boolean()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { timeline: [], error: "OpenAI API key not configured." };
+    }
+
+    let systemPrompt = `You are an expert at analyzing character development arcs in anime. Create a detailed development timeline for "${args.characterName}" from "${args.animeName}".
+
+Focus on:
+1. **Key Growth Moments**: Specific events that changed the character
+2. **Internal Conflicts**: Psychological struggles and resolutions
+3. **Skill/Power Development**: How abilities evolved
+4. **Relationship Milestones**: Important relationship developments
+5. **Personality Changes**: How their core personality shifted
+
+${args.includeArcs ? "Include major story arc contexts for each development phase." : "Focus on character-specific development independent of plot structure."}
+
+Output JSON: {
+  "timeline": [
+    {
+      "phase": "Early Series/Arc Name",
+      "timeframe": "Episodes/Chapters X-Y",
+      "keyDevelopments": ["development 1", "development 2"],
+      "internalConflicts": "main psychological struggles...",
+      "growthTriggers": ["event that caused growth"],
+      "skillEvolution": "how abilities/skills changed...",
+      "personalityShifts": "how they changed as a person...",
+      "relationshipChanges": "key relationship developments..."
+    }
+  ],
+  "overallArc": "summary of complete character journey...",
+  "majorTurningPoints": ["event 1", "event 2"]
+}`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Create a character development timeline for ${args.characterName}` }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: `Character timeline: ${args.characterName} from ${args.animeName}`,
+        aiAction: "getCharacterDevelopmentTimeline",
+        aiResponseText: JSON.stringify(result),
+        feedbackType: "none",
+        messageId: args.messageId,
+      });
+
+      return { 
+        timeline: result.timeline || [], 
+        overallArc: result.overallArc,
+        majorTurningPoints: result.majorTurningPoints || [],
+        error: undefined 
+      };
+    } catch (err: any) {
+      console.error("[Character Development Timeline] Error:", err);
+      return { timeline: [], error: `Timeline Error: ${err.message}` };
+    }
+  },
+});
+
+// Helper function to merge character data intelligently
+function mergeCharacterData(existingData: any, enrichedData: EnrichedCharacterData): any {
+  const merged = { ...existingData };
+
+  // Enhance description with detailed bio if available
+  if (enrichedData.detailedBio) {
+    merged.description = enrichedData.detailedBio;
+    merged.originalDescription = existingData.description; // Keep original as backup
+  }
+
+  // Add enriched fields
+  merged.personalityAnalysis = enrichedData.personalityAnalysis;
+  merged.keyRelationships = enrichedData.keyRelationships;
+  merged.backstoryDetails = enrichedData.backstoryDetails;
+  merged.characterDevelopment = enrichedData.characterDevelopment;
+  merged.symbolism = enrichedData.symbolism;
+  merged.fanReception = enrichedData.fanReception;
+  merged.culturalSignificance = enrichedData.culturalSignificance;
+  merged.trivia = enrichedData.trivia;
+  merged.notableQuotes = enrichedData.notableQuotes;
+  merged.majorCharacterArcs = enrichedData.majorCharacterArcs;
+
+  // Enhance abilities with detailed analysis
+  if (enrichedData.detailedAbilities?.length) {
+    if (existingData.powersAbilities?.length) {
+      // Merge existing abilities with detailed explanations
+      merged.detailedAbilities = enrichedData.detailedAbilities;
+      merged.powersAbilities = existingData.powersAbilities; // Keep simple list
+    } else {
+      // Use AI abilities as primary source
+      merged.detailedAbilities = enrichedData.detailedAbilities;
+      merged.powersAbilities = enrichedData.detailedAbilities.map(a => a.abilityName);
+    }
+  }
+
+  // Mark as AI-enriched
+  merged.isAIEnriched = true;
+  merged.enrichmentTimestamp = Date.now();
+
+  return merged;
+}
