@@ -32,6 +32,7 @@ import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
+import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
 import type * as useMobileOptimizations from "../useMobileOptimizations.js";
 import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
 import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   router: typeof router;
   twilioSender: typeof twilioSender;
   types: typeof types;
+  useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
   useMobileOptimizations: typeof useMobileOptimizations;
   useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
   useMoodBoardPerformance: typeof useMoodBoardPerformance;
