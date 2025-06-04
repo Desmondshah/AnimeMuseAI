@@ -65,11 +65,53 @@ const applicationTables = {
     })),
     // NEW: Character data
     characters: v.optional(v.array(v.object({
-      id: v.optional(v.number()), // AniList character ID
-      name: v.string(),
-      imageUrl: v.optional(v.string()),
-      role: v.string(), // "MAIN", "SUPPORTING", "BACKGROUND"
-    }))),
+  // Basic info (existing)
+  id: v.optional(v.number()), // AniList character ID
+  name: v.string(),
+  imageUrl: v.optional(v.string()),
+  role: v.string(), // "MAIN", "SUPPORTING", "BACKGROUND"
+  
+  // NEW DETAILED FIELDS:
+  description: v.optional(v.string()), // Character background, personality, traits
+  status: v.optional(v.string()), // "Alive", "Deceased", "Unknown"
+  gender: v.optional(v.string()),
+  age: v.optional(v.string()), // Often provided as string like "17 years old"
+  
+  // Birth details
+  dateOfBirth: v.optional(v.object({ 
+    year: v.optional(v.number()), 
+    month: v.optional(v.number()), 
+    day: v.optional(v.number()) 
+  })),
+  
+  // Physical characteristics
+  bloodType: v.optional(v.string()),
+  height: v.optional(v.string()), // e.g., "175 cm" - often not available in AniList
+  weight: v.optional(v.string()), // often not available in AniList
+  species: v.optional(v.string()), // Human, Demon, Elf, etc. - derived from description/tags
+  
+  // Abilities and equipment
+  powersAbilities: v.optional(v.array(v.string())), // extracted from description
+  weapons: v.optional(v.array(v.string())), // extracted from description
+  
+  // Additional info
+  nativeName: v.optional(v.string()),
+  siteUrl: v.optional(v.string()), // link to character page on AniList
+  
+  // Voice actors for this character in this specific anime
+  voiceActors: v.optional(v.array(v.object({ 
+    id: v.optional(v.number()),
+    name: v.string(), 
+    language: v.string(), // "Japanese", "English", etc.
+    imageUrl: v.optional(v.string()) 
+  }))),
+  
+  // Character relationships (if available)
+  relationships: v.optional(v.array(v.object({ 
+    relatedCharacterId: v.optional(v.number()), 
+    relationType: v.string() // "Father", "Sister", "Friend", "Rival", etc.
+  })))
+}))),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])

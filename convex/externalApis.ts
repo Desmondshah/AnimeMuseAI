@@ -153,51 +153,98 @@ const selectBestImageUrl = (images: any): string | undefined => {
 
 const fetchFromAnilist = async (title: string, existingAnilistId?: number): Promise<any | null> => {
     const anilistQuery = `
-      query ($search: String, $id: Int) {
-        Media (search: $search, id: $id, type: ANIME, sort: SEARCH_MATCH) {
-          id
-          title { romaji english native }
-          description (asHtml: false)
-          startDate { year month day }
-          endDate { year month day }
-          season
-          seasonYear
-          episodes
-          duration
-          status
-          countryOfOrigin
-          source (version: 2)
-          hashtag
-          trailer { id site thumbnail }
-          updatedAt
-          coverImage { 
-            extraLarge 
-            large 
-            medium 
-            color 
+  query ($search: String, $id: Int) {
+    Media (search: $search, id: $id, type: ANIME, sort: SEARCH_MATCH) {
+      id
+      title { romaji english native }
+      description (asHtml: false)
+      startDate { year month day }
+      endDate { year month day }
+      season
+      seasonYear
+      episodes
+      duration
+      status
+      countryOfOrigin
+      source (version: 2)
+      hashtag
+      trailer { id site thumbnail }
+      updatedAt
+      coverImage { 
+        extraLarge 
+        large 
+        medium 
+        color 
+      }
+      bannerImage
+      genres
+      synonyms
+      averageScore
+      meanScore
+      popularity
+      trending
+      favourites
+      tags { id name description category rank isGeneralSpoiler isMediaSpoiler isAdult }
+      relations { edges { relationType(version: 2) node { id title { romaji english } type format } } }
+      
+      # ENHANCED CHARACTER QUERY:
+      characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 20) {
+        edges {
+          role
+          voiceActors { # Voice actors for this character in this anime
+            id
+            name {
+              first
+              middle
+              last
+              full
+              native
+              userPreferred
+            }
+            image { large }
+            languageV2
           }
-          bannerImage
-          genres
-          synonyms
-          averageScore
-          meanScore
-          popularity
-          trending
-          favourites
-          tags { id name description category rank isGeneralSpoiler isMediaSpoiler isAdult }
-          relations { edges { relationType(version: 2) node { id title { romaji english } type format } } }
-          characters(sort: [ROLE, RELEVANCE, ID]) { edges { role node { id name { full } image { large } } } }
-          staff(sort: [RELEVANCE, ID]) { edges { role node { id name { full } image { large } } } }
-          studios { edges { isMain node { id name isAnimationStudio } } }
-          isAdult
-          nextAiringEpisode { airingAt timeUntilAiring episode }
-          externalLinks { id url site type language color icon notes isDisabled }
-          streamingEpisodes { title thumbnail url site }
-          rankings { id rank type format year season allTime context }
-          stats { scoreDistribution { score amount } statusDistribution { status amount } }
+          node {
+            id
+            name {
+              first
+              middle
+              last
+              full
+              native
+              userPreferred
+              alternative
+              alternativeSpoiler
+            }
+            image { large }
+            description(asHtml: false)
+            age
+            gender
+            bloodType
+            dateOfBirth {
+              year
+              month
+              day
+            }
+            favourites
+            siteUrl
+            # Note: AniList doesn't have height, weight, powers, weapons as standard fields
+            # These need to be extracted from description or derived from other data
+          }
         }
       }
-    `;
+      
+      staff(sort: [RELEVANCE, ID]) { edges { role node { id name { full } image { large } } } }
+      studios { edges { isMain node { id name isAnimationStudio } } }
+      isAdult
+      nextAiringEpisode { airingAt timeUntilAiring episode }
+      externalLinks { id url site type language color icon notes isDisabled }
+      streamingEpisodes { title thumbnail url site }
+      rankings { id rank type format year season allTime context }
+      stats { scoreDistribution { score amount } statusDistribution { status amount } }
+    }
+  }
+`;
     const variables = existingAnilistId ? { id: existingAnilistId } : { search: title };
     try {
         console.log(`[External API - AniList] Querying for title: "${title}", ID: ${existingAnilistId || "N/A"}`);
@@ -226,17 +273,61 @@ const fetchFromAnilist = async (title: string, existingAnilistId?: number): Prom
 };
 
 const mapCharacterData = (charactersEdges: any[]): any[] => {
-    if (!Array.isArray(charactersEdges)) return [];
-    
-    return charactersEdges
-        .filter(edge => edge && edge.node && edge.node.name && edge.node.name.full) // Only include characters with valid names
-        .map(edge => ({
-            id: edge.node.id || undefined,
-            name: edge.node.name.full,
-            imageUrl: edge.node.image?.large || undefined,
-            role: edge.role || "BACKGROUND", // Default to BACKGROUND if role is missing
-        }))
-        .slice(0, 20); // Limit to first 20 characters to avoid overwhelming storage
+  if (!Array.isArray(charactersEdges)) return [];
+  
+  return charactersEdges
+    .filter(edge => edge && edge.node && edge.node.name && edge.node.name.full)
+    .map(edge => {
+      const character = edge.node;
+      const voiceActors = edge.voiceActors || [];
+      
+      // Extract additional info from description
+      const description = character.description || "";
+      const powersAbilities = extractPowersFromDescription(description);
+      const weapons = extractWeaponsFromDescription(description);
+      const species = extractSpeciesFromDescription(description);
+      
+      return {
+        id: character.id || undefined,
+        name: character.name.full || character.name.userPreferred,
+        imageUrl: character.image?.large || undefined,
+        role: edge.role || "BACKGROUND",
+        
+        // Enhanced details
+        description: description || undefined,
+        status: extractStatusFromDescription(description),
+        gender: character.gender || undefined,
+        age: character.age || undefined,
+        
+        dateOfBirth: character.dateOfBirth ? {
+          year: character.dateOfBirth.year || undefined,
+          month: character.dateOfBirth.month || undefined,
+          day: character.dateOfBirth.day || undefined,
+        } : undefined,
+        
+        bloodType: character.bloodType || undefined,
+        height: extractHeightFromDescription(description),
+        weight: extractWeightFromDescription(description),
+        species: species || "Human",
+        
+        powersAbilities: powersAbilities.length > 0 ? powersAbilities : undefined,
+        weapons: weapons.length > 0 ? weapons : undefined,
+        
+        nativeName: character.name.native || undefined,
+        siteUrl: character.siteUrl || undefined,
+        
+        // FIX: Proper typing for voice actors (addresses error 7006)
+        voiceActors: voiceActors.map((va: any) => ({
+          id: va.id || undefined,
+          name: va.name?.full || va.name?.userPreferred || "Unknown",
+          language: va.languageV2 || "Unknown",
+          imageUrl: va.image?.large || undefined,
+        })).filter((va: any) => va.name !== "Unknown"),
+        
+        relationships: undefined, // Would need separate API calls
+      };
+    })
+    .slice(0, 25); // Limit to prevent overwhelming storage
 };
 
 // NEW: Helper function to map episode data from AniList  
@@ -1089,5 +1180,64 @@ export const callBatchUpdateEpisodeData = action({
   },
 });
 
+const extractPowersFromDescription = (description: string): string[] => {
+  const powerKeywords = ['power', 'ability', 'magic', 'skill', 'technique', 'jutsu', 'quirk'];
+  const powers: string[] = [];
+  
+  powerKeywords.forEach(keyword => {
+    const regex = new RegExp(`(${keyword}[^.!?]*[.!?])`, 'gi');
+    const matches = description.match(regex);
+    if (matches) {
+      powers.push(...matches.map(match => match.trim()));
+    }
+  });
+  
+  return [...new Set(powers)].slice(0, 5);
+};
 
+const extractWeaponsFromDescription = (description: string): string[] => {
+  const weaponKeywords = ['sword', 'blade', 'gun', 'weapon', 'staff', 'bow', 'arrow', 'katana'];
+  const weapons: string[] = [];
+  
+  weaponKeywords.forEach(keyword => {
+    if (description.toLowerCase().includes(keyword)) {
+      weapons.push(keyword);
+    }
+  });
+  
+  return [...new Set(weapons)];
+};
 
+const extractSpeciesFromDescription = (description: string): string | undefined => {
+  const speciesKeywords = ['demon', 'angel', 'elf', 'dwarf', 'vampire', 'werewolf', 'dragon', 'robot', 'android'];
+  
+  for (const species of speciesKeywords) {
+    if (description.toLowerCase().includes(species)) {
+      return species.charAt(0).toUpperCase() + species.slice(1);
+    }
+  }
+  
+  return undefined;
+};
+
+const extractStatusFromDescription = (description: string): string | undefined => {
+  if (description.toLowerCase().includes('dead') || description.toLowerCase().includes('died')) {
+    return "Deceased";
+  }
+  if (description.toLowerCase().includes('alive')) {
+    return "Alive";
+  }
+  return undefined;
+};
+
+const extractHeightFromDescription = (description: string): string | undefined => {
+  const heightRegex = /(\d+(?:\.\d+)?)\s*(?:cm|centimeters?|meters?|m|feet?|ft|'|inches?|in|")/gi;
+  const match = description.match(heightRegex);
+  return match ? match[0] : undefined;
+};
+
+const extractWeightFromDescription = (description: string): string | undefined => {
+  const weightRegex = /(\d+(?:\.\d+)?)\s*(?:kg|kilograms?|lbs?|pounds?)/gi;
+  const match = description.match(weightRegex);
+  return match ? match[0] : undefined;
+};

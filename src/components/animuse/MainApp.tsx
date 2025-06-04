@@ -17,6 +17,7 @@ import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
 import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
+import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 
 // ============================================================================
 // SECTION 1: COMPONENTS AND CONSTANTS
@@ -73,9 +74,44 @@ const ensureCompleteRecommendations = (recommendations: any[]): AnimeRecommendat
 export type ValidViewName =
   | "dashboard" | "ai_assistant" | "anime_detail" | "my_list"
   | "browse" | "admin_dashboard" | "profile_settings"
-  | "custom_lists_overview" | "custom_list_detail" | "moodboard_page";
+  | "custom_lists_overview" | "custom_list_detail" | "moodboard_page"
+  | "character_detail"; // NEW: Add character detail view
 
 export type CurrentView = ValidViewName;
+
+interface EnhancedCharacter {
+  id?: number;
+  name: string;
+  imageUrl?: string;
+  role: string;
+  description?: string;
+  status?: string;
+  gender?: string;
+  age?: string;
+  dateOfBirth?: {
+    year?: number;
+    month?: number;
+    day?: number;
+  };
+  bloodType?: string;
+  height?: string;
+  weight?: string;
+  species?: string;
+  powersAbilities?: string[];
+  weapons?: string[];
+  nativeName?: string;
+  siteUrl?: string;
+  voiceActors?: {
+    id?: number;
+    name: string;
+    language: string;
+    imageUrl?: string;
+  }[];
+  relationships?: {
+    relatedCharacterId?: number;
+    relationType: string;
+  }[];
+}
 
 interface WatchlistActivityItem { 
   animeTitle: string; 
@@ -165,6 +201,10 @@ export default function MainApp() {
     isLoading: false,
   });
 
+  // NEW CHARACTER STATE:
+  const [selectedCharacterData, setSelectedCharacterData] = useState<EnhancedCharacter | null>(null);
+  const [selectedAnimeNameForCharacter, setSelectedAnimeNameForCharacter] = useState<string>("");
+
   // FIXED: Move useRef hooks INSIDE the component
   const fetchInProgressRef = useRef<boolean>(false);
   const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
@@ -196,6 +236,11 @@ export default function MainApp() {
     setCurrentView(view);
     if (view !== "anime_detail") setSelectedAnimeId(null);
     if (view !== "custom_list_detail") setSelectedCustomListId(null);
+    // NEW: Clear character data when not on character detail page
+    if (view !== "character_detail") {
+      setSelectedCharacterData(null);
+      setSelectedAnimeNameForCharacter("");
+    }
   }, [historyStack]);
 
   const navigateBack = useCallback(() => {
@@ -207,6 +252,11 @@ export default function MainApp() {
       window.scrollTo(0, 0);
       if (previousView !== "anime_detail") setSelectedAnimeId(null);
       if (previousView !== "custom_list_detail") setSelectedCustomListId(null);
+      // NEW: Clear character data when going back
+      if (previousView !== "character_detail") {
+        setSelectedCharacterData(null);
+        setSelectedAnimeNameForCharacter("");
+      }
     } else {
       navigateTo("dashboard", { replace: true });
     }
@@ -216,6 +266,12 @@ export default function MainApp() {
   const navigateToDetail = useCallback((animeId: Id<"anime">) => { 
     navigateTo("anime_detail"); 
     setSelectedAnimeId(animeId); 
+  }, [navigateTo]);
+
+  const navigateToCharacterDetail = useCallback((character: EnhancedCharacter, animeName: string) => {
+    navigateTo("character_detail");
+    setSelectedCharacterData(character);
+    setSelectedAnimeNameForCharacter(animeName);
   }, [navigateTo]);
   
   const navigateToDashboard = useCallback(() => navigateTo("dashboard"), [navigateTo]);
@@ -231,6 +287,8 @@ export default function MainApp() {
   }, [navigateTo]);
 
   const handleTabChange = (view: ValidViewName) => {
+    // Character detail should not be accessible via bottom tabs
+    if (view === "character_detail") return;
     navigateTo(view);
   };
 
@@ -1073,6 +1131,17 @@ export default function MainApp() {
             animeId={selectedAnimeId} 
             onBack={navigateBack} 
             navigateToDetail={navigateToDetail}
+            onCharacterClick={navigateToCharacterDetail} // NEW: Pass character click handler
+          />
+        ) : <LoadingSpinner className="text-white" />;
+
+      // NEW: CHARACTER DETAIL CASE
+      case "character_detail":
+        return selectedCharacterData ? (
+          <CharacterDetailPage
+            character={selectedCharacterData}
+            animeName={selectedAnimeNameForCharacter}
+            onBack={navigateBack}
           />
         ) : <LoadingSpinner className="text-white" />;
       
@@ -1132,8 +1201,11 @@ export default function MainApp() {
     currentView, 
     selectedAnimeId, 
     selectedCustomListId, 
+    selectedCharacterData, // NEW: Add character data
+    selectedAnimeNameForCharacter, // NEW: Add anime name for character
     navigateBack, 
     navigateToDetail, 
+    navigateToCharacterDetail, // NEW: Add character navigation
     navigateToDashboard, 
     renderDashboard, 
     renderCustomListsOverview, 
