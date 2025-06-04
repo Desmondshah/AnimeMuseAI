@@ -85,6 +85,62 @@ interface EnhancedCharacterType {
   enrichmentTimestamp?: number;
 }
 
+// Smart refresh indicator component
+const DataFreshnessIndicator: React.FC<{ 
+  freshnessScore: number; 
+  priority: string; 
+  lastFetched?: number; 
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+}> = ({ freshnessScore, priority, lastFetched, isRefreshing, onRefresh }) => {
+  const getStatusColor = () => {
+    if (priority === "critical") return "text-red-400 bg-red-500/20 border-red-500/30";
+    if (priority === "high") return "text-orange-400 bg-orange-500/20 border-orange-500/30";
+    if (priority === "medium") return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
+    if (priority === "low") return "text-blue-400 bg-blue-500/20 border-blue-500/30";
+    return "text-green-400 bg-green-500/20 border-green-500/30";
+  };
+
+  const getStatusIcon = () => {
+    if (isRefreshing) return "🔄";
+    if (priority === "critical") return "⚠️";
+    if (priority === "high") return "📊";
+    if (priority === "medium") return "📈";
+    if (priority === "low") return "📉";
+    return "✅";
+  };
+
+  const getStatusText = () => {
+    if (isRefreshing) return "Updating...";
+    if (priority === "critical") return "Critical Update Needed";
+    if (priority === "high") return "Update Recommended";
+    if (priority === "medium") return "Consider Updating";
+    if (priority === "low") return "Minor Updates Available";
+    return "Data is Fresh";
+  };
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border backdrop-blur-sm ${getStatusColor()}`}>
+      <span className={isRefreshing ? "animate-spin" : ""}>{getStatusIcon()}</span>
+      <span className="font-medium">{getStatusText()}</span>
+      {lastFetched && (
+        <span className="opacity-75">
+          • {formatDistanceToNow(new Date(lastFetched), { addSuffix: true })}
+        </span>
+      )}
+      {onRefresh && priority !== "skip" && !isRefreshing && (
+        <button
+          onClick={onRefresh}
+          className="ml-1 opacity-75 hover:opacity-100 transition-opacity"
+          title="Refresh now"
+        >
+          🔄
+        </button>
+      )}
+    </div>
+  );
+};
+
 // iOS-style loading component
 const IOSLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Loading..." }) => (
   <div className="ios-loading-spinner flex flex-col justify-center items-center py-16">
@@ -347,6 +403,15 @@ export default function AnimeDetailPage({
   // Mobile optimizations
   const mobileOpts = useMobileOptimizations();
   
+  // Smart auto-refresh
+  const smartAutoRefreshAction = useAction(api.autoRefresh.callSmartAutoRefreshAnime);
+  const getRefreshRecommendationAction = useAction(api.autoRefresh.getRefreshRecommendation);
+  const [refreshRecommendation, setRefreshRecommendation] = useState<any>(null);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [lastRefreshResult, setLastRefreshResult] = useState<any>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [showRefreshDetails, setShowRefreshDetails] = useState(false);
+  
   // Character management
   const [selectedCharacter, setSelectedCharacter] = useState<any | null>(null);
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
@@ -411,12 +476,36 @@ export default function AnimeDetailPage({
     { id: "similar", label: "Similar", icon: "🔍" },
   ];
 
+  // Load refresh recommendation when anime loads
+  useEffect(() => {
+    if (anime && animeId) {
+      getRefreshRecommendationAction({ animeId })
+        .then(setRefreshRecommendation)
+        .catch(console.error);
+    }
+  }, [anime, animeId, getRefreshRecommendationAction]);
+
   // Auto-enrich characters
   useEffect(() => {
     if (anime?.characters?.some((char: any) => char.role === 'MAIN' && !char.isAIEnriched)) {
       enrichMainCharacters();
     }
   }, [anime?._id]);
+
+  // Auto-refresh on page visit
+  useEffect(() => {
+    if (anime && animeId && autoRefreshEnabled && refreshRecommendation) {
+      const shouldAutoRefresh = refreshRecommendation.priority === "critical" || 
+                               refreshRecommendation.priority === "high" ||
+                               refreshRecommendation.freshnessScore < 50;
+      
+      if (shouldAutoRefresh && !isAutoRefreshing) {
+        console.log(`[Auto-Refresh] Triggering auto-refresh for ${anime.title} (${refreshRecommendation.priority} priority)`);
+        handleSmartRefresh("user_visit");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anime, animeId, autoRefreshEnabled, refreshRecommendation, isAutoRefreshing]);
 
   // Sync watchlist notes
   useEffect(() => { 
@@ -439,6 +528,66 @@ export default function AnimeDetailPage({
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [mobileOpts.shouldReduceAnimations]);
+
+  // Smart refresh handler
+  const handleSmartRefresh = useCallback(async (triggerType: "user_visit" | "manual" | "background" = "manual", forceRefresh = false) => {
+    if (!anime || isAutoRefreshing) return;
+
+    setIsAutoRefreshing(true);
+    const toastId = `smart-refresh-${anime._id}`;
+    
+    if (triggerType === "manual") {
+      toast.loading("Intelligently updating anime data...", { id: toastId });
+    }
+
+    try {
+      const result = await smartAutoRefreshAction({
+        animeId: anime._id,
+        triggerType,
+        forceRefresh
+      });
+
+      setLastRefreshResult(result);
+
+      // Update recommendation after refresh
+      const updatedRecommendation = await getRefreshRecommendationAction({ animeId: anime._id });
+      setRefreshRecommendation(updatedRecommendation);
+
+      if (triggerType === "manual") {
+        if (result.refreshed) {
+          if (result.dataChanged) {
+            toast.success(
+              `✨ Updated! ${result.message}`, 
+              { id: toastId, duration: 4000 }
+            );
+          } else {
+            toast.info(
+              `✅ Refreshed - no new data found`, 
+              { id: toastId }
+            );
+          }
+        } else {
+          toast.info(
+            `ℹ️ ${result.message}`, 
+            { id: toastId }
+          );
+        }
+      } else if (triggerType === "user_visit" && result.refreshed && result.dataChanged) {
+        toast.success(
+          `📡 Fresh data loaded for ${anime.title}`, 
+          { duration: 3000 }
+        );
+      }
+
+    } catch (error: any) {
+      console.error("Smart refresh error:", error);
+      if (triggerType === "manual") {
+        toast.error(`Failed to refresh: ${error.message}`, { id: toastId });
+      }
+    } finally {
+      setIsAutoRefreshing(false);
+    }
+  }, [anime, isAutoRefreshing, smartAutoRefreshAction, getRefreshRecommendationAction]);
 
   // Handle character click
   const handleCharacterClick = useCallback((character: any) => {
@@ -797,7 +946,7 @@ export default function AnimeDetailPage({
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             {isAuthenticated ? (
               <>
                 {watchlistEntry?.status === "Plan to Watch" ? (
@@ -835,6 +984,17 @@ export default function AnimeDetailPage({
                 <span className="text-white/70 text-sm">Login to manage watchlist</span>
               </div>
             )}
+            
+            {/* Smart Refresh Button */}
+            <StyledButton 
+              onClick={() => handleSmartRefresh("manual", true)} 
+              variant="ghost" 
+              className="!bg-white/10 !backdrop-blur-lg !border-white/20 hover:!bg-white/20 !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2"
+              disabled={isAutoRefreshing}
+            >
+              <span className={`text-lg ${isAutoRefreshing ? "animate-spin" : ""}`}>🔄</span>
+              <span className="font-medium">{isAutoRefreshing ? "Updating..." : "Refresh Data"}</span>
+            </StyledButton>
           </div>
 
           {/* Scroll indicator */}
@@ -845,6 +1005,76 @@ export default function AnimeDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Data Freshness Indicator */}
+      {refreshRecommendation && (
+        <div className="relative z-10 px-6 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl">
+            <DataFreshnessIndicator
+              freshnessScore={refreshRecommendation.freshnessScore}
+              priority={refreshRecommendation.priority}
+              lastFetched={refreshRecommendation.anime?.lastFetched}
+              isRefreshing={isAutoRefreshing}
+              onRefresh={() => handleSmartRefresh("manual")}
+            />
+            
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-white/70 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoRefreshEnabled}
+                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  className="rounded border-white/30 bg-white/10 text-brand-primary-action focus:ring-brand-primary-action"
+                />
+                Auto-update
+              </label>
+              
+              <StyledButton
+                onClick={() => setShowRefreshDetails(!showRefreshDetails)}
+                variant="ghost"
+                className="!text-xs !py-1 !px-2 !bg-white/10 hover:!bg-white/20 !text-white/70"
+              >
+                {showRefreshDetails ? "Hide Details" : "Details"}
+              </StyledButton>
+            </div>
+          </div>
+
+          {/* Refresh Details Panel */}
+          {showRefreshDetails && (
+            <div className="mt-4 p-4 bg-black/40 backdrop-blur-lg border border-white/20 rounded-2xl">
+              <h4 className="text-white font-medium mb-3">Data Status Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-white/60 mb-1">Freshness Score:</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/10 rounded-full h-2">
+                      <div 
+                        className="h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+                        style={{ width: `${refreshRecommendation.freshnessScore}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white">{refreshRecommendation.freshnessScore}/100</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-white/60 mb-1">Reason:</p>
+                  <p className="text-white">{refreshRecommendation.reason}</p>
+                </div>
+                <div>
+                  <p className="text-white/60 mb-1">Recommended Action:</p>
+                  <p className="text-white capitalize">{refreshRecommendation.recommendedAction}</p>
+                </div>
+                <div>
+                  <p className="text-white/60 mb-1">Last Refresh Result:</p>
+                  <p className="text-white">
+                    {lastRefreshResult ? lastRefreshResult.message : "No recent refresh"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <IOSTabBar
