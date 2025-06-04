@@ -1,5 +1,5 @@
 // src/components/animuse/AnimeDetailPage.tsx - Complete iOS-Optimized Version with Extended Background
-import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef, Component } from "react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -12,6 +12,52 @@ import { AnimeRecommendation } from "../../../convex/types";
 import { formatDistanceToNow } from 'date-fns';
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+
+// Error Boundary Component for Character Detail Page
+class CharacterDetailErrorBoundary extends Component<
+  { children: React.ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onError: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error("CharacterDetailPage Error:", error);
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("CharacterDetailPage Error Details:", error, errorInfo);
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-brand-background flex items-center justify-center p-6">
+          <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center max-w-md mx-auto">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold text-red-400 mb-4">Character Page Error</h2>
+            <p className="mb-6 text-sm text-red-300">
+              Unable to load character details. This might be due to incomplete character data.
+            </p>
+            <StyledButton 
+              onClick={this.props.onError} 
+              variant="primary"
+              className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
+            >
+              Back to Anime Details
+            </StyledButton>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 interface BackendReviewProps extends Doc<"reviews"> {
   userName: string; userAvatarUrl?: string; upvotes: number; downvotes: number;
@@ -190,78 +236,85 @@ const IOSTabBar: React.FC<{
 const CharacterCard: React.FC<{
   character: EnhancedCharacterType;
   onClick: () => void;
-}> = memo(({ character, onClick }) => (
-  <div
-    onClick={onClick}
-    className="group relative bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
-  >
-    {/* Character Image */}
-    <div className="relative aspect-[3/4] overflow-hidden">
-      {character.imageUrl ? (
-        <img
-          src={character.imageUrl}
-          alt={character.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
-          }}
-        />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-brand-primary-action/30 to-brand-accent-gold/30 flex items-center justify-center">
-          <span className="text-4xl font-bold text-white/60">
-            {character.name.charAt(0).toUpperCase()}
-          </span>
-        </div>
-      )}
-      
-      {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
-      {/* Role badge */}
-      <div className="absolute top-3 right-3">
-        <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border ${
-          character.role === "MAIN" 
-            ? "bg-yellow-500/80 text-yellow-100 border-yellow-400/50" 
-            : character.role === "SUPPORTING"
-            ? "bg-blue-500/80 text-blue-100 border-blue-400/50"
-            : "bg-gray-500/80 text-gray-100 border-gray-400/50"
-        }`}>
-          {character.role === "MAIN" && "⭐"}
-          {character.role === "SUPPORTING" && "🎭"}
-          {character.role === "BACKGROUND" && "👤"}
-          <span className="ml-1">{character.role}</span>
-        </span>
-      </div>
+}> = memo(({ character, onClick }) => {
+  // Safety check for character data
+  if (!character || !character.name) {
+    return null;
+  }
 
-      {/* AI Enhancement badge */}
-      {character.isAIEnriched && (
-        <div className="absolute top-3 left-3">
-          <span className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm bg-gradient-to-r from-purple-500/90 to-blue-500/90 text-purple-100 border border-purple-400/50">
-            🤖 <span className="ml-1">AI</span>
-          </span>
-        </div>
-      )}
-
-      {/* Hover content */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-        <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">
-          {character.name}
-        </h3>
-        {character.description && (
-          <p className="text-white/80 text-sm line-clamp-3 mb-3">
-            {character.description}
-          </p>
+  return (
+    <div
+      onClick={onClick}
+      className="group relative bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
+    >
+      {/* Character Image */}
+      <div className="relative aspect-[3/4] overflow-hidden">
+        {character.imageUrl ? (
+          <img
+            src={character.imageUrl}
+            alt={character.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-brand-primary-action/30 to-brand-accent-gold/30 flex items-center justify-center">
+            <span className="text-4xl font-bold text-white/60">
+              {character.name.charAt(0).toUpperCase()}
+            </span>
+          </div>
         )}
-        <div className="flex items-center gap-2 text-xs text-white/70">
-          {character.age && <span>Age: {character.age}</span>}
-          {character.age && character.gender && <span>•</span>}
-          {character.gender && <span>{character.gender}</span>}
+        
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
+        {/* Role badge */}
+        <div className="absolute top-3 right-3">
+          <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border ${
+            character.role === "MAIN" 
+              ? "bg-yellow-500/80 text-yellow-100 border-yellow-400/50" 
+              : character.role === "SUPPORTING"
+              ? "bg-blue-500/80 text-blue-100 border-blue-400/50"
+              : "bg-gray-500/80 text-gray-100 border-gray-400/50"
+          }`}>
+            {character.role === "MAIN" && "⭐"}
+            {character.role === "SUPPORTING" && "🎭"}
+            {character.role === "BACKGROUND" && "👤"}
+            <span className="ml-1">{character.role || "Unknown"}</span>
+          </span>
+        </div>
+
+        {/* AI Enhancement badge */}
+        {character.isAIEnriched && (
+          <div className="absolute top-3 left-3">
+            <span className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm bg-gradient-to-r from-purple-500/90 to-blue-500/90 text-purple-100 border border-purple-400/50">
+              🤖 <span className="ml-1">AI</span>
+            </span>
+          </div>
+        )}
+
+        {/* Hover content */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+          <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">
+            {character.name}
+          </h3>
+          {character.description && (
+            <p className="text-white/80 text-sm line-clamp-3 mb-3">
+              {character.description}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-xs text-white/70">
+            {character.age && <span>Age: {character.age}</span>}
+            {character.age && character.gender && <span>•</span>}
+            {character.gender && <span>{character.gender}</span>}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
 // Enhanced episode card component
 const EpisodeCard: React.FC<{
@@ -589,9 +642,27 @@ export default function AnimeDetailPage({
     }
   }, [anime, isAutoRefreshing, smartAutoRefreshAction, getRefreshRecommendationAction]);
 
-  // Handle character click
+  // Handle character click with validation
   const handleCharacterClick = useCallback((character: any) => {
-    setSelectedCharacter(character);
+    // Validate character data before showing detail page
+    if (!character || !character.name) {
+      toast.error("Character data is incomplete. Cannot show details.");
+      return;
+    }
+
+    console.log("Character clicked:", character); // Debug log
+    
+    // Ensure the character has minimum required data
+    const validatedCharacter = {
+      ...character,
+      name: character.name || "Unknown Character",
+      role: character.role || "BACKGROUND",
+      description: character.description || "No description available.",
+      imageUrl: character.imageUrl || null,
+      // Add other fallback values as needed
+    };
+
+    setSelectedCharacter(validatedCharacter);
     setShowCharacterDetail(true);
   }, []);
 
@@ -842,17 +913,25 @@ export default function AnimeDetailPage({
     );
   }
 
-  // Character detail modal
+  // Character detail modal with error handling
   if (showCharacterDetail && selectedCharacter) {
     return (
-      <CharacterDetailPage
-        character={selectedCharacter}
-        animeName={anime.title}
-        onBack={() => {
+      <CharacterDetailErrorBoundary
+        onError={() => {
           setShowCharacterDetail(false);
           setSelectedCharacter(null);
+          toast.error("Unable to load character details. Returning to anime page.");
         }}
-      />
+      >
+        <CharacterDetailPage
+          character={selectedCharacter}
+          animeName={anime.title}
+          onBack={() => {
+            setShowCharacterDetail(false);
+            setSelectedCharacter(null);
+          }}
+        />
+      </CharacterDetailErrorBoundary>
     );
   }
 
@@ -1197,9 +1276,11 @@ export default function AnimeDetailPage({
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {enrichedCharacters.map((character, index) => (
+                  {enrichedCharacters
+                    .filter(character => character && character.name) // Filter out invalid characters
+                    .map((character, index) => (
                     <CharacterCard
-                      key={`character-${character.id || index}`}
+                      key={`character-${character.id || character.name || index}`}
                       character={character}
                       onClick={() => handleCharacterClick(character)}
                     />
