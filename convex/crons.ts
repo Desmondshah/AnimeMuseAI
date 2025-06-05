@@ -1,10 +1,14 @@
-// convex/crons.ts - Enhanced with Smart Auto-Refresh Jobs
+// convex/crons.ts - Clean version that removes all non-existent internal.crons references
+
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Existing jobs
+// ==============================================
+// EXISTING SYSTEM MAINTENANCE JOBS
+// ==============================================
+
 crons.interval(
   "updateFilterOptionsMetadata",
   { hours: 6 },
@@ -19,7 +23,7 @@ crons.interval(
   {}
 );
 
-// Legacy poster enhancement job (keeping for now)
+// Legacy poster enhancement job
 crons.interval(
   "enhanceAnimePosterQuality",
   { hours: 12 },
@@ -27,60 +31,62 @@ crons.interval(
   {}
 );
 
-// NEW: Smart auto-refresh jobs with intelligent prioritization
+// ==============================================
+// SMART AUTO-REFRESH JOBS (Using existing system)
+// ==============================================
 
 // High-frequency smart refresh for critical updates
 crons.interval(
   "smartRefreshCritical",
-  { hours: 2 }, // Every 2 hours
+  { hours: 2 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "scheduled",
     maxToProcess: 15,
-    priorityFilter: ["critical"] // Only critical priority items
+    priorityFilter: ["critical"]
   }
 );
 
 // Medium-frequency smart refresh for high priority updates
 crons.interval(
   "smartRefreshHigh",
-  { hours: 6 }, // Every 6 hours
+  { hours: 6 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "scheduled",
     maxToProcess: 25,
-    priorityFilter: ["critical", "high"] // Critical and high priority
+    priorityFilter: ["critical", "high"]
   }
 );
 
 // Daily smart refresh for medium priority updates
 crons.daily(
   "smartRefreshMedium",
-  { hourUTC: 3, minuteUTC: 0 }, // Daily at 3 AM UTC
+  { hourUTC: 3, minuteUTC: 0 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "scheduled",
     maxToProcess: 40,
-    priorityFilter: ["critical", "high", "medium"] // Critical, high, and medium priority
+    priorityFilter: ["critical", "high", "medium"]
   }
 );
 
 // Weekly comprehensive smart refresh
 crons.weekly(
   "smartRefreshComprehensive",
-  { dayOfWeek: "sunday", hourUTC: 1, minuteUTC: 0 }, // Sunday at 1 AM UTC
+  { dayOfWeek: "sunday", hourUTC: 1, minuteUTC: 0 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "maintenance",
     maxToProcess: 100,
-    priorityFilter: ["critical", "high", "medium", "low"] // All priorities
+    priorityFilter: ["critical", "high", "medium", "low"]
   }
 );
 
-// Legacy episode data batch update job (keeping for compatibility)
+// Legacy episode data batch update job
 crons.daily(
   "batchUpdateEpisodeData",
-  { hourUTC: 4, minuteUTC: 0 }, // Daily at 4 AM UTC
+  { hourUTC: 4, minuteUTC: 0 },
   internal.externalApis.batchUpdateEpisodeDataForAllAnime,
   {
     batchSize: 5,
@@ -88,37 +94,114 @@ crons.daily(
   }
 );
 
-// Weekly comprehensive poster check (legacy)
+// Weekly comprehensive poster check
 crons.weekly(
   "weeklyPosterQualityCheck",
-  { dayOfWeek: "saturday", hourUTC: 2, minuteUTC: 0 }, // Saturday at 2 AM UTC
+  { dayOfWeek: "saturday", hourUTC: 2, minuteUTC: 0 },
   internal.externalApis.enhanceExistingAnimePostersBetter,
   {}
 );
 
-// NEW: Smart refresh for currently airing anime (more frequent updates)
+// Smart refresh for currently airing anime (more frequent updates)
 crons.interval(
   "smartRefreshAiring",
-  { hours: 4 }, // Every 4 hours
+  { hours: 4 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "scheduled",
     maxToProcess: 20,
-    // This will be filtered in the smart refresh logic to prioritize airing anime
     priorityFilter: ["critical", "high", "medium"]
   }
 );
 
-// NEW: Maintenance job to clean up old refresh data and optimize
+// Maintenance job
 crons.weekly(
   "maintenanceSmartRefresh",
-  { dayOfWeek: "monday", hourUTC: 5, minuteUTC: 0 }, // Monday at 5 AM UTC
+  { dayOfWeek: "monday", hourUTC: 5, minuteUTC: 0 },
   internal.autoRefresh.batchSmartAutoRefresh,
   {
     triggerType: "maintenance",
-    maxToProcess: 200, // Larger batch for maintenance
+    maxToProcess: 200,
     priorityFilter: ["critical", "high", "medium", "low"]
   }
 );
 
 export default crons;
+
+/* 
+==============================================
+FUTURE: SPECIALIZED CRON JOBS 
+==============================================
+
+Once you implement the specialized actions in convex/externalApis.ts, 
+you can add these specialized cron jobs:
+
+// Airing anime refresh (every 4 hours)
+crons.interval(
+  "refreshAiringAnimeData",
+  { hours: 4 },
+  internal.externalApis.batchRefreshAiringAnimeData,
+  {
+    maxToProcess: 15,
+    dataTypes: ["metadata", "episodes"]
+  }
+);
+
+// Daily poster quality refresh
+crons.daily(
+  "dailyPosterQualityRefresh",
+  { hourUTC: 2, minuteUTC: 0 },
+  internal.externalApis.batchRefreshMissingPosters,
+  {
+    maxToProcess: 25,
+    prioritizeNew: true
+  }
+);
+
+// Daily missing episodes refresh
+crons.daily(
+  "dailyMissingEpisodesRefresh", 
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.externalApis.batchRefreshMissingEpisodes,
+  {
+    maxToProcess: 20,
+    prioritizeCompleted: true
+  }
+);
+
+// Weekly metadata refresh
+crons.weekly(
+  "weeklyMetadataRefresh",
+  { dayOfWeek: "sunday", hourUTC: 1, minuteUTC: 0 },
+  internal.externalApis.batchRefreshMetadata,
+  {
+    maxToProcess: 40,
+    includeCharacters: true,
+    refreshStaleData: true
+  }
+);
+
+// Weekly character data refresh
+crons.weekly(
+  "weeklyCharacterDataRefresh",
+  { dayOfWeek: "saturday", hourUTC: 3, minuteUTC: 0 },
+  internal.externalApis.batchRefreshCharacterData,
+  {
+    maxToProcess: 30,
+    prioritizeMainCharacters: true
+  }
+);
+
+// Monthly comprehensive poster audit
+crons.monthly(
+  "monthlyPosterQualityAudit",
+  { day: 1, hourUTC: 5, minuteUTC: 0 },
+  internal.externalApis.comprehensivePosterQualityRefresh,
+  {
+    maxToProcess: 100,
+    auditMode: true,
+    forceHighQuality: true
+  }
+);
+
+*/
