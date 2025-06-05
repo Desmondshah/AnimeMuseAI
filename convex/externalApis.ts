@@ -224,7 +224,6 @@ export const fetchPosterFromTMDB = internalAction({
         // Verify the poster URL is accessible
         const posterResponse = await fetch(posterUrl, { 
           method: 'HEAD',
-          timeout: 5000
         });
         
         if (!posterResponse.ok) {
@@ -394,14 +393,14 @@ export const fetchStreamingEpisodesFromConsumet = internalAction({
   }
 });
 
-// ENHANCED: Core Metadata with better error handling and fallbacks
-export const fetchCoreMetadataFromAniList = internalAction({
+// Helper function with the logic, NOT exported
+async function fetchCoreMetadataFromAniListHandler(
   args: { 
-    title: v.string(),
-    anilistId: v.optional(v.number()),
-    retryCount: v.optional(v.number())
-  },
-  handler: async (ctx: ActionCtx, args): Promise<MetadataFetchResult> => {
+    title: string;
+    anilistId?: number;
+    retryCount?: number;
+  }
+): Promise<MetadataFetchResult> {
     const retryCount = args.retryCount || 0;
     
     await anilistLimiter.waitIfNeeded();
@@ -447,7 +446,7 @@ export const fetchCoreMetadataFromAniList = internalAction({
             'User-Agent': 'AniMuse-App/1.0'
           },
           body: JSON.stringify({ query: anilistQuery, variables })
-}, 15000);
+        }, 15000);
 
         if (!response.ok) {
           if (response.status === 429) {
@@ -478,7 +477,6 @@ export const fetchCoreMetadataFromAniList = internalAction({
         // Map the core metadata with better data validation
         const metadata: Partial<Doc<"anime">> = {};
         
-        // Basic fields with validation
         if (media.id) metadata.anilistId = media.id;
         if (media.description && media.description.trim()) {
           metadata.description = media.description.trim();
@@ -502,12 +500,10 @@ export const fetchCoreMetadataFromAniList = internalAction({
           metadata.airingStatus = media.status;
         }
         
-        // Trailer URL
         if (media.trailer?.site === "youtube" && media.trailer?.id) {
-          metadata.trailerUrl = `https://www.youtube.com/watch?v=${media.trailer.id}`;
+          metadata.trailerUrl = `https://www.youtube.com/watch?v=$${media.trailer.id}`;
         }
         
-        // Next airing episode
         if (media.nextAiringEpisode) {
           metadata.nextAiringEpisode = {
             airingAt: media.nextAiringEpisode.airingAt,
@@ -516,7 +512,6 @@ export const fetchCoreMetadataFromAniList = internalAction({
           };
         }
 
-        // Extract studios with validation
         if (media.studios?.edges?.length) {
           const mainStudios = media.studios.edges
             .filter((e: any) => e.isMain && e.node?.name)
@@ -527,7 +522,6 @@ export const fetchCoreMetadataFromAniList = internalAction({
           }
         }
 
-        // Extract themes and emotional tags from tags with better categorization
         if (media.tags?.length) {
           const themes = media.tags
             .filter((t: any) => 
@@ -585,6 +579,17 @@ export const fetchCoreMetadataFromAniList = internalAction({
         retryCount
       };
     }
+}
+
+// The exported internalAction now simply calls the helper function.
+export const fetchCoreMetadataFromAniList = internalAction({
+  args: { 
+    title: v.string(),
+    anilistId: v.optional(v.number()),
+    retryCount: v.optional(v.number())
+  },
+  handler: async (_ctx: ActionCtx, args): Promise<MetadataFetchResult> => {
+    return await fetchCoreMetadataFromAniListHandler(args);
   }
 });
 
@@ -853,7 +858,7 @@ export const batchRefreshAiringAnimeData = internalAction({
 
         // Fetch metadata if requested
         if (dataTypes.includes("metadata")) {
-          const metadataResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
+          const metadataResult = await fetchCoreMetadataFromAniListHandler({
             title: anime.title,
             anilistId: anime.anilistId
           });
@@ -1205,7 +1210,7 @@ const fetchFromAnilistEnhanced = async (title: string, existingAnilistId?: numbe
         'Accept': 'application/json',
         'User-Agent': 'AniMuse-App/1.0'
       },
-       body: JSON.stringify({ query: anilistQuery, variables: { id: anilistId } })
+       body: JSON.stringify({ query: anilistQuery, variables })
 }, 10000);
     
     if (!response.ok) return null;
@@ -1391,7 +1396,7 @@ export const triggerFetchExternalAnimeDetails = internalAction({
       }
 
       // Fetch metadata from AniList
-      const metadataResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
+      const metadataResult = await fetchCoreMetadataFromAniListHandler({
         title: args.titleToSearch,
         anilistId: anime.anilistId
       });
@@ -1654,4 +1659,109 @@ export const callBatchRefreshAiringAnimeData = action({
   handler: async (ctx: ActionCtx, args): Promise<BatchOperationResult> => {
     return await ctx.runAction(internal.externalApis.batchRefreshAiringAnimeData, args);
   }
+});
+
+// ADD THIS NEW ACTION AT THE END OF THE FILE
+export const callBatchEnhanceVisibleAnimePosters = action({
+  args: {
+    animeIds: v.array(v.id("anime")),
+    messageId: v.string(), // For logging/tracking
+  },
+  handler: async (ctx: ActionCtx, args): Promise<BatchOperationResult> => {
+    const totalToProcess = args.animeIds.length;
+    if (totalToProcess === 0) {
+      return {
+        processed: 0,
+        successful: 0,
+        failed: 0,
+        errors: [],
+        details: []
+      };
+    }
+
+    console.log(`[Enhance Visible] Starting enhancement for ${totalToProcess} visible anime posters.`);
+
+    const results: BatchOperationResult = {
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      errors: [],
+      details: []
+    };
+
+    // Get the anime documents for the given IDs
+    const animeDocs = await ctx.runQuery(internal.anime.getAnimeByIdsInternal, { animeIds: args.animeIds });
+
+    for (const anime of animeDocs) {
+        if (!anime) {
+            results.processed++;
+            results.failed++;
+            results.errors.push(`Anime with a provided ID not found.`);
+            continue;
+        }
+
+        results.processed++;
+        
+        try {
+          // Check if poster needs enhancement
+          const needsEnhancement = !anime.posterUrl || anime.posterUrl.includes('placehold.co');
+          if (!needsEnhancement) {
+            console.log(`[Enhance Visible] Skipping ${anime.title} as it already has a good poster.`);
+            results.details.push({
+              animeId: anime._id,
+              title: anime.title,
+              success: true,
+              message: "Skipped, poster already exists."
+            });
+            continue;
+          }
+
+          const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
+            title: anime.title,
+            year: anime.year,
+          });
+
+          if (posterResult.success && posterResult.posterUrl) {
+            await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+              animeId: anime._id,
+              updates: { posterUrl: posterResult.posterUrl },
+              sourceApi: posterResult.source,
+            });
+            
+            results.successful++;
+            results.details.push({
+              animeId: anime._id,
+              title: anime.title,
+              success: true,
+              message: `Enhanced poster from ${posterResult.source}.`
+            });
+            console.log(`[Enhance Visible] ✅ Enhanced poster for: ${anime.title}`);
+          } else {
+            results.failed++;
+            results.details.push({
+                animeId: anime._id,
+                title: anime.title,
+                success: false,
+                message: posterResult.message,
+            });
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`${anime.title}: ${error.message}`);
+          results.details.push({
+            animeId: anime._id,
+            title: anime.title,
+            success: false,
+            message: error.message,
+          });
+          console.error(`[Enhance Visible] ❌ Error enhancing ${anime.title}:`, error.message);
+        }
+        
+        // Add a small delay between each API call to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+    }
+    
+    console.log(`[Enhance Visible] Complete! Processed: ${results.processed}, Success: ${results.successful}, Failed: ${results.failed}`);
+    return results;
+  },
 });

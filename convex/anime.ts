@@ -686,3 +686,11 @@ export const getAnimeWithEpisodes = query({
     return results;
   },
 });
+
+// ADD THIS NEW INTERNAL QUERY AT THE END OF THE FILE
+export const getAnimeByIdsInternal = internalQuery({
+  args: { animeIds: v.array(v.id("anime")) },
+  handler: async (ctx, args): Promise<(Doc<"anime"> | null)[]> => {
+    return await Promise.all(args.animeIds.map(id => ctx.db.get(id)));
+  },
+});

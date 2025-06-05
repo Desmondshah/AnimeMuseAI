@@ -6,6 +6,30 @@ import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
 
+async function fetchWithTimeout(
+  url: string, 
+  options: RequestInit = {}, 
+  timeoutMs: number = 10000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
 // Interface for debug anime addition response
 interface DebugAnimeAdditionResponse {
   success: boolean;
@@ -522,9 +546,9 @@ const generateTitleVariations = (title: string): string[] => {
   
   // Try common romanization variations
   const romanizationMap: Record<string, string> = {
-    'ou': 'o', 'o': 'ou',
-    'uu': 'u', 'u': 'uu', 
-    'wo': 'o', 'wo': 'wo'
+    'ou': 'o',
+    'uu': 'u', 
+    'wo': 'o',
   };
   
   Object.entries(romanizationMap).forEach(([from, to]) => {
