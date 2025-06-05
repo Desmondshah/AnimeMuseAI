@@ -802,3 +802,266 @@ const extractWeightFromDescription = (description: string): string | undefined =
   const match = description.match(weightRegex);
   return match ? match[0] : undefined;
 };
+
+export const triggerFetchExternalAnimeDetails = internalAction({
+  args: {
+    animeIdInOurDB: v.id("anime"),
+    titleToSearch: v.string()
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string }> => {
+    try {
+      console.log(`[External API] Triggering comprehensive data fetch for: ${args.titleToSearch}`);
+      
+      // Get the anime first to check what we already have
+      const anime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { 
+        animeId: args.animeIdInOurDB 
+      });
+      
+      if (!anime) {
+        return { success: false, message: "Anime not found in database" };
+      }
+
+      // Fetch metadata from AniList
+      const metadataResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
+        title: args.titleToSearch,
+        anilistId: anime.anilistId
+      });
+
+      // Fetch poster if needed
+      const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
+        title: args.titleToSearch,
+        year: anime.year
+      });
+
+      // Fetch streaming episodes
+      const episodeResult = await ctx.runAction(internal.externalApis.fetchStreamingEpisodesFromConsumet, {
+        title: args.titleToSearch,
+        totalEpisodes: anime.totalEpisodes
+      });
+
+      // Fetch character data
+      const charactersResult = await ctx.runAction(internal.externalApis.fetchCharacterListFromAniList, {
+        title: args.titleToSearch,
+        anilistId: anime.anilistId
+      });
+
+      // Prepare updates
+      let updates: any = {};
+      let dataChanged = false;
+
+      if (metadataResult.success) {
+        updates = { ...updates, ...metadataResult.metadata };
+        dataChanged = true;
+      }
+
+      if (posterResult.success && posterResult.posterUrl) {
+        updates.posterUrl = posterResult.posterUrl;
+        dataChanged = true;
+      }
+
+      if (episodeResult.success && episodeResult.episodes.length > 0) {
+        updates.streamingEpisodes = episodeResult.episodes;
+        updates.totalEpisodes = episodeResult.totalEpisodes;
+        dataChanged = true;
+      }
+
+      if (charactersResult.success && charactersResult.characters.length > 0) {
+        updates.characters = charactersResult.characters;
+        dataChanged = true;
+      }
+
+      // Apply updates if we have any
+      if (dataChanged && Object.keys(updates).length > 0) {
+        await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+          animeId: args.animeIdInOurDB,
+          updates,
+          sourceApi: "comprehensive"
+        });
+      }
+
+      const message = dataChanged 
+        ? `Successfully updated ${Object.keys(updates).length} fields`
+        : "No new data found";
+
+      return { success: true, message };
+
+    } catch (error: any) {
+      console.error(`[External API] Error in triggerFetchExternalAnimeDetails:`, error);
+      return { success: false, message: error.message || "Unknown error" };
+    }
+  }
+});
+
+// Missing function: enhanceExistingAnimePostersBetter
+export const enhanceExistingAnimePostersBetter = internalAction({
+  args: {
+    maxToProcess: v.optional(v.number()),
+    prioritizeNew: v.optional(v.boolean())
+  },
+  handler: async (ctx, args): Promise<{ processed: number; enhanced: number; errors: number }> => {
+    const maxToProcess = args.maxToProcess || 20;
+    const prioritizeNew = args.prioritizeNew || false;
+    
+    console.log(`[Poster Enhancement] Starting batch poster enhancement (max: ${maxToProcess})`);
+    
+    try {
+      // Get all anime from database
+      const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+      
+      // Filter anime that need better posters
+      const animeMissingPosters = allAnime
+        .filter(anime => {
+          const needsBetterPoster = !anime.posterUrl || 
+                                  anime.posterUrl.includes('placehold.co') ||
+                                  anime.posterUrl.includes('placeholder');
+          
+          if (prioritizeNew && anime.lastFetchedFromExternal) {
+            const daysSinceLastFetch = (Date.now() - anime.lastFetchedFromExternal.timestamp) / (24 * 60 * 60 * 1000);
+            return needsBetterPoster && daysSinceLastFetch > 7;
+          }
+          
+          return needsBetterPoster;
+        })
+        .slice(0, maxToProcess);
+
+      let processed = 0;
+      let enhanced = 0;
+      let errors = 0;
+
+      // Process in batches of 3 to avoid overwhelming APIs
+      const batchSize = 3;
+      
+      for (let i = 0; i < animeMissingPosters.length; i += batchSize) {
+        const batch = animeMissingPosters.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (anime) => {
+          try {
+            processed++;
+            
+            const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
+              title: anime.title,
+              year: anime.year
+            });
+
+            if (posterResult.success && posterResult.posterUrl) {
+              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+                animeId: anime._id,
+                updates: { posterUrl: posterResult.posterUrl },
+                sourceApi: posterResult.source
+              });
+              enhanced++;
+              console.log(`[Poster Enhancement] ✅ Enhanced poster for: ${anime.title}`);
+            }
+          } catch (error: any) {
+            errors++;
+            console.error(`[Poster Enhancement] ❌ Error for ${anime.title}:`, error.message);
+          }
+        });
+
+        await Promise.all(batchPromises);
+
+        // Rate limiting between batches
+        if (i + batchSize < animeMissingPosters.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
+      console.log(`[Poster Enhancement] Complete! Processed: ${processed}, Enhanced: ${enhanced}, Errors: ${errors}`);
+      return { processed, enhanced, errors };
+
+    } catch (error: any) {
+      console.error(`[Poster Enhancement] Batch error:`, error);
+      return { processed: 0, enhanced: 0, errors: 1 };
+    }
+  }
+});
+
+// Missing function: batchUpdateEpisodeDataForAllAnime
+export const batchUpdateEpisodeDataForAllAnime = internalAction({
+  args: {
+    batchSize: v.optional(v.number()),
+    maxAnimeToProcess: v.optional(v.number())
+  },
+  handler: async (ctx, args): Promise<{ processed: number; updated: number; errors: number }> => {
+    const batchSize = args.batchSize || 5;
+    const maxAnimeToProcess = args.maxAnimeToProcess || 30;
+    
+    console.log(`[Episode Data Batch] Starting batch episode update (max: ${maxAnimeToProcess}, batch: ${batchSize})`);
+    
+    try {
+      // Get all anime from database
+      const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+      
+      // Filter anime that need episode data
+      const animeMissingEpisodes = allAnime
+        .filter(anime => {
+          const hasNoEpisodes = !anime.streamingEpisodes || anime.streamingEpisodes.length === 0;
+          const isFinished = anime.airingStatus === "FINISHED" || !anime.airingStatus;
+          const isReleasing = anime.airingStatus === "RELEASING";
+          
+          // Prioritize finished anime without episodes, or releasing anime
+          return hasNoEpisodes && (isFinished || isReleasing);
+        })
+        .sort((a, b) => {
+          // Prioritize releasing anime, then by popularity (rating)
+          if (a.airingStatus === "RELEASING" && b.airingStatus !== "RELEASING") return -1;
+          if (b.airingStatus === "RELEASING" && a.airingStatus !== "RELEASING") return 1;
+          return (b.rating || 0) - (a.rating || 0);
+        })
+        .slice(0, maxAnimeToProcess);
+
+      let processed = 0;
+      let updated = 0;
+      let errors = 0;
+
+      // Process in specified batch sizes
+      for (let i = 0; i < animeMissingEpisodes.length; i += batchSize) {
+        const batch = animeMissingEpisodes.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (anime) => {
+          try {
+            processed++;
+            
+            const episodeResult = await ctx.runAction(internal.externalApis.fetchStreamingEpisodesFromConsumet, {
+              title: anime.title,
+              totalEpisodes: anime.totalEpisodes
+            });
+
+            if (episodeResult.success && episodeResult.episodes.length > 0) {
+              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+                animeId: anime._id,
+                updates: { 
+                  streamingEpisodes: episodeResult.episodes,
+                  totalEpisodes: episodeResult.totalEpisodes
+                },
+                sourceApi: episodeResult.source
+              });
+              updated++;
+              console.log(`[Episode Data Batch] ✅ Updated episodes for: ${anime.title} (${episodeResult.episodes.length} episodes)`);
+            } else {
+              console.log(`[Episode Data Batch] ⚠️ No episodes found for: ${anime.title}`);
+            }
+          } catch (error: any) {
+            errors++;
+            console.error(`[Episode Data Batch] ❌ Error for ${anime.title}:`, error.message);
+          }
+        });
+
+        await Promise.all(batchPromises);
+
+        // Rate limiting between batches
+        if (i + batchSize < animeMissingEpisodes.length) {
+          console.log(`[Episode Data Batch] Waiting 3 seconds before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      console.log(`[Episode Data Batch] Complete! Processed: ${processed}, Updated: ${updated}, Errors: ${errors}`);
+      return { processed, updated, errors };
+
+    } catch (error: any) {
+      console.error(`[Episode Data Batch] Batch error:`, error);
+      return { processed: 0, updated: 0, errors: 1 };
+    }
+  }
+});

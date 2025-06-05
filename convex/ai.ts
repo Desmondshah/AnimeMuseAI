@@ -367,6 +367,71 @@ const enhanceRecommendationsWithDatabaseFirst = async (
   return enhancedRecommendations;
 };
 
+export const storeAiFeedback = mutation({
+  args: {
+    prompt: v.string(),
+    aiAction: v.string(),
+    aiResponseRecommendations: v.optional(v.array(v.any())),
+    aiResponseText: v.optional(v.string()),
+    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")),
+    messageId: v.string(),
+    userFeedback: v.optional(v.string()),
+    additionalContext: v.optional(v.any())
+  },
+  handler: async (ctx, args) => {
+    try {
+      // Store AI feedback for analytics and improvement
+      const feedbackId = await ctx.db.insert("aiFeedback", {
+        prompt: args.prompt,
+        aiAction: args.aiAction,
+        aiResponseRecommendations: args.aiResponseRecommendations,
+        aiResponseText: args.aiResponseText,
+        feedbackType: args.feedbackType,
+        messageId: args.messageId,
+        userFeedback: args.userFeedback,
+        additionalContext: args.additionalContext,
+        timestamp: Date.now()
+      });
+      
+      console.log(`[AI Feedback] Stored feedback for action ${args.aiAction}: ${args.feedbackType} (ID: ${feedbackId})`);
+      return feedbackId;
+      
+    } catch (error: any) {
+      // If the aiFeedback table doesn't exist yet, log the feedback instead
+      console.log(`[AI Feedback] ${args.aiAction} - ${args.feedbackType}:`, {
+        prompt: args.prompt.substring(0, 100) + "...",
+        messageId: args.messageId,
+        hasRecommendations: !!args.aiResponseRecommendations?.length,
+        hasText: !!args.aiResponseText?.length
+      });
+      
+      // Return a placeholder ID
+      return "logged" as any;
+    }
+  }
+});
+
+// Also add the missing conversationContextValidator at the top of the file:
+const conversationContextValidator = v.object({
+  messageHistory: v.array(v.object({
+    role: v.string(),
+    content: v.string(),
+    timestamp: v.optional(v.number())
+  })),
+  userPreferences: v.optional(v.object({
+    genres: v.optional(v.array(v.string())),
+    dislikedGenres: v.optional(v.array(v.string())),
+    experienceLevel: v.optional(v.string()),
+    favoriteAnimes: v.optional(v.array(v.string())),
+    moods: v.optional(v.array(v.string()))
+  })),
+  sessionContext: v.optional(v.object({
+    sessionId: v.optional(v.string()),
+    previousQueries: v.optional(v.array(v.string())),
+    currentTopic: v.optional(v.string())
+  }))
+});
+
 // NEW: Action to test the enhanced AI poster fetching system
 export const testEnhancedAIPosterFetching = action({
   args: {
@@ -1562,12 +1627,12 @@ export const getSimilarAnimeFromDB = action({
         // For now, let's use AI to find similar anime instead of querying all anime
         // This is more efficient and can provide better recommendations
         
-        const aiRecommendations = await ctx.runAction(api.ai.getAnimeRecommendationWithBetterLogging, {
-            prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
-            userProfile: args.userProfile,
-            count: args.count || 5,
-            messageId: args.messageId,
-        });
+        const aiRecommendations = await ctx.runAction(api.ai.getEnhancedAnimeRecommendationsWithBestPosters, {
+    prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
+    userProfile: args.userProfile,
+    count: args.count || 5,
+    messageId: args.messageId,
+});
 
         if (aiRecommendations.error) {
             return { recommendations: [], error: aiRecommendations.error };
@@ -2351,7 +2416,7 @@ export const testPosterFetching = action({
     for (const title of args.animeTitles) {
       try {
         console.log(`[Debug Poster Test] Testing: ${title}`);
-        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
+        const posterUrl = await fetchRealAnimePosterWithRetry(ctx, title, undefined, 1);
         
         results.push({
           title,
@@ -2514,7 +2579,7 @@ export const debugPosterUrls = action({
         console.log(`[Debug Poster URLs] Testing: ${title}`);
         
         // Test the poster fetching function
-        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
+        const posterUrl = await fetchRealAnimePosterWithRetry(ctx, title, undefined, 1);
         
         const result = {
           title,

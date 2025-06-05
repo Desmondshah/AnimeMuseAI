@@ -238,6 +238,23 @@ const applicationTables = {
   })
   .index("by_userId_createdAt", ["userId", "createdAt"])
   .index("by_userId_listName", ["userId", "listName"]), // For uniqueness if desired
+
+aiFeedback: defineTable({
+    prompt: v.string(),
+    aiAction: v.string(),
+    aiResponseRecommendations: v.optional(v.array(v.any())),
+    aiResponseText: v.optional(v.string()),
+    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")),
+    messageId: v.string(),
+    userFeedback: v.optional(v.string()),
+    additionalContext: v.optional(v.any()),
+    timestamp: v.number()
+  })
+    .index("by_messageId", ["messageId"])
+    .index("by_aiAction", ["aiAction"])
+    .index("by_feedbackType", ["feedbackType"])
+    .index("by_timestamp", ["timestamp"]),
+    
 };
 
 export default defineSchema({

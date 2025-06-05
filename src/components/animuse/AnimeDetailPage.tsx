@@ -458,7 +458,7 @@ export default function AnimeDetailPage({
   
   // Smart auto-refresh
   const smartAutoRefreshAction = useAction(api.autoRefresh.callSmartAutoRefreshAnime);
-  const getRefreshRecommendationAction = useAction(api.autoRefresh.getRefreshRecommendation);
+  const getRefreshRecommendationAction = useAction(api.autoRefresh.getDetailedRefreshRecommendation);
   const [refreshRecommendation, setRefreshRecommendation] = useState<any>(null);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const [lastRefreshResult, setLastRefreshResult] = useState<any>(null);
