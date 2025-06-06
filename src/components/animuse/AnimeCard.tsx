@@ -26,6 +26,13 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   const [currentSrc, setCurrentSrc] = useState<string>("");
   const imgRef = useRef<HTMLImageElement>(null);
 
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setImageLoaded(true);
+    }
+  }, []);
+  
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
 
   // FIXED: Improved ID resolution logic
@@ -68,14 +75,14 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     }
   }, [posterToDisplay, currentSrc]);
 
-  // If the poster is cached the load event won't fire, so mark it as loaded
+  // Detect cached images after the source is updated
   useEffect(() => {
     const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
+    if (!imageLoaded && img && img.complete && img.naturalWidth > 0) {
       setImageLoaded(true);
     }
-  }, [posterToDisplay]);
-  
+  }, [currentSrc, imageLoaded]);
+
   const handleImageLoad = () => { 
     setImageLoaded(true); 
     setImageError(false); 
