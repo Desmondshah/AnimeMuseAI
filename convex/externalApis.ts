@@ -81,35 +81,88 @@ const selectBestImageUrl = (images: any, source: 'anilist' | 'jikan' | 'tmdb' | 
 
 
 // Enhanced poster fetching with multiple fallbacks (from animeApis.ts)
-const fetchPosterWithFallbacks = async (searchTerm: string, existingUrl?: string): Promise<string | null> => {
-    // Skip if we already have a good poster
-    if (existingUrl && !existingUrl.includes('placehold') && !existingUrl.includes('placeholder')) {
+const fetchPosterWithFallbacks = async (
+  searchTerm: string, 
+  existingUrl?: string,
+  allowUpgrade: boolean = true  // NEW: Allow quality upgrades
+): Promise<string | null> => {
+    console.log(`[Enhanced Poster Fetch] Searching for poster: "${searchTerm}"`);
+    console.log(`[Enhanced Poster Fetch] Existing poster: ${existingUrl || 'none'}`);
+    console.log(`[Enhanced Poster Fetch] Allow upgrade: ${allowUpgrade}`);
+
+    // Only skip if we have a good poster AND upgrades are disabled
+    if (!allowUpgrade && existingUrl && !existingUrl.includes('placehold') && !existingUrl.includes('placeholder')) {
+        console.log(`[Enhanced Poster Fetch] Skipping - good poster exists and upgrades disabled`);
         return existingUrl;
     }
 
-    console.log(`[Enhanced Poster Fetch] Searching for poster: "${searchTerm}"`);
+    // Check if existing poster is low quality and should be upgraded
+    const isLowQuality = !existingUrl || 
+                        existingUrl.includes('placehold') || 
+                        existingUrl.includes('placeholder') ||
+                        existingUrl.includes('300x450') ||  // Low resolution
+                        existingUrl.includes('small') ||    // Small size indicator
+                        existingUrl.includes('medium');     // Medium when we want large
+
+    if (existingUrl && !isLowQuality && !allowUpgrade) {
+        console.log(`[Enhanced Poster Fetch] Good quality poster exists: ${existingUrl}`);
+        return existingUrl;
+    }
+
+    if (existingUrl && !isLowQuality) {
+        console.log(`[Enhanced Poster Fetch] Will try to upgrade existing poster with TMDB`);
+    }
 
     // 1. TMDb - requires an API key
-    const tmdbKey = process.env.TMDB_API_KEY; // You'll need to add this to your Convex environment
+    const tmdbKey = process.env.TMDB_API_KEY;
     if (tmdbKey) {
         try {
+            console.log(`[Enhanced Poster Fetch] Attempting TMDB with key: ${tmdbKey.substring(0, 8)}...`);
+            
             const tmdbUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(searchTerm)}`;
             const res = await fetchWithTimeout(tmdbUrl, { timeout: DEFAULT_TIMEOUT_MS });
+            
+            console.log(`[Enhanced Poster Fetch] TMDB response status: ${res.status}`);
+            
             if (res.ok) {
                 const data = await res.json();
+                console.log(`[Enhanced Poster Fetch] TMDB found ${data.results?.length || 0} results`);
+                
                 const posterPath = data?.results?.[0]?.poster_path;
                 if (posterPath) {
                     const poster = `https://image.tmdb.org/t/p/w500${posterPath}`;
-                    console.log(`[Enhanced Poster Fetch] Found TMDb poster: ${poster}`);
+                    console.log(`[Enhanced Poster Fetch] ✅ Found TMDb poster: ${poster}`);
+                    
+                    // If we have an existing poster, compare quality
+                    if (existingUrl && !isLowQuality) {
+                        console.log(`[Enhanced Poster Fetch] Upgrading from ${existingUrl} to TMDB ${poster}`);
+                    }
+                    
                     return poster;
+                } else {
+                    console.log(`[Enhanced Poster Fetch] TMDB has results but no poster_path`);
                 }
+            } else {
+                const errorText = await res.text();
+                console.log(`[Enhanced Poster Fetch] TMDB error ${res.status}: ${errorText.substring(0, 100)}`);
             }
-        } catch (err) {
-            console.error('[Enhanced Poster Fetch] TMDb failed:', err);
+        } catch (err: any) {
+            console.error('[Enhanced Poster Fetch] TMDb failed:', err.message);
         }
+    } else {
+        console.log(`[Enhanced Poster Fetch] No TMDB API key found`);
     }
 
-    // 2. AniList fallback
+    // 2. If existing poster is good quality and TMDB failed, keep it
+    if (existingUrl && !isLowQuality) {
+        console.log(`[Enhanced Poster Fetch] TMDB failed, keeping existing good quality poster`);
+        return existingUrl;
+    }
+
+    // 3. Continue with other APIs for fallback...
+    console.log(`[Enhanced Poster Fetch] TMDB failed, trying AniList fallback...`);
+    
+    // AniList fallback code (same as before)
     try {
         const query = `query ($search: String) { Media(search: $search, type: ANIME) { coverImage { extraLarge large medium } } }`;
         const res = await fetchWithTimeout('https://graphql.anilist.co', {
@@ -122,7 +175,7 @@ const fetchPosterWithFallbacks = async (searchTerm: string, existingUrl?: string
             const data = await res.json();
             const poster = selectBestImageUrl(data?.data?.Media?.coverImage, 'anilist');
             if (poster) {
-                console.log(`[Enhanced Poster Fetch] Found AniList poster: ${poster}`);
+                console.log(`[Enhanced Poster Fetch] ✅ Found AniList poster: ${poster}`);
                 return poster;
             }
         }
@@ -162,8 +215,8 @@ const fetchPosterWithFallbacks = async (searchTerm: string, existingUrl?: string
         console.error('[Enhanced Poster Fetch] Kitsu failed:', err);
     }
 
-    console.log(`[Enhanced Poster Fetch] No poster found for: "${searchTerm}"`);
-    return null;
+    console.log(`[Enhanced Poster Fetch] No poster found from any source`);
+    return existingUrl || null; // Return existing if we have it, or null
 };
 
 // Enhanced episode fetching with multiple fallbacks
@@ -362,15 +415,25 @@ const getStringArray = (obj: any, path: string, nameField: string = "name"): str
 
 // Enhanced main fetch function with improved fallbacks
 export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
-  args: { animeIdInOurDB: v.id("anime"), titleToSearch: v.string() },
+  args: { 
+    animeIdInOurDB: v.id("anime"), 
+    titleToSearch: v.string(),
+    forceUpgrade: v.optional(v.boolean()) // NEW: Force poster upgrades
+  },
   handler: async (ctx: ActionCtx, args): Promise<ExternalApiResult> => {
     const existingAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeIdInOurDB });
     if (!existingAnime) return { success: false, message: "Internal: Anime not found." };
 
     console.log(`[Enhanced External API] Processing: "${existingAnime.title}"`);
+    console.log(`[Enhanced External API] Current poster: ${existingAnime.posterUrl || 'none'}`);
+    console.log(`[Enhanced External API] Force upgrade: ${args.forceUpgrade || false}`);
 
-    // Enhanced poster fetching with multiple fallbacks
-    const enhancedPosterUrl = await fetchPosterWithFallbacks(args.titleToSearch, existingAnime.posterUrl);
+    // Enhanced poster fetching with upgrade capability
+    const enhancedPosterUrl = await fetchPosterWithFallbacks(
+        args.titleToSearch, 
+        existingAnime.posterUrl,
+        args.forceUpgrade || true  // Allow upgrades by default
+    );
     
     // Enhanced episode fetching with multiple fallbacks
     const enhancedEpisodes = await fetchEpisodesWithFallbacks(
@@ -393,19 +456,7 @@ export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
         updates.posterUrl = enhancedPosterUrl;
         enhancementCount++;
         sources.push('poster');
-    }
-
-    if (enhancedEpisodes && enhancedEpisodes.length > 0) {
-        updates.streamingEpisodes = enhancedEpisodes;
-        updates.totalEpisodes = enhancedEpisodes.length;
-        enhancementCount++;
-        sources.push('episodes');
-    }
-
-    if (enhancedCharacters && enhancedCharacters.length > 0) {
-        updates.characters = enhancedCharacters;
-        enhancementCount++;
-        sources.push('characters');
+        console.log(`[Enhanced External API] Poster updated: ${existingAnime.posterUrl} → ${enhancedPosterUrl}`);
     }
 
     // Apply updates if any enhancements were found
@@ -425,7 +476,7 @@ export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
             success: true,
             message: `Enhanced ${enhancementCount} data fields: ${sources.join(', ')}`,
             source: 'enhanced_fallback_apis',
-            details: { enhanced: sources, episodeCount: enhancedEpisodes?.length || 0, characterCount: enhancedCharacters?.length || 0 }
+            details: { enhanced: sources, posterUpgraded: enhancedPosterUrl !== existingAnime.posterUrl }
         };
     }
 
@@ -1295,95 +1346,136 @@ export const callBatchEnhanceVisibleAnimePosters = action({
 export const enhanceExistingAnimePostersBetter = internalAction({
   args: {},
   handler: async (ctx: ActionCtx): Promise<void> => {
-    console.log("[Enhanced Poster Enhancement] Starting comprehensive poster enhancement with multiple API fallbacks...");
+    console.log("[Enhanced Poster Enhancement] Starting TMDB-enabled poster enhancement...");
     
-    // Get anime with potentially low-quality posters
     const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     const animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
       const poster = anime.posterUrl;
-      // Target placeholder images, very old/low quality URLs, or never-fetched anime
+      // Include anime with ANY existing poster for potential TMDB upgrade
       return !poster || 
-             poster.includes('placehold.co') || 
+             poster.includes('placehold') || 
              poster.includes('placeholder') ||
              poster.includes('300x450') ||
-             poster.includes('via.placeholder') ||
              !anime.lastFetchedFromExternal ||
-             (Date.now() - anime.lastFetchedFromExternal.timestamp) > (14 * 24 * 60 * 60 * 1000); // 14 days old
+             (Date.now() - anime.lastFetchedFromExternal.timestamp) > (7 * 24 * 60 * 60 * 1000); // 7 days for more frequent TMDB checks
     });
 
-    console.log(`[Enhanced Poster Enhancement] Found ${animesToEnhance.length} anime that need poster enhancement.`);
+    console.log(`[Enhanced Poster Enhancement] Found ${animesToEnhance.length} anime for TMDB enhancement.`);
     
     if (animesToEnhance.length === 0) {
-      console.log("[Enhanced Poster Enhancement] No anime need poster enhancement.");
+      console.log("[Enhanced Poster Enhancement] No anime need enhancement.");
       return;
     }
 
-    // Use smaller batches and longer delays due to multiple API calls per anime
-    const batchSize = 3; // Reduced from 5 due to more API calls
-    const maxAnimesToProcess = 20; // Slightly reduced to be more conservative
+    const batchSize = 3;
+    const maxAnimesToProcess = 15;
     const animeToProcess = animesToEnhance.slice(0, maxAnimesToProcess);
     
     let processedCount = 0;
     let enhancedCount = 0;
-    let enhancementDetails: string[] = [];
 
     for (let i = 0; i < animeToProcess.length; i += batchSize) {
       const batch = animeToProcess.slice(i, i + batchSize);
       
       console.log(`[Enhanced Poster Enhancement] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(animeToProcess.length / batchSize)}`);
 
-      // Process batch with individual error handling
       const batchPromises = batch.map(async (anime: Doc<"anime">): Promise<void> => {
         try {
           console.log(`[Enhanced Poster Enhancement] Processing: ${anime.title}`);
           
-          // 🚀 KEY CHANGE: Use the new enhanced fallback system
+          // 🚀 KEY FIX: Use enhanced function with force upgrade
           const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, {
             animeIdInOurDB: anime._id,
-            titleToSearch: anime.title
+            titleToSearch: anime.title,
+            forceUpgrade: true  // Force TMDB upgrade attempts
           });
           
           processedCount++;
           
-          if (result.success && result.details?.enhanced?.length > 0) {
+          if (result.success && result.details?.posterUpgraded) {
             enhancedCount++;
-            const enhancedFields = result.details.enhanced.join(', ');
-            enhancementDetails.push(`${anime.title}: ${enhancedFields}`);
-            console.log(`[Enhanced Poster Enhancement] ✅ Enhanced: ${anime.title} (${enhancedFields})`);
-          } else if (result.success) {
-            console.log(`[Enhanced Poster Enhancement] ⚪ No updates needed: ${anime.title} - ${result.message}`);
+            console.log(`[Enhanced Poster Enhancement] ✅ Enhanced: ${anime.title}`);
           } else {
-            console.log(`[Enhanced Poster Enhancement] ❌ Failed: ${anime.title} - ${result.message}`);
+            console.log(`[Enhanced Poster Enhancement] ⚪ No upgrade: ${anime.title} - ${result.message}`);
           }
           
-          // Longer delay due to multiple API calls in enhanced system
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (error: any) {
           processedCount++;
           console.error(`[Enhanced Poster Enhancement] Error processing ${anime.title}:`, error.message);
         }
       });
       
-      // Wait for batch to complete
       await Promise.all(batchPromises);
       
-      // Longer delay between batches due to multiple API calls
       if (i + batchSize < animeToProcess.length) {
         console.log(`[Enhanced Poster Enhancement] Waiting 8 seconds before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, 8000)); // Increased from 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 8000));
       }
     }
     
-    console.log(`[Enhanced Poster Enhancement] Completed! Processed: ${processedCount}, Enhanced: ${enhancedCount}, Remaining: ${animesToEnhance.length - processedCount}`);
+    console.log(`[Enhanced Poster Enhancement] Completed! Processed: ${processedCount}, Enhanced: ${enhancedCount}`);
+  },
+});
+
+export const forceTmdbUpgrade = action({
+  args: {
+    animeIds: v.array(v.id("anime")),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    upgraded: number;
+    total: number;
+    results: Array<{title: string; success: boolean; oldPoster?: string; newPoster?: string; message: string}>;
+  }> => {
+    console.log(`🚀 Force TMDB upgrade for ${args.animeIds.length} anime...`);
     
-    // Show summary of what was enhanced
-    if (enhancementDetails.length > 0) {
-      console.log(`[Enhanced Poster Enhancement] Enhanced details:`);
-      enhancementDetails.slice(0, 10).forEach(detail => console.log(`  - ${detail}`));
-      if (enhancementDetails.length > 10) {
-        console.log(`  ... and ${enhancementDetails.length - 10} more`);
+    const results: Array<{title: string; success: boolean; oldPoster?: string; newPoster?: string; message: string}> = [];
+    let upgraded = 0;
+
+    for (const animeId of args.animeIds) {
+      try {
+        const anime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId });
+        if (!anime) {
+          results.push({title: "Unknown", success: false, message: "Anime not found"});
+          continue;
+        }
+
+        const oldPoster = anime.posterUrl;
+        
+        const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, {
+          animeIdInOurDB: animeId,
+          titleToSearch: anime.title,
+          forceUpgrade: true
+        });
+
+        // Check if poster was actually updated
+        const updatedAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId });
+        const newPoster = updatedAnime?.posterUrl;
+        const posterChanged = newPoster !== oldPoster;
+
+        if (posterChanged) upgraded++;
+
+        results.push({
+          title: anime.title,
+          success: result.success,
+          oldPoster: oldPoster,
+          newPoster: newPoster,
+          message: posterChanged ? "Poster upgraded" : result.message
+        });
+
+        // Delay between requests
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+      } catch (error: any) {
+        results.push({title: "Error", success: false, message: error.message});
       }
     }
+
+    return {
+      upgraded,
+      total: args.animeIds.length,
+      results
+    };
   },
 });
 

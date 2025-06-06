@@ -68,6 +68,14 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
     }
   }, [posterToDisplay, currentSrc]);
 
+  // If the poster is cached the load event won't fire, so mark it as loaded
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setImageLoaded(true);
+    }
+  }, [posterToDisplay]);
+  
   const handleImageLoad = () => { 
     setImageLoaded(true); 
     setImageError(false); 
