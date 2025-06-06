@@ -444,13 +444,33 @@ export const addAnimeByUser = mutation({
         const userId = await getAuthUserId(ctx);
         if (!userId) throw new Error("User not authenticated");
         
-        const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).first();
-        if (existing) {
-            console.warn(`[Add Anime] User ${userId} existing anime: "${args.title}" (ID: ${existing._id}). Returning existing.`);
-            return existing._id;
-        }
+        // --- START: ROBUST DUPLICATE CHECK ---
         
-        console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
+        // 1. First, try the fast, indexed, case-sensitive query.
+        const exactMatch = await ctx.db
+            .query("anime")
+            .withIndex("by_title", q => q.eq("title", args.title))
+            .first();
+        
+        if (exactMatch) {
+            console.warn(`[Add Anime] Exact match found for "${args.title}". Returning existing ID: ${exactMatch._id}`);
+            return exactMatch._id;
+        }
+
+        // 2. If no exact match, perform a slower, case-insensitive check to prevent duplicates.
+        const allAnime = await ctx.db.query("anime").collect();
+        const caseInsensitiveMatch = allAnime.find(
+          anime => anime.title.toLowerCase() === args.title.toLowerCase()
+        );
+
+        if (caseInsensitiveMatch) {
+            console.warn(`[Add Anime] Case-insensitive match found for "${args.title}". Returning existing ID: ${caseInsensitiveMatch._id}`);
+            return caseInsensitiveMatch._id;
+        }
+        // --- END: ROBUST DUPLICATE CHECK ---
+        
+        // 3. If no duplicate was found, proceed with creating the new anime.
+        console.log(`[Add Anime] No existing match found. User ${userId} adding new anime: "${args.title}"`);
         const animeId = await ctx.db.insert("anime", {
             title: args.title, description: args.description, posterUrl: args.posterUrl, genres: args.genres,
             year: args.year, rating: args.rating, emotionalTags: args.emotionalTags, trailerUrl: args.trailerUrl,
@@ -458,7 +478,7 @@ export const addAnimeByUser = mutation({
             anilistId: args.anilistId,
         });
         
-        // Auto-fetch external data to improve poster quality and metadata
+        // Auto-fetch external data to improve the newly added anime
         ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
             animeIdInOurDB: animeId,
             titleToSearch: args.title

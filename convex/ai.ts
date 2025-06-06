@@ -6,30 +6,6 @@ import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
 
-async function fetchWithTimeout(
-  url: string, 
-  options: RequestInit = {}, 
-  timeoutMs: number = 10000
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error(`Request timed out after ${timeoutMs}ms`);
-    }
-    throw error;
-  }
-}
-
 // Interface for debug anime addition response
 interface DebugAnimeAdditionResponse {
   success: boolean;
@@ -147,28 +123,24 @@ const fetchRealAnimePosterWithRetry = async (
   year?: number,
   maxRetries: number = 1
 ): Promise<string | null> => {
-  console.log(`[AI Poster Enhancement] Starting enhanced poster search for: "${animeTitle}"`);
+  console.log(`[AI Poster Enhancement] Starting best-of-breed poster search for: "${animeTitle}"`);
   
   try {
-    // STEP 1: Use the specialized best quality poster fetching action (primary method)
-    console.log(`[AI Poster Enhancement] Step 1: Trying specialized multi-source poster fetch...`);
-    
+    // NEW: Use the specialized best quality poster fetching action
     const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
       title: animeTitle,
-      year: year,
-      sources: ["tmdb", "anilist"] // Try both high-quality sources
+      year: year
     });
     
-    if (posterResult.success && posterResult.posterUrl && isValidPosterUrl(posterResult.posterUrl)) {
+    if (posterResult.success && posterResult.posterUrl) {
       console.log(`[AI Poster Enhancement] ✅ Found high-quality poster from ${posterResult.source}: "${animeTitle}"`);
       return posterResult.posterUrl;
-    } else {
-      console.log(`[AI Poster Enhancement] Step 1 failed: ${posterResult.message}`);
     }
     
-    // STEP 2: Database lookup as fallback
-    console.log(`[AI Poster Enhancement] Step 2: Checking database for existing poster...`);
+    // Fallback: If specialized action fails, try the enhanced database-first approach
+    console.log(`[AI Poster Enhancement] Specialized fetch failed, trying fallback for: "${animeTitle}"`);
     
+    // Check database first for existing poster
     const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
       title: animeTitle 
     });
@@ -178,113 +150,66 @@ const fetchRealAnimePosterWithRetry = async (
       return dbAnime.posterUrl;
     }
     
-    // STEP 3: Individual source fallbacks with retry logic
-    console.log(`[AI Poster Enhancement] Step 3: Trying individual sources with retries...`);
+    // If database doesn't have it, try individual specialized sources manually
+    console.log(`[AI Poster Enhancement] Trying individual sources for: "${animeTitle}"`);
     
-    // Try TMDB directly with retries
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[AI Poster Enhancement] TMDB attempt ${attempt + 1}/${maxRetries + 1} for: "${animeTitle}"`);
-        
-        const tmdbResult = await ctx.runAction(internal.externalApis.fetchPosterFromTMDB, {
-          title: animeTitle,
-          year: year,
-          retryCount: attempt
-        });
-        
-        if (tmdbResult.success && tmdbResult.posterUrl && isValidPosterUrl(tmdbResult.posterUrl)) {
-          console.log(`[AI Poster Enhancement] ✅ TMDB direct fetch succeeded: "${animeTitle}"`);
-          return tmdbResult.posterUrl;
-        }
-        
-        // If rate limited, wait before retry
-        if (tmdbResult.errorCode === 'TMDB_RATE_LIMITED' && attempt < maxRetries) {
-          console.log(`[AI Poster Enhancement] TMDB rate limited, waiting 3 seconds...`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-      } catch (tmdbError: any) {
-        console.warn(`[AI Poster Enhancement] TMDB attempt ${attempt + 1} failed for "${animeTitle}":`, tmdbError.message);
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+    // Try TMDB directly
+    try {
+      const tmdbResult = await ctx.runAction(internal.externalApis.fetchPosterFromTMDB, {
+        title: animeTitle,
+        year: year
+      });
+      
+      if (tmdbResult.success && tmdbResult.posterUrl) {
+        console.log(`[AI Poster Enhancement] ✅ TMDB direct fetch succeeded: "${animeTitle}"`);
+        return tmdbResult.posterUrl;
       }
+    } catch (tmdbError: any) {
+      console.warn(`[AI Poster Enhancement] TMDB direct fetch failed for "${animeTitle}":`, tmdbError.message);
     }
     
-    // Try AniList metadata + poster fetch with retries
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[AI Poster Enhancement] AniList attempt ${attempt + 1}/${maxRetries + 1} for: "${animeTitle}"`);
-        
-        const anilistResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
-          title: animeTitle,
-          retryCount: attempt
-        });
-        
-        if (anilistResult.success && anilistResult.metadata.anilistId) {
-          // Use AniList ID to get poster with the enhanced AniList function
-          const anilistPoster = await fetchAniListPosterByIdEnhanced(anilistResult.metadata.anilistId);
-          if (anilistPoster && isValidPosterUrl(anilistPoster)) {
-            console.log(`[AI Poster Enhancement] ✅ AniList direct fetch succeeded: "${animeTitle}"`);
-            return anilistPoster;
-          }
-        }
-        
-        // If rate limited, wait before retry
-        if (anilistResult.errorCode === 'ANILIST_RATE_LIMITED' && attempt < maxRetries) {
-          console.log(`[AI Poster Enhancement] AniList rate limited, waiting 2 seconds...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      } catch (anilistError: any) {
-        console.warn(`[AI Poster Enhancement] AniList attempt ${attempt + 1} failed for "${animeTitle}":`, anilistError.message);
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+    // Try AniList metadata fetch
+    try {
+      const anilistResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
+        title: animeTitle
+      });
+      
+      if (anilistResult.success && anilistResult.metadata.anilistId) {
+        // Use AniList ID to get poster with the original AniList function
+        const anilistPoster = await fetchAniListPosterById(anilistResult.metadata.anilistId);
+        if (anilistPoster) {
+          console.log(`[AI Poster Enhancement] ✅ AniList direct fetch succeeded: "${animeTitle}"`);
+          return anilistPoster;
         }
       }
+    } catch (anilistError: any) {
+      console.warn(`[AI Poster Enhancement] AniList direct fetch failed for "${animeTitle}":`, anilistError.message);
     }
     
-    // STEP 4: Enhanced placeholder generation
-    console.log(`[AI Poster Enhancement] Step 4: All sources failed, creating enhanced placeholder: "${animeTitle}"`);
-    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 25));
-    const colorScheme = generateColorScheme(animeTitle);
-    return `https://placehold.co/600x900/${colorScheme.bg}/${colorScheme.text}/png?text=${encodedTitle}&font=roboto`;
+    // Final fallback: Return a high-quality placeholder
+    console.log(`[AI Poster Enhancement] 📝 All sources failed, using enhanced placeholder: "${animeTitle}"`);
+    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 30));
+    return `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
     
   } catch (error: any) {
-    console.error(`[AI Poster Enhancement] Critical error for "${animeTitle}":`, error.message);
+    console.error(`[AI Poster Enhancement] Error for "${animeTitle}":`, error.message);
     
-    // Emergency fallback with basic placeholder
-    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 25));
+    // Emergency fallback
+    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 30));
     return `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
   }
 };
 
-// Enhanced helper function to validate poster URLs with more checks
+// Helper function to validate poster URLs
 const isValidPosterUrl = (posterUrl: any): boolean => {
   if (!posterUrl || typeof posterUrl !== 'string') return false;
   if (posterUrl.includes('placehold.co') || posterUrl.includes('placeholder')) return false;
   if (!posterUrl.startsWith('https://')) return false;
-  
-  // Check for common invalid patterns
-  if (posterUrl.includes('404') || posterUrl.includes('error')) return false;
-  if (posterUrl.length < 20) return false; // Too short to be a real URL
-  
-  // Ensure it's a reasonable image URL
-  const validDomains = [
-    'image.tmdb.org',
-    's4.anilist.co', 
-    'cdn.anilist.co',
-    'media.kitsu.io',
-    'img1.ak.crunchyroll.com',
-    'funimation.com'
-  ];
-  
-  const isFromValidDomain = validDomains.some(domain => posterUrl.includes(domain));
-  const hasImageExtension = /\.(jpg|jpeg|png|webp|avif)(\?|$)/i.test(posterUrl);
-  
-  return isFromValidDomain || hasImageExtension;
+  return true;
 };
 
-// Enhanced helper function to fetch poster directly from AniList by ID with better error handling
-const fetchAniListPosterByIdEnhanced = async (anilistId: number): Promise<string | null> => {
+// Helper function to fetch poster directly from AniList by ID
+const fetchAniListPosterById = async (anilistId: number): Promise<string | null> => {
   const anilistQuery = `
     query ($id: Int) {
       Media (id: $id, type: ANIME) {
@@ -293,122 +218,73 @@ const fetchAniListPosterByIdEnhanced = async (anilistId: number): Promise<string
           extraLarge 
           large 
           medium 
-          color
         }
       }
     }
   `;
   
   try {
-    const response = await fetchWithTimeout('https://graphql.anilist.co', {
+    const response = await fetch('https://graphql.anilist.co', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Accept': 'application/json',
-        'User-Agent': 'AniMuse-App/1.0'
-      },
-      body: JSON.stringify({ query: anilistQuery, variables: { id: anilistId } })
-}, 10000);
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ 
+        query: anilistQuery, 
+        variables: { id: anilistId }
+      })
+    });
     
-    if (!response.ok) {
-      console.error(`[AI Poster Enhancement] AniList by ID fetch failed: ${response.status}`);
-      return null;
-    }
+    if (!response.ok) return null;
     
     const data = await response.json();
     const media = data?.data?.Media;
     
     if (media?.coverImage) {
-      // Priority order for image quality
-      const posterUrl = media.coverImage.extraLarge || 
-                       media.coverImage.large || 
-                       media.coverImage.medium || 
-                       null;
-      
-      if (posterUrl && posterUrl.startsWith('https://')) {
-        return posterUrl;
-      }
+      return media.coverImage.extraLarge || 
+             media.coverImage.large || 
+             media.coverImage.medium || 
+             null;
     }
     
     return null;
-  } catch (error: any) {
-    console.error(`[AI Poster Enhancement] AniList by ID fetch error for ${anilistId}:`, error.message);
+  } catch (error) {
+    console.error(`[AI Poster Enhancement] AniList by ID fetch failed for ${anilistId}:`, error);
     return null;
   }
 };
 
-// Helper function to generate color schemes based on anime title
-const generateColorScheme = (title: string): { bg: string; text: string } => {
-  const colorSchemes = [
-    { bg: 'ECB091', text: '321D0B' }, // Warm beige/brown (default)
-    { bg: 'A8E6CF', text: '2C5530' }, // Soft green
-    { bg: 'FFB3BA', text: '8B0000' }, // Light pink/red
-    { bg: 'B3D9FF', text: '003366' }, // Light blue
-    { bg: 'E6CCE6', text: '4D004D' }, // Light purple
-    { bg: 'FFFFB3', text: '666600' }, // Light yellow
-    { bg: 'D1C4E9', text: '4A148C' }, // Lavender
-    { bg: 'FFCDD2', text: 'B71C1C' }  // Light rose
-  ];
-  
-  // Use title hash to consistently pick a color scheme
-  let hash = 0;
-  for (let i = 0; i < title.length; i++) {
-    const char = title.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  const index = Math.abs(hash) % colorSchemes.length;
-  return colorSchemes[index];
-};
-
-// ENHANCED: Database-first enhancement with better error handling and performance
+// ENHANCED: Database-first enhancement that leverages specialized actions
 const enhanceRecommendationsWithDatabaseFirst = async (
   ctx: any,
   recommendations: any[]
 ): Promise<any[]> => {
-  const enhancedRecommendations: any[] = [];
-  const concurrentLimit = 3; // Increased from 2 for better performance
+  const enhancedRecommendations = [];
+  const concurrentLimit = 2; // Process only 2 at a time to avoid overwhelming APIs
   
-  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with enhanced specialized actions...`);
+  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with specialized actions...`);
   
   // Process recommendations in batches
   for (let i = 0; i < recommendations.length; i += concurrentLimit) {
     const batch = recommendations.slice(i, i + concurrentLimit);
     
-    const batchResults = await Promise.allSettled(
+    const batchResults = await Promise.all(
       batch.map(async (rec, batchIndex) => {
         const globalIndex = i + batchIndex;
         let posterUrl = rec.posterUrl;
         let foundInDatabase = false;
         let enhancedWithSpecializedAction = false;
-        let enhancementMethod = 'none';
         
         console.log(`[Database-First Enhancement] Processing (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
         
-        // Step 1: Enhanced database lookup with fuzzy matching
+        // Step 1: Check database first
         if (rec.title) {
           try {
-            // First try exact match
-            let dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+            const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
               title: rec.title 
             });
-            
-            // If no exact match, try common title variations
-            if (!dbAnime) {
-              const titleVariations = generateTitleVariations(rec.title);
-              for (const variation of titleVariations) {
-                dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
-                  title: variation 
-                });
-                if (dbAnime) break;
-              }
-            }
             
             if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
               posterUrl = dbAnime.posterUrl;
               foundInDatabase = true;
-              enhancementMethod = 'database_exact';
               console.log(`[Database-First Enhancement] ✅ Found in DB with valid poster: ${rec.title}`);
               
               // Enhance other fields from database if they're better
@@ -417,8 +293,6 @@ const enhanceRecommendationsWithDatabaseFirst = async (
               rec.year = rec.year || dbAnime.year;
               rec.rating = rec.rating || dbAnime.rating;
               rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
-              rec.emotionalTags = rec.emotionalTags?.length ? rec.emotionalTags : (dbAnime.emotionalTags || []);
-              rec.themes = rec.themes?.length ? rec.themes : (dbAnime.themes || []);
               
               // Add database ID for navigation
               rec._id = dbAnime._id;
@@ -430,37 +304,33 @@ const enhanceRecommendationsWithDatabaseFirst = async (
           }
         }
         
-        // Step 2: If not found in DB or poster is invalid, use enhanced specialized poster fetching
+        // Step 2: If not found in DB or poster is invalid, use specialized poster fetching
         if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || !isValidPosterUrl(posterUrl))) {
-          console.log(`[Database-First Enhancement] 🔍 Using enhanced specialized poster fetching for: ${rec.title}`);
+          console.log(`[Database-First Enhancement] 🔍 Using specialized poster fetching for: ${rec.title}`);
           
           try {
+            // NEW: Use the enhanced poster fetching with specialized actions
             const specializedPosterUrl = await fetchRealAnimePosterWithRetry(
               ctx, 
               rec.title, 
               rec.year, 
-              1 // 1 retry for balance between speed and reliability
+              0 // No retries for speed in AI context
             );
             
             if (specializedPosterUrl && isValidPosterUrl(specializedPosterUrl)) {
               posterUrl = specializedPosterUrl;
               enhancedWithSpecializedAction = true;
-              enhancementMethod = 'specialized_fetch';
               console.log(`[Database-First Enhancement] ✅ Specialized action found poster: ${rec.title}`);
             } else {
-              // Enhanced fallback placeholder
-              const colorScheme = generateColorScheme(rec.title);
-              const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 25));
-              posterUrl = `https://placehold.co/600x900/${colorScheme.bg}/${colorScheme.text}/png?text=${encodedTitle}&font=roboto`;
-              enhancementMethod = 'enhanced_placeholder';
+              // Final fallback to enhanced placeholder
+              const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+              posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
               console.log(`[Database-First Enhancement] 📝 Using enhanced placeholder: ${rec.title}`);
             }
           } catch (error: any) {
             console.error(`[Database-First Enhancement] Specialized fetch error for "${rec.title}":`, error.message);
-            const colorScheme = generateColorScheme(rec.title);
-            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 25));
-            posterUrl = `https://placehold.co/600x900/${colorScheme.bg}/${colorScheme.text}/png?text=${encodedTitle}&font=roboto`;
-            enhancementMethod = 'error_placeholder';
+            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+            posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
           }
         }
         
@@ -472,40 +342,17 @@ const enhanceRecommendationsWithDatabaseFirst = async (
           reasoning: rec.reasoning || "AI recommendation.",
           foundInDatabase,
           enhancedWithSpecializedAction,
-          enhancementMethod,
-          // Ensure all required fields are present
-          moodMatchScore: rec.moodMatchScore || 8,
-          genres: rec.genres || [],
-          emotionalTags: rec.emotionalTags || [],
-          studios: rec.studios || [],
-          themes: rec.themes || []
+          // Ensure moodMatchScore is present for compatibility
+          moodMatchScore: rec.moodMatchScore || 8
         };
       })
     );
     
-    // Process settled results and handle rejections
-    batchResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        enhancedRecommendations.push(result.value);
-      } else {
-        console.error(`[Database-First Enhancement] Batch item ${i + index} failed:`, result.reason);
-        // Add a fallback recommendation
-        const originalRec = batch[index];
-        enhancedRecommendations.push({
-          ...originalRec,
-          posterUrl: `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(originalRec.title?.substring(0, 25) || 'Error')}&font=roboto`,
-          enhancementMethod: 'batch_error',
-          foundInDatabase: false,
-          enhancedWithSpecializedAction: false
-        });
-      }
-    });
+    enhancedRecommendations.push(...batchResults);
     
-    // Adaptive delay between batches based on API success rate
+    // Small delay between batches to avoid overwhelming the system
     if (i + concurrentLimit < recommendations.length) {
-      const successRate = enhancedRecommendations.filter(r => r.enhancementMethod !== 'error_placeholder').length / enhancedRecommendations.length;
-      const delay = successRate > 0.8 ? 200 : 500; // Shorter delay if APIs are working well
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
   
@@ -518,46 +365,6 @@ const enhanceRecommendationsWithDatabaseFirst = async (
   console.log(`[Database-First Enhancement] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Specialized: ${specializedHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
   
   return enhancedRecommendations;
-};
-
-// Helper function to generate title variations for better database matching
-const generateTitleVariations = (title: string): string[] => {
-  if (!title) return [];
-  
-  const variations: string[] = [];
-  
-  // Remove common suffixes/prefixes
-  const cleanTitle = title
-    .replace(/\(TV\)/gi, '')
-    .replace(/\(OVA\)/gi, '')
-    .replace(/\(Movie\)/gi, '')
-    .replace(/Season \d+/gi, '')
-    .replace(/Part \d+/gi, '')
-    .trim();
-  
-  if (cleanTitle !== title) variations.push(cleanTitle);
-  
-  // Try with/without "the"
-  if (title.toLowerCase().startsWith('the ')) {
-    variations.push(title.substring(4));
-  } else {
-    variations.push(`The ${title}`);
-  }
-  
-  // Try common romanization variations
-  const romanizationMap: Record<string, string> = {
-    'ou': 'o',
-    'uu': 'u', 
-    'wo': 'o',
-  };
-  
-  Object.entries(romanizationMap).forEach(([from, to]) => {
-    if (title.includes(from)) {
-      variations.push(title.replace(new RegExp(from, 'gi'), to));
-    }
-  });
-  
-  return [...new Set(variations)].slice(0, 3); // Limit to 3 variations
 };
 
 export const storeAiFeedback = mutation({
