@@ -1,4 +1,4 @@
-// convex/autoRefresh.ts - Enhanced Smart Auto-Refresh with Specialized Actions
+// convex/autoRefresh.ts - Smart Auto-Refresh Logic
 
 "use node";
 import { internalAction, action } from "./_generated/server";
@@ -7,15 +7,12 @@ import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
 
-// Enhanced refresh priority system with specific reasons
+// Enhanced refresh priority system
 interface RefreshPriority {
   priority: "critical" | "high" | "medium" | "low" | "skip";
-  reason: "missing_poster" | "missing_episodes" | "missing_metadata" | "missing_characters" | 
-          "stale_poster" | "stale_episodes" | "stale_metadata" | "stale_character_data" |
-          "airing_needs_update" | "never_fetched" | "general_stale" | "fresh_data";
+  reason: string;
   recommendedAction: "immediate" | "background" | "scheduled" | "none";
   freshnessScore: number; // 0-100, where 0 is stale, 100 is fresh
-  specificActions: string[]; // Which specialized actions should be called
 }
 
 interface AutoRefreshResult {
@@ -24,7 +21,6 @@ interface AutoRefreshResult {
   dataChanged: boolean;
   fieldsUpdated: string[];
   message: string;
-  actionsUsed: string[];
 }
 
 interface BatchRefreshResult {
@@ -40,137 +36,105 @@ interface AnimeWithPriority {
   priority: RefreshPriority;
 }
 
-// ENHANCED: Calculate refresh priority with specific reasons and recommended actions
+// Helper function to calculate data freshness and refresh priority
 const calculateRefreshPriority = (anime: Doc<"anime">): RefreshPriority => {
   const now = Date.now();
   const lastFetched = anime.lastFetchedFromExternal?.timestamp;
   const daysSinceLastFetch = lastFetched ? (now - lastFetched) / (24 * 60 * 60 * 1000) : 999;
   
   let priority: RefreshPriority["priority"] = "low";
-  let reason: RefreshPriority["reason"] = "general_stale";
+  let reason = "";
   let recommendedAction: RefreshPriority["recommendedAction"] = "none";
   let freshnessScore = 100;
-  let specificActions: string[] = [];
 
-  // Critical priority conditions with specific reasons
+  // Critical priority conditions
   if (!anime.posterUrl || anime.posterUrl.includes('placehold.co')) {
     priority = "critical";
-    reason = "missing_poster";
+    reason = "Missing or placeholder poster";
     recommendedAction = "immediate";
     freshnessScore = 0;
-    specificActions = ["fetchBestQualityPoster"];
   }
   else if (!anime.lastFetchedFromExternal) {
     priority = "critical";
-    reason = "never_fetched";
+    reason = "Never fetched from external APIs";
     recommendedAction = "immediate";
     freshnessScore = 0;
-    specificActions = ["fetchCoreMetadataFromAniList", "fetchBestQualityPoster"];
   }
   else if (!anime.streamingEpisodes && anime.airingStatus === "RELEASING") {
     priority = "critical";
-    reason = "missing_episodes";
+    reason = "Currently airing but missing episode data";
     recommendedAction = "immediate";
     freshnessScore = 10;
-    specificActions = ["fetchStreamingEpisodesFromConsumet"];
   }
-  
-  // High priority conditions with specific reasons
+  // NEW: Make missing episode data HIGH priority for completed anime
   else if (!anime.streamingEpisodes && (anime.airingStatus === "FINISHED" || !anime.airingStatus)) {
     priority = "high";
-    reason = "missing_episodes";
+    reason = "Completed anime missing episode data";
     recommendedAction = "immediate";
     freshnessScore = 25;
-    specificActions = ["fetchStreamingEpisodesFromConsumet"];
   }
+
+  // High priority conditions
   else if (anime.airingStatus === "RELEASING" && daysSinceLastFetch > 3) {
     priority = "high";
-    reason = "airing_needs_update";
+    reason = "Currently airing anime with data older than 3 days";
     recommendedAction = "background";
     freshnessScore = Math.max(0, 70 - (daysSinceLastFetch * 10));
-    specificActions = ["fetchCoreMetadataFromAniList", "fetchStreamingEpisodesFromConsumet"];
   }
   else if (anime.nextAiringEpisode && daysSinceLastFetch > 1) {
     priority = "high";
-    reason = "airing_needs_update";
+    reason = "Has upcoming episode but data is over 1 day old";
     recommendedAction = "background";
     freshnessScore = Math.max(0, 80 - (daysSinceLastFetch * 15));
-    specificActions = ["fetchCoreMetadataFromAniList", "fetchStreamingEpisodesFromConsumet"];
   }
   else if (!anime.description || anime.description.length < 50) {
     priority = "high";
-    reason = "missing_metadata";
+    reason = "Missing or incomplete description";
     recommendedAction = "background";
     freshnessScore = 30;
-    specificActions = ["fetchCoreMetadataFromAniList"];
   }
+  // NEW: Prioritize anime with very few episodes when they should have more
   else if (anime.streamingEpisodes && anime.streamingEpisodes.length < 3 && anime.totalEpisodes && anime.totalEpisodes > 6) {
     priority = "high";
-    reason = "missing_episodes";
+    reason = "Has few episodes but should have more";
     recommendedAction = "background";
     freshnessScore = 35;
-    specificActions = ["fetchStreamingEpisodesFromConsumet"];
-  }
-  else if (!anime.characters || anime.characters.length === 0) {
-    priority = "high";
-    reason = "missing_characters";
-    recommendedAction = "background";
-    freshnessScore = 40;
-    specificActions = ["fetchCharacterListFromAniList"];
   }
 
-  // Medium priority conditions with specific reasons
+  // Medium priority conditions
   else if (daysSinceLastFetch > 14) {
     priority = "medium";
-    reason = "general_stale";
+    reason = "Data is over 2 weeks old";
     recommendedAction = "scheduled";
     freshnessScore = Math.max(0, 60 - (daysSinceLastFetch * 2));
-    specificActions = ["fetchCoreMetadataFromAniList"];
   }
   else if (!anime.studios || anime.studios.length === 0) {
     priority = "medium";
-    reason = "missing_metadata";
+    reason = "Missing studio information";
     recommendedAction = "scheduled";
     freshnessScore = 60;
-    specificActions = ["fetchCoreMetadataFromAniList"];
-  }
-  else if (anime.characters && anime.characters.length > 0 && daysSinceLastFetch > 30) {
-    priority = "medium";
-    reason = "stale_character_data";
-    recommendedAction = "scheduled";
-    freshnessScore = Math.max(20, 70 - (daysSinceLastFetch * 2));
-    specificActions = ["fetchCharacterListFromAniList"];
-  }
-  else if (anime.posterUrl && !anime.posterUrl.includes('placehold.co') && daysSinceLastFetch > 21) {
-    priority = "medium";
-    reason = "stale_poster";
-    recommendedAction = "scheduled";
-    freshnessScore = Math.max(30, 75 - (daysSinceLastFetch * 2));
-    specificActions = ["fetchBestQualityPoster"];
   }
 
   // Low priority conditions
   else if (daysSinceLastFetch > 7) {
     priority = "low";
-    reason = "general_stale";
+    reason = "Data is over 1 week old";
     recommendedAction = "scheduled";
     freshnessScore = Math.max(40, 90 - (daysSinceLastFetch * 3));
-    specificActions = ["fetchCoreMetadataFromAniList"];
   }
 
   // Fresh data - skip refresh
   else {
     priority = "skip";
-    reason = "fresh_data";
+    reason = "Data is fresh and complete";
     recommendedAction = "none";
     freshnessScore = Math.max(80, 100 - (daysSinceLastFetch * 5));
-    specificActions = [];
   }
 
-  return { priority, reason, recommendedAction, freshnessScore, specificActions };
+  return { priority, reason, recommendedAction, freshnessScore };
 };
 
-// ENHANCED: Smart auto-refresh function with specialized action orchestration
+// Smart auto-refresh function for individual anime
 export const smartAutoRefreshAnime = internalAction({
   args: {
     animeId: v.id("anime"),
@@ -180,8 +144,7 @@ export const smartAutoRefreshAnime = internalAction({
       v.literal("background"),    // Background scheduler
       v.literal("api_update")     // After other API updates
     )),
-    forceRefresh: v.optional(v.boolean()),
-    specificReason: v.optional(v.string()) // Allow forcing a specific refresh reason
+    forceRefresh: v.optional(v.boolean())
   },
   handler: async (ctx: ActionCtx, args): Promise<AutoRefreshResult> => {
     const triggerType = args.triggerType || "manual";
@@ -194,23 +157,16 @@ export const smartAutoRefreshAnime = internalAction({
     if (!anime) {
       return {
         refreshed: false,
-        priority: { 
-          priority: "skip", 
-          reason: "fresh_data", 
-          recommendedAction: "none", 
-          freshnessScore: 0,
-          specificActions: []
-        },
+        priority: { priority: "skip", reason: "Anime not found", recommendedAction: "none", freshnessScore: 0 },
         dataChanged: false,
         fieldsUpdated: [],
-        message: "Anime not found",
-        actionsUsed: []
+        message: "Anime not found"
       };
     }
 
-    // Calculate refresh priority with specific reasons
+    // Calculate refresh priority
     const priority = calculateRefreshPriority(anime);
-    console.log(`[Smart Auto-Refresh] ${anime.title} - Priority: ${priority.priority}, Reason: ${priority.reason}, Actions: ${priority.specificActions.join(", ")}`);
+    console.log(`[Smart Auto-Refresh] ${anime.title} - Priority: ${priority.priority}, Score: ${priority.freshnessScore}, Reason: ${priority.reason}`);
 
     // Determine if we should refresh based on trigger type and priority
     let shouldRefresh = forceRefresh;
@@ -218,19 +174,23 @@ export const smartAutoRefreshAnime = internalAction({
     if (!shouldRefresh) {
       switch (triggerType) {
         case "user_visit":
+          // Refresh on visit only for critical/high priority or very stale data
           shouldRefresh = priority.priority === "critical" || 
                          priority.priority === "high" || 
                          priority.freshnessScore < 30;
           break;
         case "background":
+          // Background refresh for critical/high/medium priority
           shouldRefresh = priority.priority === "critical" || 
                          priority.priority === "high" || 
                          priority.priority === "medium";
           break;
         case "manual":
+          // Manual refresh always goes through unless data is very fresh
           shouldRefresh = priority.freshnessScore < 95;
           break;
         case "api_update":
+          // API update trigger only for critical issues
           shouldRefresh = priority.priority === "critical";
           break;
       }
@@ -242,8 +202,7 @@ export const smartAutoRefreshAnime = internalAction({
         priority,
         dataChanged: false,
         fieldsUpdated: [],
-        message: `Skipped refresh - ${priority.reason} (score: ${priority.freshnessScore})`,
-        actionsUsed: []
+        message: `Skipped refresh - ${priority.reason} (score: ${priority.freshnessScore})`
       };
     }
 
@@ -252,246 +211,72 @@ export const smartAutoRefreshAnime = internalAction({
       posterUrl: anime.posterUrl,
       description: anime.description,
       streamingEpisodes: anime.streamingEpisodes?.length || 0,
-      characters: anime.characters?.length || 0,
       nextAiringEpisode: anime.nextAiringEpisode,
       studios: anime.studios?.length || 0,
       genres: anime.genres?.length || 0
     };
 
     try {
-      console.log(`[Smart Auto-Refresh] Refreshing ${anime.title} using specialized actions...`);
-      
-      const actionsUsed: string[] = [];
+      // Perform the refresh
+      console.log(`[Smart Auto-Refresh] Refreshing ${anime.title}...`);
+      const refreshResult = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+        animeIdInOurDB: args.animeId,
+        titleToSearch: anime.title
+      });
+
+      if (!refreshResult.success) {
+        return {
+          refreshed: false,
+          priority,
+          dataChanged: false,
+          fieldsUpdated: [],
+          message: `Refresh failed: ${refreshResult.message}`
+        };
+      }
+
+      // Get updated data to check what changed
+      const updatedAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId });
+      if (!updatedAnime) {
+        return {
+          refreshed: true,
+          priority,
+          dataChanged: false,
+          fieldsUpdated: [],
+          message: "Refreshed but could not verify changes"
+        };
+      }
+
+      // Detect what changed
       const fieldsUpdated: string[] = [];
       let dataChanged = false;
 
-      // NEW: Use switch statement based on specific reason to call specialized actions
-      switch (priority.reason) {
-        case "missing_poster":
-        case "stale_poster":
-          console.log(`[Smart Auto-Refresh] Fetching best quality poster for ${anime.title}`);
-          try {
-            const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
-              title: anime.title,
-              year: anime.year
-            });
-            
-            if (posterResult.success && posterResult.posterUrl) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates: { posterUrl: posterResult.posterUrl },
-                sourceApi: posterResult.source
-              });
-              actionsUsed.push("fetchBestQualityPoster");
-              fieldsUpdated.push("poster");
-              dataChanged = true;
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Poster fetch failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "missing_episodes":
-        case "stale_episodes":
-          console.log(`[Smart Auto-Refresh] Fetching streaming episodes for ${anime.title}`);
-          try {
-            const episodeResult = await ctx.runAction(internal.externalApis.fetchStreamingEpisodesFromConsumet, {
-              title: anime.title,
-              totalEpisodes: anime.totalEpisodes
-            });
-            
-            if (episodeResult.success && episodeResult.episodes.length > 0) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates: { 
-                  streamingEpisodes: episodeResult.episodes,
-                  totalEpisodes: episodeResult.totalEpisodes
-                },
-                sourceApi: episodeResult.source
-              });
-              actionsUsed.push("fetchStreamingEpisodesFromConsumet");
-              fieldsUpdated.push("episodes");
-              dataChanged = true;
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Episode fetch failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "missing_metadata":
-        case "stale_metadata":
-          console.log(`[Smart Auto-Refresh] Fetching core metadata for ${anime.title}`);
-          try {
-            const metadataResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
-              title: anime.title,
-              anilistId: anime.anilistId
-            });
-            
-            if (metadataResult.success && Object.keys(metadataResult.metadata).length > 0) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates: metadataResult.metadata,
-                sourceApi: metadataResult.source
-              });
-              actionsUsed.push("fetchCoreMetadataFromAniList");
-              fieldsUpdated.push("metadata");
-              dataChanged = true;
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Metadata fetch failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "missing_characters":
-        case "stale_character_data":
-          console.log(`[Smart Auto-Refresh] Fetching character data for ${anime.title}`);
-          try {
-            const charactersResult = await ctx.runAction(internal.externalApis.fetchCharacterListFromAniList, {
-              title: anime.title,
-              anilistId: anime.anilistId
-            });
-            
-            if (charactersResult.success && charactersResult.characters.length > 0) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates: { characters: charactersResult.characters },
-                sourceApi: charactersResult.source
-              });
-              actionsUsed.push("fetchCharacterListFromAniList");
-              fieldsUpdated.push("characters");
-              dataChanged = true;
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Character fetch failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "airing_needs_update":
-          console.log(`[Smart Auto-Refresh] Updating airing anime data for ${anime.title}`);
-          try {
-            // For airing anime, fetch both metadata and episodes
-            const [metadataResult, episodeResult] = await Promise.allSettled([
-              ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
-                title: anime.title,
-                anilistId: anime.anilistId
-              }),
-              ctx.runAction(internal.externalApis.fetchStreamingEpisodesFromConsumet, {
-                title: anime.title,
-                totalEpisodes: anime.totalEpisodes
-              })
-            ]);
-
-            let updates: any = {};
-            
-            if (metadataResult.status === 'fulfilled' && metadataResult.value.success) {
-              updates = { ...updates, ...metadataResult.value.metadata };
-              actionsUsed.push("fetchCoreMetadataFromAniList");
-              fieldsUpdated.push("metadata");
-              dataChanged = true;
-            }
-
-            if (episodeResult.status === 'fulfilled' && episodeResult.value.success && episodeResult.value.episodes.length > 0) {
-              updates.streamingEpisodes = episodeResult.value.episodes;
-              updates.totalEpisodes = episodeResult.value.totalEpisodes;
-              actionsUsed.push("fetchStreamingEpisodesFromConsumet");
-              fieldsUpdated.push("episodes");
-              dataChanged = true;
-            }
-
-            if (Object.keys(updates).length > 0) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates,
-                sourceApi: "multiple"
-              });
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Airing update failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "never_fetched":
-          console.log(`[Smart Auto-Refresh] Comprehensive data fetch for ${anime.title}`);
-          try {
-            // For never-fetched anime, get everything
-            const [metadataResult, posterResult, episodeResult, charactersResult] = await Promise.allSettled([
-              ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
-                title: anime.title
-              }),
-              ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
-                title: anime.title,
-                year: anime.year
-              }),
-              ctx.runAction(internal.externalApis.fetchStreamingEpisodesFromConsumet, {
-                title: anime.title
-              }),
-              ctx.runAction(internal.externalApis.fetchCharacterListFromAniList, {
-                title: anime.title
-              })
-            ]);
-
-            let updates: any = {};
-            
-            if (metadataResult.status === 'fulfilled' && metadataResult.value.success) {
-              updates = { ...updates, ...metadataResult.value.metadata };
-              actionsUsed.push("fetchCoreMetadataFromAniList");
-              fieldsUpdated.push("metadata");
-              dataChanged = true;
-            }
-
-            if (posterResult.status === 'fulfilled' && posterResult.value.success) {
-              updates.posterUrl = posterResult.value.posterUrl;
-              actionsUsed.push("fetchBestQualityPoster");
-              fieldsUpdated.push("poster");
-              dataChanged = true;
-            }
-
-            if (episodeResult.status === 'fulfilled' && episodeResult.value.success && episodeResult.value.episodes.length > 0) {
-              updates.streamingEpisodes = episodeResult.value.episodes;
-              updates.totalEpisodes = episodeResult.value.totalEpisodes;
-              actionsUsed.push("fetchStreamingEpisodesFromConsumet");
-              fieldsUpdated.push("episodes");
-              dataChanged = true;
-            }
-
-            if (charactersResult.status === 'fulfilled' && charactersResult.value.success && charactersResult.value.characters.length > 0) {
-              updates.characters = charactersResult.value.characters;
-              actionsUsed.push("fetchCharacterListFromAniList");
-              fieldsUpdated.push("characters");
-              dataChanged = true;
-            }
-
-            if (Object.keys(updates).length > 0) {
-              await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
-                animeId: args.animeId,
-                updates,
-                sourceApi: "multiple"
-              });
-            }
-          } catch (error: any) {
-            console.error(`[Smart Auto-Refresh] Comprehensive fetch failed for ${anime.title}:`, error.message);
-          }
-          break;
-
-        case "general_stale":
-        default:
-          console.log(`[Smart Auto-Refresh] General refresh for ${anime.title}`);
-          // Fallback to the existing comprehensive refresh
-          const refreshResult = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
-            animeIdInOurDB: args.animeId,
-            titleToSearch: anime.title
-          });
-
-          if (refreshResult.success) {
-            actionsUsed.push("triggerFetchExternalAnimeDetails");
-            fieldsUpdated.push("general");
-            dataChanged = true;
-          }
-          break;
+      if (originalData.posterUrl !== updatedAnime.posterUrl) {
+        fieldsUpdated.push("poster");
+        dataChanged = true;
+      }
+      if (originalData.description !== updatedAnime.description) {
+        fieldsUpdated.push("description");
+        dataChanged = true;
+      }
+      if (originalData.streamingEpisodes !== (updatedAnime.streamingEpisodes?.length || 0)) {
+        fieldsUpdated.push("episodes");
+        dataChanged = true;
+      }
+      if (JSON.stringify(originalData.nextAiringEpisode) !== JSON.stringify(updatedAnime.nextAiringEpisode)) {
+        fieldsUpdated.push("nextEpisode");
+        dataChanged = true;
+      }
+      if (originalData.studios !== (updatedAnime.studios?.length || 0)) {
+        fieldsUpdated.push("studios");
+        dataChanged = true;
+      }
+      if (originalData.genres !== (updatedAnime.genres?.length || 0)) {
+        fieldsUpdated.push("genres");
+        dataChanged = true;
       }
 
       const message = dataChanged 
-        ? `Updated: ${fieldsUpdated.join(", ")} using ${actionsUsed.join(", ")}` 
+        ? `Updated: ${fieldsUpdated.join(", ")}` 
         : "Refreshed but no new data found";
 
       console.log(`[Smart Auto-Refresh] ${anime.title} - ${message}`);
@@ -501,8 +286,7 @@ export const smartAutoRefreshAnime = internalAction({
         priority,
         dataChanged,
         fieldsUpdated,
-        message,
-        actionsUsed
+        message
       };
 
     } catch (error: any) {
@@ -512,14 +296,13 @@ export const smartAutoRefreshAnime = internalAction({
         priority,
         dataChanged: false,
         fieldsUpdated: [],
-        message: `Error: ${error.message}`,
-        actionsUsed: []
+        message: `Error: ${error.message}`
       };
     }
   }
 });
 
-// UPDATED: Batch smart refresh for multiple anime (keeping existing interface)
+// Batch smart refresh for multiple anime
 export const batchSmartAutoRefresh = internalAction({
   args: {
     animeIds: v.optional(v.array(v.id("anime"))),
@@ -564,6 +347,7 @@ export const batchSmartAutoRefresh = internalAction({
       
       animeToProcess = animeWithPriorities
         .filter(({ priority }: AnimeWithPriority) => {
+          // First check if priority is not "skip", then check if it's in the filter
           return priority.priority !== "skip" && priorityFilter.includes(priority.priority as "critical" | "high" | "medium" | "low");
         })
         .sort((a: AnimeWithPriority, b: AnimeWithPriority) => {
@@ -652,7 +436,7 @@ export const batchSmartAutoRefresh = internalAction({
   }
 });
 
-// Keep existing public actions (unchanged)
+// Public action for manual smart refresh
 export const callSmartAutoRefreshAnime = action({
   args: {
     animeId: v.id("anime"),
@@ -668,6 +452,7 @@ export const callSmartAutoRefreshAnime = action({
   }
 });
 
+// Public action for batch refresh
 export const callBatchSmartAutoRefresh = action({
   args: {
     animeIds: v.optional(v.array(v.id("anime"))),
@@ -682,49 +467,10 @@ export const callBatchSmartAutoRefresh = action({
   }
 });
 
-// NEW: Get detailed refresh recommendation for an anime
-export const getDetailedRefreshRecommendation = action({
-  args: { animeId: v.id("anime") },
-  handler: async (ctx: ActionCtx, args): Promise<{
-    priority: RefreshPriority["priority"];
-    reason: RefreshPriority["reason"];
-    recommendedAction: RefreshPriority["recommendedAction"];
-    freshnessScore: number;
-    specificActions: string[];
-    anime: {
-      title: string;
-      lastFetched?: number;
-      airingStatus?: string;
-      hasEpisodes: boolean;
-      hasPoster: boolean;
-      hasCharacters: boolean;
-    };
-  } | null> => {
-    const anime: Doc<"anime"> | null = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId });
-    if (!anime) {
-      return null;
-    }
-
-    const priority = calculateRefreshPriority(anime);
-    
-    return {
-      ...priority,
-      anime: {
-        title: anime.title,
-        lastFetched: anime.lastFetchedFromExternal?.timestamp,
-        airingStatus: anime.airingStatus,
-        hasEpisodes: !!(anime.streamingEpisodes?.length),
-        hasPoster: !!(anime.posterUrl && !anime.posterUrl.includes('placehold.co')),
-        hasCharacters: !!(anime.characters?.length)
-      }
-    };
-  }
-});
-
-// Keep existing bulk fix action (unchanged)
+// NEW: Bulk fix for existing anime missing episode data
 export const bulkFixMissingEpisodeData = action({
   args: {
-    dryRun: v.optional(v.boolean()),
+    dryRun: v.optional(v.boolean()), // Preview what would be fixed
     maxToProcess: v.optional(v.number())
   },
   handler: async (ctx: ActionCtx, args): Promise<{
@@ -745,6 +491,7 @@ export const bulkFixMissingEpisodeData = action({
     
     console.log(`[Bulk Episode Fix] ${dryRun ? 'DRY RUN - ' : ''}Finding anime missing episode data...`);
     
+    // Get all anime and find those missing episode data
     const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
     
     const animeMissingEpisodes = allAnime
@@ -753,11 +500,13 @@ export const bulkFixMissingEpisodeData = action({
         priority: calculateRefreshPriority(anime)
       }))
       .filter(({ anime, priority }) => {
-        return priority.reason === "missing_episodes" || 
-               priority.reason === "stale_episodes" ||
-               (!anime.streamingEpisodes || anime.streamingEpisodes.length === 0);
+        // Target anime that need episode data
+        return !anime.streamingEpisodes || 
+               anime.streamingEpisodes.length === 0 ||
+               (anime.streamingEpisodes.length < 3 && anime.totalEpisodes && anime.totalEpisodes > 6);
       })
       .sort((a, b) => {
+        // Prioritize by priority level and freshness score
         const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, skip: 4 };
         const aPriorityOrder = priorityOrder[a.priority.priority] || 5;
         const bPriorityOrder = priorityOrder[b.priority.priority] || 5;
@@ -787,13 +536,14 @@ export const bulkFixMissingEpisodeData = action({
       };
     }
 
-    // Process the anime using the enhanced smart refresh
+    // Actually process the anime
     console.log(`[Bulk Episode Fix] Processing ${animeMissingEpisodes.length} anime...`);
     
     let processed = 0;
     let fixed = 0;
     const errors: string[] = [];
 
+    // Process in small batches to avoid overwhelming APIs
     const batchSize = 3;
     
     for (let i = 0; i < animeMissingEpisodes.length; i += batchSize) {
@@ -832,6 +582,7 @@ export const bulkFixMissingEpisodeData = action({
 
       await Promise.all(batchPromises);
 
+      // Rate limiting between batches
       if (i + batchSize < animeMissingEpisodes.length) {
         console.log(`[Bulk Episode Fix] Waiting 4 seconds before next batch...`);
         await new Promise(resolve => setTimeout(resolve, 4000));
@@ -845,8 +596,44 @@ export const bulkFixMissingEpisodeData = action({
       found: animeMissingEpisodes.length,
       processed,
       fixed,
-      errors: errors.slice(0, 5),
+      errors: errors.slice(0, 5), // Limit error array
       animeList
+    };
+  }
+});
+
+// Get refresh recommendations for an anime
+export const getRefreshRecommendation = action({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    priority: RefreshPriority["priority"];
+    reason: string;
+    recommendedAction: RefreshPriority["recommendedAction"];
+    freshnessScore: number;
+    anime: {
+      title: string;
+      lastFetched?: number;
+      airingStatus?: string;
+      hasEpisodes: boolean;
+      hasPoster: boolean;
+    };
+  } | null> => {
+    const anime: Doc<"anime"> | null = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId });
+    if (!anime) {
+      return null;
+    }
+
+    const priority = calculateRefreshPriority(anime);
+    
+    return {
+      ...priority,
+      anime: {
+        title: anime.title,
+        lastFetched: anime.lastFetchedFromExternal?.timestamp,
+        airingStatus: anime.airingStatus,
+        hasEpisodes: !!(anime.streamingEpisodes?.length),
+        hasPoster: !!(anime.posterUrl && !anime.posterUrl.includes('placehold.co'))
+      }
     };
   }
 });

@@ -90,6 +90,26 @@ const enhancedUserProfileValidator = v.object({
     narrativePacing: v.optional(v.string()),
 });
 
+// Enhanced conversation context validator
+const conversationContextValidator = v.object({
+  messageHistory: v.array(v.object({
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    timestamp: v.number(),
+    actionType: v.optional(v.string()),
+  })),
+  userPreferences: v.optional(v.object({
+    genres: v.optional(v.array(v.string())),
+    dislikedGenres: v.optional(v.array(v.string())),
+    experienceLevel: v.optional(v.string()),
+    recentFeedback: v.optional(v.array(v.object({
+      recommendationTitle: v.string(),
+      feedbackType: v.union(v.literal("up"), v.literal("down")),
+      timestamp: v.number(),
+    }))),
+  })),
+});
+
 // Helper function for parsing AI responses
 const tryParseAIResponse = (jsonString: string | null, actionName: string): any[] | null => {
     if (!jsonString) {
@@ -117,142 +137,240 @@ const tryParseAIResponse = (jsonString: string | null, actionName: string): any[
     }
 };
 
-const fetchRealAnimePosterWithRetry = async (
-  ctx: any, // ActionCtx 
-  animeTitle: string, 
-  year?: number,
-  maxRetries: number = 1
-): Promise<string | null> => {
-  console.log(`[AI Poster Enhancement] Starting best-of-breed poster search for: "${animeTitle}"`);
-  
-  try {
-    // NEW: Use the specialized best quality poster fetching action
-    const posterResult = await ctx.runAction(internal.externalApis.fetchBestQualityPoster, {
-      title: animeTitle,
-      year: year
+export const getAllAnimeInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("anime").collect();
+  },
+});
+
+// Store AI feedback mutation
+export const storeAiFeedback = mutation({
+  args: {
+    prompt: v.string(),
+    aiAction: v.string(),
+    aiResponseRecommendations: v.optional(v.array(v.any())),
+    aiResponseText: v.optional(v.string()),
+    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.insert("aiInteractionFeedback", {
+      userId: "system" as any, // Replace with actual userId if available and authenticated
+      prompt: args.prompt,
+      aiAction: args.aiAction,
+      aiResponseRecommendations: args.aiResponseRecommendations,
+      aiResponseText: args.aiResponseText,
+      feedbackType: args.feedbackType,
+      messageId: args.messageId,
+      timestamp: Date.now(),
     });
     
-    if (posterResult.success && posterResult.posterUrl) {
-      console.log(`[AI Poster Enhancement] ✅ Found high-quality poster from ${posterResult.source}: "${animeTitle}"`);
-      return posterResult.posterUrl;
-    }
+    // Return the inserted ID if you need to use it in a condition
+    return result;
+  },
+});
+
+export const enhanceRecommendationsPosters = action({
+  args: {
+    recommendations: v.array(v.any()),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Poster Enhancement Action] Starting enhancement for ${args.recommendations.length} recommendations`);
     
-    // Fallback: If specialized action fails, try the enhanced database-first approach
-    console.log(`[AI Poster Enhancement] Specialized fetch failed, trying fallback for: "${animeTitle}"`);
-    
-    // Check database first for existing poster
-    const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
-      title: animeTitle 
-    });
-    
-    if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
-      console.log(`[AI Poster Enhancement] ✅ Found existing poster in database: "${animeTitle}"`);
-      return dbAnime.posterUrl;
-    }
-    
-    // If database doesn't have it, try individual specialized sources manually
-    console.log(`[AI Poster Enhancement] Trying individual sources for: "${animeTitle}"`);
-    
-    // Try TMDB directly
     try {
-      const tmdbResult = await ctx.runAction(internal.externalApis.fetchPosterFromTMDB, {
-        title: animeTitle,
-        year: year
+      const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, args.recommendations);
+      
+      console.log(`[Poster Enhancement Action] Successfully enhanced ${enhancedRecommendations.length} recommendations`);
+      
+      // Store feedback about the enhancement
+      await ctx.runMutation(api.ai.storeAiFeedback, {
+        prompt: "Poster enhancement request",
+        aiAction: "enhanceRecommendationsPosters",
+        aiResponseRecommendations: enhancedRecommendations,
+        feedbackType: "none",
+        messageId: args.messageId,
       });
       
-      if (tmdbResult.success && tmdbResult.posterUrl) {
-        console.log(`[AI Poster Enhancement] ✅ TMDB direct fetch succeeded: "${animeTitle}"`);
-        return tmdbResult.posterUrl;
-      }
-    } catch (tmdbError: any) {
-      console.warn(`[AI Poster Enhancement] TMDB direct fetch failed for "${animeTitle}":`, tmdbError.message);
+      return { 
+        recommendations: enhancedRecommendations, 
+        enhanced: enhancedRecommendations.length,
+        error: undefined 
+      };
+    } catch (error: any) {
+      console.error("[Poster Enhancement Action] Error:", error);
+      return { 
+        recommendations: args.recommendations, 
+        enhanced: 0,
+        error: `Enhancement failed: ${error.message}` 
+      };
     }
-    
-    // Try AniList metadata fetch
-    try {
-      const anilistResult = await ctx.runAction(internal.externalApis.fetchCoreMetadataFromAniList, {
-        title: animeTitle
-      });
-      
-      if (anilistResult.success && anilistResult.metadata.anilistId) {
-        // Use AniList ID to get poster with the original AniList function
-        const anilistPoster = await fetchAniListPosterById(anilistResult.metadata.anilistId);
-        if (anilistPoster) {
-          console.log(`[AI Poster Enhancement] ✅ AniList direct fetch succeeded: "${animeTitle}"`);
-          return anilistPoster;
-        }
-      }
-    } catch (anilistError: any) {
-      console.warn(`[AI Poster Enhancement] AniList direct fetch failed for "${animeTitle}":`, anilistError.message);
-    }
-    
-    // Final fallback: Return a high-quality placeholder
-    console.log(`[AI Poster Enhancement] 📝 All sources failed, using enhanced placeholder: "${animeTitle}"`);
-    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 30));
-    return `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-    
-  } catch (error: any) {
-    console.error(`[AI Poster Enhancement] Error for "${animeTitle}":`, error.message);
-    
-    // Emergency fallback
-    const encodedTitle = encodeURIComponent(animeTitle.substring(0, 30));
-    return `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-  }
-};
+  },
+});
 
-// Helper function to validate poster URLs
-const isValidPosterUrl = (posterUrl: any): boolean => {
-  if (!posterUrl || typeof posterUrl !== 'string') return false;
-  if (posterUrl.includes('placehold.co') || posterUrl.includes('placeholder')) return false;
-  if (!posterUrl.startsWith('https://')) return false;
-  return true;
-};
+const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: number = 1): Promise<string | null> => {
+  // Pre-defined mappings for common titles that have API naming differences
+  const titleMappings: { [key: string]: string[] } = {
+    "Demon Slayer": ["Kimetsu no Yaiba", "Demon Slayer: Kimetsu no Yaiba"],
+    "Attack on Titan": ["Shingeki no Kyojin", "Attack on Titan"],
+    "Dr. Stone": ["Dr. Stone", "Doctor Stone"],
+    "My Hero Academia": ["Boku no Hero Academia", "My Hero Academia"],
+    "One Piece": ["One Piece"],
+    "Jujutsu Kaisen": ["Jujutsu Kaisen"],
+    "Tokyo Ghoul": ["Tokyo Ghoul"],
+    "Death Note": ["Death Note"],
+    "Fullmetal Alchemist": ["Fullmetal Alchemist: Brotherhood", "Fullmetal Alchemist"],
+    "Your Name": ["Kimi no Na wa", "Your Name"],
+    "Spirited Away": ["Sen to Chihiro no Kamikakushi", "Spirited Away"]
+  };
 
-// Helper function to fetch poster directly from AniList by ID
-const fetchAniListPosterById = async (anilistId: number): Promise<string | null> => {
-  const anilistQuery = `
-    query ($id: Int) {
-      Media (id: $id, type: ANIME) {
-        id
-        coverImage { 
-          extraLarge 
-          large 
-          medium 
-        }
-      }
-    }
-  `;
+  // Get possible titles to search
+  const searchTitles = titleMappings[animeTitle] || [animeTitle];
   
-  try {
-    const response = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ 
-        query: anilistQuery, 
-        variables: { id: anilistId }
-      })
-    });
-    
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    const media = data?.data?.Media;
-    
-    if (media?.coverImage) {
-      return media.coverImage.extraLarge || 
-             media.coverImage.large || 
-             media.coverImage.medium || 
-             null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Real Poster Fetch] Attempt ${attempt + 1} for: "${animeTitle}"`);
+
+      // Try each possible title variant
+      for (const searchTitle of searchTitles) {
+        console.log(`[Real Poster Fetch] Trying variant: "${searchTitle}"`);
+        
+        // Clean the title for better search results
+        const cleanTitle = searchTitle
+          .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+          .replace(/\s+/g, ' ') // Normalize spaces
+          .trim();
+
+        // Try AniList first with shorter timeout for faster failure
+        try {
+          const anilistQuery = `
+            query ($search: String) {
+              Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
+                id
+                title { romaji english native }
+                coverImage { 
+                  extraLarge 
+                  large 
+                  medium 
+                }
+                averageScore
+              }
+            }
+          `;
+
+          const anilistController = new AbortController();
+          const anilistTimeout = setTimeout(() => anilistController.abort(), 4000); // Reduced to 4 seconds
+
+          const anilistResponse = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json',
+              'User-Agent': 'AniMuse-App/1.0'
+            },
+            body: JSON.stringify({ 
+              query: anilistQuery, 
+              variables: { search: cleanTitle }
+            }),
+            signal: anilistController.signal
+          });
+
+          clearTimeout(anilistTimeout);
+
+          if (anilistResponse.ok) {
+            const anilistData = await anilistResponse.json();
+            const media = anilistData?.data?.Media;
+            if (media?.coverImage) {
+              const posterUrl = media.coverImage.extraLarge || media.coverImage.large || media.coverImage.medium;
+              if (posterUrl && posterUrl.startsWith('https://')) {
+                console.log(`[Real Poster Fetch] ✅ AniList success for: "${searchTitle}" (ID: ${media.id})`);
+                
+                // Quick URL validation (no HEAD request to save time)
+                if (posterUrl.includes('anilist.co') || posterUrl.includes('media.anilist.co')) {
+                  return posterUrl;
+                }
+              }
+            }
+          }
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn(`[Real Poster Fetch] AniList timeout for: "${searchTitle}"`);
+          } else {
+            console.warn(`[Real Poster Fetch] AniList error for: "${searchTitle}":`, error.message);
+          }
+        }
+
+        // Small delay before trying Jikan
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Try Jikan API with shorter timeout
+        try {
+          const encodedTitle = encodeURIComponent(cleanTitle);
+          const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodedTitle}&limit=1&sfw`;
+          
+          const jikanController = new AbortController();
+          const jikanTimeout = setTimeout(() => jikanController.abort(), 4000); // Reduced to 4 seconds
+          
+          const jikanResponse = await fetch(jikanUrl, {
+            headers: { 
+              'Accept': 'application/json',
+              'User-Agent': 'AniMuse-App/1.0'
+            },
+            signal: jikanController.signal
+          });
+          
+          clearTimeout(jikanTimeout);
+          
+          if (jikanResponse.ok) {
+            const jikanData = await jikanResponse.json();
+            const anime = jikanData?.data?.[0];
+            if (anime?.images) {
+              const posterUrl = anime.images.jpg?.large_image_url || 
+                              anime.images.webp?.large_image_url || 
+                              anime.images.jpg?.image_url || 
+                              anime.images.webp?.image_url;
+              
+              if (posterUrl && posterUrl.startsWith('https://')) {
+                console.log(`[Real Poster Fetch] ✅ Jikan success for: "${searchTitle}" (MAL ID: ${anime.mal_id})`);
+                return posterUrl;
+              }
+            }
+          } else if (jikanResponse.status === 429) {
+            console.log(`[Real Poster Fetch] Rate limited on Jikan, skipping retries for: "${searchTitle}"`);
+            break; // Skip remaining variants if rate limited
+          }
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn(`[Real Poster Fetch] Jikan timeout for: "${searchTitle}"`);
+          } else {
+            console.warn(`[Real Poster Fetch] Jikan error for: "${searchTitle}":`, error.message);
+          }
+        }
+
+        // Delay between title variants
+        if (searchTitles.indexOf(searchTitle) < searchTitles.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+
+      // If we reach here, all title variants failed for this attempt
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 500; // Reduced wait time
+        console.log(`[Real Poster Fetch] All variants failed, waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+
+    } catch (error: any) {
+      console.error(`[Real Poster Fetch] Attempt ${attempt + 1} failed for "${animeTitle}":`, error.message);
     }
-    
-    return null;
-  } catch (error) {
-    console.error(`[AI Poster Enhancement] AniList by ID fetch failed for ${anilistId}:`, error);
-    return null;
   }
+
+  console.warn(`[Real Poster Fetch] ❌ All attempts failed for: "${animeTitle}"`);
+  return null;
 };
 
-// ENHANCED: Database-first enhancement that leverages specialized actions
+// Enhanced version that checks database first with better concurrency control
 const enhanceRecommendationsWithDatabaseFirst = async (
   ctx: any,
   recommendations: any[]
@@ -260,9 +378,9 @@ const enhanceRecommendationsWithDatabaseFirst = async (
   const enhancedRecommendations = [];
   const concurrentLimit = 2; // Process only 2 at a time to avoid overwhelming APIs
   
-  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with specialized actions...`);
+  console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with concurrency limit ${concurrentLimit}...`);
   
-  // Process recommendations in batches
+  // Process recommendations in batches to avoid connection timeouts
   for (let i = 0; i < recommendations.length; i += concurrentLimit) {
     const batch = recommendations.slice(i, i + concurrentLimit);
     
@@ -271,7 +389,6 @@ const enhanceRecommendationsWithDatabaseFirst = async (
         const globalIndex = i + batchIndex;
         let posterUrl = rec.posterUrl;
         let foundInDatabase = false;
-        let enhancedWithSpecializedAction = false;
         
         console.log(`[Database-First Enhancement] Processing (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
         
@@ -293,9 +410,6 @@ const enhanceRecommendationsWithDatabaseFirst = async (
               rec.year = rec.year || dbAnime.year;
               rec.rating = rec.rating || dbAnime.rating;
               rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
-              
-              // Add database ID for navigation
-              rec._id = dbAnime._id;
             } else {
               console.log(`[Database-First Enhancement] Not found in DB or poster invalid: ${rec.title}`);
             }
@@ -304,31 +418,24 @@ const enhanceRecommendationsWithDatabaseFirst = async (
           }
         }
         
-        // Step 2: If not found in DB or poster is invalid, use specialized poster fetching
-        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || !isValidPosterUrl(posterUrl))) {
-          console.log(`[Database-First Enhancement] 🔍 Using specialized poster fetching for: ${rec.title}`);
+        // Step 2: If not found in DB or poster is invalid, use external APIs
+        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
+          console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
           
           try {
-            // NEW: Use the enhanced poster fetching with specialized actions
-            const specializedPosterUrl = await fetchRealAnimePosterWithRetry(
-              ctx, 
-              rec.title, 
-              rec.year, 
-              0 // No retries for speed in AI context
-            );
+            const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 0); // No retries for speed
             
-            if (specializedPosterUrl && isValidPosterUrl(specializedPosterUrl)) {
-              posterUrl = specializedPosterUrl;
-              enhancedWithSpecializedAction = true;
-              console.log(`[Database-First Enhancement] ✅ Specialized action found poster: ${rec.title}`);
+            if (externalPosterUrl) {
+              posterUrl = externalPosterUrl;
+              console.log(`[Database-First Enhancement] ✅ Found external poster: ${rec.title}`);
             } else {
-              // Final fallback to enhanced placeholder
+              // Final fallback to placeholder
               const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
               posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
-              console.log(`[Database-First Enhancement] 📝 Using enhanced placeholder: ${rec.title}`);
+              console.log(`[Database-First Enhancement] 📝 Using fallback placeholder: ${rec.title}`);
             }
           } catch (error: any) {
-            console.error(`[Database-First Enhancement] Specialized fetch error for "${rec.title}":`, error.message);
+            console.error(`[Database-First Enhancement] External fetch error for "${rec.title}":`, error.message);
             const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
             posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
           }
@@ -341,9 +448,6 @@ const enhanceRecommendationsWithDatabaseFirst = async (
           description: rec.description || "No description available.",
           reasoning: rec.reasoning || "AI recommendation.",
           foundInDatabase,
-          enhancedWithSpecializedAction,
-          // Ensure moodMatchScore is present for compatibility
-          moodMatchScore: rec.moodMatchScore || 8
         };
       })
     );
@@ -357,148 +461,17 @@ const enhanceRecommendationsWithDatabaseFirst = async (
   }
   
   const dbHits = enhancedRecommendations.filter(rec => rec.foundInDatabase).length;
-  const specializedHits = enhancedRecommendations.filter(rec => rec.enhancedWithSpecializedAction).length;
   const realPostersFound = enhancedRecommendations.filter(rec => 
-    rec.posterUrl && isValidPosterUrl(rec.posterUrl)
+    rec.posterUrl && !rec.posterUrl.includes('placehold.co')
   ).length;
   
-  console.log(`[Database-First Enhancement] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Specialized: ${specializedHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
+  console.log(`[Database-First Enhancement] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
   
   return enhancedRecommendations;
 };
 
-export const storeAiFeedback = mutation({
-  args: {
-    prompt: v.string(),
-    aiAction: v.string(),
-    aiResponseRecommendations: v.optional(v.array(v.any())),
-    aiResponseText: v.optional(v.string()),
-    feedbackType: v.union(v.literal("up"), v.literal("down"), v.literal("none")),
-    messageId: v.string(),
-    userFeedback: v.optional(v.string()),
-    additionalContext: v.optional(v.any())
-  },
-  handler: async (ctx, args) => {
-    try {
-      // Store AI feedback for analytics and improvement
-      const feedbackId = await ctx.db.insert("aiFeedback", {
-        prompt: args.prompt,
-        aiAction: args.aiAction,
-        aiResponseRecommendations: args.aiResponseRecommendations,
-        aiResponseText: args.aiResponseText,
-        feedbackType: args.feedbackType,
-        messageId: args.messageId,
-        userFeedback: args.userFeedback,
-        additionalContext: args.additionalContext,
-        timestamp: Date.now()
-      });
-      
-      console.log(`[AI Feedback] Stored feedback for action ${args.aiAction}: ${args.feedbackType} (ID: ${feedbackId})`);
-      return feedbackId;
-      
-    } catch (error: any) {
-      // If the aiFeedback table doesn't exist yet, log the feedback instead
-      console.log(`[AI Feedback] ${args.aiAction} - ${args.feedbackType}:`, {
-        prompt: args.prompt.substring(0, 100) + "...",
-        messageId: args.messageId,
-        hasRecommendations: !!args.aiResponseRecommendations?.length,
-        hasText: !!args.aiResponseText?.length
-      });
-      
-      // Return a placeholder ID
-      return "logged" as any;
-    }
-  }
-});
 
-// Also add the missing conversationContextValidator at the top of the file:
-const conversationContextValidator = v.object({
-  messageHistory: v.array(v.object({
-    role: v.string(),
-    content: v.string(),
-    timestamp: v.optional(v.number())
-  })),
-  userPreferences: v.optional(v.object({
-    genres: v.optional(v.array(v.string())),
-    dislikedGenres: v.optional(v.array(v.string())),
-    experienceLevel: v.optional(v.string()),
-    favoriteAnimes: v.optional(v.array(v.string())),
-    moods: v.optional(v.array(v.string()))
-  })),
-  sessionContext: v.optional(v.object({
-    sessionId: v.optional(v.string()),
-    previousQueries: v.optional(v.array(v.string())),
-    currentTopic: v.optional(v.string())
-  }))
-});
-
-// NEW: Action to test the enhanced AI poster fetching system
-export const testEnhancedAIPosterFetching = action({
-  args: {
-    animeTitles: v.array(v.string()),
-    messageId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`[Test Enhanced AI Poster] Testing enhanced poster fetching for: ${args.animeTitles.join(", ")}`);
-
-    const results: Array<{
-      title: string;
-      posterUrl: string | null;
-      source: string;
-      success: boolean;
-      isReal: boolean;
-      method: string;
-      error?: string;
-    }> = [];
-    
-    for (const title of args.animeTitles) {
-      try {
-        console.log(`[Test Enhanced AI Poster] Testing: ${title}`);
-        
-        const posterUrl = await fetchRealAnimePosterWithRetry(ctx, title, undefined, 1);
-        
-        const isReal = !!(posterUrl && isValidPosterUrl(posterUrl));
-        
-        results.push({
-          title,
-          posterUrl,
-          source: "specialized_actions",
-          success: !!posterUrl,
-          isReal,
-          method: "enhanced_fetchRealAnimePosterWithRetry"
-        });
-        
-        // Small delay between tests
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error: any) {
-        results.push({
-          title,
-          posterUrl: null,
-          source: "error",
-          success: false,
-          isReal: false,
-          method: "enhanced_fetchRealAnimePosterWithRetry",
-          error: error.message
-        });
-      }
-    }
-    
-    console.log(`[Test Enhanced AI Poster] Results:`, results);
-    
-    await ctx.runMutation(api.ai.storeAiFeedback, {
-      prompt: `Enhanced AI poster test for: ${args.animeTitles.join(", ")}`,
-      aiAction: "testEnhancedAIPosterFetching",
-      aiResponseText: JSON.stringify(results),
-      feedbackType: "none",
-      messageId: args.messageId,
-    });
-    
-    return { results };
-  },
-});
-
-// Enhanced AI recommendation function that uses the new poster system
-export const getEnhancedAnimeRecommendationsWithBestPosters = action({
+export const getAnimeRecommendationWithBetterLogging = action({
   args: {
     prompt: v.string(),
     userProfile: v.optional(enhancedUserProfileValidator),
@@ -510,21 +483,21 @@ export const getEnhancedAnimeRecommendationsWithBestPosters = action({
       return { recommendations: [], error: "OpenAI API key not configured." };
     }
 
-    console.log(`[Enhanced AI Recommendations] Starting recommendation generation with best-of-breed poster fetching...`);
+    console.log(`[AI Recommendations] Starting recommendation generation for prompt: "${args.prompt}"`);
 
-    // [Same system prompt logic as the original function]
     let systemPrompt = `You are AniMuse AI, an expert anime recommendation assistant.
 Your goal is to provide high-quality anime recommendations based on the user's prompt.
 Consider the user's profile if provided to tailor suggestions.
 Output a JSON object with a single key "recommendations", which is an array of 3-${args.count || 3} anime.
 
-IMPORTANT: For posterUrl, put "PLACEHOLDER" - our enhanced system will fetch the highest quality posters from multiple sources automatically.
+IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
 
 Each anime object should have: 
 - title (string, REQUIRED): The exact title of the anime
 - description (string): A brief synopsis  
 - reasoning (string): Why it matches the prompt/profile
-- posterUrl: Always use "PLACEHOLDER" 
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
 - genres (array of strings): Key genres
 - year (number): Release year if known
 - rating (number 0-10): External average rating if known
@@ -549,7 +522,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
     let errorResult: string | undefined = undefined;
 
     try {
-      console.log(`[Enhanced AI Recommendations] Calling OpenAI API...`);
+      console.log(`[AI Recommendations] Calling OpenAI API...`);
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -560,44 +533,40 @@ Focus on providing diverse and relevant choices with accurate information.`;
         response_format: { type: "json_object" },
       });
 
-      console.log(`[Enhanced AI Recommendations] OpenAI response received, parsing...`);
-      const parsed = tryParseAIResponse(completion.choices[0].message.content, "getEnhancedAnimeRecommendationsWithBestPosters");
+      console.log(`[AI Recommendations] OpenAI response received, parsing...`);
+      const parsed = tryParseAIResponse(completion.choices[0].message.content, "getAnimeRecommendation");
       
       if (parsed) {
         const rawRecommendations = parsed.slice(0, args.count || 3);
-        console.log(`[Enhanced AI Recommendations] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, posterUrl: r.posterUrl })));
+        console.log(`[AI Recommendations] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, posterUrl: r.posterUrl })));
         
-        console.log(`[Enhanced AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with specialized poster fetching...`);
+        console.log(`[AI Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
         const startTime = Date.now();
-        
-        // NEW: Use the enhanced database-first approach with specialized actions
         recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
-        
         const enhancementTime = Date.now() - startTime;
         
-        console.log(`[Enhanced AI Recommendations] Poster enhancement completed in ${enhancementTime}ms`);
-        console.log(`[Enhanced AI Recommendations] Final recommendations:`, recommendations.map(r => ({ 
+        console.log(`[AI Recommendations] Poster enhancement completed in ${enhancementTime}ms`);
+        console.log(`[AI Recommendations] Final recommendations:`, recommendations.map(r => ({ 
           title: r.title, 
           posterUrl: r.posterUrl?.substring(0, 50) + "...",
-          isReal: isValidPosterUrl(r.posterUrl),
-          foundInDatabase: r.foundInDatabase,
-          enhancedWithSpecializedAction: r.enhancedWithSpecializedAction
+          isReal: !r.posterUrl?.includes('placehold.co')
         })));
         
-        console.log(`[Enhanced AI Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
+        console.log(`[AI Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
       } else {
         errorResult = "AI response format error or no recommendations found.";
-        console.error(`[Enhanced AI Recommendations] Parse error: ${errorResult}`);
+        console.error(`[AI Recommendations] Parse error: ${errorResult}`);
       }
     } catch (err: any) {
-      console.error("[Enhanced AI Recommendations] Error:", err);
+      console.error("[AI Action - GetAnimeRecommendation] Error:", err);
       errorResult = `AI Error: ${err.message || "Unknown"}`;
     } finally {
+      // FIXED: Don't use the result of runMutation in a condition
       if (args.messageId) {
         try {
           await ctx.runMutation(api.ai.storeAiFeedback, {
             prompt: args.prompt,
-            aiAction: "getEnhancedAnimeRecommendationsWithBestPosters",
+            aiAction: "getAnimeRecommendation",
             aiResponseRecommendations: recommendations.length ? recommendations : undefined,
             aiResponseText: recommendations.length === 0 ? errorResult : undefined,
             feedbackType: "none",
@@ -608,17 +577,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
         }
       }
     }
-    
-    return { 
-      recommendations, 
-      error: errorResult,
-      debug: {
-        dbHits: recommendations.filter(r => r.foundInDatabase).length,
-        specializedHits: recommendations.filter(r => r.enhancedWithSpecializedAction).length,
-        totalRecommendations: recommendations.length,
-        realPosters: recommendations.filter(r => isValidPosterUrl(r.posterUrl)).length
-      }
-    };
+    return { recommendations, error: errorResult };
   },
 });
 // *******************************************************************
@@ -1627,12 +1586,12 @@ export const getSimilarAnimeFromDB = action({
         // For now, let's use AI to find similar anime instead of querying all anime
         // This is more efficient and can provide better recommendations
         
-        const aiRecommendations = await ctx.runAction(api.ai.getEnhancedAnimeRecommendationsWithBestPosters, {
-    prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
-    userProfile: args.userProfile,
-    count: args.count || 5,
-    messageId: args.messageId,
-});
+        const aiRecommendations = await ctx.runAction(api.ai.getAnimeRecommendationWithBetterLogging, {
+            prompt: `Find anime similar to ${targetAnime.title}. Looking for anime with similar genres: ${targetAnime.genres?.join(", ") || "N/A"}, themes: ${targetAnime.themes?.join(", ") || "N/A"}, and tone.`,
+            userProfile: args.userProfile,
+            count: args.count || 5,
+            messageId: args.messageId,
+        });
 
         if (aiRecommendations.error) {
             return { recommendations: [], error: aiRecommendations.error };
@@ -2416,7 +2375,7 @@ export const testPosterFetching = action({
     for (const title of args.animeTitles) {
       try {
         console.log(`[Debug Poster Test] Testing: ${title}`);
-        const posterUrl = await fetchRealAnimePosterWithRetry(ctx, title, undefined, 1);
+        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
         
         results.push({
           title,
@@ -2579,7 +2538,7 @@ export const debugPosterUrls = action({
         console.log(`[Debug Poster URLs] Testing: ${title}`);
         
         // Test the poster fetching function
-        const posterUrl = await fetchRealAnimePosterWithRetry(ctx, title, undefined, 1);
+        const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
         
         const result = {
           title,
@@ -2630,6 +2589,10 @@ export const debugPosterUrls = action({
     return { results };
   },
 });
+
+function isValidPosterUrl(posterUrl: any) {
+  throw new Error("Function not implemented.");
+}
 
 export const debugAnimeAddition = action({
   args: {
