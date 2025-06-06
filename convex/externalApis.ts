@@ -7,18 +7,350 @@ import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
 
-// Helper Functions
+// Enhanced interfaces for type safety
+interface ExternalApiResult {
+  success: boolean;
+  message: string;
+  details?: any;
+  source?: string;
+}
+
+interface EnhancedBatchResult {
+  success: boolean;
+  message: string;
+  totalProcessed: number;
+  totalEnhanced: number;
+  errors: string[];
+}
+
+// Keep existing BatchEnhancementResult for compatibility with other functions
+interface BatchEnhancementResult {
+  enhancedCount: number;
+  error?: string;
+}
+
+// Enhanced timeout and fallback functionality from animeApis.ts
+const DEFAULT_TIMEOUT_MS = 7000;
+
+// Helper to add timeout support to fetch
+async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> {
+  const { timeout, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout ?? DEFAULT_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...fetchOptions, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+// Enhanced image quality selection (improved from your existing version)
+const selectBestImageUrl = (images: any, source: 'anilist' | 'jikan' | 'tmdb' | 'kitsu' = 'anilist'): string | undefined => {
+    if (!images) return undefined;
+    
+    switch (source) {
+        case 'anilist':
+            // AniList image priority: extraLarge > large > medium
+            if (images.extraLarge) return images.extraLarge;
+            if (images.large) return images.large;
+            if (images.medium) return images.medium;
+            break;
+            
+        case 'jikan':
+            // Jikan image priority: large_image_url > image_url > small_image_url
+            if (images.jpg?.large_image_url) return images.jpg.large_image_url;
+            if (images.webp?.large_image_url) return images.webp.large_image_url;
+            if (images.jpg?.image_url) return images.jpg.image_url;
+            if (images.webp?.image_url) return images.webp.image_url;
+            break;
+            
+        case 'tmdb':
+            // TMDb returns poster_path, needs to be constructed
+            if (images.poster_path) return `https://image.tmdb.org/t/p/w500${images.poster_path}`;
+            break;
+            
+        case 'kitsu':
+            // Kitsu image priority
+            if (images.posterImage?.original) return images.posterImage.original;
+            if (images.posterImage?.large) return images.posterImage.large;
+            break;
+    }
+    
+    return undefined;
+};
+
+
+// Enhanced poster fetching with multiple fallbacks (from animeApis.ts)
+const fetchPosterWithFallbacks = async (searchTerm: string, existingUrl?: string): Promise<string | null> => {
+    // Skip if we already have a good poster
+    if (existingUrl && !existingUrl.includes('placehold') && !existingUrl.includes('placeholder')) {
+        return existingUrl;
+    }
+
+    console.log(`[Enhanced Poster Fetch] Searching for poster: "${searchTerm}"`);
+
+    // 1. TMDb - requires an API key
+    const tmdbKey = process.env.TMDB_API_KEY; // You'll need to add this to your Convex environment
+    if (tmdbKey) {
+        try {
+            const tmdbUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(searchTerm)}`;
+            const res = await fetchWithTimeout(tmdbUrl, { timeout: DEFAULT_TIMEOUT_MS });
+            if (res.ok) {
+                const data = await res.json();
+                const posterPath = data?.results?.[0]?.poster_path;
+                if (posterPath) {
+                    const poster = `https://image.tmdb.org/t/p/w500${posterPath}`;
+                    console.log(`[Enhanced Poster Fetch] Found TMDb poster: ${poster}`);
+                    return poster;
+                }
+            }
+        } catch (err) {
+            console.error('[Enhanced Poster Fetch] TMDb failed:', err);
+        }
+    }
+
+    // 2. AniList fallback
+    try {
+        const query = `query ($search: String) { Media(search: $search, type: ANIME) { coverImage { extraLarge large medium } } }`;
+        const res = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables: { search: searchTerm } }),
+            timeout: DEFAULT_TIMEOUT_MS,
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const poster = selectBestImageUrl(data?.data?.Media?.coverImage, 'anilist');
+            if (poster) {
+                console.log(`[Enhanced Poster Fetch] Found AniList poster: ${poster}`);
+                return poster;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Poster Fetch] AniList failed:', err);
+    }
+
+    // 3. Jikan fallback
+    try {
+        const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(searchTerm)}&limit=1&sfw`;
+        const res = await fetchWithTimeout(url, { timeout: DEFAULT_TIMEOUT_MS });
+        if (res.ok) {
+            const data = await res.json();
+            const poster = selectBestImageUrl(data?.data?.[0]?.images, 'jikan');
+            if (poster) {
+                console.log(`[Enhanced Poster Fetch] Found Jikan poster: ${poster}`);
+                return poster;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Poster Fetch] Jikan failed:', err);
+    }
+
+    // 4. Kitsu fallback
+    try {
+        const url = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(searchTerm)}`;
+        const res = await fetchWithTimeout(url, { timeout: DEFAULT_TIMEOUT_MS });
+        if (res.ok) {
+            const data = await res.json();
+            const poster = selectBestImageUrl(data?.data?.[0]?.attributes, 'kitsu');
+            if (poster) {
+                console.log(`[Enhanced Poster Fetch] Found Kitsu poster: ${poster}`);
+                return poster;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Poster Fetch] Kitsu failed:', err);
+    }
+
+    console.log(`[Enhanced Poster Fetch] No poster found for: "${searchTerm}"`);
+    return null;
+};
+
+// Enhanced episode fetching with multiple fallbacks
+const fetchEpisodesWithFallbacks = async (idOrTitle: string | number, existingEpisodes?: any[]): Promise<any[] | null> => {
+    // Skip if we already have recent episode data
+    if (existingEpisodes && existingEpisodes.length > 0) {
+        return existingEpisodes;
+    }
+
+    console.log(`[Enhanced Episode Fetch] Searching for episodes: "${idOrTitle}"`);
+
+    // 1. AniList (primary source for episode data)
+    try {
+        const query = `query ($id: Int, $search: String) { 
+            Media(id: $id, search: $search, type: ANIME) { 
+                streamingEpisodes { title thumbnail url site }
+                episodes
+            } 
+        }`;
+        const variables: Record<string, any> = typeof idOrTitle === 'number' ? { id: idOrTitle } : { search: idOrTitle };
+        const res = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables }),
+            timeout: DEFAULT_TIMEOUT_MS,
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const eps = data?.data?.Media?.streamingEpisodes || [];
+            if (eps.length > 0) {
+                console.log(`[Enhanced Episode Fetch] Found ${eps.length} AniList episodes`);
+                return eps.map((ep: any) => ({
+                    title: ep.title || `Episode ${eps.indexOf(ep) + 1}`,
+                    thumbnail: ep.thumbnail,
+                    url: ep.url,
+                    site: ep.site,
+                }));
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Episode Fetch] AniList failed:', err);
+    }
+
+    // 2. Shikimori fallback
+    try {
+        const query = typeof idOrTitle === 'number' 
+            ? `https://shikimori.one/api/animes/${idOrTitle}/episodes` 
+            : `https://shikimori.one/api/animes?search=${encodeURIComponent(String(idOrTitle))}`;
+        const res = await fetchWithTimeout(query, { timeout: DEFAULT_TIMEOUT_MS });
+        if (res.ok) {
+            const data = await res.json();
+            const eps = Array.isArray(data)
+                ? data.map((ep: any) => ({ title: ep.name, url: ep.url }))
+                : data?.episodes?.map((ep: any) => ({ title: ep.russian || ep.name, url: ep.url })) || [];
+            if (eps.length > 0) {
+                console.log(`[Enhanced Episode Fetch] Found ${eps.length} Shikimori episodes`);
+                return eps;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Episode Fetch] Shikimori failed:', err);
+    }
+
+    // 3. Jikan fallback
+    try {
+        const url = typeof idOrTitle === 'number'
+            ? `https://api.jikan.moe/v4/anime/${idOrTitle}/episodes`
+            : `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(String(idOrTitle))}&limit=1&sfw`;
+        const res = await fetchWithTimeout(url, { timeout: DEFAULT_TIMEOUT_MS });
+        if (res.ok) {
+            const data = await res.json();
+            const eps = data?.data?.episodes || data?.data?.[0]?.episodes || [];
+            if (eps.length > 0) {
+                console.log(`[Enhanced Episode Fetch] Found ${eps.length} Jikan episodes`);
+                return eps;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Episode Fetch] Jikan failed:', err);
+    }
+
+    return null;
+};
+
+// Enhanced character fetching with multiple fallbacks
+const fetchCharactersWithFallbacks = async (animeId: string | number, existingCharacters?: any[]): Promise<any[] | null> => {
+    // Skip if we already have recent character data
+    if (existingCharacters && existingCharacters.length > 0) {
+        return existingCharacters;
+    }
+
+    console.log(`[Enhanced Character Fetch] Searching for characters: "${animeId}"`);
+
+    // 1. AniList (primary source for character data)
+    try {
+        const query = `query ($id: Int) { 
+            Media(id: $id, type: ANIME) { 
+                characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 20) { 
+                    edges { 
+                        role
+                        voiceActors { 
+                            id name { full } image { large } languageV2 
+                        }
+                        node { 
+                            id name { full userPreferred } image { large } 
+                            description age gender bloodType 
+                            dateOfBirth { year month day }
+                        } 
+                    } 
+                } 
+            } 
+        }`;
+        const variables = { id: typeof animeId === 'number' ? animeId : parseInt(animeId) };
+        const res = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables }),
+            timeout: DEFAULT_TIMEOUT_MS,
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const edges = data?.data?.Media?.characters?.edges || [];
+            if (edges.length > 0) {
+                const chars = edges.map((edge: any) => ({
+                    id: edge.node?.id,
+                    name: edge.node?.name?.userPreferred || edge.node?.name?.full,
+                    imageUrl: edge.node?.image?.large,
+                    description: edge.node?.description,
+                    role: edge.role,
+                    age: edge.node?.age,
+                    gender: edge.node?.gender,
+                    bloodType: edge.node?.bloodType,
+                    dateOfBirth: edge.node?.dateOfBirth,
+                    voiceActors: edge.voiceActors?.map((va: any) => ({
+                        id: va.id,
+                        name: va.name?.full,
+                        language: va.languageV2,
+                        imageUrl: va.image?.large,
+                    })) || [],
+                }));
+                console.log(`[Enhanced Character Fetch] Found ${chars.length} AniList characters`);
+                return chars;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Character Fetch] AniList failed:', err);
+    }
+
+    // 2. Jikan fallback
+    try {
+        const url = `https://api.jikan.moe/v4/anime/${animeId}/characters`;
+        const res = await fetchWithTimeout(url, { timeout: DEFAULT_TIMEOUT_MS });
+        if (res.ok) {
+            const data = await res.json();
+            const chars = (data?.data || []).map((c: any) => ({
+                id: c.character?.mal_id,
+                name: c.character?.name,
+                imageUrl: c.character?.images?.jpg?.image_url,
+                description: c.character?.about,
+                role: c.role,
+            }));
+            if (chars.length > 0) {
+                console.log(`[Enhanced Character Fetch] Found ${chars.length} Jikan characters`);
+                return chars;
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Character Fetch] Jikan failed:', err);
+    }
+
+    return null;
+};
+
+// Your existing helper functions (keep these as they are)
 const getString = (obj: any, path: string, defaultValue?: string): string | undefined => {
     const value = path.split('.').reduce((o, p) => (o && o[p] !== undefined && o[p] !== null) ? o[p] : undefined, obj);
     if (value === undefined || value === null) return defaultValue;
     return String(value);
 };
+
 const getNumber = (obj: any, path: string, defaultValue?: number): number | undefined => {
     const value = path.split('.').reduce((o, p) => (o && o[p] !== undefined && o[p] !== null) ? o[p] : undefined, obj);
     if (value === undefined || value === null) return defaultValue;
     const num = parseFloat(String(value));
     return isNaN(num) ? defaultValue : num;
 };
+
 const getStringArray = (obj: any, path: string, nameField: string = "name"): string[] | undefined => {
     const arr = path.split('.').reduce((o, p) => (o && o[p]) ? o[p] : undefined, obj);
     if (Array.isArray(arr)) {
@@ -27,6 +359,208 @@ const getStringArray = (obj: any, path: string, nameField: string = "name"): str
     }
     return undefined;
 };
+
+// Enhanced main fetch function with improved fallbacks
+export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
+  args: { animeIdInOurDB: v.id("anime"), titleToSearch: v.string() },
+  handler: async (ctx: ActionCtx, args): Promise<ExternalApiResult> => {
+    const existingAnime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeIdInOurDB });
+    if (!existingAnime) return { success: false, message: "Internal: Anime not found." };
+
+    console.log(`[Enhanced External API] Processing: "${existingAnime.title}"`);
+
+    // Enhanced poster fetching with multiple fallbacks
+    const enhancedPosterUrl = await fetchPosterWithFallbacks(args.titleToSearch, existingAnime.posterUrl);
+    
+    // Enhanced episode fetching with multiple fallbacks
+    const enhancedEpisodes = await fetchEpisodesWithFallbacks(
+        existingAnime.anilistId || args.titleToSearch, 
+        existingAnime.streamingEpisodes
+    );
+    
+    // Enhanced character fetching with multiple fallbacks
+    const enhancedCharacters = await fetchCharactersWithFallbacks(
+        existingAnime.anilistId || args.titleToSearch,
+        existingAnime.characters
+    );
+
+    // Prepare updates
+    const updates: Partial<Omit<Doc<"anime">, "title" | "_id" | "_creationTime">> = {};
+    let enhancementCount = 0;
+    const sources: string[] = [];
+
+    if (enhancedPosterUrl && enhancedPosterUrl !== existingAnime.posterUrl) {
+        updates.posterUrl = enhancedPosterUrl;
+        enhancementCount++;
+        sources.push('poster');
+    }
+
+    if (enhancedEpisodes && enhancedEpisodes.length > 0) {
+        updates.streamingEpisodes = enhancedEpisodes;
+        updates.totalEpisodes = enhancedEpisodes.length;
+        enhancementCount++;
+        sources.push('episodes');
+    }
+
+    if (enhancedCharacters && enhancedCharacters.length > 0) {
+        updates.characters = enhancedCharacters;
+        enhancementCount++;
+        sources.push('characters');
+    }
+
+    // Apply updates if any enhancements were found
+    if (Object.keys(updates).length > 0) {
+        updates.lastFetchedFromExternal = {
+            timestamp: Date.now(),
+            source: 'enhanced_fallback_apis',
+        };
+
+        await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+            animeId: args.animeIdInOurDB,
+            updates,
+            sourceApi: 'enhanced_fallback_apis',
+        });
+
+        return {
+            success: true,
+            message: `Enhanced ${enhancementCount} data fields: ${sources.join(', ')}`,
+            source: 'enhanced_fallback_apis',
+            details: { enhanced: sources, episodeCount: enhancedEpisodes?.length || 0, characterCount: enhancedCharacters?.length || 0 }
+        };
+    }
+
+    return {
+        success: true,
+        message: "No new enhancements needed - data is already up to date",
+        source: 'enhanced_fallback_apis'
+    };
+  },
+});
+
+// Public action to call the enhanced version
+export const callEnhancedFetchExternalAnimeDetails = action({
+  args: { animeIdInOurDB: v.id("anime"), titleToSearch: v.string() },
+  handler: async (ctx: ActionCtx, args): Promise<ExternalApiResult> => {
+    return await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, args);
+  },
+});
+
+// Enhanced batch processing with better error handling and rate limiting
+export const batchEnhanceAnimeWithFallbacks = internalAction({
+  args: {
+    batchSize: v.optional(v.number()),
+    maxAnimeToProcess: v.optional(v.number()),
+    prioritizeMissingData: v.optional(v.boolean()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<EnhancedBatchResult> => {
+    const batchSize = args.batchSize || 3; // Smaller batches for more API calls
+    const maxAnimeToProcess = args.maxAnimeToProcess || 15;
+    const prioritizeMissingData = args.prioritizeMissingData ?? true;
+    
+    console.log(`[Enhanced Batch Processing] Starting enhanced batch processing...`);
+    
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    
+    // Prioritize anime with missing data
+    const animeNeedingEnhancement = allAnime
+      .filter((anime: Doc<"anime">) => {
+        if (prioritizeMissingData) {
+          // Prioritize anime with missing posters, episodes, or characters
+          const missingPoster = !anime.posterUrl || anime.posterUrl.includes('placeholder');
+          const missingEpisodes = !anime.streamingEpisodes || anime.streamingEpisodes.length === 0;
+          const missingCharacters = !anime.characters || anime.characters.length === 0;
+          const oldData = !anime.lastFetchedFromExternal || 
+                         (Date.now() - anime.lastFetchedFromExternal.timestamp) > (7 * 24 * 60 * 60 * 1000);
+          
+          return missingPoster || missingEpisodes || missingCharacters || oldData;
+        }
+        return true;
+      })
+      .slice(0, maxAnimeToProcess);
+
+    if (animeNeedingEnhancement.length === 0) {
+      return {
+        success: true,
+        message: "No anime need enhancement",
+        totalProcessed: 0,
+        totalEnhanced: 0,
+        errors: []
+      };
+    }
+
+    console.log(`[Enhanced Batch Processing] Processing ${animeNeedingEnhancement.length} anime with enhanced fallbacks`);
+    
+    let totalProcessed = 0;
+    let totalEnhanced = 0;
+    const errors: string[] = [];
+
+    // Process in smaller batches with longer delays due to multiple API calls per anime
+    for (let i = 0; i < animeNeedingEnhancement.length; i += batchSize) {
+      const batch = animeNeedingEnhancement.slice(i, i + batchSize);
+      
+      console.log(`[Enhanced Batch Processing] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(animeNeedingEnhancement.length / batchSize)}`);
+
+      for (const anime of batch) {
+        try {
+          console.log(`[Enhanced Batch Processing] Processing: ${anime.title}`);
+          
+          const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, {
+            animeIdInOurDB: anime._id,
+            titleToSearch: anime.title
+          });
+          
+          totalProcessed++;
+          
+          if (result.success && result.details?.enhanced?.length > 0) {
+            totalEnhanced++;
+            console.log(`[Enhanced Batch Processing] ✅ Enhanced: ${anime.title} (${result.details.enhanced.join(', ')})`);
+          } else {
+            console.log(`[Enhanced Batch Processing] ⚪ Processed: ${anime.title} - ${result.message}`);
+          }
+          
+          // Longer delay between requests due to multiple API calls
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+        } catch (error: any) {
+          totalProcessed++;
+          const errorMsg = `${anime.title}: ${error.message}`;
+          errors.push(errorMsg);
+          console.error(`[Enhanced Batch Processing] Error processing ${anime.title}:`, error.message);
+        }
+      }
+      
+      // Longer delay between batches
+      if (i + batchSize < animeNeedingEnhancement.length) {
+        console.log(`[Enhanced Batch Processing] Waiting 10 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
+    }
+    
+    const message = `Enhanced batch processing completed! Processed: ${totalProcessed}, Enhanced: ${totalEnhanced}, Errors: ${errors.length}`;
+    console.log(`[Enhanced Batch Processing] ${message}`);
+    
+    return {
+      success: true,
+      message,
+      totalProcessed,
+      totalEnhanced,
+      errors: errors.slice(0, 5)
+    };
+  },
+});
+
+// Public action to call enhanced batch processing
+export const callBatchEnhanceAnimeWithFallbacks = action({
+  args: {
+    batchSize: v.optional(v.number()),
+    maxAnimeToProcess: v.optional(v.number()),
+    prioritizeMissingData: v.optional(v.boolean()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<EnhancedBatchResult> => {
+    return await ctx.runAction(internal.externalApis.batchEnhanceAnimeWithFallbacks, args);
+  },
+});
+
 
 // Add interfaces for test results
 interface TestResult {
@@ -132,24 +666,6 @@ interface EpisodeBatchUpdateResult {
 
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1000;
-
-// Enhanced image quality selection
-const selectBestImageUrl = (images: any): string | undefined => {
-    if (!images) return undefined;
-    
-    // AniList image priority: extraLarge > large > medium
-    if (images.extraLarge) return images.extraLarge;
-    if (images.large) return images.large;
-    if (images.medium) return images.medium;
-    
-    // Jikan image priority: large_image_url > image_url > small_image_url
-    if (images.jpg?.large_image_url) return images.jpg.large_image_url;
-    if (images.webp?.large_image_url) return images.webp.large_image_url;
-    if (images.jpg?.image_url) return images.jpg.image_url;
-    if (images.webp?.image_url) return images.webp.image_url;
-    
-    return undefined;
-};
 
 const fetchFromAnilist = async (title: string, existingAnilistId?: number): Promise<any | null> => {
     const anilistQuery = `
@@ -779,7 +1295,7 @@ export const callBatchEnhanceVisibleAnimePosters = action({
 export const enhanceExistingAnimePostersBetter = internalAction({
   args: {},
   handler: async (ctx: ActionCtx): Promise<void> => {
-    console.log("[Enhanced Poster Enhancement] Starting comprehensive poster enhancement...");
+    console.log("[Enhanced Poster Enhancement] Starting comprehensive poster enhancement with multiple API fallbacks...");
     
     // Get anime with potentially low-quality posters
     const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
@@ -802,13 +1318,14 @@ export const enhanceExistingAnimePostersBetter = internalAction({
       return;
     }
 
-    // Process in batches with rate limiting
-    const batchSize = 5;
-    const maxAnimesToProcess = 30; // Limit per run to avoid timeouts
+    // Use smaller batches and longer delays due to multiple API calls per anime
+    const batchSize = 3; // Reduced from 5 due to more API calls
+    const maxAnimesToProcess = 20; // Slightly reduced to be more conservative
     const animeToProcess = animesToEnhance.slice(0, maxAnimesToProcess);
     
     let processedCount = 0;
     let enhancedCount = 0;
+    let enhancementDetails: string[] = [];
 
     for (let i = 0; i < animeToProcess.length; i += batchSize) {
       const batch = animeToProcess.slice(i, i + batchSize);
@@ -820,22 +1337,27 @@ export const enhanceExistingAnimePostersBetter = internalAction({
         try {
           console.log(`[Enhanced Poster Enhancement] Processing: ${anime.title}`);
           
-          const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetails, {
+          // 🚀 KEY CHANGE: Use the new enhanced fallback system
+          const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, {
             animeIdInOurDB: anime._id,
             titleToSearch: anime.title
           });
           
           processedCount++;
           
-          if (result.success) {
+          if (result.success && result.details?.enhanced?.length > 0) {
             enhancedCount++;
-            console.log(`[Enhanced Poster Enhancement] ✅ Enhanced: ${anime.title}`);
+            const enhancedFields = result.details.enhanced.join(', ');
+            enhancementDetails.push(`${anime.title}: ${enhancedFields}`);
+            console.log(`[Enhanced Poster Enhancement] ✅ Enhanced: ${anime.title} (${enhancedFields})`);
+          } else if (result.success) {
+            console.log(`[Enhanced Poster Enhancement] ⚪ No updates needed: ${anime.title} - ${result.message}`);
           } else {
             console.log(`[Enhanced Poster Enhancement] ❌ Failed: ${anime.title} - ${result.message}`);
           }
           
-          // Small delay between individual requests within batch
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Longer delay due to multiple API calls in enhanced system
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error: any) {
           processedCount++;
           console.error(`[Enhanced Poster Enhancement] Error processing ${anime.title}:`, error.message);
@@ -845,14 +1367,115 @@ export const enhanceExistingAnimePostersBetter = internalAction({
       // Wait for batch to complete
       await Promise.all(batchPromises);
       
-      // Longer delay between batches to be respectful to external APIs
+      // Longer delay between batches due to multiple API calls
       if (i + batchSize < animeToProcess.length) {
-        console.log(`[Enhanced Poster Enhancement] Waiting 5 seconds before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log(`[Enhanced Poster Enhancement] Waiting 8 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 8000)); // Increased from 5 seconds
       }
     }
     
     console.log(`[Enhanced Poster Enhancement] Completed! Processed: ${processedCount}, Enhanced: ${enhancedCount}, Remaining: ${animesToEnhance.length - processedCount}`);
+    
+    // Show summary of what was enhanced
+    if (enhancementDetails.length > 0) {
+      console.log(`[Enhanced Poster Enhancement] Enhanced details:`);
+      enhancementDetails.slice(0, 10).forEach(detail => console.log(`  - ${detail}`));
+      if (enhancementDetails.length > 10) {
+        console.log(`  ... and ${enhancementDetails.length - 10} more`);
+      }
+    }
+  },
+});
+
+// Optional: Add a manual trigger version for immediate use
+export const manualPosterEnhancement = action({
+  args: {
+    maxAnimeToProcess: v.optional(v.number()),
+    prioritizeWorst: v.optional(v.boolean()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    success: boolean;
+    message: string;
+    processed: number;
+    enhanced: number;
+    details: string[];
+  }> => {
+    console.log("🎯 Starting manual poster enhancement...");
+    
+    const maxToProcess = args.maxAnimeToProcess || 15;
+    const prioritizeWorst = args.prioritizeWorst ?? true;
+    
+    // Get anime needing enhancement
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    let animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
+      const poster = anime.posterUrl;
+      return !poster || 
+             poster.includes('placehold') || 
+             poster.includes('placeholder') ||
+             !anime.lastFetchedFromExternal ||
+             (Date.now() - anime.lastFetchedFromExternal.timestamp) > (7 * 24 * 60 * 60 * 1000);
+    });
+
+    // Prioritize worst cases first
+    if (prioritizeWorst) {
+      animesToEnhance.sort((a, b) => {
+        const scoreA = (!a.posterUrl ? 3 : a.posterUrl.includes('placeholder') ? 2 : 1);
+        const scoreB = (!b.posterUrl ? 3 : b.posterUrl.includes('placeholder') ? 2 : 1);
+        return scoreB - scoreA; // Worst first
+      });
+    }
+
+    const animeToProcess = animesToEnhance.slice(0, maxToProcess);
+    
+    if (animeToProcess.length === 0) {
+      return {
+        success: true,
+        message: "No anime need poster enhancement!",
+        processed: 0,
+        enhanced: 0,
+        details: []
+      };
+    }
+
+    let processedCount = 0;
+    let enhancedCount = 0;
+    const enhancementDetails: string[] = [];
+
+    // Process with enhanced system
+    for (const anime of animeToProcess) {
+      try {
+        console.log(`🎯 Processing: ${anime.title}`);
+        
+        const result = await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, {
+          animeIdInOurDB: anime._id,
+          titleToSearch: anime.title
+        });
+        
+        processedCount++;
+        
+        if (result.success && result.details?.enhanced?.length > 0) {
+          enhancedCount++;
+          const enhanced = result.details.enhanced.join(', ');
+          enhancementDetails.push(`${anime.title}: ${enhanced}`);
+          console.log(`✅ Enhanced: ${anime.title} (${enhanced})`);
+        }
+        
+        // Respectful delay
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+      } catch (error: any) {
+        processedCount++;
+        console.error(`❌ Error processing ${anime.title}:`, error.message);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Enhancement complete: ${enhancedCount}/${processedCount} anime improved`,
+      processed: processedCount,
+      enhanced: enhancedCount,
+      details: enhancementDetails
+    };
   },
 });
 
@@ -1241,3 +1864,329 @@ const extractWeightFromDescription = (description: string): string | undefined =
   const match = description.match(weightRegex);
   return match ? match[0] : undefined;
 };
+
+// TMDB API Testing and Setup Functions
+
+// 1. Test TMDB API Connection
+export const testTmdbApi = action({
+  args: {
+    testTitle: v.optional(v.string()),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    success: boolean;
+    message: string;
+    hasApiKey: boolean;
+    testResult?: any;
+    error?: string;
+  }> => {
+    const testTitle = args.testTitle || "Attack on Titan";
+    
+    console.log(`🧪 Testing TMDB API with: "${testTitle}"`);
+    
+    // Check if API key exists
+    const tmdbKey = process.env.TMDB_API_KEY;
+    const hasApiKey = !!tmdbKey;
+    
+    if (!tmdbKey) {
+      return {
+        success: false,
+        message: "TMDB API key not found in environment variables",
+        hasApiKey: false,
+        error: "No TMDB_API_KEY in environment variables"
+      };
+    }
+
+    console.log(`✅ TMDB API key found: ${tmdbKey.substring(0, 8)}...`);
+
+    try {
+      // Test the API call
+      const tmdbUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(testTitle)}`;
+      
+      console.log(`🔍 Testing URL: ${tmdbUrl.replace(tmdbKey, 'API_KEY_HIDDEN')}`);
+      
+      const response = await fetch(tmdbUrl, {
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          message: `TMDB API Error: ${response.status} - ${response.statusText}`,
+          hasApiKey: true,
+          error: errorText
+        };
+      }
+
+      const data = await response.json();
+      
+      const results = data.results || [];
+      const foundPoster = results.length > 0 && results[0].poster_path;
+      
+      return {
+        success: true,
+        message: `TMDB API working! Found ${results.length} results for "${testTitle}"${foundPoster ? ` with poster` : ''}`,
+        hasApiKey: true,
+        testResult: {
+          totalResults: data.total_results,
+          resultsFound: results.length,
+          firstResult: results[0] ? {
+            name: results[0].name,
+            poster_path: results[0].poster_path,
+            overview: results[0].overview?.substring(0, 100) + '...'
+          } : null,
+          posterUrl: foundPoster ? `https://image.tmdb.org/t/p/w500${results[0].poster_path}` : null
+        }
+      };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `TMDB API fetch failed: ${error.message}`,
+        hasApiKey: true,
+        error: error.message
+      };
+    }
+  },
+});
+
+// 2. Test All API Sources for Comparison
+export const testAllApiSources = action({
+  args: {
+    animeTitle: v.string(),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    animeTitle: string;
+    results: {
+      tmdb: { success: boolean; posterUrl?: string; error?: string };
+      anilist: { success: boolean; posterUrl?: string; error?: string };
+      jikan: { success: boolean; posterUrl?: string; error?: string };
+      kitsu: { success: boolean; posterUrl?: string; error?: string };
+    };
+    summary: string;
+  }> => {
+    const title = args.animeTitle;
+    console.log(`🔬 Testing all API sources for: "${title}"`);
+
+    const results = {
+      tmdb: { success: false, error: "Not tested" },
+      anilist: { success: false, error: "Not tested" },
+      jikan: { success: false, error: "Not tested" },
+      kitsu: { success: false, error: "Not tested" }
+    } as any;
+
+    // Test TMDB
+    try {
+      const tmdbKey = process.env.TMDB_API_KEY;
+      if (tmdbKey) {
+        const tmdbUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(title)}`;
+        const tmdbRes = await fetch(tmdbUrl);
+        if (tmdbRes.ok) {
+          const tmdbData = await tmdbRes.json();
+          const posterPath = tmdbData?.results?.[0]?.poster_path;
+          results.tmdb = {
+            success: !!posterPath,
+            posterUrl: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : undefined,
+            error: !posterPath ? "No poster found" : undefined
+          };
+        } else {
+          results.tmdb = { success: false, error: `HTTP ${tmdbRes.status}` };
+        }
+      } else {
+        results.tmdb = { success: false, error: "No API key" };
+      }
+    } catch (error: any) {
+      results.tmdb = { success: false, error: error.message };
+    }
+
+    // Test AniList
+    try {
+      const anilistQuery = `query ($search: String) { Media(search: $search, type: ANIME) { coverImage { extraLarge large medium } } }`;
+      const anilistRes = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: anilistQuery, variables: { search: title } }),
+      });
+      if (anilistRes.ok) {
+        const anilistData = await anilistRes.json();
+        const coverImage = anilistData?.data?.Media?.coverImage;
+        const posterUrl = coverImage?.extraLarge || coverImage?.large || coverImage?.medium;
+        results.anilist = {
+          success: !!posterUrl,
+          posterUrl,
+          error: !posterUrl ? "No poster found" : undefined
+        };
+      } else {
+        results.anilist = { success: false, error: `HTTP ${anilistRes.status}` };
+      }
+    } catch (error: any) {
+      results.anilist = { success: false, error: error.message };
+    }
+
+    // Test Jikan
+    try {
+      const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1&sfw`;
+      const jikanRes = await fetch(jikanUrl);
+      if (jikanRes.ok) {
+        const jikanData = await jikanRes.json();
+        const images = jikanData?.data?.[0]?.images;
+        const posterUrl = images?.jpg?.large_image_url || images?.jpg?.image_url;
+        results.jikan = {
+          success: !!posterUrl,
+          posterUrl,
+          error: !posterUrl ? "No poster found" : undefined
+        };
+      } else {
+        results.jikan = { success: false, error: `HTTP ${jikanRes.status}` };
+      }
+    } catch (error: any) {
+      results.jikan = { success: false, error: error.message };
+    }
+
+    // Test Kitsu
+    try {
+      const kitsuUrl = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(title)}`;
+      const kitsuRes = await fetch(kitsuUrl);
+      if (kitsuRes.ok) {
+        const kitsuData = await kitsuRes.json();
+        const posterImage = kitsuData?.data?.[0]?.attributes?.posterImage;
+        const posterUrl = posterImage?.original || posterImage?.large;
+        results.kitsu = {
+          success: !!posterUrl,
+          posterUrl,
+          error: !posterUrl ? "No poster found" : undefined
+        };
+      } else {
+        results.kitsu = { success: false, error: `HTTP ${kitsuRes.status}` };
+      }
+    } catch (error: any) {
+      results.kitsu = { success: false, error: error.message };
+    }
+
+    // Create summary
+    const successCount = Object.values(results).filter((r: any) => r.success).length;
+    const summary = `${successCount}/4 APIs found posters for "${title}"`;
+
+    return {
+      animeTitle: title,
+      results,
+      summary
+    };
+  },
+});
+
+// 3. Enhanced poster fetching with TMDB debug logging
+const fetchPosterWithTmdbDebug = async (searchTerm: string): Promise<{
+  posterUrl: string | null;
+  source: string;
+  tmdbStatus: string;
+}> => {
+  console.log(`🔍 [Debug] Starting poster fetch for: "${searchTerm}"`);
+
+  // 1. Try TMDB first with detailed logging
+  const tmdbKey = process.env.TMDB_API_KEY;
+  let tmdbStatus = "not_attempted";
+  
+  if (tmdbKey) {
+    tmdbStatus = "api_key_found";
+    try {
+      console.log(`🔍 [TMDB Debug] Using API key: ${tmdbKey.substring(0, 8)}...`);
+      
+      const tmdbUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(searchTerm)}`;
+      console.log(`🔍 [TMDB Debug] Fetching: ${tmdbUrl.replace(tmdbKey, 'HIDDEN')}`);
+      
+      const res = await fetch(tmdbUrl);
+      console.log(`🔍 [TMDB Debug] Response status: ${res.status}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`🔍 [TMDB Debug] Found ${data.results?.length || 0} results`);
+        
+        const posterPath = data?.results?.[0]?.poster_path;
+        if (posterPath) {
+          const posterUrl = `https://image.tmdb.org/t/p/w500${posterPath}`;
+          console.log(`🔍 [TMDB Debug] ✅ Found poster: ${posterUrl}`);
+          return { posterUrl, source: "tmdb", tmdbStatus: "success" };
+        } else {
+          tmdbStatus = "no_poster_found";
+          console.log(`🔍 [TMDB Debug] ❌ No poster in results`);
+        }
+      } else {
+        const errorText = await res.text();
+        tmdbStatus = `http_error_${res.status}`;
+        console.log(`🔍 [TMDB Debug] ❌ HTTP Error: ${res.status} - ${errorText.substring(0, 100)}`);
+      }
+    } catch (error: any) {
+      tmdbStatus = `fetch_error: ${error.message}`;
+      console.log(`🔍 [TMDB Debug] ❌ Fetch Error: ${error.message}`);
+    }
+  } else {
+    tmdbStatus = "no_api_key";
+    console.log(`🔍 [TMDB Debug] ❌ No API key found in environment`);
+  }
+
+  // Fallback to other APIs (simplified for debug)
+  console.log(`🔍 [Debug] TMDB failed (${tmdbStatus}), trying fallbacks...`);
+  
+  // Try AniList fallback
+  try {
+    const query = `query ($search: String) { Media(search: $search, type: ANIME) { coverImage { extraLarge large } } }`;
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { search: searchTerm } }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const poster = data?.data?.Media?.coverImage?.extraLarge || data?.data?.Media?.coverImage?.large;
+      if (poster) {
+        console.log(`🔍 [Debug] ✅ Found AniList poster: ${poster}`);
+        return { posterUrl: poster, source: "anilist", tmdbStatus };
+      }
+    }
+  } catch (error) {
+    console.log(`🔍 [Debug] AniList also failed`);
+  }
+
+  return { posterUrl: null, source: "none", tmdbStatus };
+};
+
+// 4. Test function that uses the debug poster fetching
+export const debugPosterFetch = action({
+  args: {
+    animeTitle: v.string(),
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{
+    title: string;
+    posterUrl: string | null;
+    source: string;
+    tmdbStatus: string;
+    recommendation: string;
+  }> => {
+    const result = await fetchPosterWithTmdbDebug(args.animeTitle);
+    
+    let recommendation = "";
+    
+    if (result.tmdbStatus === "no_api_key") {
+      recommendation = "Add TMDB_API_KEY to your Convex environment variables for better poster quality";
+    } else if (result.tmdbStatus.startsWith("http_error_401")) {
+      recommendation = "TMDB API key is invalid - check your API key";
+    } else if (result.tmdbStatus.startsWith("http_error_")) {
+      recommendation = "TMDB API is having issues - fallbacks will handle this";
+    } else if (result.tmdbStatus === "success") {
+      recommendation = "TMDB is working perfectly!";
+    } else if (result.tmdbStatus === "no_poster_found") {
+      recommendation = "TMDB is working but no poster found for this title - try different search terms";
+    }
+
+    return {
+      title: args.animeTitle,
+      posterUrl: result.posterUrl,
+      source: result.source,
+      tmdbStatus: result.tmdbStatus,
+      recommendation
+    };
+  },
+});
