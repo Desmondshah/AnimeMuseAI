@@ -383,10 +383,32 @@ const EpisodeCard: React.FC<{
 ));
 
 // Custom hook for enriched characters
-const useEnrichedCharacters = (characters: EnhancedCharacterType[], animeName: string) => {
+const useEnrichedCharacters = (
+  characters: EnhancedCharacterType[],
+  animeName: string,
+  animeId?: Id<"anime">
+) => {
   const [enrichedCharacters, setEnrichedCharacters] = useState<EnhancedCharacterType[]>(characters);
   const [isEnriching, setIsEnriching] = useState(false);
   const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
+
+  // Load cached characters on mount or when anime changes
+  useEffect(() => {
+    if (!animeId) return;
+    const stored = localStorage.getItem(`anime_${animeId}_characters`);
+    if (stored) {
+      try { setEnrichedCharacters(JSON.parse(stored)); } catch { /* ignore */ }
+    } else {
+      setEnrichedCharacters(characters);
+    }
+  }, [animeId, characters]);
+
+  // Persist characters to cache
+  useEffect(() => {
+    if (animeId && enrichedCharacters.length > 0) {
+      localStorage.setItem(`anime_${animeId}_characters`, JSON.stringify(enrichedCharacters));
+    }
+  }, [animeId, enrichedCharacters]);
 
   const enrichMainCharacters = async () => {
     setIsEnriching(true);
@@ -464,15 +486,62 @@ export default function AnimeDetailPage({
   const [lastRefreshResult, setLastRefreshResult] = useState<any>(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [showRefreshDetails, setShowRefreshDetails] = useState(false);
-  
+  // Track which anime has already triggered an automatic refresh
+  const lastAutoRefreshedAnimeId = useRef<string | null>(null);
+
   // Character management
   const [selectedCharacter, setSelectedCharacter] = useState<any | null>(null);
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
-  const { 
-    enrichedCharacters, 
-    isEnriching, 
-    enrichMainCharacters 
-  } = useEnrichedCharacters(anime?.characters || [], anime?.title || '');
+  const {
+    enrichedCharacters,
+    isEnriching,
+    enrichMainCharacters
+  } = useEnrichedCharacters(anime?.characters || [], anime?.title || '', animeId);
+
+  // Cached episodes and characters
+  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [charactersForDisplay, setCharactersForDisplay] = useState<EnhancedCharacterType[]>([]);
+
+  // Load cached data on mount
+  useEffect(() => {
+    if (!animeId) return;
+    const epStored = localStorage.getItem(`anime_${animeId}_episodes`);
+    if (epStored) {
+      try { setEpisodes(JSON.parse(epStored)); } catch { /* ignore */ }
+    }
+    const charStored = localStorage.getItem(`anime_${animeId}_characters`);
+    if (charStored) {
+      try { setCharactersForDisplay(JSON.parse(charStored)); } catch { /* ignore */ }
+    }
+  }, [animeId]);
+
+  // Sync episodes from query
+  useEffect(() => {
+    if (animeId && anime?.streamingEpisodes) {
+      setEpisodes(anime.streamingEpisodes);
+      localStorage.setItem(
+        `anime_${animeId}_episodes`,
+        JSON.stringify(anime.streamingEpisodes)
+      );
+    }
+  }, [animeId, anime?.streamingEpisodes]);
+
+  // Sync characters from enrichment hook
+  useEffect(() => {
+    if (animeId && enrichedCharacters.length > 0) {
+      setCharactersForDisplay(enrichedCharacters);
+      localStorage.setItem(
+        `anime_${animeId}_characters`,
+        JSON.stringify(enrichedCharacters)
+      );
+    } else if (animeId && anime?.characters) {
+      setCharactersForDisplay(anime.characters);
+      localStorage.setItem(
+        `anime_${animeId}_characters`,
+        JSON.stringify(anime.characters)
+      );
+    }
+  }, [animeId, enrichedCharacters, anime?.characters]);
 
   // State management
   const [activeTab, setActiveTab] = useState("overview");
@@ -538,27 +607,30 @@ export default function AnimeDetailPage({
     }
   }, [anime, animeId, getRefreshRecommendationAction]);
 
-  // Auto-enrich characters
+  // Auto-refresh on page visit. The ref ensures each anime triggers at most once.
   useEffect(() => {
-    if (anime?.characters?.some((char: any) => char.role === 'MAIN' && !char.isAIEnriched)) {
-      enrichMainCharacters();
-    }
-  }, [anime?._id]);
+    if (
+      anime &&
+      animeId &&
+      autoRefreshEnabled &&
+      refreshRecommendation &&
+      lastAutoRefreshedAnimeId.current !== animeId
+    ) {
+      const shouldAutoRefresh =
+        refreshRecommendation.priority === "critical" ||
+        refreshRecommendation.priority === "high" ||
+        refreshRecommendation.freshnessScore < 50;
 
-  // Auto-refresh on page visit
-  useEffect(() => {
-    if (anime && animeId && autoRefreshEnabled && refreshRecommendation) {
-      const shouldAutoRefresh = refreshRecommendation.priority === "critical" || 
-                               refreshRecommendation.priority === "high" ||
-                               refreshRecommendation.freshnessScore < 50;
-      
       if (shouldAutoRefresh && !isAutoRefreshing) {
-        console.log(`[Auto-Refresh] Triggering auto-refresh for ${anime.title} (${refreshRecommendation.priority} priority)`);
+        lastAutoRefreshedAnimeId.current = animeId;
+        console.log(
+          `[Auto-Refresh] Triggering auto-refresh for ${anime.title} (${refreshRecommendation.priority} priority)`
+        );
         handleSmartRefresh("user_visit");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anime, animeId, autoRefreshEnabled, refreshRecommendation, isAutoRefreshing]);
+  }, [anime?._id, autoRefreshEnabled, refreshRecommendation]);
 
   // Sync watchlist notes
   useEffect(() => { 
@@ -1217,13 +1289,13 @@ export default function AnimeDetailPage({
         {/* Episodes Tab */}
         {activeTab === "episodes" && (
           <div className="ios-scroll-section px-6 py-8">
-            {anime.streamingEpisodes && anime.streamingEpisodes.length > 0 ? (
+             {episodes && episodes.length > 0 ? (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold text-white mb-4">
-                  📺 Episodes ({anime.streamingEpisodes.length})
+                  📺 Episodes ({episodes.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {anime.streamingEpisodes.map((episode, index) => (
+                  {episodes.map((episode, index) => (
                     <EpisodeCard
                       key={`episode-${index}`}
                       episode={episode}
@@ -1247,11 +1319,11 @@ export default function AnimeDetailPage({
         {/* Characters Tab */}
         {activeTab === "characters" && (
           <div className="ios-scroll-section px-6 py-8">
-            {enrichedCharacters && enrichedCharacters.length > 0 ? (
+            {charactersForDisplay && charactersForDisplay.length > 0 ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-white">
-                    👥 Characters ({enrichedCharacters.length})
+                    👥 Characters ({charactersForDisplay.length})
                   </h2>
                   
                   {/* AI Enrichment Status */}
@@ -1263,7 +1335,7 @@ export default function AnimeDetailPage({
                   )}
                   
                   {/* Manual Enrichment Button */}
-                  {!isEnriching && enrichedCharacters.some(char => char.role === 'MAIN' && !char.isAIEnriched) && (
+                  {!isEnriching && charactersForDisplay.some(char => char.role === 'MAIN' && !char.isAIEnriched) && (
                     <button
                       onClick={enrichMainCharacters}
                       className="flex items-center gap-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 border border-brand-primary-action/30 rounded-full px-3 py-1 hover:bg-brand-primary-action/30 transition-all duration-300"
@@ -1276,7 +1348,7 @@ export default function AnimeDetailPage({
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {enrichedCharacters
+                  {charactersForDisplay
                     .filter(character => character && character.name) // Filter out invalid characters
                     .map((character, index) => (
                     <CharacterCard

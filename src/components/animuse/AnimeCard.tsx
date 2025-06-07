@@ -68,12 +68,10 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
   // Reset loading state when poster URL changes
   useEffect(() => {
-    if (posterToDisplay !== currentSrc) {
-      setImageLoaded(false);
-      setImageError(false);
-      setCurrentSrc(posterToDisplay);
-    }
-  }, [posterToDisplay, currentSrc]);
+    setImageLoaded(false);
+    setImageError(false);
+    setCurrentSrc(posterToDisplay);
+  }, [posterToDisplay]);
 
   // Detect cached images after the source is updated
   useEffect(() => {

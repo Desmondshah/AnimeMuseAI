@@ -260,6 +260,7 @@ const fetchEpisodesWithFallbacks = async (idOrTitle: string | number, existingEp
         console.error('[Enhanced Episode Fetch] AniList failed:', err);
     }
 
+
     // 2. Shikimori fallback
     try {
         const query = typeof idOrTitle === 'number' 
@@ -296,6 +297,38 @@ const fetchEpisodesWithFallbacks = async (idOrTitle: string | number, existingEp
         }
     } catch (err) {
         console.error('[Enhanced Episode Fetch] Jikan failed:', err);
+    }
+
+    // 4. TMDb fallback
+    try {
+        const tmdbKey = process.env.TMDB_API_KEY;
+        if (tmdbKey) {
+            const searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbKey}&query=${encodeURIComponent(String(idOrTitle))}`;
+            const searchRes = await fetchWithTimeout(searchUrl, { timeout: DEFAULT_TIMEOUT_MS });
+            if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                const tmdbId = searchData?.results?.[0]?.id;
+                if (tmdbId) {
+                    const seasonUrl = `https://api.themoviedb.org/3/tv/${tmdbId}/season/1?api_key=${tmdbKey}`;
+                    const seasonRes = await fetchWithTimeout(seasonUrl, { timeout: DEFAULT_TIMEOUT_MS });
+                    if (seasonRes.ok) {
+                        const seasonData = await seasonRes.json();
+                        const eps = seasonData?.episodes || [];
+                        if (eps.length > 0) {
+                            console.log(`[Enhanced Episode Fetch] Found ${eps.length} TMDb episodes`);
+                            return eps.map((ep: any, index: number) => ({
+                                title: ep.name || `Episode ${ep.episode_number || index + 1}`,
+                                thumbnail: ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : undefined,
+                                url: '',
+                                site: 'TMDb',
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[Enhanced Episode Fetch] TMDb failed:', err);
     }
 
     return null;
