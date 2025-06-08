@@ -18,7 +18,9 @@ import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
-
+import { motion, AnimatePresence } from "framer-motion";
+import Carousel from "./shared/Carousel";
+import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 // ============================================================================
 // SECTION 1: COMPONENTS AND CONSTANTS
 // ============================================================================
@@ -181,6 +183,8 @@ export default function MainApp() {
   const getPersonalizedRecommendationsAction = useAction(api.ai.debugPersonalizedRecommendations);
   const createCustomListMutation = useMutation(api.users.createCustomList);
 
+  const { shouldReduceAnimations } = useMobileOptimizations();
+  
   // Navigation State
   const [currentView, setCurrentView] = useState<CurrentView>("dashboard");
   const [selectedAnimeId, setSelectedAnimeId] = useState<Id<"anime"> | null>(null);
@@ -672,36 +676,76 @@ export default function MainApp() {
     <div className="relative min-h-screen">
       {/* Floating Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/15 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/3 right-1/5 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
-        <div className="absolute bottom-1/2 left-1/4 w-72 h-72 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
-        <div className="absolute top-20 right-1/3 w-56 h-56 bg-gradient-to-bl from-cyan-400/8 to-transparent rounded-full blur-3xl animate-pulse delay-4000"></div>
-      </div>
+        <motion.div
+          className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/15 to-transparent rounded-full blur-3xl"
+          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 30, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute bottom-20 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl"
+          animate={{ rotate: shouldReduceAnimations ? 0 : -360 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 45, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute top-1/3 right-1/5 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl"
+          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 35, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute bottom-1/2 left-1/4 w-72 h-72 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl"
+          animate={{ rotate: shouldReduceAnimations ? 0 : -360 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 40, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute top-20 right-1/3 w-56 h-56 bg-gradient-to-bl from-cyan-400/8 to-transparent rounded-full blur-3xl"
+          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 50, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
+        />
+        </div>
 
       {/* Main Content */}
       <div className="relative z-10 px-4 sm:px-6 py-8 space-y-12">
         {/* Hero Welcome Section */}
-        <div className="text-center space-y-6">
-          <div className="inline-block group">
+         <motion.div
+          className="text-center space-y-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: shouldReduceAnimations ? 0 : 0.8 }}
+        >
+          <motion.div
+            className="inline-block group"
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: shouldReduceAnimations ? 0 : 0.6 }}
+          >
             <h1 className="hero-title font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold via-brand-primary-action to-white bg-clip-text text-transparent animate-pulse">
               Welcome, {userProfile?.name || "Explorer"}!
             </h1>
             <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
-          </div>
-          <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto leading-relaxed">
+           
+           </motion.div>
+          <motion.p
+            className="mobile-optimized-text text-white/80 max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: shouldReduceAnimations ? 0 : 0.8, delay: shouldReduceAnimations ? 0 : 0.3 }}
+          >
             Your personalized anime universe awaits. Let's discover something extraordinary together.
-          </p>
-        </div>
+         </motion.p>
+        </motion.div>
 
         {/* AI Assistant CTA */}
         <div className="flex justify-center">
-          <div className="relative group">
+          <motion.div
+            className="relative group"
+            whileHover={shouldReduceAnimations ? undefined : { scale: 1.05, rotate: 2 }}
+            transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 300 }}
+          >
             <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
             
             <div className="relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-3xl p-1 group-hover:border-white/40 transition-all duration-300">
-              <StyledButton 
-                onClick={navigateToAIAssistant} 
+              <StyledButton
+                onClick={navigateToAIAssistant}
                 variant="primary" 
                 className="!text-lg sm:!text-xl !px-8 sm:!px-12 !py-4 sm:!py-6 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500 !shadow-2xl hover:!shadow-brand-primary-action/25 !border-0"
               >
@@ -712,7 +756,7 @@ export default function MainApp() {
                 </span>
               </StyledButton>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Enhanced Personalized Recommendations Section */}
@@ -789,12 +833,16 @@ export default function MainApp() {
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
                   
                   <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-                    <div className="flex overflow-x-auto space-x-6 sm:space-x-8 py-4 custom-scrollbar horizontal-carousel -mx-2 px-2">
+                    <Carousel className="py-4 -mx-2 px-2">
                       {category.recommendations.map((rec, index) => (
-                        <div 
-                          key={`${category.id}-${index}-${rec.title}`} 
-                          className="group flex-shrink-0 w-32 xs:w-36 sm:w-40 transform transition-all duration-500 hover:scale-110 cursor-pointer"
-                          style={{ animationDelay: `${index * 100}ms` }}
+                          <motion.div
+                          key={`${category.id}-${index}-${rec.title}`}
+                          className="group flex-shrink-0 w-32 xs:w-36 sm:w-40 transform cursor-pointer"
+                          initial={{ opacity: 0, y: 30 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ scale: 1.1, rotate: 1 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleRecommendationClick(rec)}
                         >
                           <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -833,9 +881,9 @@ export default function MainApp() {
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
-                    </div>
+                    </Carousel>
                     
                     <div className="mt-4 text-center">
                       <span className="text-xs text-white/50 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1">
@@ -1223,9 +1271,18 @@ export default function MainApp() {
 
   return (
     <div className="w-full pb-20">
-      <div className="pt-0">
-        {renderContent()}
-      </div>
+       <AnimatePresence mode="wait">
+        <motion.div
+          key={currentView}
+          className="pt-0"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.5 }}
+        >
+          {renderContent()}
+        </motion.div>
+      </AnimatePresence>
       <BottomNavigationBar currentView={currentView} onTabChange={handleTabChange} />
     </div>
   );

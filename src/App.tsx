@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow"; // Adjust path if needed
 import MainApp from "./components/animuse/MainApp"; // Adjust path if needed
 import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt"; // Adjust path if needed
+import { motion } from "framer-motion";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 import NotificationsPanel from "./components/animuse/onboarding/NotificationsPanel"; // Adjust path if needed
@@ -81,11 +82,22 @@ function Content({ onPhoneVerified }: ContentProps) {
   return (
     <div className="w-full">
       <Unauthenticated>
-        <div className="text-center mb-8">
+        <motion.div
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           <h1 className="text-5xl font-orbitron text-sakura-pink mb-4">Welcome to AniMuse</h1>
           <p className="text-xl text-white">Sign in to discover your next favorite anime.</p>
-        </div>
-        <SignInForm />
+         </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          <SignInForm />
+        </motion.div>
       </Unauthenticated>
 
       <Authenticated>

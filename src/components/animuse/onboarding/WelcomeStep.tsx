@@ -1,174 +1,400 @@
-// src/components/animuse/onboarding/WelcomeStep.tsx - Advanced Artistic Version
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface WelcomeStepProps {
   data: { name: string };
   updateData: (data: { name: string }) => void;
 }
 
-// Floating Animation Component
-const FloatingElement: React.FC<{ children: React.ReactNode; delay?: number }> = ({ 
-  children, 
-  delay = 0 
-}) => (
-  <div 
-    className="animate-bounce"
-    style={{ 
-      animationDelay: `${delay}s`,
-      animationDuration: '3s'
-    }}
-  >
-    {children}
-  </div>
-);
+// Floating Particle Component
+const FloatingParticle: React.FC<{ index: number }> = ({ index }) => {
+  return (
+    <motion.div
+      className="absolute w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
+      initial={{ 
+        scale: 0, 
+        x: Math.random() * 300, 
+        y: Math.random() * 400,
+        opacity: 0
+      }}
+      animate={{
+        scale: [0, 1, 0.5, 1, 0],
+        x: [
+          Math.random() * 300, 
+          Math.random() * 300, 
+          Math.random() * 300
+        ],
+        y: [
+          Math.random() * 400, 
+          Math.random() * 400, 
+          Math.random() * 400
+        ],
+        opacity: [0, 1, 0.7, 1, 0]
+      }}
+      transition={{
+        duration: 4 + Math.random() * 2,
+        repeat: Infinity,
+        delay: index * 0.3,
+        ease: "easeInOut"
+      }}
+    />
+  );
+};
 
 export default function WelcomeStep({ data, updateData }: WelcomeStepProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
 
-  useEffect(() => {
-    if (data.name) {
-      setIsTyping(true);
-      const timer = setTimeout(() => setIsTyping(false), 500);
-      return () => clearTimeout(timer);
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.1
+      }
     }
-  }, [data.name]);
+  };
+
+  const itemVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20, 
+      scale: 0.8 
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
+
+  const iconVariants = {
+    hidden: { 
+      opacity: 0, 
+      scale: 0, 
+      rotate: 180 
+    },
+    visible: (i: number) => ({
+      opacity: 1,
+      scale: 1,
+      rotate: 0,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 15,
+        delay: i * 0.1
+      }
+    }),
+    hover: {
+      scale: 1.2,
+      rotate: 15,
+      transition: {
+        type: "spring",
+        stiffness: 400,
+        damping: 10
+      }
+    }
+  };
+
+  const greetingVariants = {
+    hidden: {
+      opacity: 0,
+      scale: 0,
+      rotate: 180,
+      y: 50
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      rotate: 0,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 15,
+        duration: 0.6
+      }
+    },
+    exit: {
+      opacity: 0,
+      scale: 0,
+      rotate: -180,
+      transition: {
+        duration: 0.3
+      }
+    }
+  };
+
+  const celebrationVariants = {
+    hidden: { opacity: 0, scale: 0 },
+    visible: (i: number) => ({
+      opacity: [0, 1, 0],
+      scale: [0, 1, 0],
+      x: [0, (i - 4) * 30, (i - 4) * 60],
+      y: [0, -20, -40],
+      transition: {
+        duration: 1.5,
+        ease: "easeOut",
+        delay: i * 0.1
+      }
+    })
+  };
+
+  const icons = ['👋', '✨', '🎌'];
 
   return (
-    <div className="relative min-h-[300px] flex flex-col items-center justify-center space-y-8">
-      {/* Floating Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-4 left-8 w-16 h-16 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-6 right-12 w-20 h-20 bg-gradient-to-tl from-brand-accent-gold/15 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-4 w-12 h-12 bg-gradient-to-r from-brand-accent-peach/20 to-transparent rounded-full blur-lg animate-pulse delay-2000"></div>
-      </div>
-
-      {/* Animated Welcome Icons */}
-      <div className="relative z-10 flex items-center justify-center space-x-4 mb-6">
-        <FloatingElement delay={0}>
-          <div className="text-4xl sm:text-5xl">👋</div>
-        </FloatingElement>
-        <FloatingElement delay={0.5}>
-          <div className="text-4xl sm:text-5xl">✨</div>
-        </FloatingElement>
-        <FloatingElement delay={1}>
-          <div className="text-4xl sm:text-5xl">🎌</div>
-        </FloatingElement>
-      </div>
-
-      {/* Main Content */}
-      <div className="relative z-10 text-center space-y-6 max-w-md">
-        {/* Greeting Text */}
-        <div className="space-y-4">
-          <h3 className="text-2xl sm:text-3xl font-heading text-white font-bold">
-            <span className="bg-gradient-to-r from-brand-primary-action to-brand-accent-gold bg-clip-text text-transparent">
-              Welcome to AniMuse!
-            </span>
-          </h3>
-          
-          {/* Animated Description */}
-          <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-brand-accent-peach/20 to-brand-primary-action/20 rounded-2xl blur-xl opacity-50"></div>
-            <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <p className="text-white/90 text-base sm:text-lg leading-relaxed">
-                Let's get to know you a bit to tailor your anime discovery experience.
-                <br />
-                <span className="text-brand-accent-gold font-medium">What should we call you?</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Input Field */}
-        <div className="relative">
-          {/* Input Glow Effect */}
-          <div className={`absolute -inset-2 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-3xl blur-lg transition-opacity duration-300 ${
-            isFocused ? 'opacity-100' : 'opacity-0'
-          }`}></div>
-          
-          <div className="relative">
-            {/* Input Container */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                <div className={`text-2xl transition-all duration-300 ${
-                  data.name ? 'animate-bounce' : ''
-                }`}>
-                  {data.name ? '😊' : '👤'}
-                </div>
-              </div>
-              
-              <input
-                type="text"
-                placeholder="Your Nickname"
-                value={data.name}
-                onChange={(e) => updateData({ name: e.target.value })}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl pl-16 pr-6 py-4 text-white text-center placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 text-lg font-medium"
-                style={{ 
-                  fontSize: "16px", // Prevent iOS zoom
-                }}
-              />
-              
-              {/* Typing Indicator */}
-              {isTyping && (
-                <div className="absolute inset-y-0 right-4 flex items-center">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-brand-accent-gold rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-brand-accent-gold rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-brand-accent-gold rounded-full animate-bounce delay-200"></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Dynamic Greeting */}
-        {data.name && (
-          <div className="relative animate-fade-in-up">
-            <div className="absolute -inset-2 bg-gradient-to-r from-green-500/30 to-emerald-400/30 rounded-2xl blur-lg opacity-60 animate-pulse"></div>
-            <div className="relative bg-gradient-to-r from-green-500/20 to-emerald-400/20 backdrop-blur-sm border border-green-500/30 rounded-2xl p-4">
-              <div className="flex items-center justify-center space-x-3">
-                <span className="text-2xl animate-bounce">🎉</span>
-                <p className="text-white font-medium text-lg">
-                  Nice to meet you, <span className="text-brand-accent-gold font-bold">{data.name}</span>!
-                </p>
-                <span className="text-2xl animate-bounce delay-200">✨</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Decoration */}
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-2 opacity-60">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="w-2 h-2 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"
-            style={{ animationDelay: `${i * 0.2}s` }}
-          ></div>
+    <motion.div 
+      className="relative min-h-[400px] flex flex-col items-center justify-center space-y-8 p-6 overflow-hidden"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      
+      {/* Floating Particles Background */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <FloatingParticle key={i} index={i} />
         ))}
       </div>
 
-      {/* Custom CSS */}
-      <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+      {/* Main Container */}
+      <motion.div 
+        className="relative z-10 text-center space-y-8 max-w-md w-full"
+        variants={containerVariants}
+      >
+        
+        {/* Animated Icons */}
+        <motion.div 
+          className="flex items-center justify-center space-x-6 mb-8"
+          variants={itemVariants}
+        >
+          {icons.map((icon, index) => (
+            <motion.div
+              key={index}
+              className="text-5xl cursor-pointer select-none"
+              variants={iconVariants}
+              custom={index}
+              whileHover="hover"
+              whileTap={{ scale: 0.9 }}
+            >
+              {icon}
+            </motion.div>
+          ))}
+        </motion.div>
 
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out forwards;
-        }
-      `}</style>
-    </div>
+        {/* Epic Header */}
+        <motion.h3 
+          className="text-3xl sm:text-4xl font-bold text-white"
+          variants={itemVariants}
+          whileHover={{ 
+            scale: 1.05,
+            transition: { type: "spring", stiffness: 300 }
+          }}
+        >
+          <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-yellow-400 bg-clip-text text-transparent">
+            Welcome to AniMuse!
+          </span>
+        </motion.h3>
+        
+        {/* Description */}
+        <motion.div 
+          className="relative"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+        >
+          <motion.div 
+            className="absolute -inset-4 bg-gradient-to-r from-pink-500/30 to-blue-500/30 rounded-3xl blur-xl opacity-60"
+            animate={{
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, 0]
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <div className="relative bg-black/40 backdrop-blur-lg border border-white/20 rounded-3xl p-6 shadow-2xl">
+            <p className="text-white/90 text-lg leading-relaxed">
+              Let's get to know you to create your perfect anime journey.
+              <br />
+              <motion.span 
+                className="text-yellow-400 font-semibold text-xl"
+                animate={{ 
+                  textShadow: [
+                    "0 0 0px rgba(251, 191, 36, 0)",
+                    "0 0 10px rgba(251, 191, 36, 0.5)",
+                    "0 0 0px rgba(251, 191, 36, 0)"
+                  ]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                What should we call you?
+              </motion.span>
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Epic Input Field */}
+        <motion.div 
+          className="relative"
+          variants={itemVariants}
+        >
+          <motion.div
+            className="absolute -inset-3 bg-gradient-to-r from-blue-500/50 to-purple-500/50 rounded-3xl blur-xl"
+            animate={{ 
+              opacity: isFocused ? 1 : 0,
+              scale: isFocused ? 1.1 : 1
+            }}
+            transition={{ duration: 0.3 }}
+          />
+          
+          <motion.div 
+            className="relative group"
+            animate={{
+              scale: isFocused ? 1.02 : 1,
+              boxShadow: isFocused 
+                ? "0 0 30px rgba(59, 130, 246, 0.5)" 
+                : "0 0 0px rgba(59, 130, 246, 0)"
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }}
+          >
+            <motion.div 
+              className="absolute inset-y-0 left-5 flex items-center pointer-events-none"
+              animate={{
+                scale: data.name ? [1, 1.2, 1] : 1
+              }}
+              transition={{
+                duration: 0.5,
+                repeat: data.name ? Infinity : 0,
+                repeatType: "reverse"
+              }}
+            >
+              <div className="text-3xl">
+                {data.name ? '😊' : '👤'}
+              </div>
+            </motion.div>
+            
+            <input
+              type="text"
+              placeholder="Your Nickname"
+              value={data.name}
+              onChange={(e) => updateData({ name: e.target.value })}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              className="w-full bg-black/50 backdrop-blur-lg border-2 border-white/30 rounded-3xl pl-20 pr-8 py-5 text-white text-center text-xl font-medium placeholder-white/60 focus:border-blue-400 focus:outline-none transition-all duration-300 shadow-2xl"
+              style={{ fontSize: "16px" }}
+            />
+          </motion.div>
+        </motion.div>
+
+        {/* Dynamic Greeting with Celebration */}
+        <AnimatePresence>
+          {data.name && (
+            <motion.div 
+              className="relative"
+              variants={greetingVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              {/* Celebration Particles */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(8)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-2 h-2 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-full top-1/2 left-1/2"
+                    variants={celebrationVariants}
+                    custom={i}
+                    initial="hidden"
+                    animate="visible"
+                  />
+                ))}
+              </div>
+              
+              <motion.div 
+                className="absolute -inset-4 bg-gradient-to-r from-green-500/40 to-emerald-400/40 rounded-3xl blur-xl opacity-80"
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.8, 1, 0.8]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <div className="relative bg-gradient-to-r from-green-500/30 to-emerald-400/30 backdrop-blur-lg border-2 border-green-400/50 rounded-3xl p-6 shadow-2xl">
+                <motion.div 
+                  className="flex items-center justify-center space-x-4"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <motion.span 
+                    className="text-3xl"
+                    animate={{ 
+                      rotate: [0, 15, -15, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    🎉
+                  </motion.span>
+                  <p className="text-white font-semibold text-xl">
+                    Amazing to meet you,{' '}
+                    <motion.span 
+                      className="text-yellow-400 font-bold text-2xl"
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ 
+                        delay: 0.5,
+                        type: "spring",
+                        stiffness: 200
+                      }}
+                    >
+                      {data.name}
+                    </motion.span>!
+                  </p>
+                  <motion.span 
+                    className="text-3xl"
+                    animate={{ 
+                      rotate: [0, -15, 15, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.5
+                    }}
+                  >
+                    ✨
+                  </motion.span>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
   );
 }
