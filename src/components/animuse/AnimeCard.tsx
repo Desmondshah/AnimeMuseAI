@@ -95,116 +95,117 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
 
   // FIXED: Improved click handler with better error handling and retry logic
   const handleCardClick = async () => {
-    if (isNavigating) return;
+  if (isNavigating) return;
+  
+  // Add haptic feedback if available
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50);
+  }
+  
+  // Prevent double-tap zoom on iOS
+  const now = Date.now();
+  if (now - (handleCardClick as any).lastClick < 300) {
+    return;
+  }
+  (handleCardClick as any).lastClick = now;
+  
+  console.log(`[AnimeCard] Click handler started for: ${anime.title}`);
+  console.log(`[AnimeCard] Current animeDocumentId: ${animeDocumentId}`);
+  console.log(`[AnimeCard] isRecommendation: ${isRecommendation}`);
+  console.log(`[AnimeCard] onViewDetails provided:`, !!onViewDetails);
+  
+  // FIXED: Early return if no navigation function and it's needed
+  if (!onViewDetails) {
+    console.warn(`[AnimeCard] No navigation function provided for: ${anime.title}`);
+    toast.info(`Click functionality not available for this item`);
+    return;
+  }
+  
+  setIsNavigating(true);
+  
+  try {
+    let idToNavigate = animeDocumentId;
     
-    // Add haptic feedback if available
-    if ('vibrate' in navigator) {
-      navigator.vibrate(50);
+    // FIXED: Wait for database query to complete if it's still loading
+    if (shouldQueryByTitle && existingAnimeInDB === undefined) {
+      console.log(`[AnimeCard] Waiting for database query to complete...`);
+      // Give the query a moment to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
-    // Prevent double-tap zoom on iOS
-    const now = Date.now();
-    if (now - (handleCardClick as any).lastClick < 300) {
-      return;
-    }
-    (handleCardClick as any).lastClick = now;
-    
-    console.log(`[AnimeCard] Click handler started for: ${anime.title}`);
-    console.log(`[AnimeCard] Current animeDocumentId: ${animeDocumentId}`);
-    console.log(`[AnimeCard] isRecommendation: ${isRecommendation}`);
-    console.log(`[AnimeCard] existingAnimeInDB loading state:`, existingAnimeInDB === undefined ? 'loading' : 'loaded');
-    
-    setIsNavigating(true);
-    
-    try {
-      let idToNavigate = animeDocumentId;
+    // FIXED: Re-check for existing anime after waiting
+    if (!idToNavigate && isRecommendation) {
+      console.log(`[AnimeCard] No ID found, attempting to add anime to database...`);
       
-      // FIXED: Wait for database query to complete if it's still loading
-      if (shouldQueryByTitle && existingAnimeInDB === undefined) {
-        console.log(`[AnimeCard] Waiting for database query to complete...`);
-        // Give the query a moment to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Note: In a real app, you'd want to use a more sophisticated approach
-        // like subscribing to the query state changes
-      }
+      const toastId = `prepare-details-${anime.title?.replace(/[^a-zA-Z0-9]/g, '') || 'new-anime'}`;
+      toast.loading("Preparing anime details...", { id: toastId });
       
-      // FIXED: Re-check for existing anime after waiting
-      if (!idToNavigate && isRecommendation && onViewDetails) {
-        console.log(`[AnimeCard] No ID found, attempting to add anime to database...`);
+      // FIXED: More robust anime object validation
+      const animeToAdd = {
+        title: anime.title?.trim() || "Unknown Title",
+        description: anime.description?.trim() || "No description available.",
+        posterUrl: (anime.posterUrl && !anime.posterUrl.includes('placeholder')) ? anime.posterUrl : placeholderUrl,
+        genres: Array.isArray(anime.genres) ? anime.genres.filter(g => g && g.trim()) : [],
+        year: typeof anime.year === 'number' && anime.year > 1900 ? anime.year : undefined,
+        rating: typeof anime.rating === 'number' && anime.rating >= 0 && anime.rating <= 10 ? anime.rating : undefined,
+        emotionalTags: Array.isArray(anime.emotionalTags) ? anime.emotionalTags.filter(tag => tag && tag.trim()) : [],
+        trailerUrl: anime.trailerUrl && anime.trailerUrl.trim() ? anime.trailerUrl : undefined,
+        studios: Array.isArray(anime.studios) ? anime.studios.filter(s => s && s.trim()) : [],
+        themes: Array.isArray(anime.themes) ? anime.themes.filter(t => t && t.trim()) : []
+      };
+      
+      console.log(`[AnimeCard] Adding anime to database with data:`, animeToAdd);
+      
+      try {
+        // FIXED: Better error handling for the mutation
+        idToNavigate = await addAnimeByUser(animeToAdd);
         
-        const toastId = `prepare-details-${anime.title?.replace(/[^a-zA-Z0-9]/g, '') || 'new-anime'}`;
-        toast.loading("Preparing anime details...", { id: toastId });
-        
-        // FIXED: More robust anime object validation
-        const animeToAdd = {
-          title: anime.title?.trim() || "Unknown Title",
-          description: anime.description?.trim() || "No description available.",
-          posterUrl: (anime.posterUrl && !anime.posterUrl.includes('placeholder')) ? anime.posterUrl : placeholderUrl,
-          genres: Array.isArray(anime.genres) ? anime.genres.filter(g => g && g.trim()) : [],
-          year: typeof anime.year === 'number' && anime.year > 1900 ? anime.year : undefined,
-          rating: typeof anime.rating === 'number' && anime.rating >= 0 && anime.rating <= 10 ? anime.rating : undefined,
-          emotionalTags: Array.isArray(anime.emotionalTags) ? anime.emotionalTags.filter(tag => tag && tag.trim()) : [],
-          trailerUrl: anime.trailerUrl && anime.trailerUrl.trim() ? anime.trailerUrl : undefined,
-          studios: Array.isArray(anime.studios) ? anime.studios.filter(s => s && s.trim()) : [],
-          themes: Array.isArray(anime.themes) ? anime.themes.filter(t => t && t.trim()) : []
-        };
-        
-        console.log(`[AnimeCard] Adding anime to database with data:`, animeToAdd);
-        
-        try {
-          // FIXED: Better error handling for the mutation
-          idToNavigate = await addAnimeByUser(animeToAdd);
-          
-          if (!idToNavigate) {
-            throw new Error("Mutation completed but returned no ID");
-          }
-          
-          console.log(`[AnimeCard] Successfully added anime with ID: ${idToNavigate}`);
-          toast.success("Anime added to database! Opening details...", { id: toastId, duration: 2000 });
-          
-          // FIXED: Small delay to ensure the anime is properly saved
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-        } catch (mutationError: any) {
-          console.error("[AnimeCard] Database mutation failed:", mutationError);
-          toast.error(`Failed to add anime: ${mutationError.message || 'Unknown error'}`, { id: toastId });
-          throw mutationError;
+        if (!idToNavigate) {
+          throw new Error("Mutation completed but returned no ID");
         }
+        
+        console.log(`[AnimeCard] Successfully added anime with ID: ${idToNavigate}`);
+        toast.success("Anime added to database! Opening details...", { id: toastId, duration: 2000 });
+        
+        // FIXED: Small delay to ensure the anime is properly saved
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+      } catch (mutationError: any) {
+        console.error("[AnimeCard] Database mutation failed:", mutationError);
+        toast.error(`Failed to add anime: ${mutationError.message || 'Unknown error'}`, { id: toastId });
+        throw mutationError;
       }
-
-      // FIXED: Final validation before navigation
-      if (!idToNavigate) {
-        throw new Error("No anime ID available after all attempts");
-      }
-      
-      if (!onViewDetails) {
-        throw new Error("Navigation function not provided");
-      }
-      
-      console.log(`[AnimeCard] Navigating to anime detail with ID: ${idToNavigate}`);
-      onViewDetails(idToNavigate);
-      
-    } catch (error: any) {
-      console.error("[AnimeCard] Click handler error:", error);
-      
-      // FIXED: More specific error messages
-      if (error.message.includes("mutation")) {
-        toast.error(`Database error: ${error.message}`);
-      } else if (error.message.includes("navigation")) {
-        toast.error(`Navigation error: ${error.message}`);
-      } else {
-        toast.error(`Could not open anime details: ${error.message}`);
-      }
-      
-      // FIXED: Fallback option for users
-      setTimeout(() => {
-        toast.info(`Try refreshing the page or contact support if the issue persists`, { duration: 5000 });
-      }, 1000);
-      
-    } finally {
-      setIsNavigating(false);
     }
-  };
+
+    // FIXED: Final validation before navigation
+    if (!idToNavigate) {
+      throw new Error("No anime ID available after all attempts");
+    }
+    
+    console.log(`[AnimeCard] Navigating to anime detail with ID: ${idToNavigate}`);
+    onViewDetails(idToNavigate);
+    
+  } catch (error: any) {
+    console.error("[AnimeCard] Click handler error:", error);
+    
+    // FIXED: More specific error messages
+    if (error.message.includes("mutation")) {
+      toast.error(`Database error: ${error.message}`);
+    } else if (error.message.includes("navigation")) {
+      toast.error(`Navigation error: ${error.message}`);
+    } else {
+      toast.error(`Could not open anime details: ${error.message}`);
+    }
+    
+    // FIXED: Fallback option for users
+    setTimeout(() => {
+      toast.info(`Try refreshing the page or contact support if the issue persists`, { duration: 5000 });
+    }, 1000);
+    
+  } finally {
+    setIsNavigating(false);
+  }
+};
   
   const displayRatingOrYear = anime.rating !== undefined && anime.rating !== null 
     ? `⭐ ${(anime.rating / 2).toFixed(1)}` 

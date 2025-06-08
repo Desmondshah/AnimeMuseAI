@@ -325,7 +325,6 @@ export default function MainApp() {
   console.log(`[MainApp] Recommendation clicked:`, recommendation);
   console.log(`[MainApp] Recommendation has _id:`, '_id' in recommendation);
   console.log(`[MainApp] Recommendation._id value:`, recommendation._id);
-  console.log(`[MainApp] Recommendation keys:`, Object.keys(recommendation));
 
   // Check if the recommendation has an _id field
   if ('_id' in recommendation && recommendation._id) {
@@ -381,6 +380,18 @@ export default function MainApp() {
     navigateToAIAssistant();
   }
 }, [navigateToDetail, navigateToAIAssistant]);
+
+// Also add a fallback navigation function
+const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
+  if (!animeId) {
+    console.error('[MainApp] Invalid anime ID provided to handleAnimeCardClick');
+    toast.error('Invalid anime selection');
+    return;
+  }
+  
+  console.log(`[MainApp] AnimeCard navigation request for ID: ${animeId}`);
+  navigateToDetail(animeId);
+}, [navigateToDetail]);
 
   // Manual refresh function for personalized recommendations
   const refreshPersonalizedRecommendations = useCallback(async () => {
@@ -672,6 +683,23 @@ export default function MainApp() {
   // --------------------------------------------------------------------------
 
   // Dashboard render function
+
+  // Add this helper function to truncate titles intelligently
+const truncateTitle = (title: string, maxLength: number = 25): string => {
+  if (!title) return "Unknown";
+  if (title.length <= maxLength) return title;
+  
+  // Smart truncation - try to break at word boundaries
+  const truncated = title.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  
+  if (lastSpace > maxLength * 0.6) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  
+  return truncated + '...';
+};
+
   const renderDashboard = useCallback(() => (
     <div className="relative min-h-screen">
       {/* Floating Background Elements */}
@@ -833,57 +861,56 @@ export default function MainApp() {
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
                   
                   <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-                    <Carousel className="py-4 -mx-2 px-2">
-                      {category.recommendations.map((rec, index) => (
-                          <motion.div
-                          key={`${category.id}-${index}-${rec.title}`}
-                          className="group flex-shrink-0 w-32 xs:w-36 sm:w-40 transform cursor-pointer"
-                          initial={{ opacity: 0, y: 30 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ scale: 1.1, rotate: 1 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleRecommendationClick(rec)}
-                        >
-                          <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          
-                          <div className="relative bg-black/30 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                            <div className="relative">
-                              <AnimeCard 
-                                anime={rec} 
-                                isRecommendation={true} 
-                                onViewDetails={() => handleRecommendationClick(rec)}
-                                className="w-full"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="bg-black/70 backdrop-blur-sm rounded-full p-3 border border-white/30">
-                                  <span className="text-white text-xl">👀</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-                              <h4 
-                                className="text-sm font-medium text-white text-center truncate group-hover:text-brand-accent-gold transition-colors duration-300"
-                                title={rec.title}
-                              >
-                                {rec.title}
-                              </h4>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
-                                <p className="text-xs text-white/60 text-center">Click to explore</p>
-                                {rec.genres && rec.genres.length > 0 && (
-                                  <p className="text-xs text-brand-accent-gold text-center truncate mt-0.5" title={rec.genres.join(", ")}>
-                                    {rec.genres.slice(0, 2).join(", ")}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </Carousel>
+                    <Carousel variant="shuffle">
+  {category.recommendations.map((rec, index) => (
+    <motion.div
+      key={`${category.id}-${index}-${rec.title}`}
+      className="group flex-shrink-0 w-32 xs:w-36 sm:w-40 transform cursor-pointer"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      whileHover={{ scale: 1.1, rotate: 1 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      
+      <div className="relative bg-black/30 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+        <div className="relative">
+          <AnimeCard 
+            anime={rec} 
+            isRecommendation={true} 
+            onViewDetails={handleAnimeCardClick}
+            className="w-full"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="bg-black/70 backdrop-blur-sm rounded-full p-3 border border-white/30">
+              <span className="text-white text-xl">👀</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
+          <h4 
+  className="text-sm font-medium text-white text-center title-truncate-1 group-hover:text-brand-accent-gold transition-colors duration-300"
+  title={rec.title}
+>
+  {truncateTitle(rec.title, 25)}
+</h4>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
+            <p className="text-xs text-white/60 text-center">Click to explore</p>
+            {rec.genres && rec.genres.length > 0 && (
+              <p className="text-xs text-brand-accent-gold text-center truncate mt-0.5" title={rec.genres.join(", ")}>
+                {rec.genres.slice(0, 2).join(", ")}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  ))}
+</Carousel>
                     
                     <div className="mt-4 text-center">
                       <span className="text-xs text-white/50 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1">
@@ -979,6 +1006,7 @@ export default function MainApp() {
     </div>
   ), [userProfile, forYouCategories, isUserAdmin, navigateToAIAssistant, handleRecommendationClick, navigateToAdminDashboard, navigateToBrowse, refreshPersonalizedRecommendations]);
 
+  
   // --------------------------------------------------------------------------
   // SUBSECTION 4.9: MODAL COMPONENTS
   // --------------------------------------------------------------------------

@@ -4099,3 +4099,36 @@ body {
     }
   }
 }
+
+.title-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25rem;
+  min-height: 2.5rem;
+}
+
+.title-truncate-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.carousel-container {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+.carousel-card {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.carousel-card img {
+  transform: translateZ(0); /* Force GPU layer */
+}
