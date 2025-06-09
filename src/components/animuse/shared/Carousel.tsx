@@ -1,4 +1,4 @@
-// OptimizedCarousel.tsx - Fixed version that prevents spam regenerating
+// OptimizedCarousel.tsx - Fixed version with proper snapping and positioning
 import React, { useRef, useState, useLayoutEffect, useEffect, useCallback, useMemo, memo } from "react";
 import { motion, useMotionValue, useSpring, AnimatePresence, PanInfo, useTransform } from "framer-motion";
 import { useMobileOptimizations } from "../../../../convex/useMobileOptimizations";
@@ -16,7 +16,7 @@ interface CarouselProps {
   onItemClick?: (index: number) => void;
 }
 
-// FIXED: Move ShuffleCard outside to prevent recreation
+// ShuffleCard component (unchanged)
 const ShuffleCard = memo(({ 
   child, 
   index, 
@@ -35,11 +35,8 @@ const ShuffleCard = memo(({
   onItemClick?: (index: number) => void;
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  
-  // FIXED: Create motion values only once per card
   const dragX = useMotionValue(0);
   
-  // FIXED: Memoize all calculations to prevent spam recalculation
   const cardData = useMemo(() => {
     const offset = index - currentIndex;
     const isVisible = Math.abs(offset) <= 2;
@@ -60,7 +57,6 @@ const ShuffleCard = memo(({
     };
   }, [index, currentIndex, childrenLength]);
 
-  // FIXED: Stable transform values
   const rotateY = useTransform(dragX, (v) =>
     cardData.baseRotationY + (cardData.isActive ? v * 0.08 : 0)
   );
@@ -68,7 +64,6 @@ const ShuffleCard = memo(({
     cardData.baseX + (cardData.isActive ? v * 0.2 : 0)
   );
 
-  // FIXED: Memoize drag handler to prevent recreation
   const handleDragEnd = useCallback((_: any, info: PanInfo) => {
     setIsDragging(false);
     dragX.set(0);
@@ -86,18 +81,15 @@ const ShuffleCard = memo(({
     }
   }, [currentIndex, childrenLength, onIndexChange, dragX]);
 
-  // FIXED: Memoize drag start handler
   const handleDragStart = useCallback(() => {
     setIsDragging(true);
     if ('vibrate' in navigator) navigator.vibrate(20);
   }, []);
 
-  // FIXED: Memoize drag handler
   const handleDrag = useCallback((_: any, info: PanInfo) => {
     dragX.set(info.offset.x);
   }, [dragX]);
 
-  // FIXED: Memoize tap handler
   const handleTap = useCallback(() => {
     if (!cardData.isActive && !isDragging) {
       onIndexChange(index);
@@ -167,7 +159,6 @@ const ShuffleCard = memo(({
   );
 });
 
-// FIXED: Debounce hook with better performance
 const useDebouncedIndex = (value: number, delay: number = 50) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -191,7 +182,6 @@ const useDebouncedIndex = (value: number, delay: number = 50) => {
   return debouncedValue;
 };
 
-// FIXED: Position indicators component to prevent re-renders
 const PositionIndicators = memo(({ 
   childrenLength, 
   currentIndex, 
@@ -230,72 +220,128 @@ export default function OptimizedCarousel({
   const { isMobile, shouldReduceAnimations } = useMobileOptimizations();
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [width, setWidth] = useState(0);
+  // FIXED: Better state management for default carousel
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [itemWidth, setItemWidth] = useState(0);
+  const [visibleItems, setVisibleItems] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [autoPlayActive, setAutoPlayActive] = useState(autoPlay);
 
-  // FIXED: Debounce current index to reduce spam
   const debouncedCurrentIndex = useDebouncedIndex(currentIndex, 30);
 
-  // Motion values for smooth animations
+  // FIXED: Motion values with proper spring configuration
   const x = useMotionValue(0);
-  const springX = useSpring(x, { damping: 40, stiffness: 120 });
-  
-  // Transform values for effects
-  const rotate = useTransform(x, [-width, 0, width], [rotationEffect ? 5 : 0, 0, rotationEffect ? -5 : 0]);
-  const scale = useTransform(x, [-width, 0, width], [scaleEffect ? 0.9 : 1, 1, scaleEffect ? 0.9 : 1]);
+  const springX = useSpring(x, { 
+    damping: 25, 
+    stiffness: 180, 
+    mass: 0.8,
+    restDelta: 0.001
+  });
 
-  // FIXED: Memoize stable callbacks
+  // Transform values for effects
+  const rotate = useTransform(x, [-containerWidth, 0, containerWidth], [rotationEffect ? 2 : 0, 0, rotationEffect ? -2 : 0]);
+  const scale = useTransform(x, [-containerWidth, 0, containerWidth], [scaleEffect ? 0.98 : 1, 1, scaleEffect ? 0.98 : 1]);
+
   const handleIndexChange = useCallback((newIndex: number) => {
     setCurrentIndex(newIndex);
   }, []);
 
+  // FIXED: Better size calculation
   useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (el) {
-      const newWidth = el.scrollWidth - el.offsetWidth;
-      setWidth(newWidth);
+    const updateSizes = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const firstChild = container.querySelector('.carousel-item');
+      
+      if (firstChild) {
+        const childRect = firstChild.getBoundingClientRect();
+        const gap = isMobile ? 24 : 32; // 6 = 24px, 8 = 32px in Tailwind
+        
+        setContainerWidth(containerRect.width);
+        setItemWidth(childRect.width + gap);
+        setVisibleItems(Math.floor(containerRect.width / (childRect.width + gap)));
+      }
+    };
+
+    updateSizes();
+    window.addEventListener('resize', updateSizes);
+    return () => window.removeEventListener('resize', updateSizes);
+  }, [children, isMobile]);
+
+  // FIXED: Proper position calculation and animation
+  useEffect(() => {
+    if (itemWidth > 0) {
+      const targetPosition = -currentIndex * itemWidth;
+      const maxPosition = -(children.length - visibleItems) * itemWidth;
+      const clampedPosition = Math.max(maxPosition, Math.min(0, targetPosition));
+      
+      x.set(clampedPosition);
     }
-  }, [children]);
+  }, [currentIndex, itemWidth, visibleItems, children.length, x]);
 
   // Auto-play effect
   useEffect(() => {
     if (!autoPlayActive || isDragging || children.length <= 1) return;
     
     const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % children.length);
+      setCurrentIndex(prev => {
+        const maxIndex = Math.max(0, children.length - visibleItems);
+        return prev >= maxIndex ? 0 : prev + 1;
+      });
     }, autoPlayInterval);
     
     return () => clearInterval(interval);
-  }, [autoPlayActive, isDragging, children.length, autoPlayInterval]);
+  }, [autoPlayActive, isDragging, children.length, autoPlayInterval, visibleItems]);
 
-  // Enhanced gesture handling
+  // FIXED: Enhanced gesture handling with proper snapping
   const handleDragStart = useCallback(() => {
     setIsDragging(true);
     setAutoPlayActive(false);
-    if ('vibrate' in navigator) navigator.vibrate(30);
+    if ('vibrate' in navigator) navigator.vibrate(20);
   }, []);
 
   const handleDragEnd = useCallback((_event: any, info: PanInfo) => {
     setIsDragging(false);
     
-    const threshold = isMobile ? 30 : 50;
+    if (itemWidth === 0) return;
+
+    const threshold = itemWidth * 0.2; // 20% of item width
     const velocity = Math.abs(info.velocity.x);
+    const offset = info.offset.x;
     
     let newIndex = currentIndex;
     
-    if (info.offset.x > threshold || (velocity > 500 && info.offset.x > 10)) {
+    // Determine direction based on offset and velocity
+    if (offset > threshold || (velocity > 300 && offset > 10)) {
+      // Swiping right (previous item)
       newIndex = Math.max(0, currentIndex - 1);
-    } else if (info.offset.x < -threshold || (velocity > 500 && info.offset.x < -10)) {
-      newIndex = Math.min(children.length - 1, currentIndex + 1);
+    } else if (offset < -threshold || (velocity > 300 && offset < -10)) {
+      // Swiping left (next item)
+      const maxIndex = Math.max(0, children.length - visibleItems);
+      newIndex = Math.min(maxIndex, currentIndex + 1);
     }
     
     setCurrentIndex(newIndex);
-    setTimeout(() => setAutoPlayActive(autoPlay), 3000);
-  }, [currentIndex, children.length, autoPlay, isMobile]);
+    
+    // Re-enable autoplay after a delay
+    setTimeout(() => setAutoPlayActive(autoPlay), 2000);
+  }, [currentIndex, children.length, autoPlay, itemWidth, visibleItems]);
 
-  // FIXED: Memoize shuffle variant to prevent recreation
+  // FIXED: Better drag constraints
+  const dragConstraints = useMemo(() => {
+    if (itemWidth === 0) return { left: 0, right: 0 };
+    
+    const maxScroll = Math.max(0, (children.length - visibleItems) * itemWidth);
+    return {
+      left: -maxScroll - itemWidth * 0.3, // Allow slight over-scroll
+      right: itemWidth * 0.3
+    };
+  }, [itemWidth, children.length, visibleItems]);
+
+  // Shuffle variant (unchanged)
   const shuffleVariant = useMemo(() => (
     <div
       className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-hidden"
@@ -303,7 +349,7 @@ export default function OptimizedCarousel({
     >
       {children.map((child, index) => (
         <ShuffleCard
-          key={`shuffle-card-${index}`} // FIXED: Stable key
+          key={`shuffle-card-${index}`}
           child={child} 
           index={index} 
           currentIndex={debouncedCurrentIndex}
@@ -322,7 +368,7 @@ export default function OptimizedCarousel({
     </div>
   ), [children, debouncedCurrentIndex, shouldReduceAnimations, handleIndexChange, onItemClick, currentIndex]);
 
-  // Other variants remain the same...
+  // Stack variant (unchanged)
   const stackVariant = useMemo(() => (
     <div className="relative h-80 w-full flex items-center justify-center">
       <AnimatePresence mode="popLayout">
@@ -381,28 +427,41 @@ export default function OptimizedCarousel({
     </div>
   ), [children, currentIndex, shouldReduceAnimations, onItemClick]);
 
+  // FIXED: Default variant with proper positioning and snapping
   const defaultVariant = useMemo(() => (
     <div ref={containerRef} className="overflow-hidden">
       <motion.div
-        className="flex space-x-6 sm:space-x-8 will-change-transform touch-pan-x"
-        style={{ x: springX }}
+        className="flex space-x-6 sm:space-x-8 will-change-transform"
+        style={{ 
+          x: springX,
+          scale,
+          rotateY: rotate
+        }}
         drag="x"
-        dragConstraints={{ right: 0, left: -width }}
-        dragElastic={0.05}
+        dragConstraints={dragConstraints}
+        dragElastic={0.1}
+        dragMomentum={false}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         whileTap={{ cursor: "grabbing" }}
+        transition={{
+          type: shouldReduceAnimations ? 'tween' : 'spring',
+          damping: 25,
+          stiffness: 180,
+          mass: 0.8,
+          duration: shouldReduceAnimations ? 0.2 : undefined
+        }}
       >
         {children.map((child, index) => (
           <motion.div
             key={`default-card-${index}`}
-            className="flex-shrink-0"
-            style={{ scale, rotateY: rotate }}
+            className="flex-shrink-0 carousel-item"
             whileTap={{ scale: 0.95 }}
             onTap={() => {
-              setCurrentIndex(index);
-              if ('vibrate' in navigator) navigator.vibrate(30);
-              onItemClick?.(index);
+              if (!isDragging) {
+                if ('vibrate' in navigator) navigator.vibrate(25);
+                onItemClick?.(index);
+              }
             }}
           >
             {child}
@@ -410,7 +469,7 @@ export default function OptimizedCarousel({
         ))}
       </motion.div>
     </div>
-  ), [children, springX, width, handleDragStart, handleDragEnd, scale, rotate, onItemClick]);
+  ), [children, springX, dragConstraints, handleDragStart, handleDragEnd, scale, rotate, onItemClick, isDragging, shouldReduceAnimations]);
 
   return (
     <div className={`relative ${className || ''}`}>
