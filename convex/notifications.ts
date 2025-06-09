@@ -54,11 +54,12 @@ export const getMyNotifications = query({
   handler: async (ctx, args): Promise<PaginationResult<Doc<"notifications">>> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
-      // Should return an empty PaginationResult if user is not logged in
+      // Return an empty PaginationResult if user is not logged in
       return {
         page: [],
         isDone: true,
-        continueCursor: "", // Or null, depending on how you handle it client-side
+        continueCursor: null as any,
+        splitCursor: null as any,
       };
     }
 
