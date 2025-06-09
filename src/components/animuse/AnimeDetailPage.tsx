@@ -767,7 +767,7 @@ export default function AnimeDetailPage({
   }, []);
 
   // Handle watchlist actions
-  const handleWatchlistAction = useCallback(async (status: string) => {
+  const handleWatchlistAction = useCallback(async (status: "Watching" | "Completed" | "Plan to Watch" | "Dropped") => {
     if (!isAuthenticated || !anime) {
       toast.error("Please log in to manage your watchlist.");
       return;
@@ -815,7 +815,7 @@ export default function AnimeDetailPage({
     try {
       await upsertToWatchlistMutation({
         animeId: anime._id,
-        status: watchlistEntry.status,
+        status: watchlistEntry.status as "Watching" | "Completed" | "Plan to Watch" | "Dropped",
         notes: watchlistNotes.trim(),
         progress: watchlistEntry.progress || 0,
         userRating: watchlistEntry.userRating || undefined,

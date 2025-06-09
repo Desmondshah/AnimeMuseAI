@@ -1,11 +1,26 @@
 // convex/reviews.ts
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, type MutationCtx } from "./_generated/server";
 import { Doc, Id, DataModel } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import { OrderedQuery, PaginationResult } from "convex/server";
 
+async function deleteCommentTree(
+  ctx: MutationCtx,
+  commentId: Id<"reviewComments">
+): Promise<void> {
+  const replies = await ctx.db
+    .query("reviewComments")
+    .withIndex("by_parent_createdAt", (q) => q.eq("parentId", commentId))
+    .collect();
+
+  for (const reply of replies) {
+    await deleteCommentTree(ctx, reply._id);
+  }
+
+  await ctx.db.delete(commentId);
+}
 
 export const getReviewsForAnime = query({
   args: {
@@ -328,26 +343,8 @@ export const deleteReviewComment = mutation({
       throw new Error("Not authorized to delete this comment.");
     }
 
-    // Recursively delete replies first
-    const replies = await ctx.db.query("reviewComments")
-      .withIndex("by_parent_createdAt", q => q.eq("parentId", args.commentId))
-      .collect();
-
-    for (const reply of replies) {
-      // For deep replies, this would need to be a recursive call or a loop that processes children first.
-      // For simplicity, assuming only one level of replies for now or that deleteReviewComment is called for each.
-      // A more robust solution would be a separate internal helper function for recursive deletion.
-      const nestedReplies = await ctx.db.query("reviewComments")
-          .withIndex("by_parent_createdAt", q => q.eq("parentId", reply._id))
-          .collect();
-      for (const nestedReply of nestedReplies) {
-          await ctx.db.delete(nestedReply._id); // Delete grandchildren
-      }
-      await ctx.db.delete(reply._id); // Delete direct children
-    }
-
-    // Delete the main comment
-    await ctx.db.delete(args.commentId);
+    // Recursively delete the comment and all nested replies
+    await deleteCommentTree(ctx, args.commentId);
     return true;
   },
 });

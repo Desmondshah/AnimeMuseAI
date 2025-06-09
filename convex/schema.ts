@@ -230,6 +230,7 @@ const applicationTables = {
   customLists: defineTable({
     userId: v.id("users"),
     listName: v.string(),
+    normalizedListName: v.string(),
     description: v.optional(v.string()),
     isPublic: v.boolean(),
     animeIds: v.array(v.id("anime")), // Array of anime IDs in this list
@@ -237,7 +238,8 @@ const applicationTables = {
     updatedAt: v.optional(v.number()),
   })
   .index("by_userId_createdAt", ["userId", "createdAt"])
-  .index("by_userId_listName", ["userId", "listName"]), // For uniqueness if desired
+  .index("by_userId_listName", ["userId", "listName"]) // For uniqueness if desired
+  .index("by_userId_normalizedListName", ["userId", "normalizedListName"]),
 
 aiFeedback: defineTable({
     prompt: v.string(),

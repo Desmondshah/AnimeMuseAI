@@ -379,10 +379,22 @@ export const internalUpdateFilterMetadata = internalMutation({
   },
 });
 
+const ALLOWED_WATCHLIST_STATUSES = [
+  "Watching",
+  "Completed",
+  "Plan to Watch",
+  "Dropped",
+] as const;
+
 export const upsertToWatchlist = mutation({
   args: {
     animeId: v.id("anime"),
-    status: v.string(),
+    status: v.union(
+      v.literal("Watching"),
+      v.literal("Completed"),
+      v.literal("Plan to Watch"),
+      v.literal("Dropped")
+    ),
     progress: v.optional(v.number()),
     userRating: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -390,6 +402,9 @@ export const upsertToWatchlist = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("User not authenticated");
+    if (!ALLOWED_WATCHLIST_STATUSES.includes(args.status)) {
+      throw new Error(`Invalid watchlist status: ${args.status}`);
+    }
     const anime = await ctx.db.get(args.animeId);
     if (!anime) throw new Error("Anime not found");
     const existingEntry = await ctx.db.query("watchlist")
@@ -417,55 +432,86 @@ export const upsertToWatchlist = mutation({
   },
 });
 
-export const removeFromWatchlist = mutation({
-  args: { animeId: v.id("anime") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("User not authenticated");
-    const watchlistEntry = await ctx.db.query("watchlist")
-      .withIndex("by_user_anime", q => q.eq("userId", userId as Id<"users">).eq("animeId", args.animeId))
-      .unique();
-    if (watchlistEntry) {
-      await ctx.db.delete(watchlistEntry._id);
-      return true;
-    }
-    return false;
-  },
-});
+export async function addAnimeByUserHandler(ctx: any, args: {
+  title: string;
+  description: string;
+  posterUrl: string;
+  genres: string[];
+  year?: number;
+  rating?: number;
+  emotionalTags?: string[];
+  trailerUrl?: string;
+  studios?: string[];
+  themes?: string[];
+  anilistId?: number;
+}) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("User not authenticated");
+
+  const normalizedTitle = args.title.trim().toLowerCase();
+
+  // Exact match first
+  let existing = await ctx.db
+    .query("anime")
+    .withIndex("by_title", (q: any) => q.eq("title", args.title))
+    .first();
+
+  if (!existing) {
+    // Case-insensitive check using search index
+    const matches = await ctx.db
+      .query("anime")
+      .withSearchIndex("search_title", (q: any) => q.search("title", normalizedTitle))
+      .take(20);
+    existing = matches.find(
+      (a: any) => a.title.trim().toLowerCase() === normalizedTitle,
+    );
+  }
+
+  if (existing) {
+    console.warn(
+      `[Add Anime] User ${userId} existing anime: "${args.title}" (ID: ${existing._id}). Returning existing.`,
+    );
+    return existing._id;
+  }
+
+  console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
+  const animeId = await ctx.db.insert("anime", {
+    title: args.title,
+    description: args.description,
+    posterUrl: args.posterUrl,
+    genres: args.genres,
+    year: args.year,
+    rating: args.rating,
+    emotionalTags: args.emotionalTags,
+    trailerUrl: args.trailerUrl,
+    studios: args.studios,
+    themes: args.themes,
+    anilistId: args.anilistId,
+  });
+
+  ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
+    animeIdInOurDB: animeId,
+    titleToSearch: args.title,
+  });
+
+  return animeId;
+}
 
 export const addAnimeByUser = mutation({
-    args: {
-        title: v.string(), description: v.string(), posterUrl: v.string(), genres: v.array(v.string()),
-        year: v.optional(v.number()), rating: v.optional(v.number()), emotionalTags: v.optional(v.array(v.string())),
-        trailerUrl: v.optional(v.string()), studios: v.optional(v.array(v.string())), themes: v.optional(v.array(v.string())),
-        anilistId: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
-        const userId = await getAuthUserId(ctx);
-        if (!userId) throw new Error("User not authenticated");
-        
-        const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).first();
-        if (existing) {
-            console.warn(`[Add Anime] User ${userId} existing anime: "${args.title}" (ID: ${existing._id}). Returning existing.`);
-            return existing._id;
-        }
-        
-        console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
-        const animeId = await ctx.db.insert("anime", {
-            title: args.title, description: args.description, posterUrl: args.posterUrl, genres: args.genres,
-            year: args.year, rating: args.rating, emotionalTags: args.emotionalTags, trailerUrl: args.trailerUrl,
-            studios: args.studios, themes: args.themes,
-            anilistId: args.anilistId,
-        });
-        
-        // Auto-fetch external data to improve poster quality and metadata
-        ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
-            animeIdInOurDB: animeId,
-            titleToSearch: args.title
-        });
-        
-        return animeId;
-    }
+  args: {
+    title: v.string(),
+    description: v.string(),
+    posterUrl: v.string(),
+    genres: v.array(v.string()),
+    year: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    emotionalTags: v.optional(v.array(v.string())),
+    trailerUrl: v.optional(v.string()),
+    studios: v.optional(v.array(v.string())),
+    themes: v.optional(v.array(v.string())),
+    anilistId: v.optional(v.number()),
+  },
+  handler: addAnimeByUserHandler,
 });
 
 export const addAnimeInternal = internalMutation({

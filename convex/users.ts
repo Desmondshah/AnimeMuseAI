@@ -65,7 +65,6 @@ export const updateUserProfilePreferences = mutation({
     if (args.narrativePacing !== undefined) updates.narrativePacing = args.narrativePacing;
     if (args.watchlistIsPublic !== undefined) updates.watchlistIsPublic = args.watchlistIsPublic;
 
-
     if (Object.keys(updates).length === 0) {
       return { success: true, message: "No preferences updated." };
     }
@@ -74,7 +73,6 @@ export const updateUserProfilePreferences = mutation({
     return { success: true, message: "Profile preferences updated successfully." };
   },
 });
-
 
 export const checkVerificationStatus = query({
   args: {},
@@ -235,6 +233,45 @@ export const getMyProfileStats = query({
 });
 
 // --- Phase 2: Custom Lists ---
+
+// TESTABLE HANDLER FUNCTION
+export async function createCustomListHandler(ctx: any, args: {
+  listName: string;
+  description?: string;
+  isPublic: boolean;
+  animeIds?: Id<"anime">[];
+}): Promise<Id<"customLists">> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("User not authenticated.");
+
+  const normalizedListName = args.listName.toLowerCase();
+
+  // Check for duplicate list names for the same user (case-insensitive)
+  const existingList = await ctx.db
+      .query("customLists")
+      .withIndex(
+        "by_userId_normalizedListName",
+        (q: any) =>
+          q
+            .eq("userId", userId as Id<"users">)
+            .eq("normalizedListName", normalizedListName)
+      )
+      .unique();
+  if (existingList) {
+      throw new Error("A list with this name already exists.");
+  }
+
+  return await ctx.db.insert("customLists", {
+    userId: userId as Id<"users">,
+    listName: args.listName,
+    normalizedListName,
+    description: args.description,
+    isPublic: args.isPublic,
+    animeIds: args.animeIds || [],
+    createdAt: Date.now(),
+  });
+}
+
 export const createCustomList = mutation({
   args: {
     listName: v.string(),
@@ -242,28 +279,7 @@ export const createCustomList = mutation({
     isPublic: v.boolean(),
     animeIds: v.optional(v.array(v.id("anime"))),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("User not authenticated.");
-
-    // Optional: Check for duplicate list names for the same user
-    const existingList = await ctx.db
-        .query("customLists")
-        .withIndex("by_userId_listName", q => q.eq("userId", userId as Id<"users">).eq("listName", args.listName))
-        .unique();
-    if (existingList) {
-        throw new Error("A list with this name already exists.");
-    }
-
-    return await ctx.db.insert("customLists", {
-      userId: userId as Id<"users">,
-      listName: args.listName,
-      description: args.description,
-      isPublic: args.isPublic,
-      animeIds: args.animeIds || [],
-      createdAt: Date.now(),
-    });
-  },
+  handler: createCustomListHandler,
 });
 
 export const getMyCustomLists = query({
@@ -312,7 +328,24 @@ export const updateCustomList = mutation({
     if (!list || list.userId !== userId) throw new Error("List not found or not authorized.");
 
     const updates: Partial<Doc<"customLists">> = { updatedAt: Date.now() };
-    if (args.listName !== undefined) updates.listName = args.listName;
+    if (args.listName !== undefined) {
+      const normalizedListName = args.listName.toLowerCase();
+      const existingList = await ctx.db
+        .query("customLists")
+        .withIndex(
+          "by_userId_normalizedListName",
+          q =>
+            q
+              .eq("userId", userId as Id<"users">)
+              .eq("normalizedListName", normalizedListName)
+        )
+        .unique();
+      if (existingList && existingList._id !== args.listId) {
+        throw new Error("A list with this name already exists.");
+      }
+      updates.listName = args.listName;
+      updates.normalizedListName = normalizedListName;
+    }
     if (args.description !== undefined) updates.description = args.description;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
     if (args.animeIds !== undefined) updates.animeIds = args.animeIds;
@@ -335,7 +368,6 @@ export const deleteCustomList = mutation({
     return true;
   },
 });
-
 
 export const addAnimeToCustomList = mutation({
     args: { listId: v.id("customLists"), animeId: v.id("anime") },
@@ -365,7 +397,6 @@ export const removeAnimeFromCustomList = mutation({
     }
 });
 
-
 // --- Watchlist Privacy Toggle (global setting on user profile) ---
 export const setWatchlistPrivacy = mutation({
     args: { isPublic: v.boolean() },
@@ -378,7 +409,6 @@ export const setWatchlistPrivacy = mutation({
         return { success: true };
     }
 });
-
 
 export const cleanupExpiredPhoneVerifications = internalMutation({
   args: {},
