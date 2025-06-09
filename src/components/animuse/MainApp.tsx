@@ -182,6 +182,10 @@ export default function MainApp() {
   const myCustomLists = useQuery(api.users.getMyCustomLists);
   const getPersonalizedRecommendationsAction = useAction(api.ai.debugPersonalizedRecommendations);
   const createCustomListMutation = useMutation(api.users.createCustomList);
+  const fetchTrendingAnimeAction = useAction(api.externalApis.fetchTrendingAnime);
+  const fetchTopRatedAnimeAction = useAction(api.externalApis.fetchTopRatedAnime);
+  const fetchPopularAnimeAction = useAction(api.externalApis.fetchPopularAnime);
+
 
   const { shouldReduceAnimations } = useMobileOptimizations();
   
@@ -204,6 +208,10 @@ export default function MainApp() {
     recommendations: [] as AnimeRecommendation[],
     isLoading: false,
   });
+
+  const [trendingAnime, setTrendingAnime] = useState<AnimeRecommendation[]>([]);
+  const [topAnime, setTopAnime] = useState<AnimeRecommendation[]>([]);
+  const [popularAnime, setPopularAnime] = useState<AnimeRecommendation[]>([]);
 
   // NEW CHARACTER STATE:
   const [selectedCharacterData, setSelectedCharacterData] = useState<EnhancedCharacter | null>(null);
@@ -493,6 +501,32 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
   // --------------------------------------------------------------------------
   // SUBSECTION 4.7: EFFECTS
   // --------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (currentView !== "dashboard") return;
+
+    const fetchLists = async () => {
+      try {
+        if (trendingAnime.length === 0) {
+          const res = await fetchTrendingAnimeAction({ limit: 10 });
+          setTrendingAnime(res.animes || []);
+        }
+        if (topAnime.length === 0) {
+          const res = await fetchTopRatedAnimeAction({ limit: 10 });
+          setTopAnime(res.animes || []);
+        }
+        if (popularAnime.length === 0) {
+          const res = await fetchPopularAnimeAction({ limit: 10 });
+          setPopularAnime(res.animes || []);
+        }
+      } catch (e) {
+        console.error("[MainApp] Failed fetching anime lists", e);
+      }
+    };
+
+    fetchLists();
+  }, [currentView, trendingAnime.length, topAnime.length, popularAnime.length, fetchTrendingAnimeAction, fetchTopRatedAnimeAction, fetchPopularAnimeAction]);
+
 
   // Enhanced useEffect with better duplicate prevention
   useEffect(() => {
@@ -786,6 +820,54 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             </div>
           </motion.div>
         </div>
+
+        {trendingAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h2 className="section-title font-heading text-white font-bold">🔥 Trending Now</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {trendingAnime.map((a, i) => (
+                <div key={`trend-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
+
+        {topAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h2 className="section-title font-heading text-white font-bold">🏆 Top Ranked</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {topAnime.map((a, i) => (
+                <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
+
+        {popularAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h2 className="section-title font-heading text-white font-bold">⭐ Popular</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {popularAnime.map((a, i) => (
+                <div key={`pop-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
 
         {/* Enhanced Personalized Recommendations Section */}
         {userProfile?.onboardingCompleted &&

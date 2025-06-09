@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { ActionCtx } from "./_generated/server";
+import { AnimeRecommendation } from "./types";
 
 // Enhanced interfaces for type safety
 interface ExternalApiResult {
@@ -2367,3 +2368,57 @@ export const callImportTrendingAnime = action({
     return await ctx.runAction(internal.externalApis.importTrendingAnime, args);
   }
 });
+
+async function fetchAniListSimple(sort: string, limit: number, reason: string): Promise<{ animes: AnimeRecommendation[]; error?: string }> {
+  const query = `query ($page:Int,$perPage:Int){ Page(page:$page, perPage:$perPage){ media(type: ANIME, sort: ${sort}) { id title { romaji } description(asHtml:false) startDate{ year } coverImage{ extraLarge } averageScore genres } } }`;
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+    });
+    if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+    const data = await res.json();
+    const media = data?.data?.Page?.media || [];
+    const animes = media.map((item: any) => ({
+      title: item.title?.romaji || 'Unknown',
+      description: item.description || '',
+      posterUrl: item.coverImage?.extraLarge || '',
+      genres: item.genres || [],
+      year: item.startDate?.year || undefined,
+      rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+      emotionalTags: [],
+      trailerUrl: '',
+      studios: [],
+      themes: [],
+      reasoning: reason,
+      moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+      _id: undefined,
+      foundInDatabase: false
+    })) as AnimeRecommendation[];
+    return { animes };
+  } catch (e: any) {
+    return { animes: [], error: e.message };
+  }
+}
+
+export const fetchTrendingAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    return await fetchAniListSimple('TRENDING_DESC', args.limit ?? 10, 'Trending on AniList');
+  }
+});
+
+export const fetchTopRatedAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    return await fetchAniListSimple('SCORE_DESC', args.limit ?? 10, 'Top ranked on AniList');
+  }
+});
+
+export const fetchPopularAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    return await fetchAniListSimple('POPULARITY_DESC', args.limit ?? 10, 'Popular on AniList');
+  }
+  });
