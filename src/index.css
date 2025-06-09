@@ -4132,3 +4132,14 @@ body {
 .carousel-card img {
   transform: translateZ(0); /* Force GPU layer */
 }
+
+/* Mobile optimizations for shuffle carousel */
+.carousel-shuffle-container {
+  touch-action: pan-y;
+}
+
+@media (max-width: 475px) {
+  .carousel-shuffle-container {
+    height: 16rem;
+  }
+}

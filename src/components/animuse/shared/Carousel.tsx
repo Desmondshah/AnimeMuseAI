@@ -297,12 +297,12 @@ export default function OptimizedCarousel({
 
   // FIXED: Memoize shuffle variant to prevent recreation
   const shuffleVariant = useMemo(() => (
-    <div 
-      className="relative h-80 w-full flex items-center justify-center overflow-hidden"
-      style={{ perspective: '800px' }}
+    <div
+      className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-hidden"
+      style={{ perspective: isMobile ? '600px' : '800px' }}
     >
       {children.map((child, index) => (
-        <ShuffleCard 
+        <ShuffleCard
           key={`shuffle-card-${index}`} // FIXED: Stable key
           child={child} 
           index={index} 
