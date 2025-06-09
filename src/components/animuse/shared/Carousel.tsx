@@ -88,6 +88,16 @@ const ShuffleCard = memo(({
 
   const handleDrag = useCallback((_: any, info: PanInfo) => {
     dragX.set(info.offset.x);
+    
+    // Prevent page scroll if dragging horizontally
+    const horizontalMovement = Math.abs(info.offset.x);
+    const verticalMovement = Math.abs(info.offset.y);
+    
+    if (horizontalMovement > verticalMovement && horizontalMovement > 5) {
+      if (window.event) {
+        window.event.preventDefault?.();
+      }
+    }
   }, [dragX]);
 
   const handleTap = useCallback(() => {
@@ -296,10 +306,16 @@ export default function OptimizedCarousel({
     return () => clearInterval(interval);
   }, [autoPlayActive, isDragging, children.length, autoPlayInterval, visibleItems]);
 
-  // FIXED: Enhanced gesture handling with proper snapping
-  const handleDragStart = useCallback(() => {
+  // FIXED: Enhanced gesture handling with proper snapping and scroll prevention
+  const handleDragStart = useCallback((event: any) => {
     setIsDragging(true);
     setAutoPlayActive(false);
+    
+    // Prevent page scrolling during carousel drag
+    if (event.touches) {
+      event.preventDefault();
+    }
+    
     if ('vibrate' in navigator) navigator.vibrate(20);
   }, []);
 
@@ -330,7 +346,7 @@ export default function OptimizedCarousel({
     setTimeout(() => setAutoPlayActive(autoPlay), 2000);
   }, [currentIndex, children.length, autoPlay, itemWidth, visibleItems]);
 
-  // FIXED: Better drag constraints
+  // FIXED: Better drag constraints and scroll prevention
   const dragConstraints = useMemo(() => {
     if (itemWidth === 0) return { left: 0, right: 0 };
     
@@ -341,11 +357,25 @@ export default function OptimizedCarousel({
     };
   }, [itemWidth, children.length, visibleItems]);
 
+  // FIXED: Handle drag with direction detection to prevent page scroll
+  const handleDrag = useCallback((event: any, info: PanInfo) => {
+    // If we're dragging more horizontally than vertically, prevent page scroll
+    const horizontalMovement = Math.abs(info.offset.x);
+    const verticalMovement = Math.abs(info.offset.y);
+    
+    if (horizontalMovement > verticalMovement && horizontalMovement > 10) {
+      event.preventDefault?.();
+    }
+  }, []);
+
   // Shuffle variant (unchanged)
   const shuffleVariant = useMemo(() => (
     <div
       className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-hidden"
-      style={{ perspective: isMobile ? '600px' : '800px' }}
+      style={{ 
+        perspective: isMobile ? '600px' : '800px',
+        touchAction: 'pan-y pinch-zoom' // Allow vertical scroll but manage horizontal
+      }}
     >
       {children.map((child, index) => (
         <ShuffleCard
@@ -427,21 +457,28 @@ export default function OptimizedCarousel({
     </div>
   ), [children, currentIndex, shouldReduceAnimations, onItemClick]);
 
-  // FIXED: Default variant with proper positioning and snapping
+  // FIXED: Default variant with proper positioning, snapping, and scroll prevention
   const defaultVariant = useMemo(() => (
-    <div ref={containerRef} className="overflow-hidden">
+    <div 
+      ref={containerRef} 
+      className="overflow-hidden"
+      style={{ touchAction: 'pan-y pinch-zoom' }} // Allow vertical scroll but manage horizontal
+    >
       <motion.div
         className="flex space-x-6 sm:space-x-8 will-change-transform"
         style={{ 
           x: springX,
           scale,
-          rotateY: rotate
+          rotateY: rotate,
+          touchAction: 'none' // Disable browser touch handling for the draggable element
         }}
         drag="x"
         dragConstraints={dragConstraints}
         dragElastic={0.1}
         dragMomentum={false}
+        dragDirectionLock={true} // Lock to horizontal dragging only
         onDragStart={handleDragStart}
+        onDrag={handleDrag}
         onDragEnd={handleDragEnd}
         whileTap={{ cursor: "grabbing" }}
         transition={{
@@ -469,7 +506,7 @@ export default function OptimizedCarousel({
         ))}
       </motion.div>
     </div>
-  ), [children, springX, dragConstraints, handleDragStart, handleDragEnd, scale, rotate, onItemClick, isDragging, shouldReduceAnimations]);
+  ), [children, springX, dragConstraints, handleDragStart, handleDrag, handleDragEnd, scale, rotate, onItemClick, isDragging, shouldReduceAnimations]);
 
   return (
     <div className={`relative ${className || ''}`}>
