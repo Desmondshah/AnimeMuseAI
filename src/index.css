@@ -524,10 +524,10 @@ body {
     contain: layout style paint;
   }
   
-  /* Optimize image rendering */
+  /* Sharper posters on mobile */
   img {
-    image-rendering: optimizeSpeed;
     image-rendering: -webkit-optimize-contrast;
+    image-rendering: auto;
   }
 }
 
