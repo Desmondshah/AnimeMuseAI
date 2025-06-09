@@ -170,6 +170,7 @@ body {
   right: 0;
   bottom: 0;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -257,8 +258,8 @@ body {
   }
   
   .section-title {
-    font-size: 1.5rem !important; /* 24px */
-    line-height: 2rem !important;
+    font-size: 1.25rem !important; /* 20px */
+    line-height: 1.75rem !important;
   }
   
   .page-subtitle {
