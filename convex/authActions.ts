@@ -51,6 +51,20 @@ function isValidE164PhoneNumber(phoneNumber: string): boolean {
   return e164Regex.test(phoneNumber);
 }
 
+export async function ensurePhoneNumberNotUsed(
+  db: any,
+  userId: Id<"users">,
+  phoneNumber: string,
+) {
+  const existing = await db
+    .query("userProfiles")
+    .withIndex("by_phoneNumber", (q: any) => q.eq("phoneNumber", phoneNumber))
+    .first();
+  if (existing && existing.userId !== userId) {
+    throw new Error("This phone number is already associated with another account.");
+  }
+}
+
 export const requestSmsVerificationCode = mutation({
   args: {
     phoneNumber: v.string(),
@@ -78,6 +92,8 @@ export const requestSmsVerificationCode = mutation({
     if (userProfile?.phoneNumberVerified && userProfile?.phoneNumber === args.phoneNumber) {
       throw new Error("This phone number is already verified for your account.");
     }
+    await ensurePhoneNumberNotUsed(ctx.db, userId as Id<"users">, args.phoneNumber);
+
     const recentRequests = await ctx.db.query("phoneVerifications")
       .withIndex("by_userId", q => q.eq("userId", userId as Id<"users">))
       .filter(q => q.gt(q.field("requestedAt") ?? 0, Date.now() - RATE_LIMIT_WINDOW_MS))
@@ -209,6 +225,8 @@ export const resendSmsVerificationCode = mutation({
     if (!isValidE164PhoneNumber(args.phoneNumber)) {
       throw new Error("Invalid phone number format.");
     }
+    await ensurePhoneNumberNotUsed(ctx.db, userId as Id<"users">, args.phoneNumber);
+    
     const recentRequests = await ctx.db.query("phoneVerifications")
       .withIndex("by_userId", q => q.eq("userId", userId as Id<"users">))
       .filter(q => q.gt(q.field("requestedAt") ?? 0, Date.now() - RATE_LIMIT_WINDOW_MS))
