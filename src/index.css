@@ -238,7 +238,7 @@ body {
 }
 
 .section-title {
-  @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+  @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl font-heading font-bold tracking-wide uppercase;
 }
 
 .mobile-optimized-text {

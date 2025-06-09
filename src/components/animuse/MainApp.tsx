@@ -821,54 +821,6 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           </motion.div>
         </div>
 
-        {trendingAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h2 className="section-title font-heading text-white font-bold">🔥 Trending Now</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Carousel>
-              {trendingAnime.map((a, i) => (
-                <div key={`trend-${i}`} className="w-32 xs:w-36 sm:w-40">
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
-              ))}
-            </Carousel>
-          </div>
-        )}
-
-        {topAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h2 className="section-title font-heading text-white font-bold">🏆 Top Ranked</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Carousel>
-              {topAnime.map((a, i) => (
-                <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
-              ))}
-            </Carousel>
-          </div>
-        )}
-
-        {popularAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h2 className="section-title font-heading text-white font-bold">⭐ Popular</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Carousel>
-              {popularAnime.map((a, i) => (
-                <div key={`pop-${i}`} className="w-32 xs:w-36 sm:w-40">
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
-              ))}
-            </Carousel>
-          </div>
-        )}
-
         {/* Enhanced Personalized Recommendations Section */}
         {userProfile?.onboardingCompleted &&
           forYouCategories.filter(cat => cat.id === "generalPersonalized").map((category) => (
@@ -877,7 +829,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               <div className="text-center space-y-4">
                 <div className="inline-block">
                   <div className="flex items-center justify-center gap-4 mb-2">
-                    <h2 className="section-title font-heading text-white font-bold">
+                    <h2 className="section-title font-heading text-white font-bold whitespace-nowrap">
                       {category.title}
                     </h2>
                     {/* Refresh Button */}
@@ -1049,6 +1001,54 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             </div>
           ))
         }
+
+        {trendingAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="section-title font-heading text-white font-bold">🔥 Trending Now</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {trendingAnime.map((a, i) => (
+                <div key={`trend-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
+
+        {topAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="section-title font-heading text-white font-bold">🏆 Top Ranked</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {topAnime.map((a, i) => (
+                <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
+
+        {popularAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="section-title font-heading text-white font-bold">⭐ Popular</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Carousel>
+              {popularAnime.map((a, i) => (
+                <div key={`pop-${i}`} className="w-32 xs:w-36 sm:w-40">
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        )}
 
         {/* Profile Stats Section */}
         <div className="relative">

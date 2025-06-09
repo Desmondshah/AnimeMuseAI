@@ -136,7 +136,7 @@ const ShuffleCard = memo(({
       whileTap={{ scale: cardData.baseScale - 0.02 }}
       drag={cardData.isActive ? 'x' : false}
       dragConstraints={{ left: -120, right: 120 }}
-      dragElastic={0.15}
+      dragElastic={0.05}
       dragMomentum={false}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
@@ -240,7 +240,7 @@ export default function OptimizedCarousel({
 
   // Motion values for smooth animations
   const x = useMotionValue(0);
-  const springX = useSpring(x, { damping: 20, stiffness: 300 });
+  const springX = useSpring(x, { damping: 40, stiffness: 120 });
   
   // Transform values for effects
   const rotate = useTransform(x, [-width, 0, width], [rotationEffect ? 5 : 0, 0, rotationEffect ? -5 : 0]);
@@ -388,7 +388,7 @@ export default function OptimizedCarousel({
         style={{ x: springX }}
         drag="x"
         dragConstraints={{ right: 0, left: -width }}
-        dragElastic={0.1}
+        dragElastic={0.05}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         whileTap={{ cursor: "grabbing" }}
