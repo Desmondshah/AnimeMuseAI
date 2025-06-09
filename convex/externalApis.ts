@@ -2314,4 +2314,56 @@ export const debugPosterFetch = action({
       recommendation
     };
   },
+});// Import trending anime from AniList and add to database
+export const importTrendingAnime = internalAction({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx: ActionCtx, args): Promise<{ imported: number; added: string[]; error?: string }> => {
+    const limit = args.limit ?? 10;
+    try {
+      const query = `query ($page: Int, $perPage: Int) { Page(page: $page, perPage: $perPage) { media(type: ANIME, sort: TRENDING_DESC) { id title { romaji } description(asHtml: false) startDate { year } genres coverImage { extraLarge } averageScore } } }`;
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+      });
+      if (!res.ok) {
+        return { imported: 0, added: [], error: `AniList error ${res.status}` };
+      }
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      const added: string[] = [];
+      for (const item of media) {
+        const title = item.title?.romaji || 'Unknown';
+        const existing = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title });
+        if (existing) continue;
+        const animeId = await ctx.runMutation(internal.anime.addAnimeInternal, {
+          title,
+          description: item.description || '',
+          posterUrl: item.coverImage?.extraLarge || '',
+          genres: item.genres || [],
+          year: item.startDate?.year || undefined,
+          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+          emotionalTags: [],
+          trailerUrl: '',
+          studios: [],
+          themes: [],
+          anilistId: item.id
+        });
+        await ctx.runAction(internal.externalApis.triggerFetchExternalAnimeDetailsEnhanced, { animeIdInOurDB: animeId, titleToSearch: title });
+        added.push(title);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      return { imported: added.length, added };
+    } catch (error: any) {
+      return { imported: 0, added: [], error: error.message };
+    }
+  }
+});
+
+// Public action for importing trending anime
+export const callImportTrendingAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx: ActionCtx, args): Promise<{ imported: number; added: string[]; error?: string }> => {
+    return await ctx.runAction(internal.externalApis.importTrendingAnime, args);
+  }
 });

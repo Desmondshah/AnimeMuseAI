@@ -69,11 +69,19 @@ interface BackendCommentProps extends Doc<"reviewComments"> {
   replies: (Doc<"reviewComments"> & { userName: string; userAvatarUrl?: string })[];
 }
 
-interface AnimeDetailPageProps { 
+interface AnimeDetailPageProps {
   animeId: Id<"anime">; 
   onBack: () => void;
   navigateToDetail: (animeId: Id<"anime">) => void;
   onCharacterClick: (character: any, animeName: string) => void;
+}
+
+interface CustomListType {
+  _id: Id<"customLists">;
+  listName: string;
+  description?: string;
+  isPublic: boolean;
+  animeIds: Id<"anime">[];
 }
 
 interface EnhancedCharacterType {
@@ -584,7 +592,27 @@ export default function AnimeDetailPage({
   const [showSimilarAnime, setShowSimilarAnime] = useState(false);
   const getSimilarAnimeAction = useAction(api.ai.getSimilarAnimeRecommendationsFixed);
   const userProfile = useQuery(api.users.getMyUserProfile, isAuthenticated ? {} : "skip");
-  
+  const myCustomLists = useQuery(api.users.getMyCustomLists, isAuthenticated ? {} : "skip");
+  const addToCustomListMutation = useMutation(api.users.addAnimeToCustomList);
+  const removeFromCustomListMutation = useMutation(api.users.removeAnimeFromCustomList);
+
+  const [isAddToCustomListModalOpen, setIsAddToCustomListModalOpen] = useState(false);
+
+  const toggleAnimeInCustomList = useCallback(async (listId: Id<"customLists">, inList: boolean) => {
+    if (!anime) return;
+    try {
+      if (inList) {
+        await removeFromCustomListMutation({ listId, animeId: anime._id });
+        toast.success("Removed from list.");
+      } else {
+        await addToCustomListMutation({ listId, animeId: anime._id });
+        toast.success("Added to list.");
+      }
+    } catch (error: any) {
+      toast.error("Failed to update list.");
+    }
+  }, [anime, addToCustomListMutation, removeFromCustomListMutation]);
+
   // Refs for smooth scrolling and parallax
   const heroRef = useRef<HTMLDivElement>(null);
   const scrollY = useRef(0);
@@ -1134,6 +1162,18 @@ export default function AnimeDetailPage({
               <div className="bg-black/60 backdrop-blur-lg border border-white/20 px-6 py-3 rounded-2xl">
                 <span className="text-white/70 text-sm">Login to manage watchlist</span>
               </div>
+            )}
+            
+            {/* Add to Custom List Button */}
+            {isAuthenticated && (
+              <StyledButton
+                onClick={() => setIsAddToCustomListModalOpen(true)}
+                variant="ghost"
+                className="!bg-white/10 !backdrop-blur-lg !border-white/20 hover:!bg-white/20 !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2"
+              >
+                <span className="text-lg">➕</span>
+                <span className="font-medium">Custom Lists</span>
+              </StyledButton>
             )}
             
             {/* Smart Refresh Button */}
@@ -1768,6 +1808,56 @@ export default function AnimeDetailPage({
           </div>
         </div>
       )}
+
+    {isAddToCustomListModalOpen && myCustomLists && anime && (
+        <AddToCustomListModal
+          isOpen={isAddToCustomListModalOpen}
+          onClose={() => setIsAddToCustomListModalOpen(false)}
+          lists={myCustomLists}
+          animeId={anime._id}
+          onToggle={toggleAnimeInCustomList}
+        />
+      )}
     </div>
   );
 }
+
+const AddToCustomListModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  lists: CustomListType[];
+  animeId: Id<"anime">;
+  onToggle: (listId: Id<"customLists">, inList: boolean) => void;
+}> = ({ isOpen, onClose, lists, animeId, onToggle }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div className="bg-brand-surface text-white p-5 rounded-xl shadow-xl w-full max-w-md space-y-4">
+        <h3 className="text-lg font-heading">Manage Custom Lists</h3>
+        {lists.length === 0 ? (
+          <p className="text-sm text-center">No custom lists available.</p>
+        ) : (
+          <ul className="space-y-2">
+            {lists.map(list => {
+              const inList = list.animeIds.includes(animeId);
+              return (
+                <li key={list._id} className="flex items-center justify-between">
+                  <span>{list.listName}</span>
+                  <StyledButton
+                    variant="secondary_small"
+                    onClick={() => onToggle(list._id, inList)}
+                  >
+                    {inList ? "Remove" : "Add"}
+                  </StyledButton>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="text-right pt-2">
+          <StyledButton variant="secondary_small" onClick={onClose}>Close</StyledButton>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,7 +1,7 @@
 // src/components/animuse/onboarding/AnimeManagementPage.tsx
 // (Assuming this is used as an Admin page, despite its original folder)
 import React, { useState, useCallback, memo } from "react";
-import { usePaginatedQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import StyledButton from "../shared/StyledButton";
@@ -38,7 +38,8 @@ const AnimeManagementPageComponent: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [editingAnime, setEditingAnime] = useState<Doc<"anime"> | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
-
+const importTrendingAnimeAction = useAction(api.externalApis.callImportTrendingAnime);
+  const [isImportingTrending, setIsImportingTrending] = useState(false);
    const handleDeleteAnime = useCallback(async (animeId: Id<"anime">, animeTitle: string) => {
     if (window.confirm(`PERMANENTLY DELETE "${animeTitle}" and all its reviews/watchlist entries? This cannot be undone.`)) {
       try {
@@ -80,6 +81,25 @@ const AnimeManagementPageComponent: React.FC = () => {
     }
   }, [editAnimeMutation, handleCloseEditModal]);
 
+  const handleImportTrending = useCallback(async () => {
+    setIsImportingTrending(true);
+    const toastId = "import-trending";
+    toast.loading("Importing trending anime...", { id: toastId });
+    try {
+      const result = await importTrendingAnimeAction({ limit: 10 });
+      if (result.error) {
+        toast.error(result.error, { id: toastId });
+      } else {
+        toast.success(`Imported ${result.imported} new anime`, { id: toastId });
+        window.location.reload();
+      }
+    } catch (error: any) {
+      toast.error(`Import failed: ${error.message}`, { id: toastId });
+    } finally {
+      setIsImportingTrending(false);
+    }
+  }, [importTrendingAnimeAction]);
+
   const placeholderPoster = (title: string) => `https://placehold.co/80x120/${'ECB091'.substring(1)}/${'321D0B'.substring(1)}/png?text=${encodeURIComponent(title.substring(0,3))}&font=poppins`;
 
 
@@ -94,6 +114,11 @@ const AnimeManagementPageComponent: React.FC = () => {
   return (
     <div className="text-brand-text-primary">
       <h2 className="text-lg sm:text-xl font-heading text-brand-primary-action mb-3 sm:mb-4">Anime Database Management</h2>
+      <div className="mb-4">
+        <StyledButton onClick={handleImportTrending} variant="primary_small" disabled={isImportingTrending}>
+          {isImportingTrending ? 'Importing...' : 'Import Trending Anime'}
+        </StyledButton>
+      </div>
       
       {isEditModalOpen && editingAnime && (
         // Modal Overlay and Panel
