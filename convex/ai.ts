@@ -5,7 +5,7 @@ import { api, internal } from "./_generated/api";
 import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
-import { NEEDS_ENHANCEMENT } from "./constants";
+
 // Interface for debug anime addition response
 interface DebugAnimeAdditionResponse {
   success: boolean;
@@ -14,6 +14,11 @@ interface DebugAnimeAdditionResponse {
   existing?: boolean;
   error?: string;
   validationErrors?: string[];
+}
+
+interface RecommendationWithDatabase extends AnimeRecommendation {
+  foundInDatabase?: boolean;
+  _id?: Id<"anime">;
 }
 
 interface AnimeDocumentType {
@@ -374,9 +379,9 @@ const fetchRealAnimePosterWithRetry = async (animeTitle: string, maxRetries: num
 const enhanceRecommendationsWithDatabaseFirst = async (
   ctx: any,
   recommendations: any[]
-): Promise<any[]> => {
-  const enhancedRecommendations = [];
-  const concurrentLimit = 2; // Process only 2 at a time to avoid overwhelming APIs
+): Promise<RecommendationWithDatabase[]> => {
+  const enhancedRecommendations: RecommendationWithDatabase[] = [];
+  const concurrentLimit = 2;
   
   console.log(`[Database-First Enhancement] Processing ${recommendations.length} recommendations with concurrency limit ${concurrentLimit}...`);
   
@@ -385,7 +390,7 @@ const enhanceRecommendationsWithDatabaseFirst = async (
     const batch = recommendations.slice(i, i + concurrentLimit);
     
     const batchResults = await Promise.all(
-      batch.map(async (rec, batchIndex) => {
+      batch.map(async (rec: any, batchIndex: number): Promise<RecommendationWithDatabase> => {
         const globalIndex = i + batchIndex;
         let posterUrl = rec.posterUrl;
         let foundInDatabase = false;
@@ -419,11 +424,11 @@ const enhanceRecommendationsWithDatabaseFirst = async (
         }
         
         // Step 2: If not found in DB or poster is invalid, use external APIs
-        if (!foundInDatabase && (!posterUrl || posterUrl === NEEDS_ENHANCEMENT || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
+        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
           console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
           
           try {
-            const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 0); // No retries for speed
+            const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 0);
             
             if (externalPosterUrl) {
               posterUrl = externalPosterUrl;
@@ -448,7 +453,13 @@ const enhanceRecommendationsWithDatabaseFirst = async (
           description: rec.description || "No description available.",
           reasoning: rec.reasoning || "AI recommendation.",
           foundInDatabase,
-        };
+          // Ensure required fields are present
+          moodMatchScore: rec.moodMatchScore || 7,
+          genres: Array.isArray(rec.genres) ? rec.genres : [],
+          emotionalTags: Array.isArray(rec.emotionalTags) ? rec.emotionalTags : [],
+          studios: Array.isArray(rec.studios) ? rec.studios : [],
+          themes: Array.isArray(rec.themes) ? rec.themes : [],
+        } as RecommendationWithDatabase;
       })
     );
     
@@ -460,8 +471,8 @@ const enhanceRecommendationsWithDatabaseFirst = async (
     }
   }
   
-  const dbHits = enhancedRecommendations.filter(rec => rec.foundInDatabase).length;
-  const realPostersFound = enhancedRecommendations.filter(rec => 
+  const dbHits = enhancedRecommendations.filter((rec: RecommendationWithDatabase) => rec.foundInDatabase).length;
+  const realPostersFound = enhancedRecommendations.filter((rec: RecommendationWithDatabase) => 
     rec.posterUrl && !rec.posterUrl.includes('placehold.co')
   ).length;
   
@@ -490,14 +501,14 @@ Your goal is to provide high-quality anime recommendations based on the user's p
 Consider the user's profile if provided to tailor suggestions.
 Output a JSON object with a single key "recommendations", which is an array of 3-${args.count || 3} anime.
 
-IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them.
-If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
+IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
 
 Each anime object should have: 
 - title (string, REQUIRED): The exact title of the anime
 - description (string): A brief synopsis  
 - reasoning (string): Why it matches the prompt/profile
-- posterUrl (string): Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
 - genres (array of strings): Key genres
 - year (number): Release year if known
 - rating (number 0-10): External average rating if known
@@ -1637,13 +1648,13 @@ export const getPersonalizedRecommendationsWithDatabaseFirst = action({
 Based on the user's detailed profile and recent watchlist activity, suggest ${args.count || 3} anime they might enjoy.
 Provide diverse recommendations that touch upon different aspects of their profile.
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them.
-If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
 
 Each recommendation MUST include: 
 - title (string, REQUIRED): Exact anime title
 - description (string): Brief synopsis  
-- posterUrl (string): Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
 - genres (array of strings): Key genres
 - year (number): Release year if known
 - rating (number 0-10): External rating if known
@@ -1829,13 +1840,13 @@ IMPORTANT GUIDELINES:
 5. Ensure each recommendation genuinely evokes the specified emotional experience
 
 OUTPUT REQUIREMENTS:
-For posterUrl, try to provide real anime poster URLs if you know them. If unknown, use "${NEEDS_ENHANCEMENT}" for automatic enhancement.
+For posterUrl, try to provide real anime poster URLs if you know them. If unknown, use "PLACEHOLDER" for automatic enhancement.
 
 Each recommendation must include:
 - title (REQUIRED): Exact anime title
 - description: Brief synopsis focusing on mood relevance
 - reasoning (REQUIRED): Detailed explanation of how it matches the mood combination and intensities
-- posterUrl: Real URL or "${NEEDS_ENHANCEMENT}"
+- posterUrl: Real URL or "PLACEHOLDER"
 - genres: Array of relevant genres
 - year: Release year if known
 - rating: External rating (0-10) if known
@@ -2260,13 +2271,13 @@ Description of target anime: "${targetAnime.description?.substring(0, 200) || 'N
 
 Suggest ${args.count || 3} anime that share significant similarities in terms of genre, themes, tone, plot structure, or character archetypes.
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them.
-If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
 
 For each recommendation, provide:
 - title: (string, REQUIRED) The exact title of the anime
 - description: (string) A brief synopsis
-- posterUrl: (string) Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
+- posterUrl: (string) Real poster URL if known, otherwise "PLACEHOLDER"
 - genres: (array of strings) Key genres
 - year: (number, optional) Release year
 - rating: (number, optional, 0-10 scale) External average rating
@@ -2364,13 +2375,15 @@ export const testPosterFetching = action({
   handler: async (ctx, args) => {
     console.log(`[Debug Poster Test] Testing poster fetching for: ${args.animeTitles.join(", ")}`);
 
-    const results: Array<{
-  title: string;
-  posterUrl: string | null;
-  success: boolean;
-  isReal?: boolean;
-  error?: string;
-}> = [];
+    interface FetchResult {
+      title: string;
+      posterUrl: string | null;
+      success: boolean;
+      isReal: boolean;
+      error?: string;
+    }
+    
+    const results: FetchResult[] = [];
     
     for (const title of args.animeTitles) {
       try {
@@ -2391,6 +2404,7 @@ export const testPosterFetching = action({
           title,
           posterUrl: null,
           success: false,
+          isReal: false,
           error: error.message
         });
       }
@@ -2427,16 +2441,16 @@ export const debugPersonalizedRecommendations = action({
 
         // Test recommendations with potential database matches
         const testRecommendations = [
-            { title: "Attack on Titan", description: "Humanity fights for survival against giant humanoid Titans.", posterUrl: "", genres: ["Action", "Drama", "Fantasy"], year: 2013, rating: 9.0, emotionalTags: ["intense", "dramatic"], studios: ["Studio Pierrot"], themes: ["survival", "freedom"], reasoning: "Perfect for testing poster fetching and navigation" },
-            { title: "Demon Slayer", description: "A young boy becomes a demon slayer to save his sister.", posterUrl: "", genres: ["Action", "Supernatural"], year: 2019, rating: 8.7, emotionalTags: ["emotional", "action-packed"], studios: ["Ufotable"], themes: ["family", "determination"], reasoning: "Another test anime for poster enhancement" },
-            { title: "Your Name", description: "Two teenagers share a profound, magical connection.", posterUrl: "", genres: ["Romance", "Drama", "Supernatural"], year: 2016, rating: 8.4, emotionalTags: ["romantic", "beautiful"], studios: ["CoMix Wave Films"], themes: ["love", "destiny"], reasoning: "Movie test for poster system" },
-            { title: "Spirited Away", description: "A girl enters a world ruled by gods and witches.", posterUrl: "", genres: ["Adventure", "Family", "Fantasy"], year: 2001, rating: 9.3, emotionalTags: ["magical", "heartwarming"], studios: ["Studio Ghibli"], themes: ["courage", "growth"], reasoning: "Classic Ghibli for diverse testing" },
-            { title: "Death Note", description: "A student gains the power to kill with a supernatural notebook.", posterUrl: "", genres: ["Thriller", "Psychological", "Supernatural"], year: 2006, rating: 9.0, emotionalTags: ["dark", "intense"], studios: ["Madhouse"], themes: ["justice", "morality"], reasoning: "Psychological thriller for variety" },
-            { title: "One Piece", description: "A pirate crew searches for the ultimate treasure.", posterUrl: "", genres: ["Adventure", "Comedy", "Shounen"], year: 1999, rating: 8.9, emotionalTags: ["adventurous", "friendship"], studios: ["Toei Animation"], themes: ["friendship", "adventure"], reasoning: "Long-running series for testing" },
-            { title: "My Hero Academia", description: "Students train to become professional superheroes.", posterUrl: "", genres: ["Action", "School", "Superhero"], year: 2016, rating: 8.6, emotionalTags: ["inspiring", "heroic"], studios: ["Studio Bones"], themes: ["heroism", "growth"], reasoning: "Modern shounen for testing" },
-            { title: "Naruto", description: "A young ninja seeks recognition and dreams of becoming Hokage.", posterUrl: "", genres: ["Action", "Martial Arts", "Shounen"], year: 2002, rating: 8.4, emotionalTags: ["determined", "friendship"], studios: ["Studio Pierrot"], themes: ["perseverance", "friendship"], reasoning: "Classic shounen for testing" },
-            { title: "Princess Mononoke", description: "A young warrior gets involved in a struggle between forest gods and humans.", posterUrl: "", genres: ["Adventure", "Drama", "Fantasy"], year: 1997, rating: 8.9, emotionalTags: ["epic", "thought-provoking"], studios: ["Studio Ghibli"], themes: ["nature", "conflict"], reasoning: "Environmental epic for testing" },
-            { title: "Fullmetal Alchemist: Brotherhood", description: "Brothers use alchemy to search for the Philosopher's Stone.", posterUrl: "", genres: ["Action", "Adventure", "Drama"], year: 2009, rating: 9.5, emotionalTags: ["emotional", "epic"], studios: ["Studio Bones"], themes: ["sacrifice", "truth"], reasoning: "Highly rated series for testing" }
+            { title: "Attack on Titan", description: "Humanity fights for survival against giant humanoid Titans.", posterUrl: "PLACEHOLDER", genres: ["Action", "Drama", "Fantasy"], year: 2013, rating: 9.0, emotionalTags: ["intense", "dramatic"], studios: ["Studio Pierrot"], themes: ["survival", "freedom"], reasoning: "Perfect for testing poster fetching and navigation" },
+            { title: "Demon Slayer", description: "A young boy becomes a demon slayer to save his sister.", posterUrl: "PLACEHOLDER", genres: ["Action", "Supernatural"], year: 2019, rating: 8.7, emotionalTags: ["emotional", "action-packed"], studios: ["Ufotable"], themes: ["family", "determination"], reasoning: "Another test anime for poster enhancement" },
+            { title: "Your Name", description: "Two teenagers share a profound, magical connection.", posterUrl: "PLACEHOLDER", genres: ["Romance", "Drama", "Supernatural"], year: 2016, rating: 8.4, emotionalTags: ["romantic", "beautiful"], studios: ["CoMix Wave Films"], themes: ["love", "destiny"], reasoning: "Movie test for poster system" },
+            { title: "Spirited Away", description: "A girl enters a world ruled by gods and witches.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Family", "Fantasy"], year: 2001, rating: 9.3, emotionalTags: ["magical", "heartwarming"], studios: ["Studio Ghibli"], themes: ["courage", "growth"], reasoning: "Classic Ghibli for diverse testing" },
+            { title: "Death Note", description: "A student gains the power to kill with a supernatural notebook.", posterUrl: "PLACEHOLDER", genres: ["Thriller", "Psychological", "Supernatural"], year: 2006, rating: 9.0, emotionalTags: ["dark", "intense"], studios: ["Madhouse"], themes: ["justice", "morality"], reasoning: "Psychological thriller for variety" },
+            { title: "One Piece", description: "A pirate crew searches for the ultimate treasure.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Comedy", "Shounen"], year: 1999, rating: 8.9, emotionalTags: ["adventurous", "friendship"], studios: ["Toei Animation"], themes: ["friendship", "adventure"], reasoning: "Long-running series for testing" },
+            { title: "My Hero Academia", description: "Students train to become professional superheroes.", posterUrl: "PLACEHOLDER", genres: ["Action", "School", "Superhero"], year: 2016, rating: 8.6, emotionalTags: ["inspiring", "heroic"], studios: ["Studio Bones"], themes: ["heroism", "growth"], reasoning: "Modern shounen for testing" },
+            { title: "Naruto", description: "A young ninja seeks recognition and dreams of becoming Hokage.", posterUrl: "PLACEHOLDER", genres: ["Action", "Martial Arts", "Shounen"], year: 2002, rating: 8.4, emotionalTags: ["determined", "friendship"], studios: ["Studio Pierrot"], themes: ["perseverance", "friendship"], reasoning: "Classic shounen for testing" },
+            { title: "Princess Mononoke", description: "A young warrior gets involved in a struggle between forest gods and humans.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Drama", "Fantasy"], year: 1997, rating: 8.9, emotionalTags: ["epic", "thought-provoking"], studios: ["Studio Ghibli"], themes: ["nature", "conflict"], reasoning: "Environmental epic for testing" },
+            { title: "Fullmetal Alchemist: Brotherhood", description: "Brothers use alchemy to search for the Philosopher's Stone.", posterUrl: "PLACEHOLDER", genres: ["Action", "Adventure", "Drama"], year: 2009, rating: 9.5, emotionalTags: ["emotional", "epic"], studios: ["Studio Bones"], themes: ["sacrifice", "truth"], reasoning: "Highly rated series for testing" }
         ];
 
         try {
@@ -2524,14 +2538,16 @@ export const debugPosterUrls = action({
   handler: async (ctx, args) => {
     console.log(`[Debug Poster URLs] Testing ${args.titles.length} titles...`);
     
-    const results: Array<{
-  title: string;
-  posterUrl: string | null;
-  success: boolean;
-  isReal?: boolean;
-  accessible?: boolean;
-  error?: string;
-}> = [];
+    interface PosterResult {
+      title: string;
+      posterUrl: string | null;
+      success: boolean;
+      isReal: boolean;
+      accessible: boolean;
+      error?: string;
+    }
+    
+    const results: PosterResult[] = [];
     
     for (const title of args.titles) {
       try {
@@ -2540,11 +2556,10 @@ export const debugPosterUrls = action({
         // Test the poster fetching function
         const posterUrl = await fetchRealAnimePosterWithRetry(title, 1);
         
-        const result = {
+        const result: PosterResult = {
           title,
           posterUrl,
           success: !!posterUrl,
-          // FIX: Ensure isReal is always boolean
           isReal: !!(posterUrl && !posterUrl.includes('placehold.co')),
           accessible: false
         };
@@ -2571,7 +2586,8 @@ export const debugPosterUrls = action({
           posterUrl: null,
           success: false,
           error: error.message,
-          accessible: false
+          accessible: false,
+          isReal: false
         });
       }
     }
@@ -2590,8 +2606,14 @@ export const debugPosterUrls = action({
   },
 });
 
-function isValidPosterUrl(posterUrl: any) {
-  throw new Error("Function not implemented.");
+function isValidPosterUrl(posterUrl: string | undefined | null): boolean {
+  if (!posterUrl) return false;
+  if (typeof posterUrl !== 'string') return false;
+  if (posterUrl === "PLACEHOLDER") return false;
+  if (posterUrl.includes('placehold.co')) return false;
+  if (posterUrl.includes('placeholder')) return false;
+  if (!posterUrl.startsWith('https://')) return false;
+  return true;
 }
 
 export const debugAnimeAddition = action({

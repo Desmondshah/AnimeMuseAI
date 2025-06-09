@@ -1,6 +1,10 @@
+
 {
   "files": [],
-  "references": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
   "compilerOptions": {
     "baseUrl": ".",
     "jsx": "preserve", // Or "react-jsx" depending on your setup
