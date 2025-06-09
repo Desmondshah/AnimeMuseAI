@@ -40,6 +40,7 @@ const applicationTables = {
     trailerUrl: v.optional(v.string()),
     studios: v.optional(v.array(v.string())),
     themes: v.optional(v.array(v.string())),
+    enhanceProgress: v.optional(v.number()),
     averageUserRating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
     // Phase 2: For alternative data sources - an example, might need more generic structure

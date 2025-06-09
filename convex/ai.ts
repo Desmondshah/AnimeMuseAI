@@ -5,7 +5,7 @@ import { api, internal } from "./_generated/api";
 import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
-
+import { NEEDS_ENHANCEMENT } from "./constants";
 // Interface for debug anime addition response
 interface DebugAnimeAdditionResponse {
   success: boolean;
@@ -419,7 +419,7 @@ const enhanceRecommendationsWithDatabaseFirst = async (
         }
         
         // Step 2: If not found in DB or poster is invalid, use external APIs
-        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
+        if (!foundInDatabase && (!posterUrl || posterUrl === NEEDS_ENHANCEMENT || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
           console.log(`[Database-First Enhancement] 🔍 Fetching external poster for: ${rec.title}`);
           
           try {
@@ -490,14 +490,14 @@ Your goal is to provide high-quality anime recommendations based on the user's p
 Consider the user's profile if provided to tailor suggestions.
 Output a JSON object with a single key "recommendations", which is an array of 3-${args.count || 3} anime.
 
-IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them. 
-If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+IMPORTANT: For posterUrl, please try to provide real anime poster URLs if you know them.
+If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
 
 Each anime object should have: 
 - title (string, REQUIRED): The exact title of the anime
 - description (string): A brief synopsis  
 - reasoning (string): Why it matches the prompt/profile
-- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- posterUrl (string): Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
 - genres (array of strings): Key genres
 - year (number): Release year if known
 - rating (number 0-10): External average rating if known
@@ -1637,13 +1637,13 @@ export const getPersonalizedRecommendationsWithDatabaseFirst = action({
 Based on the user's detailed profile and recent watchlist activity, suggest ${args.count || 3} anime they might enjoy.
 Provide diverse recommendations that touch upon different aspects of their profile.
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
-If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them.
+If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
 
 Each recommendation MUST include: 
 - title (string, REQUIRED): Exact anime title
 - description (string): Brief synopsis  
-- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- posterUrl (string): Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
 - genres (array of strings): Key genres
 - year (number): Release year if known
 - rating (number 0-10): External rating if known
@@ -1829,13 +1829,13 @@ IMPORTANT GUIDELINES:
 5. Ensure each recommendation genuinely evokes the specified emotional experience
 
 OUTPUT REQUIREMENTS:
-For posterUrl, try to provide real anime poster URLs if you know them. If unknown, use "PLACEHOLDER" for automatic enhancement.
+For posterUrl, try to provide real anime poster URLs if you know them. If unknown, use "${NEEDS_ENHANCEMENT}" for automatic enhancement.
 
 Each recommendation must include:
 - title (REQUIRED): Exact anime title
 - description: Brief synopsis focusing on mood relevance
 - reasoning (REQUIRED): Detailed explanation of how it matches the mood combination and intensities
-- posterUrl: Real URL or "PLACEHOLDER"
+- posterUrl: Real URL or "${NEEDS_ENHANCEMENT}"
 - genres: Array of relevant genres
 - year: Release year if known
 - rating: External rating (0-10) if known
@@ -2260,13 +2260,13 @@ Description of target anime: "${targetAnime.description?.substring(0, 200) || 'N
 
 Suggest ${args.count || 3} anime that share significant similarities in terms of genre, themes, tone, plot structure, or character archetypes.
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
-If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them.
+If you don't know a real URL, just put "${NEEDS_ENHANCEMENT}" and the system will search for real posters.
 
 For each recommendation, provide:
 - title: (string, REQUIRED) The exact title of the anime
 - description: (string) A brief synopsis
-- posterUrl: (string) Real poster URL if known, otherwise "PLACEHOLDER"
+- posterUrl: (string) Real poster URL if known, otherwise "${NEEDS_ENHANCEMENT}"
 - genres: (array of strings) Key genres
 - year: (number, optional) Release year
 - rating: (number, optional, 0-10 scale) External average rating
@@ -2427,16 +2427,16 @@ export const debugPersonalizedRecommendations = action({
 
         // Test recommendations with potential database matches
         const testRecommendations = [
-            { title: "Attack on Titan", description: "Humanity fights for survival against giant humanoid Titans.", posterUrl: "PLACEHOLDER", genres: ["Action", "Drama", "Fantasy"], year: 2013, rating: 9.0, emotionalTags: ["intense", "dramatic"], studios: ["Studio Pierrot"], themes: ["survival", "freedom"], reasoning: "Perfect for testing poster fetching and navigation" },
-            { title: "Demon Slayer", description: "A young boy becomes a demon slayer to save his sister.", posterUrl: "PLACEHOLDER", genres: ["Action", "Supernatural"], year: 2019, rating: 8.7, emotionalTags: ["emotional", "action-packed"], studios: ["Ufotable"], themes: ["family", "determination"], reasoning: "Another test anime for poster enhancement" },
-            { title: "Your Name", description: "Two teenagers share a profound, magical connection.", posterUrl: "PLACEHOLDER", genres: ["Romance", "Drama", "Supernatural"], year: 2016, rating: 8.4, emotionalTags: ["romantic", "beautiful"], studios: ["CoMix Wave Films"], themes: ["love", "destiny"], reasoning: "Movie test for poster system" },
-            { title: "Spirited Away", description: "A girl enters a world ruled by gods and witches.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Family", "Fantasy"], year: 2001, rating: 9.3, emotionalTags: ["magical", "heartwarming"], studios: ["Studio Ghibli"], themes: ["courage", "growth"], reasoning: "Classic Ghibli for diverse testing" },
-            { title: "Death Note", description: "A student gains the power to kill with a supernatural notebook.", posterUrl: "PLACEHOLDER", genres: ["Thriller", "Psychological", "Supernatural"], year: 2006, rating: 9.0, emotionalTags: ["dark", "intense"], studios: ["Madhouse"], themes: ["justice", "morality"], reasoning: "Psychological thriller for variety" },
-            { title: "One Piece", description: "A pirate crew searches for the ultimate treasure.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Comedy", "Shounen"], year: 1999, rating: 8.9, emotionalTags: ["adventurous", "friendship"], studios: ["Toei Animation"], themes: ["friendship", "adventure"], reasoning: "Long-running series for testing" },
-            { title: "My Hero Academia", description: "Students train to become professional superheroes.", posterUrl: "PLACEHOLDER", genres: ["Action", "School", "Superhero"], year: 2016, rating: 8.6, emotionalTags: ["inspiring", "heroic"], studios: ["Studio Bones"], themes: ["heroism", "growth"], reasoning: "Modern shounen for testing" },
-            { title: "Naruto", description: "A young ninja seeks recognition and dreams of becoming Hokage.", posterUrl: "PLACEHOLDER", genres: ["Action", "Martial Arts", "Shounen"], year: 2002, rating: 8.4, emotionalTags: ["determined", "friendship"], studios: ["Studio Pierrot"], themes: ["perseverance", "friendship"], reasoning: "Classic shounen for testing" },
-            { title: "Princess Mononoke", description: "A young warrior gets involved in a struggle between forest gods and humans.", posterUrl: "PLACEHOLDER", genres: ["Adventure", "Drama", "Fantasy"], year: 1997, rating: 8.9, emotionalTags: ["epic", "thought-provoking"], studios: ["Studio Ghibli"], themes: ["nature", "conflict"], reasoning: "Environmental epic for testing" },
-            { title: "Fullmetal Alchemist: Brotherhood", description: "Brothers use alchemy to search for the Philosopher's Stone.", posterUrl: "PLACEHOLDER", genres: ["Action", "Adventure", "Drama"], year: 2009, rating: 9.5, emotionalTags: ["emotional", "epic"], studios: ["Studio Bones"], themes: ["sacrifice", "truth"], reasoning: "Highly rated series for testing" }
+            { title: "Attack on Titan", description: "Humanity fights for survival against giant humanoid Titans.", posterUrl: "", genres: ["Action", "Drama", "Fantasy"], year: 2013, rating: 9.0, emotionalTags: ["intense", "dramatic"], studios: ["Studio Pierrot"], themes: ["survival", "freedom"], reasoning: "Perfect for testing poster fetching and navigation" },
+            { title: "Demon Slayer", description: "A young boy becomes a demon slayer to save his sister.", posterUrl: "", genres: ["Action", "Supernatural"], year: 2019, rating: 8.7, emotionalTags: ["emotional", "action-packed"], studios: ["Ufotable"], themes: ["family", "determination"], reasoning: "Another test anime for poster enhancement" },
+            { title: "Your Name", description: "Two teenagers share a profound, magical connection.", posterUrl: "", genres: ["Romance", "Drama", "Supernatural"], year: 2016, rating: 8.4, emotionalTags: ["romantic", "beautiful"], studios: ["CoMix Wave Films"], themes: ["love", "destiny"], reasoning: "Movie test for poster system" },
+            { title: "Spirited Away", description: "A girl enters a world ruled by gods and witches.", posterUrl: "", genres: ["Adventure", "Family", "Fantasy"], year: 2001, rating: 9.3, emotionalTags: ["magical", "heartwarming"], studios: ["Studio Ghibli"], themes: ["courage", "growth"], reasoning: "Classic Ghibli for diverse testing" },
+            { title: "Death Note", description: "A student gains the power to kill with a supernatural notebook.", posterUrl: "", genres: ["Thriller", "Psychological", "Supernatural"], year: 2006, rating: 9.0, emotionalTags: ["dark", "intense"], studios: ["Madhouse"], themes: ["justice", "morality"], reasoning: "Psychological thriller for variety" },
+            { title: "One Piece", description: "A pirate crew searches for the ultimate treasure.", posterUrl: "", genres: ["Adventure", "Comedy", "Shounen"], year: 1999, rating: 8.9, emotionalTags: ["adventurous", "friendship"], studios: ["Toei Animation"], themes: ["friendship", "adventure"], reasoning: "Long-running series for testing" },
+            { title: "My Hero Academia", description: "Students train to become professional superheroes.", posterUrl: "", genres: ["Action", "School", "Superhero"], year: 2016, rating: 8.6, emotionalTags: ["inspiring", "heroic"], studios: ["Studio Bones"], themes: ["heroism", "growth"], reasoning: "Modern shounen for testing" },
+            { title: "Naruto", description: "A young ninja seeks recognition and dreams of becoming Hokage.", posterUrl: "", genres: ["Action", "Martial Arts", "Shounen"], year: 2002, rating: 8.4, emotionalTags: ["determined", "friendship"], studios: ["Studio Pierrot"], themes: ["perseverance", "friendship"], reasoning: "Classic shounen for testing" },
+            { title: "Princess Mononoke", description: "A young warrior gets involved in a struggle between forest gods and humans.", posterUrl: "", genres: ["Adventure", "Drama", "Fantasy"], year: 1997, rating: 8.9, emotionalTags: ["epic", "thought-provoking"], studios: ["Studio Ghibli"], themes: ["nature", "conflict"], reasoning: "Environmental epic for testing" },
+            { title: "Fullmetal Alchemist: Brotherhood", description: "Brothers use alchemy to search for the Philosopher's Stone.", posterUrl: "", genres: ["Action", "Adventure", "Drama"], year: 2009, rating: 9.5, emotionalTags: ["emotional", "epic"], studios: ["Studio Bones"], themes: ["sacrifice", "truth"], reasoning: "Highly rated series for testing" }
         ];
 
         try {

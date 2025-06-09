@@ -701,7 +701,7 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
                 </div>
                 
                 {character.voiceActors && character.voiceActors.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {character.voiceActors.map((va, index) => (
                       <div key={index} className="bg-black/30 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10">
                         <div className="aspect-[3/4] overflow-hidden">

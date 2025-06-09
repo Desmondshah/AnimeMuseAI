@@ -1,7 +1,7 @@
 // src/components/animuse/AnimeCard.tsx - Fixed version with improved error handling
 import React, { memo, useState, useEffect, useRef, useMemo } from "react";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import { AnimeRecommendation } from "../../../convex/types";
@@ -34,6 +34,8 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   }, []);
   
   const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
+  const upscaleAction = useAction((api as any).enhance.upscaleImage);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // FIXED: Improved ID resolution logic
   const animeIdFromProp = (anime as Doc<"anime">)._id;
@@ -207,6 +209,25 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   }
 };
   
+const handleEnhanceClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isEnhancing || !animeDocumentId) return;
+    setIsEnhancing(true);
+    try {
+      const result = await upscaleAction({ animeId: animeDocumentId, imageUrl: anime.posterUrl });
+      if (result?.url) {
+        setCurrentSrc(result.url);
+        toast.success("Poster enhanced!");
+      } else {
+        toast.error("Enhancement failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Enhancement error");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const displayRatingOrYear = anime.rating !== undefined && anime.rating !== null 
     ? `⭐ ${(anime.rating / 2).toFixed(1)}` 
     : anime.year ? String(anime.year) 
@@ -228,6 +249,13 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
       }}
     >
       <div className={`${styles.imageContainer} relative overflow-hidden`}>
+        <button
+          onClick={handleEnhanceClick}
+          className="absolute z-10 top-1 left-1 bg-black/60 text-white text-[10px] px-1 rounded"
+          disabled={isEnhancing}
+        >
+          {isEnhancing ? '...' : 'Enhance'}
+        </button>
         {/* Loading skeleton */}
         {!imageLoaded && (
           <div className={`${styles.imageLoadingPlaceholder} bg-gradient-to-br from-brand-accent-gold/20 to-brand-surface`}>

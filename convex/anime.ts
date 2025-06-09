@@ -452,10 +452,18 @@ export const addAnimeByUser = mutation({
         
         console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
         const animeId = await ctx.db.insert("anime", {
-            title: args.title, description: args.description, posterUrl: args.posterUrl, genres: args.genres,
-            year: args.year, rating: args.rating, emotionalTags: args.emotionalTags, trailerUrl: args.trailerUrl,
-            studios: args.studios, themes: args.themes,
+             title: args.title,
+            description: args.description,
+            posterUrl: args.posterUrl,
+            genres: args.genres,
+            year: args.year,
+            rating: args.rating,
+            emotionalTags: args.emotionalTags,
+            trailerUrl: args.trailerUrl,
+            studios: args.studios,
+            themes: args.themes,
             anilistId: args.anilistId,
+            enhanceProgress: 0,
         });
         
         // Auto-fetch external data to improve poster quality and metadata
@@ -479,7 +487,7 @@ export const addAnimeInternal = internalMutation({
         const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).unique();
         if (existing) return existing._id;
         
-        const animeId = await ctx.db.insert("anime", args);
+        const animeId = await ctx.db.insert("anime", { ...args, enhanceProgress: 0 });
         
         // Auto-fetch external data for better poster quality
         ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
@@ -503,9 +511,9 @@ export const updateAnimeWithExternalData = internalMutation({
       rating: v.optional(v.number()), 
       emotionalTags: v.optional(v.array(v.string())),
       trailerUrl: v.optional(v.string()), 
-      studios: v.optional(v.array(v.string())), 
+      studios: v.optional(v.array(v.string())),
       themes: v.optional(v.array(v.string())),
-      anilistId: v.optional(v.number()), // Phase 2
+      enhanceProgress: v.optional(v.number()), // Phase 2
       // Episode and streaming data fields
       streamingEpisodes: v.optional(v.array(v.object({
         title: v.optional(v.string()),
