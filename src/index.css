@@ -4143,3 +4143,31 @@ body {
     height: 16rem;
   }
 }
+
+body {
+  letter-spacing: 0.01em; /* Adds a touch of extra spacing for clarity */
+}
+
+p, span, div, li, button, input, select, textarea {
+  @apply text-sm sm:text-base text-[#EAEAEA]; /* Slightly off-white for body text */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-heading text-white; /* Pure white for headings */
+}
+
+
+/* 2. Glassmorphism Card Style */
+.glass-card {
+  background: rgba(26, 26, 26, 0.5); /* Semi-transparent version of your 'brand-surface' */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* For Safari browser support */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  @apply rounded-2xl shadow-lg; /* Using a standard shadow as a fallback */
+}
+
+/* 3. Apply Glow Effect (Example Usage) */
+/* You can apply this class to buttons or cards where you want a glow */
+.glowing-button {
+  @apply shadow-glow-primary hover:shadow-glow-accent transition-all duration-300;
+}
