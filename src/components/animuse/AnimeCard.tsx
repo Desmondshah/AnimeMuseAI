@@ -57,14 +57,19 @@ const AnimeCardComponent: React.FC<AnimeCardProps> = ({
   }, [anime.title]);
 
   const posterToDisplay = useMemo(() => {
-    if (imageError || !anime.posterUrl) return placeholderUrl;
-    
-    if (anime.posterUrl.includes('300x450') || anime.posterUrl.includes('placeholder')) {
+    if (imageError) return placeholderUrl;
+
+    // Prefer poster from recommendation, otherwise check DB result
+    const candidatePoster = anime.posterUrl || existingAnimeInDB?.posterUrl;
+
+    if (!candidatePoster ||
+        candidatePoster.includes('300x450') ||
+        candidatePoster.includes('placeholder')) {
       return placeholderUrl;
     }
-    
-    return anime.posterUrl;
-  }, [imageError, anime.posterUrl, placeholderUrl]);
+
+    return candidatePoster;
+  }, [imageError, anime.posterUrl, existingAnimeInDB?.posterUrl, placeholderUrl]);
 
   // Reset loading state when poster URL changes
   useEffect(() => {
