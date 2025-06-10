@@ -183,6 +183,11 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
       body.classList.toggle('reduce-animations', Boolean(shouldReduceAnimations));
       body.classList.toggle('disable-particles', Boolean(shouldDisableParticles));
       body.classList.toggle('simple-backgrounds', Boolean(shouldUseSimpleBackgrounds));
+
+      // Update custom viewport unit for iOS 100vh issues
+      document.documentElement.style.setProperty(
+        '--vh', `${window.innerHeight * 0.01}px`
+      );
     };
 
     // Initial check
