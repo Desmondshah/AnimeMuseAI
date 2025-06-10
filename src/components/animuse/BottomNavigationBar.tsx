@@ -13,6 +13,7 @@ const iconPaths: Record<string, string> = {
   browse: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
   my_list: "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z",
   profile_settings: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  relationship_map: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418",
 };
 
 const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, onTabChange }) => {
@@ -20,6 +21,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     { view: "dashboard", label: "Home", icon: "dashboard" },
     { view: "moodboard_page", label: "Mood", icon: "moodboard_page" }, 
     { view: "browse", label: "Browse", icon: "browse" },
+    { view: "relationship_map", label: "Map", icon: "relationship_map" },
     { view: "my_list", label: "List", icon: "my_list" },
     { view: "profile_settings", label: "Profile", icon: "profile_settings" },
   ];
