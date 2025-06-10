@@ -31,6 +31,13 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   
   // Get reference to the actual scrolling container and set up native scroll listener
   useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // On iOS Safari the dynamic toolbar can cause the bar to slide unexpectedly,
+    // so we keep it fixed and skip scroll-based hiding
+    if (isIOS) {
+      return;
+    }
+
     // Wait for DOM to be ready
     const getScrollContainer = () => {
       return document.getElementById('root') || document.body || document.documentElement;
@@ -103,10 +110,6 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         ease: [0.25, 0.46, 0.45, 0.94] // Custom easing for iOS
       }}
     >
-      {/* Temporary debug indicator for iOS testing */}
-      <div className="absolute top-1 right-2 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-50 z-50">
-        {isHidden ? 'H' : 'V'}
-      </div>
       
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
