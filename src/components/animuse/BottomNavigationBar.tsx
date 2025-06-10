@@ -28,10 +28,58 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const ticking = useRef(false);
+  const [isIOS, setIsIOS] = useState(false);
+  
+  // Detect iOS
+  useEffect(() => {
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(iOS);
+  }, []);
   
   // Get reference to the actual scrolling container
   useEffect(() => {
     scrollContainerRef.current = document.getElementById('root');
+    
+    // iOS-specific scroll handling as fallback
+    const handleScroll = () => {
+      if (!ticking.current) {
+        requestAnimationFrame(() => {
+          const scrollContainer = scrollContainerRef.current;
+          if (!scrollContainer) return;
+          
+          const currentY = scrollContainer.scrollTop;
+          console.log('iOS Fallback - ScrollTop:', currentY, 'Last:', lastScrollY.current); // Debug for iOS
+          
+          if (currentY > lastScrollY.current + 3 && currentY > 30) { // Lower thresholds for iOS
+            setIsHidden(true);
+          } else if (currentY < lastScrollY.current - 3 || currentY < 10) {
+            setIsHidden(false);
+          }
+          
+          lastScrollY.current = currentY;
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
+    };
+    
+    // Add both passive and active listeners for iOS
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      scrollContainer.addEventListener('touchmove', handleScroll, { passive: true });
+      scrollContainer.addEventListener('touchstart', handleScroll, { passive: true });
+      scrollContainer.addEventListener('touchend', handleScroll, { passive: true });
+      
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        scrollContainer.removeEventListener('touchmove', handleScroll);
+        scrollContainer.removeEventListener('touchstart', handleScroll);
+        scrollContainer.removeEventListener('touchend', handleScroll);
+      };
+    }
   }, []);
   
   const { scrollY } = useScroll({
@@ -66,20 +114,29 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
-        willChange: 'transform'
+        willChange: 'transform',
+        transform: 'translateZ(0)', // Force GPU layer for smoother animation on iOS
+        WebkitTransform: 'translateZ(0)', // Safari-specific
+        backfaceVisibility: 'hidden', // Prevent flickering on iOS
+        WebkitBackfaceVisibility: 'hidden'
       }}
       initial={false}
       animate={{
-        y: isHidden ? '100%' : '0%',
+        translateY: isHidden ? '100%' : '0%',
       }}
       transition={{ 
         type: 'tween', 
         duration: 0.3,
-        ease: 'easeInOut'
+        ease: [0.25, 0.46, 0.45, 0.94] // iOS-friendly easing
       }}
       // Add viewport awareness for better mobile experience
       viewport={{ once: false, margin: "0px" }}
     >
+      {/* Debug indicator for mobile - remove once working */}
+      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded z-50 md:hidden">
+        {isHidden ? 'HIDDEN' : 'VISIBLE'} | iOS: {isIOS ? 'YES' : 'NO'} | FM: {Math.round(scrollY.get())} | Native: {scrollContainerRef.current?.scrollTop || 0}
+      </div>
+      
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
           const isActive = currentView === tab.view;
