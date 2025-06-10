@@ -1,6 +1,6 @@
 // src/components/animuse/BottomNavigationBar.tsx
 import React, { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { ValidViewName } from "./MainApp";
 
 interface BottomNavigationBarProps {
@@ -27,58 +27,16 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
-  const ticking = useRef(false);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
   
-  // Get reference to the actual scrolling container and set up native scroll listener
+  // Get reference to the actual scrolling container
   useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    // On iOS Safari the dynamic toolbar can cause the bar to slide unexpectedly,
-    // so we keep it fixed and skip scroll-based hiding
-    if (isIOS) {
-      return;
-    }
-
-    // Wait for DOM to be ready
-    const getScrollContainer = () => {
-      return document.getElementById('root') || document.body || document.documentElement;
-    };
-    
-    const scrollContainer = getScrollContainer();
-    
-    if (!scrollContainer) return;
-    
-    const handleScroll = () => {
-      if (!ticking.current) {
-        requestAnimationFrame(() => {
-          const currentY = scrollContainer.scrollTop;
-          
-          // Simple logic: hide when scrolling down, show when scrolling up or at top
-          if (currentY > lastScrollY.current + 8 && currentY > 60) {
-            setIsHidden(true);
-          } else if (currentY < lastScrollY.current - 8 || currentY < 20) {
-            setIsHidden(false);
-          }
-          
-          lastScrollY.current = currentY;
-          ticking.current = false;
-        });
-        ticking.current = true;
-      }
-    };
-    
-    // Use passive listeners for better iOS performance
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Also listen for touch events to handle iOS momentum scrolling
-    scrollContainer.addEventListener('touchstart', handleScroll, { passive: true });
-    scrollContainer.addEventListener('touchmove', handleScroll, { passive: true });
-    
-    return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
-      scrollContainer.removeEventListener('touchstart', handleScroll);
-      scrollContainer.removeEventListener('touchmove', handleScroll);
-    };
+    scrollContainerRef.current = document.getElementById('root');
   }, []);
+  
+  const { scrollY } = useScroll({
+    container: scrollContainerRef
+  });
 
   const handleTabClick = (view: ValidViewName) => {
     // Add haptic feedback if available
@@ -88,6 +46,19 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     onTabChange(view);
   };
 
+  useMotionValueEvent(scrollY, 'change', (latest) => {
+    const currentY = latest;
+    
+    // Simple logic: hide when scrolling down, show when scrolling up or at top
+    if (currentY > lastScrollY.current + 5 && currentY > 50) {
+      setIsHidden(true);
+    } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
+      setIsHidden(false);
+    }
+    
+    lastScrollY.current = currentY;
+  });
+
   return (
     <motion.nav
       className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
@@ -95,22 +66,20 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
-        willChange: 'transform',
-        // iOS-specific optimizations
-        WebkitTransform: 'translateZ(0)', // Force hardware acceleration
-        transform: 'translateZ(0)'
+        willChange: 'transform'
       }}
       initial={false}
       animate={{
-        transform: isHidden ? 'translateY(100%)' : 'translateY(0%)',
+        y: isHidden ? '100%' : '0%',
       }}
       transition={{ 
         type: 'tween', 
-        duration: 0.25,
-        ease: [0.25, 0.46, 0.45, 0.94] // Custom easing for iOS
+        duration: 0.3,
+        ease: 'easeInOut'
       }}
+      // Add viewport awareness for better mobile experience
+      viewport={{ once: false, margin: "0px" }}
     >
-      
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
           const isActive = currentView === tab.view;
