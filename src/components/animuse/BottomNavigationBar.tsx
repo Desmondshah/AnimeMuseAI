@@ -1,6 +1,6 @@
 // src/components/animuse/BottomNavigationBar.tsx
 import React, { useRef, useState, useEffect } from "react";
-import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { motion } from "framer-motion";
 import { ValidViewName } from "./MainApp";
 
 interface BottomNavigationBarProps {
@@ -27,34 +27,28 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
   const ticking = useRef(false);
-  const [isIOS, setIsIOS] = useState(false);
   
-  // Detect iOS
+  // Get reference to the actual scrolling container and set up native scroll listener
   useEffect(() => {
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    setIsIOS(iOS);
-  }, []);
-  
-  // Get reference to the actual scrolling container
-  useEffect(() => {
-    scrollContainerRef.current = document.getElementById('root');
+    // Wait for DOM to be ready
+    const getScrollContainer = () => {
+      return document.getElementById('root') || document.body || document.documentElement;
+    };
     
-    // iOS-specific scroll handling as fallback
+    const scrollContainer = getScrollContainer();
+    
+    if (!scrollContainer) return;
+    
     const handleScroll = () => {
       if (!ticking.current) {
         requestAnimationFrame(() => {
-          const scrollContainer = scrollContainerRef.current;
-          if (!scrollContainer) return;
-          
           const currentY = scrollContainer.scrollTop;
-          console.log('iOS Fallback - ScrollTop:', currentY, 'Last:', lastScrollY.current); // Debug for iOS
           
-          if (currentY > lastScrollY.current + 3 && currentY > 30) { // Lower thresholds for iOS
+          // Simple logic: hide when scrolling down, show when scrolling up or at top
+          if (currentY > lastScrollY.current + 8 && currentY > 60) {
             setIsHidden(true);
-          } else if (currentY < lastScrollY.current - 3 || currentY < 10) {
+          } else if (currentY < lastScrollY.current - 8 || currentY < 20) {
             setIsHidden(false);
           }
           
@@ -65,26 +59,19 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
       }
     };
     
-    // Add both passive and active listeners for iOS
-    const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      scrollContainer.addEventListener('touchmove', handleScroll, { passive: true });
-      scrollContainer.addEventListener('touchstart', handleScroll, { passive: true });
-      scrollContainer.addEventListener('touchend', handleScroll, { passive: true });
-      
-      return () => {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-        scrollContainer.removeEventListener('touchmove', handleScroll);
-        scrollContainer.removeEventListener('touchstart', handleScroll);
-        scrollContainer.removeEventListener('touchend', handleScroll);
-      };
-    }
+    // Use passive listeners for better iOS performance
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen for touch events to handle iOS momentum scrolling
+    scrollContainer.addEventListener('touchstart', handleScroll, { passive: true });
+    scrollContainer.addEventListener('touchmove', handleScroll, { passive: true });
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.removeEventListener('touchstart', handleScroll);
+      scrollContainer.removeEventListener('touchmove', handleScroll);
+    };
   }, []);
-  
-  const { scrollY } = useScroll({
-    container: scrollContainerRef
-  });
 
   const handleTabClick = (view: ValidViewName) => {
     // Add haptic feedback if available
@@ -94,19 +81,6 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     onTabChange(view);
   };
 
-  useMotionValueEvent(scrollY, 'change', (latest) => {
-    const currentY = latest;
-    
-    // Simple logic: hide when scrolling down, show when scrolling up or at top
-    if (currentY > lastScrollY.current + 5 && currentY > 50) {
-      setIsHidden(true);
-    } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
-      setIsHidden(false);
-    }
-    
-    lastScrollY.current = currentY;
-  });
-
   return (
     <motion.nav
       className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
@@ -115,26 +89,23 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
         willChange: 'transform',
-        transform: 'translateZ(0)', // Force GPU layer for smoother animation on iOS
-        WebkitTransform: 'translateZ(0)', // Safari-specific
-        backfaceVisibility: 'hidden', // Prevent flickering on iOS
-        WebkitBackfaceVisibility: 'hidden'
+        // iOS-specific optimizations
+        WebkitTransform: 'translateZ(0)', // Force hardware acceleration
+        transform: 'translateZ(0)'
       }}
       initial={false}
       animate={{
-        translateY: isHidden ? '100%' : '0%',
+        transform: isHidden ? 'translateY(100%)' : 'translateY(0%)',
       }}
       transition={{ 
         type: 'tween', 
-        duration: 0.3,
-        ease: [0.25, 0.46, 0.45, 0.94] // iOS-friendly easing
+        duration: 0.25,
+        ease: [0.25, 0.46, 0.45, 0.94] // Custom easing for iOS
       }}
-      // Add viewport awareness for better mobile experience
-      viewport={{ once: false, margin: "0px" }}
     >
-      {/* Debug indicator for mobile - remove once working */}
-      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded z-50 md:hidden">
-        {isHidden ? 'HIDDEN' : 'VISIBLE'} | iOS: {isIOS ? 'YES' : 'NO'} | FM: {Math.round(scrollY.get())} | Native: {scrollContainerRef.current?.scrollTop || 0}
+      {/* Temporary debug indicator for iOS testing */}
+      <div className="absolute top-1 right-2 bg-red-500 text-white text-xs px-1 py-0.5 rounded opacity-50 z-50">
+        {isHidden ? 'H' : 'V'}
       </div>
       
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
