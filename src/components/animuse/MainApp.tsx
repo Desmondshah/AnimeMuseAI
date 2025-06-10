@@ -21,7 +21,7 @@ import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { motion, AnimatePresence } from "framer-motion";
 import Carousel from "./shared/Carousel";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
-import RelationshipMapPage from "./onboarding/RelationshipMapPage";
+
 // ============================================================================
 // SECTION 1: COMPONENTS AND CONSTANTS
 // ============================================================================
@@ -78,7 +78,7 @@ export type ValidViewName =
   | "dashboard" | "ai_assistant" | "anime_detail" | "my_list"
   | "browse" | "admin_dashboard" | "profile_settings"
   | "custom_lists_overview" | "custom_list_detail" | "moodboard_page"
-  | "relationship_map" | "character_detail"; // NEW: Add character detail view
+  | "character_detail"; // NEW: Add character detail view
 
 export type CurrentView = ValidViewName;
 
@@ -1344,11 +1344,8 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           />
         );
       
-      case "relationship_map":
-        return <RelationshipMapPage />;
-
       case "dashboard":
-      default:
+      default: 
         return renderDashboard();
     }
   }, [
