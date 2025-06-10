@@ -33,8 +33,8 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   };
 
   return (
-    <nav 
-      className="fixed bottom-0 left-0 right-0 bg-brand-surface/95 backdrop-blur-md border-t border-brand-accent-gold/30 shadow-lg z-50"
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
       style={{
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',

@@ -7,8 +7,27 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'heading': ['Poppins', 'system-ui', 'sans-serif'],
+        // Use Apple's system fonts first for a more native look
+        'sans': [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Inter',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
+        'heading': [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Poppins',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
         'orbitron': ['Orbitron', 'monospace'],
       },
       colors: {
