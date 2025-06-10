@@ -1,6 +1,6 @@
 // src/components/animuse/BottomNavigationBar.tsx
-import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useRef, useState } from "react";
+import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { ValidViewName } from "./MainApp";
 
 interface BottomNavigationBarProps {
@@ -27,6 +27,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const { scrollY } = useScroll();
 
   const handleTabClick = (view: ValidViewName) => {
     // Add haptic feedback if available
@@ -36,20 +37,15 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     onTabChange(view);
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      if (currentY > lastScrollY.current + 5) {
-        setIsHidden(true);
-      } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
-        setIsHidden(false);
-      }
-      lastScrollY.current = currentY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  useMotionValueEvent(scrollY, 'change', (latest) => {
+    const currentY = latest;
+    if (currentY > lastScrollY.current + 5) {
+      setIsHidden(true);
+    } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
+      setIsHidden(false);
+    }
+    lastScrollY.current = currentY;
+  });
 
   return (
     <motion.nav
@@ -60,6 +56,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         paddingRight: 'env(safe-area-inset-right)',
         willChange: 'transform'
       }}
+      initial={false}
       animate={{
         y: isHidden ? 'calc(100% + env(safe-area-inset-bottom))' : '0%'
       }}
