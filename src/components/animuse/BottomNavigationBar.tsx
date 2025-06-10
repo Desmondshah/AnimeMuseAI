@@ -27,6 +27,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { scrollY } = useScroll();
 
   const handleTabClick = (view: ValidViewName) => {
@@ -39,11 +40,33 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     const currentY = latest;
-    if (currentY > lastScrollY.current + 5) {
+    const scrollDelta = currentY - lastScrollY.current;
+    const scrollThreshold = 8; // Increased slightly for better sensitivity
+    
+    // Clear any existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Only react to meaningful scroll changes
+    if (Math.abs(scrollDelta) < 3) return;
+    
+    if (scrollDelta > scrollThreshold && currentY > 100) {
+      // Scrolling down and not at the very top
       setIsHidden(true);
-    } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
+    } else if (scrollDelta < -scrollThreshold || currentY < 50) {
+      // Scrolling up or near the top
       setIsHidden(false);
     }
+    
+    // Set a timeout to show nav bar if scrolling stops
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (currentY > 100) {
+        // Only auto-show if we're not at the top
+        setIsHidden(false);
+      }
+    }, 2000); // Show after 2 seconds of no scrolling
+    
     lastScrollY.current = currentY;
   });
 
@@ -58,9 +81,24 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
       }}
       initial={false}
       animate={{
-        y: isHidden ? 'calc(100% + env(safe-area-inset-bottom))' : '0%'
+        y: isHidden ? '100%' : '0%',
+        // Alternative approach for better safe area handling:
+        // transform: isHidden 
+        //   ? `translateY(calc(100% + env(safe-area-inset-bottom)))` 
+        //   : 'translateY(0)'
       }}
-      transition={{ type: 'tween', duration: 0.3 }}
+      transition={{ 
+        type: 'spring', 
+        damping: 25, 
+        stiffness: 200,
+        mass: 0.8,
+        // Alternative smooth transition:
+        // type: 'tween', 
+        // duration: 0.4, 
+        // ease: [0.25, 0.46, 0.45, 0.94]
+      }}
+      // Add viewport awareness for better mobile experience
+      viewport={{ once: false, margin: "0px" }}
     >
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
@@ -112,7 +150,12 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
               
               {/* Active indicator */}
               {isActive && (
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-brand-primary-action rounded-full" />
+                <motion.div 
+                  className="absolute bottom-0 left-1/2 w-8 h-1 bg-brand-primary-action rounded-full"
+                  layoutId="activeTab"
+                  initial={false}
+                  style={{ x: '-50%' }}
+                />
               )}
             </button>
           );
