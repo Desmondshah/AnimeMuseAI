@@ -17,6 +17,7 @@
     <!-- PWA icons for iOS -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+     <link rel="manifest" href="/manifest.webmanifest" />
     
     <title>AniMuse</title>
     <!-- Use system fonts to mimic native iOS styling -->
@@ -25,5 +26,12 @@
   <body class="bg-brand-background">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
   </body>
 </html>
