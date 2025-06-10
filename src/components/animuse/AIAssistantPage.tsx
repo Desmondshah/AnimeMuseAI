@@ -479,7 +479,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   }
 };
 
-  const handleAiRecommendationAddToWatchlist = async (recommendedAnime: AnimeRecommendation, status: string) => {
+  const handleAiRecommendationAddToWatchlist = async (recommendedAnime: AnimeRecommendation, status: "Watching" | "Completed" | "Plan to Watch" | "Dropped") => {
     if (!isAuthenticated) {
       toast.error("Please log in to add to watchlist.");
       return;

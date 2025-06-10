@@ -1,5 +1,6 @@
 // src/components/animuse/BottomNavigationBar.tsx
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { ValidViewName } from "./MainApp";
 
 interface BottomNavigationBarProps {
@@ -24,6 +25,9 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     { view: "profile_settings", label: "Profile", icon: "profile_settings" },
   ];
 
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
   const handleTabClick = (view: ValidViewName) => {
     // Add haptic feedback if available
     if ('vibrate' in navigator) {
@@ -32,14 +36,34 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     onTabChange(view);
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY.current + 5) {
+        setIsHidden(true);
+      } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
+        setIsHidden(false);
+      }
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <nav
+    <motion.nav
       className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
       style={{
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
+        willChange: 'transform'
       }}
+      animate={{
+        y: isHidden ? 'calc(100% + env(safe-area-inset-bottom))' : '0%'
+      }}
+      transition={{ type: 'tween', duration: 0.3 }}
     >
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
@@ -97,7 +121,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
           );
         })}
       </div>
-    </nav>
+    </motion.nav>
   );
 };
 

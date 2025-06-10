@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
 import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
+import ParallaxBackground from "../shared/ParallaxBackground";
 import { toast } from "sonner";
 
 interface FilterState {
@@ -180,10 +181,22 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     <div className="relative min-h-screen">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-brand-primary-action/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-r from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-gradient-to-l from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
+        <ParallaxBackground
+          speed={0.1}
+          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-brand-primary-action/10 to-transparent rounded-full blur-3xl animate-pulse"
+        />
+        <ParallaxBackground
+          speed={0.15}
+          className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"
+        />
+        <ParallaxBackground
+          speed={0.08}
+          className="absolute top-1/3 right-1/4 w-64 h-64 bg-gradient-to-r from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"
+        />
+        <ParallaxBackground
+          speed={0.12}
+          className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-gradient-to-l from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"
+        />
       </div>
 
       {/* Main Content */}
