@@ -1,6 +1,6 @@
 // src/components/animuse/BottomNavigationBar.tsx
 import React, { useRef, useState, useEffect } from "react";
-import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { ValidViewName } from "./MainApp";
 
 interface BottomNavigationBarProps {
@@ -19,7 +19,7 @@ const iconPaths: Record<string, string> = {
 const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, onTabChange }) => {
   const tabs: { view: ValidViewName; label: string; icon: string }[] = [
     { view: "dashboard", label: "Home", icon: "dashboard" },
-    { view: "moodboard_page", label: "Mood", icon: "moodboard_page" }, 
+    { view: "moodboard_page", label: "Mood", icon: "moodboard_page" },
     { view: "browse", label: "Browse", icon: "browse" },
     { view: "my_list", label: "List", icon: "my_list" },
     { view: "profile_settings", label: "Profile", icon: "profile_settings" },
@@ -28,18 +28,16 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
-  
-  // Get reference to the actual scrolling container
+
   useEffect(() => {
     scrollContainerRef.current = document.getElementById('root');
   }, []);
-  
+
   const { scrollY } = useScroll({
     container: scrollContainerRef
   });
 
   const handleTabClick = (view: ValidViewName) => {
-    // Add haptic feedback if available
     if ('vibrate' in navigator) {
       navigator.vibrate(50);
     }
@@ -48,14 +46,11 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     const currentY = latest;
-    
-    // Simple logic: hide when scrolling down, show when scrolling up or at top
     if (currentY > lastScrollY.current + 5 && currentY > 50) {
       setIsHidden(true);
     } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
       setIsHidden(false);
     }
-    
     lastScrollY.current = currentY;
   });
 
@@ -68,16 +63,15 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
         paddingRight: 'env(safe-area-inset-right)',
         willChange: 'transform'
       }}
-      initial={false}
+      initial={{ transform: "translateY(100%)" }}
       animate={{
-        y: isHidden ? '100%' : '0%',
+        transform: isHidden ? "translateY(100%)" : "translateY(0%)",
       }}
-      transition={{ 
-        type: 'tween', 
+      transition={{
+        type: 'tween',
         duration: 0.3,
         ease: 'easeInOut'
       }}
-      // Add viewport awareness for better mobile experience
       viewport={{ once: false, margin: "0px" }}
     >
       <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
@@ -88,29 +82,27 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
               key={tab.view}
               onClick={() => handleTabClick(tab.view)}
               className={`
-                relative flex flex-col items-center justify-center 
-                w-full h-full py-2 px-2 text-xs 
-                transition-all duration-200 ease-in-out 
+                relative flex flex-col items-center justify-center
+                w-full h-full py-2 px-2 text-xs
+                transition-all duration-200 ease-in-out
                 focus:outline-none focus:ring-2 focus:ring-brand-primary-action/50
                 touch-manipulation cursor-pointer
                 ${isActive ? "text-brand-primary-action" : "text-white/70 hover:text-brand-accent-gold active:text-brand-primary-action"}
               `}
               aria-current={isActive ? "page" : undefined}
-              aria-label={`Navigate to ${tab.label}`}
+              aria-label={`Maps to ${tab.label}`}
               style={{
                 WebkitTapHighlightColor: 'transparent',
                 minHeight: '60px',
                 minWidth: '60px',
               }}
             >
-              {/* Larger touch target overlay */}
-              <div 
-                className="absolute inset-0 rounded-lg" 
+              <div
+                className="absolute inset-0 rounded-lg"
                 aria-hidden="true"
                 style={{ minHeight: '60px', minWidth: '60px' }}
               />
-              
-              {/* Icon container with proper sizing */}
+
               <div className={`relative z-10 transition-transform duration-200 ${isActive ? 'scale-110' : 'hover:scale-105'}`}>
                 <svg
                   className={`w-6 h-6 mb-1 transition-all duration-200 ${isActive ? "text-brand-primary-action" : "text-white/70"}`}
@@ -122,15 +114,13 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
                   <path strokeLinecap="round" strokeLinejoin="round" d={iconPaths[tab.icon]} />
                 </svg>
               </div>
-              
-              {/* Label */}
+
               <span className={`relative z-10 text-xs leading-tight transition-all duration-200 ${isActive ? 'font-semibold text-brand-primary-action' : 'text-white/70'}`}>
                 {tab.label}
               </span>
-              
-              {/* Active indicator */}
+
               {isActive && (
-                <motion.div 
+                <motion.div
                   className="absolute bottom-0 left-1/2 w-8 h-1 bg-brand-primary-action rounded-full"
                   layoutId="activeTab"
                   initial={false}
