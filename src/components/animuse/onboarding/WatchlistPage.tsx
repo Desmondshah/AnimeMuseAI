@@ -5,6 +5,8 @@ import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
+import ProfileStats from "../onboarding/ProfileStats";
+import { WatchlistStatusFilter } from "./watchlistTypes";
 import { toast } from "sonner";
 
 interface WatchlistPageProps {
@@ -13,7 +15,6 @@ interface WatchlistPageProps {
   onNavigateToCustomLists?: () => void;
 }
 
-type WatchlistStatusFilter = "All" | "Watching" | "Completed" | "Plan to Watch" | "Dropped";
 type WatchlistItemWithAnime = Doc<"watchlist"> & { anime: Doc<"anime"> | null };
 
 const WatchlistLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Loading your collection..." }) => (
@@ -131,7 +132,14 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
     const { animeId, status, progress, userRating } = editingNotesFor;
     try {
       toast.loading("Saving notes...", {id: `save-notes-${animeId}`});
-      await upsertToWatchlist({ animeId, status, notes: newNotes, progress, userRating });
+      // Type assertion to fix TypeScript error
+      await upsertToWatchlist({ 
+        animeId, 
+        status: status as "Watching" | "Completed" | "Plan to Watch" | "Dropped", 
+        notes: newNotes, 
+        progress, 
+        userRating 
+      });
       toast.success("Notes saved successfully!", {id: `save-notes-${animeId}`});
       setEditingNotesFor(null);
     } catch (error: any) {
@@ -204,61 +212,15 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
             )}
           </div>
         </div>
-
-        {/* Status Filter Tabs */}
+{/* Profile Stats Section */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-          <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-            <div className="flex flex-wrap gap-3 justify-center">
-              {(Object.keys(statusConfig) as WatchlistStatusFilter[]).map(status => {
-                const config = statusConfig[status];
-                const isActive = filterStatus === status;
-                
-                return (
-                  <button
-                    key={status}
-                    onClick={() => setFilterStatus(status)}
-                    className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform hover:scale-105 ${
-                      isActive 
-                        ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
-                        : 'hover:shadow-xl hover:shadow-white/20'
-                    }`}
-                  >
-                    {/* Background Gradient */}
-                    <div className={`absolute inset-0 bg-gradient-to-r ${config.color} ${
-                      isActive ? 'opacity-80' : 'opacity-40'
-                    } transition-opacity duration-300`}></div>
-                    
-                    {/* Selected Ring */}
-                    {isActive && (
-                      <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl animate-pulse"></div>
-                    )}
-                    
-                    {/* Content */}
-                    <div className="relative z-10 text-center space-y-2 min-w-[80px]">
-                      <div className={`text-2xl transition-transform duration-300 ${
-                        isActive ? 'animate-bounce' : 'group-hover:animate-pulse'
-                      }`}>
-                        {config.icon}
-                      </div>
-                      <div className={`text-xs font-medium transition-colors duration-300 ${
-                        isActive ? 'text-white' : 'text-white/90'
-                      }`}>
-                        {status}
-                      </div>
-                      <div className={`text-lg font-bold ${
-                        isActive ? 'text-white' : 'text-white/80'
-                      }`}>
-                        {config.count}
-                      </div>
-                    </div>
-                    
-                    {/* Hover Effect */}
-                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-accent-peach/20 via-transparent to-brand-primary-action/20 rounded-3xl blur-xl"></div>
+          <div className="relative">
+            <ProfileStats
+              filterStatus={filterStatus}
+              onFilterChange={setFilterStatus}
+            />
+
           </div>
         </div>
 

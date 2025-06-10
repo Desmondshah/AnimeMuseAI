@@ -8,7 +8,7 @@ import AnimeDetailPage from "./AnimeDetailPage";
 import StyledButton from "./shared/StyledButton";
 import WatchlistPage from "./onboarding/WatchlistPage";
 import DiscoverPage from "./onboarding/DiscoverPage";
-import ProfileStats from "./onboarding/ProfileStats";
+
 import { AnimeRecommendation } from "../../../convex/types";
 import { toast } from "sonner";
 import AnimeCard from "./AnimeCard";
@@ -1049,14 +1049,6 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             </Carousel>
           </div>
         )}
-
-        {/* Profile Stats Section */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-brand-accent-peach/20 via-transparent to-brand-primary-action/20 rounded-3xl blur-xl"></div>
-          <div className="relative">
-            <ProfileStats />
-          </div>
-        </div>
 
         {/* Admin Section */}
         {isUserAdmin && (

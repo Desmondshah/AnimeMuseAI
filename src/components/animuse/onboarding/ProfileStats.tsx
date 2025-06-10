@@ -2,6 +2,7 @@
 import React, { memo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { WatchlistStatusFilter } from "../onboarding/watchlistTypes";
 
 const StatsLoadingSpinner: React.FC = memo(() => (
   <div className="flex items-center justify-center p-8">
@@ -14,7 +15,15 @@ const StatsLoadingSpinner: React.FC = memo(() => (
   </div>
 ));
 
-const ProfileStatsComponent: React.FC = () => {
+interface ProfileStatsProps {
+  filterStatus: WatchlistStatusFilter;
+  onFilterChange: (status: WatchlistStatusFilter) => void;
+}
+
+const ProfileStatsComponent: React.FC<ProfileStatsProps> = ({
+  filterStatus,
+  onFilterChange,
+}) => {
   const stats = useQuery(api.users.getMyProfileStats);
 
   if (stats === undefined) {
@@ -77,15 +86,22 @@ const ProfileStatsComponent: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
         {statItems.map((item, index) => (
-          <div 
-            key={item.label} 
-            className="group relative transform transition-all duration-300 hover:scale-105"
+          <div
+            key={item.label}
+            onClick={() => onFilterChange(item.label as WatchlistStatusFilter)}
+            className={`group relative transform transition-all duration-300 hover:scale-105 cursor-pointer ${
+              filterStatus === item.label ? 'ring-2 ring-white/60 scale-105' : ''
+            }`}
             style={{ animationDelay: `${index * 100}ms` }}
           >
             {/* Glow Effect */}
             <div className={`absolute -inset-2 bg-gradient-to-r ${item.color} rounded-2xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300`}></div>
             
-            <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6 text-center group-hover:border-white/30 transition-all duration-300">
+            <div
+              className={`relative bg-black/40 backdrop-blur-sm border rounded-2xl p-4 sm:p-6 text-center group-hover:border-white/30 transition-all duration-300 ${
+                filterStatus === item.label ? 'border-white/60' : 'border-white/10'
+              }`}
+            >
               {/* Icon */}
               <div className="text-3xl sm:text-4xl mb-3 group-hover:animate-bounce transition-all duration-300">
                 {item.icon}
@@ -121,9 +137,16 @@ const ProfileStatsComponent: React.FC = () => {
       </div>
 
       {/* Total Summary */}
-      <div className="relative">
+      <div
+        className="relative cursor-pointer"
+        onClick={() => onFilterChange('All')}
+      >
         <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl blur-xl"></div>
-        <div className="relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center">
+        <div
+          className={`relative bg-black/40 backdrop-blur-sm border rounded-2xl p-6 text-center ${
+            filterStatus === 'All' ? 'border-white/60' : 'border-white/20'
+          }`}
+        >
           <div className="flex items-center justify-center space-x-3 mb-3">
             <span className="text-2xl">🏆</span>
             <h4 className="text-xl font-heading text-white">Total Collection</h4>
