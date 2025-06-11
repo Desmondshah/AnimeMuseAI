@@ -21,6 +21,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*", "../src/components/animuse/onboarding/watchlistTypes.ts", "../src/hooks/useTheme.ts"],
+  "include": ["./**/*", "../src/components/animuse/onboarding/watchlistTypes.ts", "useTheme.ts"],
   "exclude": ["./_generated"]
 }

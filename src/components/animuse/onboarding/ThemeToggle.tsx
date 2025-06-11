@@ -1,5 +1,5 @@
 import React from 'react';
-import useTheme from '../../../hooks/useTheme';
+import useTheme from '../../../../convex/useTheme';
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useTheme();

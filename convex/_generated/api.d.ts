@@ -38,6 +38,7 @@ import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
 import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
 import type * as useMoodBoardState from "../useMoodBoardState.js";
 import type * as usePersistentChatHistory from "../usePersistentChatHistory.js";
+import type * as useTheme from "../useTheme.js";
 import type * as users from "../users.js";
 
 /**
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   useMoodBoardPerformance: typeof useMoodBoardPerformance;
   useMoodBoardState: typeof useMoodBoardState;
   usePersistentChatHistory: typeof usePersistentChatHistory;
+  useTheme: typeof useTheme;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
