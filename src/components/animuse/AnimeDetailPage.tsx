@@ -1,5 +1,5 @@
 // src/components/animuse/AnimeDetailPage.tsx - Complete iOS-Optimized Version with Extended Background
-import React, { useState, useEffect, useCallback, memo, useRef, Component } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -10,54 +10,7 @@ import ReviewForm from "./onboarding/ReviewForm";
 import AnimeCard from "./AnimeCard";
 import { AnimeRecommendation } from "../../../convex/types";
 import { formatDistanceToNow } from 'date-fns';
-import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
-
-// Error Boundary Component for Character Detail Page
-class CharacterDetailErrorBoundary extends Component<
-  { children: React.ReactNode; onError: () => void },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode; onError: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    console.error("CharacterDetailPage Error:", error);
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("CharacterDetailPage Error Details:", error, errorInfo);
-    this.props.onError();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-brand-background flex items-center justify-center p-6">
-          <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center max-w-md mx-auto">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold text-red-400 mb-4">Character Page Error</h2>
-            <p className="mb-6 text-sm text-red-300">
-              Unable to load character details. This might be due to incomplete character data.
-            </p>
-            <StyledButton 
-              onClick={this.props.onError} 
-              variant="primary"
-              className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
-            >
-              Back to Anime Details
-            </StyledButton>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 interface BackendReviewProps extends Doc<"reviews"> {
   userName: string; userAvatarUrl?: string; upvotes: number; downvotes: number;
@@ -419,14 +372,16 @@ const useEnrichedCharacters = (
     }
   }, [animeId, enrichedCharacters]);
 
-  const enrichMainCharacters = useCallback(async () => {
+  const enrichMissingCharacters = useCallback(async () => {
     setIsEnriching(true);
-    
-    // Only enrich main characters to avoid rate limits
-    const mainCharacters = characters.filter(char => char.role === 'MAIN');
+
+    // Enrich up to five characters that haven't been enhanced yet
+    const charactersToEnrich = characters
+      .filter(char => !char.isAIEnriched)
+      .slice(0, 5);
     
     try {
-      const enrichmentPromises = mainCharacters.map(async (character) => {
+      const enrichmentPromises = charactersToEnrich.map(async (character) => {
         const result = await enrichCharacterDetails({
           characterName: character.name,
           animeName: animeName,
@@ -446,15 +401,16 @@ const useEnrichedCharacters = (
         return result.error ? character : { ...character, ...result.mergedCharacter, isAIEnriched: true };
       });
       
-      const enrichedMains = await Promise.all(enrichmentPromises);
-      
-      // Merge enriched main characters with unchanged supporting characters
+      const enrichedResults = await Promise.allSettled(enrichmentPromises);
+
+      const enriched = enrichedResults.map((res, idx) =>
+        res.status === 'fulfilled' ? res.value : charactersToEnrich[idx]
+      );
+
+      // Merge enriched characters with unchanged ones
       const allEnriched = characters.map(char => {
-        if (char.role === 'MAIN') {
-          const enriched = enrichedMains.find(e => e.name === char.name);
-          return enriched || char;
-        }
-        return char;
+        const match = enriched.find(e => e.name === char.name);
+        return match || char;
       });
       
       setEnrichedCharacters(allEnriched);
@@ -465,7 +421,7 @@ const useEnrichedCharacters = (
     }
   }, [characters, animeName, enrichCharacterDetails]);
 
-  // Automatically enrich main characters once per anime
+   // Automatically enrich a few characters once per anime
   useEffect(() => {
     if (!animeId || hasAutoEnrichedRef.current) return;
 
@@ -475,13 +431,13 @@ const useEnrichedCharacters = (
       try { dataset = JSON.parse(stored); } catch { /* ignore */ }
     }
 
-    if (dataset.some(c => c.role === 'MAIN' && !c.isAIEnriched)) {
+    if (dataset.some(c => !c.isAIEnriched)) {
       hasAutoEnrichedRef.current = true;
-      enrichMainCharacters();
+      enrichMissingCharacters();
     }
-  }, [animeId, characters, enrichMainCharacters]);
+  }, [animeId, characters, enrichMissingCharacters]);
 
-  return { enrichedCharacters, isEnriching, enrichMainCharacters };
+  return { enrichedCharacters, isEnriching, enrichMissingCharacters };
 };
 
 type ReviewSortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_helpful";
@@ -515,15 +471,11 @@ export default function AnimeDetailPage({
   const lastAutoRefreshedAnimeId = useRef<string | null>(null);
 
   // Character management
-  const [selectedCharacter, setSelectedCharacter] = useState<any | null>(null);
-  const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   const {
     enrichedCharacters,
     isEnriching,
-    enrichMainCharacters
+    enrichMissingCharacters
   } = useEnrichedCharacters(anime?.characters || [], anime?.title || '', animeId);
-
-  const enrichCharacterAction = useAction(api.ai.fetchEnrichedCharacterDetails);
 
   // Cached episodes and characters
   const [episodes, setEpisodes] = useState<any[]>([]);
@@ -760,63 +712,6 @@ export default function AnimeDetailPage({
       setIsAutoRefreshing(false);
     }
   }, [anime, isAutoRefreshing, smartAutoRefreshAction, getRefreshRecommendationAction]);
-
-  // Handle character click with validation
-  const handleCharacterClick = useCallback(async (character: any) => {
-    // Validate character data before showing detail page
-    if (!character || !character.name) {
-      toast.error("Character data is incomplete. Cannot show details.");
-      return;
-    }
-
-    console.log("Character clicked:", character); // Debug log
-    
-    // Ensure the character has minimum required data
-    let validatedCharacter = {
-      ...character,
-      name: character.name || "Unknown Character",
-      role: character.role || "BACKGROUND",
-      description: character.description || "No description available.",
-      imageUrl: character.imageUrl || null,
-      // Add other fallback values as needed
-    };
-
-    // Auto-enrich character before showing detail page
-    if (!validatedCharacter.isAIEnriched && anime?.title) {
-      const toastId = `enrich-${validatedCharacter.name}`;
-      toast.loading("Enhancing character...", { id: toastId });
-      try {
-        const result = await enrichCharacterAction({
-          characterName: validatedCharacter.name,
-          animeName: anime.title,
-          existingData: {
-            description: validatedCharacter.description,
-            role: validatedCharacter.role,
-            gender: validatedCharacter.gender,
-            age: validatedCharacter.age,
-            species: validatedCharacter.species,
-            powersAbilities: validatedCharacter.powersAbilities,
-            voiceActors: validatedCharacter.voiceActors,
-          },
-          enrichmentLevel: 'detailed',
-          messageId: `preload_${validatedCharacter.name}_${Date.now()}`,
-        });
-
-        if (!result.error) {
-          validatedCharacter = { ...validatedCharacter, ...result.mergedCharacter, isAIEnriched: true };
-          toast.success("Character enhanced!", { id: toastId });
-        } else {
-          toast.error(`Enhancement failed: ${result.error}`, { id: toastId });
-        }
-      } catch (error: any) {
-        console.error("Character enrich error:", error);
-        toast.error("Failed to enhance character", { id: toastId });
-      }
-    }
-
-    setSelectedCharacter(validatedCharacter);
-    setShowCharacterDetail(true);
-  }, [anime, enrichCharacterAction]);
 
   // Handle watchlist actions
   const handleWatchlistAction = useCallback(async (status: "Watching" | "Completed" | "Plan to Watch" | "Dropped") => {
@@ -1062,28 +957,6 @@ export default function AnimeDetailPage({
           </StyledButton>
         </div>
       </div>
-    );
-  }
-
-  // Character detail modal with error handling
-  if (showCharacterDetail && selectedCharacter) {
-    return (
-      <CharacterDetailErrorBoundary
-        onError={() => {
-          setShowCharacterDetail(false);
-          setSelectedCharacter(null);
-          toast.error("Unable to load character details. Returning to anime page.");
-        }}
-      >
-        <CharacterDetailPage
-          character={selectedCharacter}
-          animeName={anime.title}
-          onBack={() => {
-            setShowCharacterDetail(false);
-            setSelectedCharacter(null);
-          }}
-        />
-      </CharacterDetailErrorBoundary>
     );
   }
 
@@ -1432,7 +1305,7 @@ export default function AnimeDetailPage({
                     <CharacterCard
                       key={`character-${character.id || character.name || index}`}
                       character={character}
-                      onClick={() => handleCharacterClick(character)}
+                      onClick={() => onCharacterClick(character, anime.title)}
                     />
                   ))}
                 </div>

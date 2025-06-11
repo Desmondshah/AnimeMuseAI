@@ -1,7 +1,7 @@
 // Enhanced iOS-optimized CharacterDetailPage.tsx
-import React, { useState, useEffect, memo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import StyledButton from "../shared/StyledButton";
 import { formatDistanceToNow } from 'date-fns';
@@ -410,16 +410,12 @@ const OverviewSection: React.FC<{ character: EnhancedCharacter }> = ({ character
 export default function CharacterDetailPage({ character: initialCharacter, animeName, onBack }: CharacterDetailPageProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'voice_actors' | 'development' | 'relationships'>('overview');
   const [character, setCharacter] = useState<EnhancedCharacter>(initialCharacter);
-  const [isEnriching, setIsEnriching] = useState(false);
-  const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
-  const [hasAttemptedEnrichment, setHasAttemptedEnrichment] = useState(false);
   const [relationshipData, setRelationshipData] = useState<any[]>([]);
   const [timelineData, setTimelineData] = useState<any[]>([]);
   const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
 
   // Convex actions
-  const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
   const analyzeRelationships = useAction(api.ai.analyzeCharacterRelationships);
   const getTimeline = useAction(api.ai.getCharacterDevelopmentTimeline);
 
@@ -432,53 +428,6 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
     { key: 'development' as const, label: 'Growth', icon: '📈' },
   ];
 
-  // Auto-enrich character data on mount
-  useEffect(() => {
-    const shouldEnrich = !character.isAIEnriched && 
-                        !hasAttemptedEnrichment && 
-                        character.name && 
-                        animeName;
-
-    if (shouldEnrich) {
-      handleEnrichCharacter();
-    }
-  }, [character.name, animeName]);
-
-  const handleEnrichCharacter = async () => {
-    if (isEnriching) return;
-    
-    setIsEnriching(true);
-    setEnrichmentError(null);
-    setHasAttemptedEnrichment(true);
-
-    try {
-      const result = await enrichCharacterDetails({
-        characterName: character.name,
-        animeName: animeName,
-        existingData: {
-          description: character.description,
-          role: character.role,
-          gender: character.gender,
-          age: character.age,
-          species: character.species,
-          powersAbilities: character.powersAbilities,
-          voiceActors: character.voiceActors,
-        },
-        enrichmentLevel: 'detailed',
-        messageId: `character_enrich_${Date.now()}`,
-      });
-
-      if (result.error) {
-        setEnrichmentError(result.error);
-      } else {
-        setCharacter(result.mergedCharacter);
-      }
-    } catch (error: any) {
-      setEnrichmentError(error.message || 'Failed to enrich character data');
-    } finally {
-      setIsEnriching(false);
-    }
-  };
 
   const loadRelationshipAnalysis = async () => {
     if (isLoadingRelationships || relationshipData.length > 0) return;
@@ -555,27 +504,6 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
         animeName={animeName}
         onBack={onBack}
       />
-
-      {/* Error Display */}
-      {enrichmentError && (
-        <div className="px-4 pt-4">
-          <SectionCard gradient="from-red-500/10 to-red-600/10">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-red-400">⚠️</span>
-              <span className="text-red-300 font-medium">Enhancement Failed</span>
-            </div>
-            <p className="text-red-200 text-sm mb-3">{enrichmentError}</p>
-            <StyledButton
-              onClick={handleEnrichCharacter}
-              variant="ghost"
-              className="text-xs !text-red-300 !border-red-500/30"
-            >
-              Retry Enhancement
-            </StyledButton>
-          </SectionCard>
-        </div>
-      )}
-
       {/* Tab Navigation */}
       <IOSTabBar
         activeTab={activeTab}

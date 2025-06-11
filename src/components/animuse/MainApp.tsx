@@ -247,7 +247,7 @@ export default function MainApp() {
       setHistoryStack(prev => [...prev, view]);
     }
     setCurrentView(view);
-    if (view !== "anime_detail") setSelectedAnimeId(null);
+    if (view !== "anime_detail" && view !== "character_detail") setSelectedAnimeId(null);
     if (view !== "custom_list_detail") setSelectedCustomListId(null);
     // NEW: Clear character data when not on character detail page
     if (view !== "character_detail") {
