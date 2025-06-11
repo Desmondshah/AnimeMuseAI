@@ -147,9 +147,7 @@ const CharacterHero: React.FC<{
   character: EnhancedCharacter;
   animeName: string;
   onBack: () => void;
-  isEnriching: boolean;
-  onEnrich: () => void;
-}> = ({ character, animeName, onBack, isEnriching, onEnrich }) => {
+  }> = ({ character, animeName, onBack }) => {
   const placeholderImage = `https://placehold.co/600x800/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
 
   const getRoleColor = (role: string) => {
@@ -200,29 +198,11 @@ const CharacterHero: React.FC<{
 
         {/* AI Enhancement Status */}
         <div className="flex items-center gap-2">
-          {character.isAIEnriched ? (
+          {character.isAIEnriched && (
             <div className="flex items-center gap-2 bg-green-500/20 backdrop-blur-xl rounded-2xl px-3 py-2 border border-green-500/30">
               <span className="text-green-400">🤖</span>
               <span className="text-green-300 text-xs font-medium">Enhanced</span>
             </div>
-          ) : (
-            <button
-              onClick={onEnrich}
-              disabled={isEnriching}
-              className="flex items-center gap-2 bg-brand-primary-action/80 backdrop-blur-xl rounded-2xl px-3 py-2 border border-brand-primary-action hover:bg-brand-primary-action transition-all duration-300 disabled:opacity-50"
-            >
-              {isEnriching ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-white text-xs">Enhancing...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-white">🤖</span>
-                  <span className="text-white text-xs font-medium">Enhance</span>
-                </>
-              )}
-            </button>
           )}
         </div>
       </div>
@@ -574,8 +554,6 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
         character={character}
         animeName={animeName}
         onBack={onBack}
-        isEnriching={isEnriching}
-        onEnrich={handleEnrichCharacter}
       />
 
       {/* Error Display */}

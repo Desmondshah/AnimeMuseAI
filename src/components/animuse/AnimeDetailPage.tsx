@@ -253,7 +253,7 @@ const CharacterCard: React.FC<{
   return (
     <div
       onClick={onClick}
-      className="group relative bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
+      className="group relative w-full bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
     >
       {/* Character Image */}
       <div className="relative aspect-[3/4] overflow-hidden">
@@ -276,7 +276,7 @@ const CharacterCard: React.FC<{
         )}
         
         {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300" />
         
         {/* Role badge */}
         <div className="absolute top-3 right-3">
@@ -399,6 +399,7 @@ const useEnrichedCharacters = (
   const [enrichedCharacters, setEnrichedCharacters] = useState<EnhancedCharacterType[]>(characters);
   const [isEnriching, setIsEnriching] = useState(false);
   const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
+  const hasAutoEnrichedRef = useRef(false);
 
   // Load cached characters on mount or when anime changes
   useEffect(() => {
@@ -418,7 +419,7 @@ const useEnrichedCharacters = (
     }
   }, [animeId, enrichedCharacters]);
 
-  const enrichMainCharacters = async () => {
+  const enrichMainCharacters = useCallback(async () => {
     setIsEnriching(true);
     
     // Only enrich main characters to avoid rate limits
@@ -462,7 +463,23 @@ const useEnrichedCharacters = (
     } finally {
       setIsEnriching(false);
     }
-  };
+  }, [characters, animeName, enrichCharacterDetails]);
+
+  // Automatically enrich main characters once per anime
+  useEffect(() => {
+    if (!animeId || hasAutoEnrichedRef.current) return;
+
+    const stored = localStorage.getItem(`anime_${animeId}_characters`);
+    let dataset: EnhancedCharacterType[] = characters;
+    if (stored) {
+      try { dataset = JSON.parse(stored); } catch { /* ignore */ }
+    }
+
+    if (dataset.some(c => c.role === 'MAIN' && !c.isAIEnriched)) {
+      hasAutoEnrichedRef.current = true;
+      enrichMainCharacters();
+    }
+  }, [animeId, characters, enrichMainCharacters]);
 
   return { enrichedCharacters, isEnriching, enrichMainCharacters };
 };
@@ -505,6 +522,8 @@ export default function AnimeDetailPage({
     isEnriching,
     enrichMainCharacters
   } = useEnrichedCharacters(anime?.characters || [], anime?.title || '', animeId);
+
+  const enrichCharacterAction = useAction(api.ai.fetchEnrichedCharacterDetails);
 
   // Cached episodes and characters
   const [episodes, setEpisodes] = useState<any[]>([]);
@@ -743,7 +762,7 @@ export default function AnimeDetailPage({
   }, [anime, isAutoRefreshing, smartAutoRefreshAction, getRefreshRecommendationAction]);
 
   // Handle character click with validation
-  const handleCharacterClick = useCallback((character: any) => {
+  const handleCharacterClick = useCallback(async (character: any) => {
     // Validate character data before showing detail page
     if (!character || !character.name) {
       toast.error("Character data is incomplete. Cannot show details.");
@@ -753,7 +772,7 @@ export default function AnimeDetailPage({
     console.log("Character clicked:", character); // Debug log
     
     // Ensure the character has minimum required data
-    const validatedCharacter = {
+    let validatedCharacter = {
       ...character,
       name: character.name || "Unknown Character",
       role: character.role || "BACKGROUND",
@@ -762,9 +781,42 @@ export default function AnimeDetailPage({
       // Add other fallback values as needed
     };
 
+    // Auto-enrich character before showing detail page
+    if (!validatedCharacter.isAIEnriched && anime?.title) {
+      const toastId = `enrich-${validatedCharacter.name}`;
+      toast.loading("Enhancing character...", { id: toastId });
+      try {
+        const result = await enrichCharacterAction({
+          characterName: validatedCharacter.name,
+          animeName: anime.title,
+          existingData: {
+            description: validatedCharacter.description,
+            role: validatedCharacter.role,
+            gender: validatedCharacter.gender,
+            age: validatedCharacter.age,
+            species: validatedCharacter.species,
+            powersAbilities: validatedCharacter.powersAbilities,
+            voiceActors: validatedCharacter.voiceActors,
+          },
+          enrichmentLevel: 'detailed',
+          messageId: `preload_${validatedCharacter.name}_${Date.now()}`,
+        });
+
+        if (!result.error) {
+          validatedCharacter = { ...validatedCharacter, ...result.mergedCharacter, isAIEnriched: true };
+          toast.success("Character enhanced!", { id: toastId });
+        } else {
+          toast.error(`Enhancement failed: ${result.error}`, { id: toastId });
+        }
+      } catch (error: any) {
+        console.error("Character enrich error:", error);
+        toast.error("Failed to enhance character", { id: toastId });
+      }
+    }
+
     setSelectedCharacter(validatedCharacter);
     setShowCharacterDetail(true);
-  }, []);
+  }, [anime, enrichCharacterAction]);
 
   // Handle watchlist actions
   const handleWatchlistAction = useCallback(async (status: "Watching" | "Completed" | "Plan to Watch" | "Dropped") => {
@@ -1360,32 +1412,18 @@ export default function AnimeDetailPage({
         {activeTab === "characters" && (
           <div className="ios-scroll-section px-6 py-8">
             {charactersForDisplay && charactersForDisplay.length > 0 ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">
-                    👥 Characters ({charactersForDisplay.length})
-                  </h2>
-                  
-                  {/* AI Enrichment Status */}
-                  {isEnriching && (
-                    <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
-                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-blue-300 text-xs font-medium">Enriching...</span>
-                    </div>
-                  )}
-                  
-                  {/* Manual Enrichment Button */}
-                  {!isEnriching && charactersForDisplay.some(char => char.role === 'MAIN' && !char.isAIEnriched) && (
-                    <button
-                      onClick={enrichMainCharacters}
-                      className="flex items-center gap-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 border border-brand-primary-action/30 rounded-full px-3 py-1 hover:bg-brand-primary-action/30 transition-all duration-300"
-                      title="Enhance main characters with AI"
-                    >
-                      <span className="text-sm">🤖</span>
-                      <span className="text-brand-accent-gold text-xs font-medium">Enhance</span>
-                    </button>
-                  )}
-                </div>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-white">
+                      👥 Characters ({charactersForDisplay.length})
+                    </h2>
+                    {isEnriching && (
+                      <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
+                        <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-blue-300 text-xs font-medium">Enhancing...</span>
+                      </div>
+                    )}
+                  </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {charactersForDisplay
