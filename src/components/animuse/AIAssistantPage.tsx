@@ -561,11 +561,11 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         <div className="text-center py-8 px-4">
           <div className="inline-block group">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-brand-primary-action via-brand-accent-gold via-brand-accent-peach to-brand-primary-action bg-clip-text text-transparent animate-pulse">
+              <span className="bg-gradient-to-r from-brand-primary-action via-brand-accent-gold to-brand-primary-action bg-clip-text text-transparent animate-pulse">
                 🤖 AniMuse AI
               </span>
             </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent animate-pulse group-hover:animate-none transition-opacity duration-500"></div>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent animate-pulse group-hover:animate-none transition-opacity duration-500"></div>
           </div>
           <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-4">
             Your intelligent anime companion, ready to discover your next

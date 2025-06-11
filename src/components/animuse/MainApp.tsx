@@ -781,10 +781,10 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             animate={{ scale: 1 }}
             transition={{ duration: shouldReduceAnimations ? 0 : 0.6 }}
           >
-            <h1 className="hero-title font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold via-brand-primary-action to-white bg-clip-text text-transparent animate-pulse">
+            <h1 className="hero-title font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
               Welcome, {userProfile?.name || "Explorer"}!
             </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
            
            </motion.div>
           <motion.p
