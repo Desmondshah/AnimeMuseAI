@@ -4,35 +4,6 @@
 
 :root {
   --vh: 1vh;
-  
-  /* Define colors as RGB values for better Tailwind opacity support */
-  --brand-background: 242 242 247;  /* #f2f2f7 as RGB */
-  --brand-surface: 255 255 255;     /* #ffffff as RGB */
-  --brand-text-on-dark: 0 0 0;      /* #000000 as RGB */
-  --brand-text-primary: 28 28 30;   /* #1c1c1e as RGB */
-  --brand-text-secondary: 58 58 60; /* #3a3a3c as RGB */
-  
-  /* Keep the original hex variables as fallbacks */
-  --brand-background-hex: #f2f2f7;
-  --brand-surface-hex: #ffffff;
-  --brand-text-on-dark-hex: #000000;
-  --brand-text-primary-hex: #1c1c1e;
-  --brand-text-secondary-hex: #3a3a3c;
-}
-
-.dark {
-  --brand-background: 0 0 0;        /* #000000 as RGB */
-  --brand-surface: 26 26 26;        /* #1A1A1A as RGB */
-  --brand-text-on-dark: 255 255 255; /* #FFFFFF as RGB */
-  --brand-text-primary: 255 255 255; /* #FFFFFF as RGB */
-  --brand-text-secondary: 176 176 176; /* #B0B0B0 as RGB */
-  
-  /* Keep the original hex variables as fallbacks */
-  --brand-background-hex: #000000;
-  --brand-surface-hex: #1A1A1A;
-  --brand-text-on-dark-hex: #FFFFFF;
-  --brand-text-primary-hex: #FFFFFF;
-  --brand-text-secondary-hex: #B0B0B0;
 }
 
 /* Use system fonts for a native Apple-like appearance */
@@ -63,17 +34,17 @@ body {
 }
 
 .action-button {
-   @apply font-heading rounded-md transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-opacity-75;
+  @apply font-heading rounded-md transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-opacity-75;
 }
 
 .form-input {
-   @apply bg-brand-surface border border-brand-accent-peach/30 text-white placeholder-brand-accent-peach/70 rounded-md px-3 py-2 w-full;
+  @apply bg-brand-surface border border-brand-accent-peach/30 text-white placeholder-brand-accent-peach/70 rounded-md px-3 py-2 w-full;
   @apply focus:border-brand-primary-action focus:ring-1 focus:ring-brand-primary-action outline-none;
 }
 
 /* Form checkbox styling */
 .form-checkbox {
-   @apply bg-brand-surface border-brand-accent-peach/30 text-brand-primary-action;
+  @apply bg-brand-surface border-brand-accent-peach/30 text-brand-primary-action;
   @apply focus:ring-brand-primary-action focus:ring-offset-transparent;
 }
 
@@ -84,7 +55,6 @@ h1, h2, h3, h4, h5, h6 {
 h1 { @apply text-2xl sm:text-3xl md:text-4xl; }
 h2 { @apply text-xl sm:text-2xl md:text-3xl; }
 h3 { @apply text-lg sm:text-xl md:text-2xl; }
-
 p, span, div, li, button, input, select, textarea {
   @apply text-sm sm:text-base; 
 }
@@ -250,8 +220,6 @@ body {
 
 .image {
   -webkit-user-drag: none;
-  -moz-user-drag: none;
-  -ms-user-drag: none;
   user-drag: none;
   pointer-events: none;
 }
@@ -457,6 +425,11 @@ body {
   }
 }
 
+/* Low bandwidth optimizations - triggered by useMobileOptimizations hook */
+.low-bandwidth {
+  /* Disable expensive visual effects */
+}
+
 .low-bandwidth .animate-pulse,
 .low-bandwidth .animate-bounce,
 .low-bandwidth .animate-ping {
@@ -485,6 +458,11 @@ body {
   background: rgba(0, 0, 0, 0.6) !important;
 }
 
+/* Mobile device optimizations - triggered by useMobileOptimizations hook */
+.mobile-device {
+  /* Optimize for mobile performance */
+}
+
 .mobile-device .shadow-2xl,
 .mobile-device .shadow-xl {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
@@ -498,6 +476,11 @@ body {
 .mobile-device .anime-particles > div:nth-child(n+4),
 .mobile-device .experience-particles > div:nth-child(n+4) {
   display: none !important;
+}
+
+/* iOS specific optimizations - triggered by useMobileOptimizations hook */
+.ios-device {
+  /* iOS specific fixes */
 }
 
 .ios-device .backdrop-blur-sm,
@@ -3536,7 +3519,6 @@ body {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;  /* ← Add this line */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -3544,7 +3526,6 @@ body {
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
-  line-clamp: 3;  /* ← Add this line */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
