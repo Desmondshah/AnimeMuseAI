@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -32,11 +31,14 @@ export default {
         'orbitron': ['Orbitron', 'monospace'],
       },
       colors: {
-        'brand-background': 'var(--brand-background)',
-        'brand-surface': 'var(--brand-surface)',
-        'brand-text-on-dark': 'var(--brand-text-on-dark)',
-        'brand-text-primary': 'var(--brand-text-primary)',
-        'brand-text-secondary': 'var(--brand-text-secondary)',
+         // Dark theme colors
+        'brand-background': '#000000',        // Very dark black for main background
+        'brand-surface': '#1A1A1A',          // Dark black for containers (was cream)
+        
+        // Text colors
+        'brand-text-on-dark': '#FFFFFF',      // White text for dark backgrounds
+        'brand-text-primary': '#FFFFFF',     // White text (was brown)
+        'brand-text-secondary': '#B0B0B0',   // Light gray for secondary text
         
         // Keep all orange/gold accent colors
         'brand-primary-action': '#FF6B35',   // Orange for primary actions
@@ -74,7 +76,6 @@ export default {
         pulse: { // Overwrite default pulse for a more subtle effect
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '.9' },
-        }
       },
       screens: {
         'xs': '375px',     // iPhone SE and up
@@ -100,4 +101,5 @@ export default {
     },
   },
   plugins: [],
+}
 }

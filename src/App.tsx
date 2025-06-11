@@ -1,6 +1,5 @@
 // src/App.tsx
 import React, { useState } from "react";
-import useTheme from "./hooks/useTheme";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api"; // Adjust path if needed
 import { SignInForm } from "./SignInForm"; // Adjust path if needed
@@ -9,7 +8,6 @@ import { Toaster } from "sonner";
 import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow"; // Adjust path if needed
 import MainApp from "./components/animuse/MainApp"; // Adjust path if needed
 import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt"; // Adjust path if needed
-import ThemeToggle from "./components/animuse/onboarding/ThemeToggle";
 import { motion } from "framer-motion";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
@@ -17,7 +15,6 @@ import NotificationsPanel from "./components/animuse/onboarding/NotificationsPan
 
 export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
-  const [theme] = useTheme();
   // Key to help React differentiate states if PhoneVerificationPrompt needs a full reset
   const [verificationFlowKey, setVerificationFlowKey] = useState(0);
 
@@ -47,7 +44,6 @@ export default function App() {
             </div>
           </Authenticated>
           <SignOutButton />
-          <ThemeToggle />
         </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center w-full">
@@ -58,7 +54,7 @@ export default function App() {
           />
         </div>
       </main>
-      <Toaster richColors theme={theme} />
+      <Toaster richColors theme="dark" />
     </div>
   );
 }
