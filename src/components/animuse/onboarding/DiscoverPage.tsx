@@ -282,29 +282,38 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     if (!gyroActive) return;
 
     let targetTilt = { x: 0, y: 0 };
+    let rafId: number;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const { beta, gamma } = event;
       
       if (beta !== null && gamma !== null) {
-        // Normalize and reduce values for smoother performance
+        // Normalize values
         targetTilt.x = Math.max(-20, Math.min(20, beta - 45)) / 4;
         targetTilt.y = Math.max(-20, Math.min(20, gamma)) / 4;
       }
     };
 
-    // Simpler update without animation loop for better performance
-    const updateTilt = () => {
-      setTilt(targetTilt);
+    const smoothUpdate = () => {
+      setTilt((prev) => {
+        const dx = targetTilt.x - prev.x;
+        const dy = targetTilt.y - prev.y;
+        const factor = 0.1; // smoothing factor
+        return {
+          x: prev.x + dx * factor,
+          y: prev.y + dy * factor,
+        };
+      });
+      rafId = requestAnimationFrame(smoothUpdate);
     };
 
     window.addEventListener('deviceorientation', handleOrientation);
     // Update tilt at 30fps for better performance
-    const interval = setInterval(updateTilt, 33);
+    rafId = requestAnimationFrame(smoothUpdate);
     
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
-      clearInterval(interval);
+      cancelAnimationFrame(rafId);
     };
   }, [gyroActive]);
 
@@ -401,6 +410,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           position: relative;
           transform-style: preserve-3d;
           cursor: pointer;
+          will-change: transform;
         }
         
         .card-3d-inner {
