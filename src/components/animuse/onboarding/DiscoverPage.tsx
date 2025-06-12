@@ -45,7 +45,7 @@ interface DiscoverPageProps {
   onBack?: () => void;
 }
 
-// Enhanced 3D Tilt Card Component
+// Enhanced 3D Tilt Card Component (Optimized)
 const TiltCard3D: React.FC<{
   children: React.ReactNode;
   index: number;
@@ -57,7 +57,7 @@ const TiltCard3D: React.FC<{
   const [localTilt, setLocalTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
-  // Touch handling for mobile
+  // Touch handling for mobile (simplified)
   const handleTouch = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (isGyroActive) return;
     
@@ -72,8 +72,8 @@ const TiltCard3D: React.FC<{
     const x = touch.clientX - centerX;
     const y = touch.clientY - centerY;
     
-    const rotateX = (y / (rect.height / 2)) * -15;
-    const rotateY = (x / (rect.width / 2)) * 15;
+    const rotateX = (y / (rect.height / 2)) * -10; // Reduced for performance
+    const rotateY = (x / (rect.width / 2)) * 10;
     
     setLocalTilt({ x: rotateX, y: rotateY });
     setIsHovered(true);
@@ -93,8 +93,8 @@ const TiltCard3D: React.FC<{
     const x = e.clientX - centerX;
     const y = e.clientY - centerY;
     
-    const rotateX = (y / (rect.height / 2)) * -15;
-    const rotateY = (x / (rect.width / 2)) * 15;
+    const rotateX = (y / (rect.height / 2)) * -10;
+    const rotateY = (x / (rect.width / 2)) * 10;
     
     setLocalTilt({ x: rotateX, y: rotateY });
     setIsHovered(true);
@@ -115,71 +115,57 @@ const TiltCard3D: React.FC<{
   }, [isGyroActive]);
 
   // Use gyro tilt if active, otherwise use local interaction tilt
-  const finalTiltX = isGyroActive ? tiltX * 1.5 : localTilt.x;
-  const finalTiltY = isGyroActive ? tiltY * 1.5 : localTilt.y;
+  const finalTiltX = isGyroActive ? tiltX * 1.2 : localTilt.x;
+  const finalTiltY = isGyroActive ? tiltY * 1.2 : localTilt.y;
 
-  // Calculate depth offset based on position
-  const row = Math.floor(index / 3);
-  const col = index % 3;
-  const depthZ = 20 + (row * 5) + (col * 3);
+  // Simplified depth calculation
+  const depthZ = isHovered || (isGyroActive && (Math.abs(finalTiltX) > 2 || Math.abs(finalTiltY) > 2)) ? 10 : 0;
 
   return (
     <div
       ref={cardRef}
-      className="tilt-card-3d"
+      className="tilt-card-3d" // Removed p-2 as padding is handled in CSS
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onTouchMove={handleTouch}
       onTouchEnd={handleTouchEnd}
       style={{
         transform: `
-          perspective(1000px)
+          perspective(800px)
           rotateX(${finalTiltX}deg)
           rotateY(${finalTiltY}deg)
-          translateZ(${isHovered || isGyroActive ? depthZ : 0}px)
-          scale(${isHovered || isGyroActive ? 1.05 : 1})
+          translateZ(${depthZ}px)
         `,
-        transition: isGyroActive ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out',
+        transition: 'transform 0.2s ease-out',
         transformStyle: 'preserve-3d',
-        willChange: 'transform',
       }}
     >
       <div className="card-3d-inner">
-        {/* Deep shadow layer */}
-        <div 
-          className="card-3d-shadow"
-          style={{
-            transform: `translateZ(-30px) scale(0.9)`,
-            opacity: 0.4 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.02,
-          }}
-        />
+        {/* Simplified shadow - only show on hover/active */}
+        {(isHovered || (isGyroActive && depthZ > 0)) && (
+          <div 
+            className="card-3d-shadow"
+            style={{
+              transform: `translateZ(-10px) scale(0.95)`,
+              opacity: 0.3,
+            }}
+          />
+        )}
         
-        {/* Glow layer */}
-        <div 
-          className="card-3d-glow"
-          style={{
-            transform: `translateZ(5px)`,
-            opacity: (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.03,
-          }}
-        />
+        {/* Glow effect on hover */}
+        {(isHovered || (isGyroActive && depthZ > 0)) && (
+          <div 
+            className="card-3d-glow"
+            style={{
+              opacity: 0.5,
+            }}
+          />
+        )}
         
         {/* Main content */}
-        <div className="card-3d-content" style={{ transform: 'translateZ(10px)' }}>
+        <div className="card-3d-content">
           {children}
         </div>
-        
-        {/* Floating accent */}
-        <div 
-          className="card-3d-float"
-          style={{
-            transform: `
-              translateZ(40px) 
-              translateX(${finalTiltY * 0.8}px) 
-              translateY(${-finalTiltX * 0.8}px)
-            `,
-            opacity: isHovered || isGyroActive ? 0.8 : 0,
-          }}
-        />
       </div>
     </div>
   );
@@ -228,7 +214,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const [gyroSupported, setGyroSupported] = useState(false);
   const [gyroActive, setGyroActive] = useState(false);
   const [showPermissionUI, setShowPermissionUI] = useState(false);
-  const tiltIntervalRef = useRef<number | null>(null);
 
   const filterOptions = useQuery(api.anime.getFilterOptions);
   const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
@@ -296,37 +281,30 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   useEffect(() => {
     if (!gyroActive) return;
 
-    let currentTilt = { x: 0, y: 0 };
     let targetTilt = { x: 0, y: 0 };
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const { beta, gamma } = event;
       
       if (beta !== null && gamma !== null) {
-        // Normalize and amplify the values
-        targetTilt.x = Math.max(-30, Math.min(30, beta - 45)) / 2;
-        targetTilt.y = Math.max(-30, Math.min(30, gamma)) / 2;
+        // Normalize and reduce values for smoother performance
+        targetTilt.x = Math.max(-20, Math.min(20, beta - 45)) / 4;
+        targetTilt.y = Math.max(-20, Math.min(20, gamma)) / 4;
       }
     };
 
-    // Smooth animation loop
-    const animate = () => {
-      currentTilt.x += (targetTilt.x - currentTilt.x) * 0.1;
-      currentTilt.y += (targetTilt.y - currentTilt.y) * 0.1;
-      
-      setTilt({ x: currentTilt.x, y: currentTilt.y });
-      
-      tiltIntervalRef.current = requestAnimationFrame(animate);
+    // Simpler update without animation loop for better performance
+    const updateTilt = () => {
+      setTilt(targetTilt);
     };
 
     window.addEventListener('deviceorientation', handleOrientation);
-    animate();
+    // Update tilt at 30fps for better performance
+    const interval = setInterval(updateTilt, 33);
     
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
-      if (tiltIntervalRef.current) {
-        cancelAnimationFrame(tiltIntervalRef.current);
-      }
+      clearInterval(interval);
     };
   }, [gyroActive]);
 
@@ -428,56 +406,79 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         .card-3d-inner {
           position: relative;
           transform-style: preserve-3d;
+          width: 100%;
+          height: 100%;
         }
         
         .card-3d-shadow {
           position: absolute;
-          inset: -4px;
-          background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8), transparent 65%);
-          border-radius: 2rem;
-          filter: blur(16px);
+          inset: 4px;
+          background: rgba(0, 0, 0, 0.4);
+          border-radius: 0.75rem; /* Match the card radius */
+          filter: blur(8px);
           pointer-events: none;
         }
         
         .card-3d-glow {
           position: absolute;
-          inset: -3px;
+          inset: -2px;
           background: linear-gradient(135deg, 
-            rgba(255, 107, 53, 0.6), 
-            rgba(176, 137, 104, 0.6), 
-            rgba(231, 111, 81, 0.6));
-          border-radius: 2rem;
+            rgba(255, 107, 53, 0.4), 
+            rgba(176, 137, 104, 0.4));
+          border-radius: 0.75rem; /* Match the card radius */
           opacity: 0;
-          filter: blur(12px);
+          filter: blur(8px);
           pointer-events: none;
+          transition: opacity 0.3s ease;
         }
         
         .card-3d-content {
           position: relative;
           transform-style: preserve-3d;
           backface-visibility: hidden;
+          width: 100%;
+          height: 100%;
         }
         
-        .card-3d-float {
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          width: 50px;
-          height: 50px;
-          background: radial-gradient(circle, 
-            rgba(255, 107, 53, 0.9), 
-            rgba(176, 137, 104, 0.6) 40%, 
-            transparent 70%);
-          border-radius: 50%;
-          filter: blur(6px);
-          pointer-events: none;
-          transition: all 0.3s ease;
-        }
-        
+        /* Mobile grid spacing */
         @media (max-width: 768px) {
           .discovery-grid-3d {
-            perspective: 1500px;
+            perspective: 1200px;
             transform-style: preserve-3d;
+          }
+        }
+        
+        /* Ensure proper grid layout and spacing */
+        .discovery-grid {
+          display: grid !important;
+        }
+        
+        @media (max-width: 640px) {
+          .discovery-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 0.5rem !important; /* 8px */
+            padding: 0 0.25rem; /* 4px */
+          }
+        }
+        
+        @media (min-width: 641px) and (max-width: 768px) {
+          .discovery-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 0.75rem !important; /* 12px */
+          }
+        }
+        
+        @media (min-width: 769px) {
+          .discovery-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 1rem !important; /* 16px */
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          .discovery-grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+            gap: 1.25rem !important; /* 20px */
           }
         }
         
@@ -486,8 +487,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             transform: none !important;
           }
           .card-3d-shadow,
-          .card-3d-glow,
-          .card-3d-float {
+          .card-3d-glow {
             display: none;
           }
         }
@@ -870,7 +870,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             </div>
 
             {/* Enhanced 3D Grid */}
-            <div className="discovery-grid discovery-grid-3d grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+            <div className="discovery-grid discovery-grid-3d">
               {filteredAnimeList.map((anime, index) => (
                 <TiltCard3D
                   key={anime._id}
@@ -879,31 +879,24 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   tiltY={tilt.y}
                   isGyroActive={gyroActive}
                 >
-                  <div 
-                    className="group relative transform transition-all duration-300"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden border border-white/10">
+                    <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
                     
-                    <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                      <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
-                      
-                      <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
-                        <h4 
-                          className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: '1.2',
-                            maxHeight: '2.4em',
-                          }}
-                          title={anime.title}
-                        >
-                          {anime.title}
-                        </h4>
-                      </div>
+                    <div className="p-1.5 sm:p-2 bg-gradient-to-t from-black/80 to-transparent">
+                      <h4 
+                        className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: '1.2',
+                          maxHeight: '2.4em',
+                        }}
+                        title={anime.title}
+                      >
+                        {anime.title}
+                      </h4>
                     </div>
                   </div>
                 </TiltCard3D>
