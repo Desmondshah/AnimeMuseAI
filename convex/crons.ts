@@ -1,4 +1,4 @@
-// convex/crons.ts - Enhanced with Smart Auto-Refresh Jobs
+// convex/crons.ts - Enhanced with Smart Auto-Refresh Jobs and Character AI Enrichment
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
@@ -27,7 +27,63 @@ crons.interval(
   {}
 );
 
-// NEW: Smart auto-refresh jobs with intelligent prioritization
+// ===== CHARACTER AI ENRICHMENT JOBS =====
+
+// High-frequency enrichment for newly added characters
+crons.interval(
+  "enrichNewCharacters",
+  { minutes: 30 }, // Every 30 minutes
+  internal.characterEnrichment.batchEnrichCharacters,
+  {
+    animeBatchSize: 2, // Process 2 anime
+    charactersPerAnime: 3, // 3 characters per anime
+  }
+);
+
+// Hourly enrichment with medium batch size
+crons.interval(
+  "enrichCharactersHourly",
+  { hours: 1 }, // Every hour
+  internal.characterEnrichment.batchEnrichCharacters,
+  {
+    animeBatchSize: 3, // Process 3 anime
+    charactersPerAnime: 5, // 5 characters per anime
+  }
+);
+
+// Popular anime character enrichment (runs every 2 hours)
+crons.interval(
+  "enrichPopularAnimeCharacters",
+  { hours: 2 },
+  internal.characterEnrichment.enrichPopularAnimeCharacters,
+  {
+    limit: 5, // Process top 5 popular anime with unenriched characters
+  }
+);
+
+// Daily comprehensive character enrichment
+crons.daily(
+  "enrichCharactersDaily",
+  { hourUTC: 2, minuteUTC: 0 }, // Daily at 2 AM UTC
+  internal.characterEnrichment.batchEnrichCharacters,
+  {
+    animeBatchSize: 10, // Process 10 anime
+    charactersPerAnime: 5, // 5 characters per anime
+  }
+);
+
+// Weekly character enrichment sweep for any missed characters
+crons.weekly(
+  "enrichCharactersWeekly",
+  { dayOfWeek: "sunday", hourUTC: 0, minuteUTC: 0 }, // Sunday at midnight UTC
+  internal.characterEnrichment.batchEnrichCharacters,
+  {
+    animeBatchSize: 20, // Process 20 anime
+    charactersPerAnime: 5, // 5 characters per anime
+  }
+);
+
+// ===== SMART AUTO-REFRESH JOBS =====
 
 // High-frequency smart refresh for critical updates
 crons.interval(
@@ -96,7 +152,7 @@ crons.weekly(
   {}
 );
 
-// NEW: Smart refresh for currently airing anime (more frequent updates)
+// Smart refresh for currently airing anime (more frequent updates)
 crons.interval(
   "smartRefreshAiring",
   { hours: 4 }, // Every 4 hours
@@ -109,7 +165,7 @@ crons.interval(
   }
 );
 
-// NEW: Maintenance job to clean up old refresh data and optimize
+// Maintenance job to clean up old refresh data and optimize
 crons.weekly(
   "maintenanceSmartRefresh",
   { dayOfWeek: "monday", hourUTC: 5, minuteUTC: 0 }, // Monday at 5 AM UTC

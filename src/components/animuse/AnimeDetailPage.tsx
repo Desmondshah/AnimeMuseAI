@@ -352,7 +352,6 @@ const useEnrichedCharacters = (
   const [enrichedCharacters, setEnrichedCharacters] = useState<EnhancedCharacterType[]>(characters);
   const [isEnriching, setIsEnriching] = useState(false);
   const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
-  const hasAutoEnrichedRef = useRef(false);
 
   // Load cached characters on mount or when anime changes
   useEffect(() => {
@@ -423,19 +422,19 @@ const useEnrichedCharacters = (
 
    // Automatically enrich a few characters once per anime
   useEffect(() => {
-    if (!animeId || hasAutoEnrichedRef.current) return;
+  if (!animeId || isEnriching) return;  // Only check if already enriching
 
-    const stored = localStorage.getItem(`anime_${animeId}_characters`);
-    let dataset: EnhancedCharacterType[] = characters;
-    if (stored) {
-      try { dataset = JSON.parse(stored); } catch { /* ignore */ }
-    }
+  const stored = localStorage.getItem(`anime_${animeId}_characters`);
+  let dataset: EnhancedCharacterType[] = enrichedCharacters; // Use enrichedCharacters instead
+  if (stored) {
+    try { dataset = JSON.parse(stored); } catch { /* ignore */ }
+  }
 
-    if (dataset.some(c => !c.isAIEnriched)) {
-      hasAutoEnrichedRef.current = true;
-      enrichMissingCharacters();
-    }
-  }, [animeId, characters, enrichMissingCharacters]);
+  if (dataset.some(c => !c.isAIEnriched)) {
+    // Don't set any blocking flag, just enrich
+    enrichMissingCharacters();
+  }
+}, [animeId, enrichedCharacters, isEnriching, enrichMissingCharacters]);
 
   return { enrichedCharacters, isEnriching, enrichMissingCharacters };
 };
@@ -1298,7 +1297,7 @@ export default function AnimeDetailPage({
                     )}
                   </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                   {charactersForDisplay
                     .filter(character => character && character.name) // Filter out invalid characters
                     .map((character, index) => (
