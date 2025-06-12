@@ -19,6 +19,7 @@ import BottomNavigationBar from "./BottomNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "./shared/PageTransition";
 import Carousel from "./shared/Carousel";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 
@@ -196,6 +197,10 @@ export default function MainApp() {
   const [selectedCustomListId, setSelectedCustomListId] = useState<Id<"customLists"> | null>(null);
   const [historyStack, setHistoryStack] = useState<CurrentView[]>(["dashboard"]);
 
+  const handleTransitionEnd = useCallback(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Recommendations State
   const [forYouCategories, setForYouCategories] = useState<ForYouCategory[]>([]);
   const [hasFetchedForYou, setHasFetchedForYou] = useState(false);
@@ -237,7 +242,7 @@ export default function MainApp() {
   // --------------------------------------------------------------------------
 
   const navigateTo = useCallback((view: CurrentView, options?: { replace?: boolean; data?: any }) => {
-    window.scrollTo(0, 0);
+    
     if (options?.replace) {
       setHistoryStack(prev => {
         const newStack = [...prev.slice(0, -1), view];
@@ -262,7 +267,7 @@ export default function MainApp() {
       const previousView = newStack[newStack.length - 1];
       setHistoryStack(newStack);
       setCurrentView(previousView);
-      window.scrollTo(0, 0);
+      
       if (previousView !== "anime_detail") setSelectedAnimeId(null);
       if (previousView !== "custom_list_detail") setSelectedCustomListId(null);
       // NEW: Clear character data when going back
@@ -1374,17 +1379,10 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 
   return (
     <div className="w-full pb-20">
-       <AnimatePresence mode="wait">
-        <motion.div
-          key={currentView}
-          className="pt-0"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.5 }}
-        >
+       <AnimatePresence mode="wait" onExitComplete={handleTransitionEnd}>
+        <PageTransition key={currentView} className="pt-0">
           {renderContent()}
-        </motion.div>
+        </PageTransition>
       </AnimatePresence>
       <BottomNavigationBar currentView={currentView} onTabChange={handleTabChange} />
     </div>
