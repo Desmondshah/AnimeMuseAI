@@ -463,12 +463,14 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         /* Ensure proper grid layout and spacing */
         .discovery-grid {
           display: grid !important;
+          row-gap: 1rem;
         }
         
         @media (max-width: 640px) {
           .discovery-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 0.5rem !important; /* 8px */
+            column-gap: 0.5rem !important; /* 8px */
+            row-gap: 1rem !important; /* 16px vertical spacing */
             padding: 0 0.25rem; /* 4px */
           }
         }
@@ -476,21 +478,24 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         @media (min-width: 641px) and (max-width: 768px) {
           .discovery-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-            gap: 0.75rem !important; /* 12px */
+            column-gap: 0.75rem !important; /* 12px */
+            row-gap: 1.25rem !important; /* 20px vertical spacing */
           }
         }
         
         @media (min-width: 769px) {
           .discovery-grid {
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            gap: 1rem !important; /* 16px */
+            column-gap: 1rem !important; /* 16px */
+            row-gap: 1.5rem !important; /* 24px vertical spacing */
           }
         }
         
         @media (min-width: 1024px) {
           .discovery-grid {
             grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-            gap: 1.25rem !important; /* 20px */
+            column-gap: 1.25rem !important; /* 20px */
+            row-gap: 1.75rem !important; /* 28px vertical spacing */
           }
         }
         
