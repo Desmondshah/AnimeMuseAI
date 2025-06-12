@@ -1,4 +1,4 @@
-// Enhanced DiscoverPage.tsx with 3D mobile tilt effects
+// Enhanced DiscoverPage.tsx with more prominent 3D mobile effects
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { usePaginatedQuery, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -45,20 +45,43 @@ interface DiscoverPageProps {
   onBack?: () => void;
 }
 
-// 3D Tilt Card Component
+// Enhanced 3D Tilt Card Component
 const TiltCard3D: React.FC<{
   children: React.ReactNode;
   index: number;
   tiltX: number;
   tiltY: number;
-  isGyroSupported: boolean;
-}> = memo(({ children, index, tiltX, tiltY, isGyroSupported }) => {
+  isGyroActive: boolean;
+}> = memo(({ children, index, tiltX, tiltY, isGyroActive }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [localTilt, setLocalTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Mouse/touch interaction for desktop and fallback
+  // Touch handling for mobile
+  const handleTouch = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (isGyroActive) return;
+    
+    const card = cardRef.current;
+    if (!card) return;
+    
+    const touch = e.touches[0];
+    const rect = card.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const x = touch.clientX - centerX;
+    const y = touch.clientY - centerY;
+    
+    const rotateX = (y / (rect.height / 2)) * -15;
+    const rotateY = (x / (rect.width / 2)) * 15;
+    
+    setLocalTilt({ x: rotateX, y: rotateY });
+    setIsHovered(true);
+  }, [isGyroActive]);
+
+  // Mouse handling for desktop
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isGyroSupported) return; // Don't use mouse if gyro is working
+    if (isGyroActive) return;
     
     const card = cardRef.current;
     if (!card) return;
@@ -70,26 +93,35 @@ const TiltCard3D: React.FC<{
     const x = e.clientX - centerX;
     const y = e.clientY - centerY;
     
-    const rotateX = (y / (rect.height / 2)) * -10;
-    const rotateY = (x / (rect.width / 2)) * 10;
+    const rotateX = (y / (rect.height / 2)) * -15;
+    const rotateY = (x / (rect.width / 2)) * 15;
     
     setLocalTilt({ x: rotateX, y: rotateY });
-  }, [isGyroSupported]);
+    setIsHovered(true);
+  }, [isGyroActive]);
 
   const handleMouseLeave = useCallback(() => {
-    if (!isGyroSupported) {
+    if (!isGyroActive) {
       setLocalTilt({ x: 0, y: 0 });
+      setIsHovered(false);
     }
-  }, [isGyroSupported]);
+  }, [isGyroActive]);
 
-  // Use gyro tilt if supported, otherwise use local mouse tilt
-  const finalTiltX = isGyroSupported ? tiltX : localTilt.x;
-  const finalTiltY = isGyroSupported ? tiltY : localTilt.y;
+  const handleTouchEnd = useCallback(() => {
+    if (!isGyroActive) {
+      setLocalTilt({ x: 0, y: 0 });
+      setIsHovered(false);
+    }
+  }, [isGyroActive]);
 
-  // Add slight offset based on card position for depth
+  // Use gyro tilt if active, otherwise use local interaction tilt
+  const finalTiltX = isGyroActive ? tiltX * 1.5 : localTilt.x;
+  const finalTiltY = isGyroActive ? tiltY * 1.5 : localTilt.y;
+
+  // Calculate depth offset based on position
   const row = Math.floor(index / 3);
   const col = index % 3;
-  const depthOffset = (row * 0.5) + (col * 0.3);
+  const depthZ = 20 + (row * 5) + (col * 3);
 
   return (
     <div
@@ -97,48 +129,55 @@ const TiltCard3D: React.FC<{
       className="tilt-card-3d"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onTouchMove={handleTouch}
+      onTouchEnd={handleTouchEnd}
       style={{
         transform: `
           perspective(1000px)
-          rotateX(${finalTiltX * 0.5}deg)
-          rotateY(${finalTiltY * 0.5}deg)
-          translateZ(${Math.abs(finalTiltX) + Math.abs(finalTiltY) + depthOffset}px)
-          scale(${1 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.001})
+          rotateX(${finalTiltX}deg)
+          rotateY(${finalTiltY}deg)
+          translateZ(${isHovered || isGyroActive ? depthZ : 0}px)
+          scale(${isHovered || isGyroActive ? 1.05 : 1})
         `,
-        transition: isGyroSupported ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out',
+        transition: isGyroActive ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out',
         transformStyle: 'preserve-3d',
         willChange: 'transform',
       }}
     >
       <div className="card-3d-inner">
-        {/* Card shadow layer */}
+        {/* Deep shadow layer */}
         <div 
           className="card-3d-shadow"
           style={{
-            transform: `translateZ(-20px) scale(0.95)`,
-            opacity: 0.3 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.01,
+            transform: `translateZ(-30px) scale(0.9)`,
+            opacity: 0.4 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.02,
           }}
         />
         
-        {/* Card glow layer */}
+        {/* Glow layer */}
         <div 
           className="card-3d-glow"
           style={{
-            transform: `translateZ(10px)`,
-            opacity: (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.02,
+            transform: `translateZ(5px)`,
+            opacity: (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.03,
           }}
         />
         
-        {/* Main card content */}
-        <div className="card-3d-content">
+        {/* Main content */}
+        <div className="card-3d-content" style={{ transform: 'translateZ(10px)' }}>
           {children}
         </div>
         
-        {/* Floating elements for extra depth */}
+        {/* Floating accent */}
         <div 
           className="card-3d-float"
           style={{
-            transform: `translateZ(30px) translateX(${finalTiltY * 0.5}px) translateY(${-finalTiltX * 0.5}px)`,
+            transform: `
+              translateZ(40px) 
+              translateX(${finalTiltY * 0.8}px) 
+              translateY(${-finalTiltX * 0.8}px)
+            `,
+            opacity: isHovered || isGyroActive ? 0.8 : 0,
           }}
         />
       </div>
@@ -184,85 +223,112 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const [isEnhancingPosters, setIsEnhancingPosters] = useState(false);
   const [enhancementProgress, setEnhancementProgress] = useState<{current: number; total: number} | null>(null);
 
-  // 3D tilt state
+  // Enhanced 3D tilt state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [isGyroSupported, setIsGyroSupported] = useState(false);
-  const [gyroPermission, setGyroPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [gyroSupported, setGyroSupported] = useState(false);
+  const [gyroActive, setGyroActive] = useState(false);
+  const [showPermissionUI, setShowPermissionUI] = useState(false);
+  const tiltIntervalRef = useRef<number | null>(null);
 
   const filterOptions = useQuery(api.anime.getFilterOptions);
   const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
 
-  // Device orientation setup
+  // Check for device orientation support
   useEffect(() => {
-    const checkGyroSupport = async () => {
-      if ('DeviceOrientationEvent' in window) {
-        // Check if we need permission (iOS 13+)
-        if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-          try {
-            const permission = await (DeviceOrientationEvent as any).requestPermission();
-            setGyroPermission(permission);
-            setIsGyroSupported(permission === 'granted');
-          } catch (error) {
-            console.log('Gyro permission denied');
-            setGyroPermission('denied');
-            setIsGyroSupported(false);
+    // Check if device orientation is available
+    if ('DeviceOrientationEvent' in window) {
+      // Check if it's iOS 13+ which requires permission
+      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+        setGyroSupported(true);
+        setShowPermissionUI(true);
+      } else {
+        // Non-iOS or older iOS - try to detect if it works
+        let hasReceivedEvent = false;
+        
+        const testHandler = (event: DeviceOrientationEvent) => {
+          if (event.alpha !== null || event.beta !== null || event.gamma !== null) {
+            hasReceivedEvent = true;
+            setGyroSupported(true);
+            setGyroActive(true);
+            window.removeEventListener('deviceorientation', testHandler);
           }
-        } else {
-          // Non-iOS devices or older iOS
-          setIsGyroSupported(true);
-          setGyroPermission('granted');
-        }
+        };
+        
+        window.addEventListener('deviceorientation', testHandler);
+        
+        // Remove test handler after 2 seconds if no event received
+        setTimeout(() => {
+          window.removeEventListener('deviceorientation', testHandler);
+          if (!hasReceivedEvent) {
+            console.log('Device orientation not supported or not moving');
+          }
+        }, 2000);
       }
-    };
-
-    checkGyroSupport();
+    }
   }, []);
 
-  // Handle device orientation
-  useEffect(() => {
-    if (!isGyroSupported || gyroPermission !== 'granted') return;
-
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      const { beta, gamma } = event;
-      
-      // Beta: -180 to 180 (front-back tilt)
-      // Gamma: -90 to 90 (left-right tilt)
-      
-      if (beta !== null && gamma !== null) {
-        // Normalize values and apply smoothing
-        const normalizedX = Math.max(-30, Math.min(30, beta - 45)) / 3; // Centered at 45 degrees
-        const normalizedY = Math.max(-30, Math.min(30, gamma)) / 3;
-        
-        setTilt(prev => ({
-          x: prev.x * 0.8 + normalizedX * 0.2, // Smooth interpolation
-          y: prev.y * 0.8 + normalizedY * 0.2,
-        }));
-      }
-    };
-
-    window.addEventListener('deviceorientation', handleOrientation);
-    
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, [isGyroSupported, gyroPermission]);
-
-  // Request gyro permission on first interaction
+  // Request gyro permission (iOS 13+)
   const requestGyroPermission = useCallback(async () => {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       try {
         const permission = await (DeviceOrientationEvent as any).requestPermission();
-        setGyroPermission(permission);
-        setIsGyroSupported(permission === 'granted');
         if (permission === 'granted') {
+          setGyroActive(true);
+          setShowPermissionUI(false);
           toast.success('3D tilt effects enabled! Move your device to see the magic ✨');
+        } else {
+          toast.error('Permission denied. You can still use touch to see 3D effects!');
+          setShowPermissionUI(false);
         }
       } catch (error) {
-        setGyroPermission('denied');
-        toast.error('3D effects require device orientation permission');
+        console.error('Error requesting device orientation permission:', error);
+        toast.error('Could not enable 3D effects');
+        setShowPermissionUI(false);
       }
+    } else if (gyroSupported) {
+      // For non-iOS devices that support gyro
+      setGyroActive(true);
+      toast.success('3D effects activated! Tilt your device 🎮');
     }
-  }, []);
+  }, [gyroSupported]);
+
+  // Handle device orientation with smoothing
+  useEffect(() => {
+    if (!gyroActive) return;
+
+    let currentTilt = { x: 0, y: 0 };
+    let targetTilt = { x: 0, y: 0 };
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const { beta, gamma } = event;
+      
+      if (beta !== null && gamma !== null) {
+        // Normalize and amplify the values
+        targetTilt.x = Math.max(-30, Math.min(30, beta - 45)) / 2;
+        targetTilt.y = Math.max(-30, Math.min(30, gamma)) / 2;
+      }
+    };
+
+    // Smooth animation loop
+    const animate = () => {
+      currentTilt.x += (targetTilt.x - currentTilt.x) * 0.1;
+      currentTilt.y += (targetTilt.y - currentTilt.y) * 0.1;
+      
+      setTilt({ x: currentTilt.x, y: currentTilt.y });
+      
+      tiltIntervalRef.current = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation);
+    animate();
+    
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+      if (tiltIntervalRef.current) {
+        cancelAnimationFrame(tiltIntervalRef.current);
+      }
+    };
+  }, [gyroActive]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
@@ -356,7 +422,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         .tilt-card-3d {
           position: relative;
           transform-style: preserve-3d;
-          transition: transform 0.1s ease-out;
+          cursor: pointer;
         }
         
         .card-3d-inner {
@@ -366,43 +432,51 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
         
         .card-3d-shadow {
           position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), transparent 70%);
+          inset: -4px;
+          background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.8), transparent 65%);
           border-radius: 2rem;
-          filter: blur(20px);
+          filter: blur(16px);
           pointer-events: none;
         }
         
         .card-3d-glow {
           position: absolute;
-          inset: -2px;
-          background: linear-gradient(135deg, #FF6B35, #B08968, #E76F51);
+          inset: -3px;
+          background: linear-gradient(135deg, 
+            rgba(255, 107, 53, 0.6), 
+            rgba(176, 137, 104, 0.6), 
+            rgba(231, 111, 81, 0.6));
           border-radius: 2rem;
           opacity: 0;
-          filter: blur(10px);
+          filter: blur(12px);
           pointer-events: none;
         }
         
         .card-3d-content {
           position: relative;
           transform-style: preserve-3d;
+          backface-visibility: hidden;
         }
         
         .card-3d-float {
           position: absolute;
-          top: -5px;
-          right: -5px;
-          width: 40px;
-          height: 40px;
-          background: radial-gradient(circle, rgba(255, 107, 53, 0.8), transparent 70%);
+          top: -8px;
+          right: -8px;
+          width: 50px;
+          height: 50px;
+          background: radial-gradient(circle, 
+            rgba(255, 107, 53, 0.9), 
+            rgba(176, 137, 104, 0.6) 40%, 
+            transparent 70%);
           border-radius: 50%;
-          filter: blur(8px);
+          filter: blur(6px);
           pointer-events: none;
+          transition: all 0.3s ease;
         }
         
         @media (max-width: 768px) {
           .discovery-grid-3d {
-            perspective: 1200px;
+            perspective: 1500px;
             transform-style: preserve-3d;
           }
         }
@@ -411,21 +485,79 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           .tilt-card-3d {
             transform: none !important;
           }
+          .card-3d-shadow,
+          .card-3d-glow,
+          .card-3d-float {
+            display: none;
+          }
+        }
+        
+        .gyro-indicator {
+          position: fixed;
+          top: 80px;
+          right: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 12px;
+          z-index: 100;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .permission-banner {
+          animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
       `}</style>
 
-      {/* 3D Permission Banner for iOS */}
-      {gyroPermission === 'prompt' && typeof (DeviceOrientationEvent as any).requestPermission === 'function' && (
-        <div className="fixed top-20 left-0 right-0 z-50 px-4">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-4 shadow-2xl max-w-md mx-auto">
-            <p className="text-white text-sm mb-2">Enable 3D tilt effects for an immersive experience! 🎮</p>
-            <button
-              onClick={requestGyroPermission}
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-medium text-sm"
-            >
-              Enable 3D Effects
-            </button>
+      {/* Enhanced 3D Permission Banner */}
+      {showPermissionUI && (
+        <div className="fixed top-16 left-0 right-0 z-50 px-4 permission-banner">
+          <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl p-5 shadow-2xl max-w-md mx-auto border border-white/20">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">🎮</span>
+              <h3 className="text-white font-bold text-lg">Enable 3D Tilt Effects!</h3>
+            </div>
+            <p className="text-white/90 text-sm mb-4">
+              Move your phone to see anime cards float in 3D space. It's like magic! ✨
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={requestGyroPermission}
+                className="bg-white text-purple-600 px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-white/90 transition-all transform hover:scale-105"
+              >
+                Enable 3D Motion
+              </button>
+              <button
+                onClick={() => setShowPermissionUI(false)}
+                className="bg-white/20 text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-white/30 transition-all"
+              >
+                Maybe Later
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Gyro Status Indicator (for debugging) */}
+      {gyroActive && (
+        <div className="gyro-indicator">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            3D Motion Active
+          </span>
         </div>
       )}
 
@@ -461,7 +593,11 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
           <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto">
             Explore our curated collection and find your next anime obsession
-            {isGyroSupported && <span className="block text-sm mt-2 text-brand-accent-gold">✨ Tilt your device to see 3D effects!</span>}
+            {(gyroActive || !gyroSupported) && (
+              <span className="block text-sm mt-2 text-brand-accent-gold animate-pulse">
+                {gyroActive ? '✨ Tilt your device to see 3D effects!' : '👆 Touch and drag cards for 3D effects!'}
+              </span>
+            )}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             {onBack && (
@@ -471,6 +607,19 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
               >
                 ← Back to Dashboard
+              </StyledButton>
+            )}
+            
+            {/* 3D Toggle Button */}
+            {gyroSupported && !gyroActive && !showPermissionUI && (
+              <StyledButton 
+                onClick={requestGyroPermission}
+                variant="secondary"
+                className="!text-sm !bg-gradient-to-r !from-purple-600 !to-pink-600 hover:!from-pink-600 hover:!to-purple-600 !text-white !border-0"
+              >
+                <span className="flex items-center gap-2">
+                  🎮 Enable 3D Motion
+                </span>
               </StyledButton>
             )}
             
@@ -720,18 +869,15 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </div>
             </div>
 
-            {/* 3D Grid with device orientation support */}
-            <div 
-              className="discovery-grid discovery-grid-3d grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6"
-              onClick={gyroPermission === 'prompt' ? requestGyroPermission : undefined}
-            >
+            {/* Enhanced 3D Grid */}
+            <div className="discovery-grid discovery-grid-3d grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
               {filteredAnimeList.map((anime, index) => (
                 <TiltCard3D
                   key={anime._id}
                   index={index}
                   tiltX={tilt.x}
                   tiltY={tilt.y}
-                  isGyroSupported={isGyroSupported && gyroPermission === 'granted'}
+                  isGyroActive={gyroActive}
                 >
                   <div 
                     className="group relative transform transition-all duration-300"
