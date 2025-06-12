@@ -1,5 +1,5 @@
-// Enhanced DiscoverPage.tsx with server-side search
-import React, { useState, useEffect, useCallback, memo } from "react";
+// Enhanced DiscoverPage.tsx with 3D mobile tilt effects
+import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { usePaginatedQuery, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
@@ -45,6 +45,107 @@ interface DiscoverPageProps {
   onBack?: () => void;
 }
 
+// 3D Tilt Card Component
+const TiltCard3D: React.FC<{
+  children: React.ReactNode;
+  index: number;
+  tiltX: number;
+  tiltY: number;
+  isGyroSupported: boolean;
+}> = memo(({ children, index, tiltX, tiltY, isGyroSupported }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [localTilt, setLocalTilt] = useState({ x: 0, y: 0 });
+
+  // Mouse/touch interaction for desktop and fallback
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isGyroSupported) return; // Don't use mouse if gyro is working
+    
+    const card = cardRef.current;
+    if (!card) return;
+    
+    const rect = card.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const x = e.clientX - centerX;
+    const y = e.clientY - centerY;
+    
+    const rotateX = (y / (rect.height / 2)) * -10;
+    const rotateY = (x / (rect.width / 2)) * 10;
+    
+    setLocalTilt({ x: rotateX, y: rotateY });
+  }, [isGyroSupported]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isGyroSupported) {
+      setLocalTilt({ x: 0, y: 0 });
+    }
+  }, [isGyroSupported]);
+
+  // Use gyro tilt if supported, otherwise use local mouse tilt
+  const finalTiltX = isGyroSupported ? tiltX : localTilt.x;
+  const finalTiltY = isGyroSupported ? tiltY : localTilt.y;
+
+  // Add slight offset based on card position for depth
+  const row = Math.floor(index / 3);
+  const col = index % 3;
+  const depthOffset = (row * 0.5) + (col * 0.3);
+
+  return (
+    <div
+      ref={cardRef}
+      className="tilt-card-3d"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        transform: `
+          perspective(1000px)
+          rotateX(${finalTiltX * 0.5}deg)
+          rotateY(${finalTiltY * 0.5}deg)
+          translateZ(${Math.abs(finalTiltX) + Math.abs(finalTiltY) + depthOffset}px)
+          scale(${1 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.001})
+        `,
+        transition: isGyroSupported ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out',
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
+      }}
+    >
+      <div className="card-3d-inner">
+        {/* Card shadow layer */}
+        <div 
+          className="card-3d-shadow"
+          style={{
+            transform: `translateZ(-20px) scale(0.95)`,
+            opacity: 0.3 + (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.01,
+          }}
+        />
+        
+        {/* Card glow layer */}
+        <div 
+          className="card-3d-glow"
+          style={{
+            transform: `translateZ(10px)`,
+            opacity: (Math.abs(finalTiltX) + Math.abs(finalTiltY)) * 0.02,
+          }}
+        />
+        
+        {/* Main card content */}
+        <div className="card-3d-content">
+          {children}
+        </div>
+        
+        {/* Floating elements for extra depth */}
+        <div 
+          className="card-3d-float"
+          style={{
+            transform: `translateZ(30px) translateX(${finalTiltY * 0.5}px) translateY(${-finalTiltX * 0.5}px)`,
+          }}
+        />
+      </div>
+    </div>
+  );
+});
+
 const DiscoverLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Discovering anime..." }) => (
   <div className="flex flex-col justify-center items-center h-64 py-10">
     <div className="relative">
@@ -83,8 +184,85 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const [isEnhancingPosters, setIsEnhancingPosters] = useState(false);
   const [enhancementProgress, setEnhancementProgress] = useState<{current: number; total: number} | null>(null);
 
+  // 3D tilt state
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isGyroSupported, setIsGyroSupported] = useState(false);
+  const [gyroPermission, setGyroPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+
   const filterOptions = useQuery(api.anime.getFilterOptions);
   const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
+
+  // Device orientation setup
+  useEffect(() => {
+    const checkGyroSupport = async () => {
+      if ('DeviceOrientationEvent' in window) {
+        // Check if we need permission (iOS 13+)
+        if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+          try {
+            const permission = await (DeviceOrientationEvent as any).requestPermission();
+            setGyroPermission(permission);
+            setIsGyroSupported(permission === 'granted');
+          } catch (error) {
+            console.log('Gyro permission denied');
+            setGyroPermission('denied');
+            setIsGyroSupported(false);
+          }
+        } else {
+          // Non-iOS devices or older iOS
+          setIsGyroSupported(true);
+          setGyroPermission('granted');
+        }
+      }
+    };
+
+    checkGyroSupport();
+  }, []);
+
+  // Handle device orientation
+  useEffect(() => {
+    if (!isGyroSupported || gyroPermission !== 'granted') return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const { beta, gamma } = event;
+      
+      // Beta: -180 to 180 (front-back tilt)
+      // Gamma: -90 to 90 (left-right tilt)
+      
+      if (beta !== null && gamma !== null) {
+        // Normalize values and apply smoothing
+        const normalizedX = Math.max(-30, Math.min(30, beta - 45)) / 3; // Centered at 45 degrees
+        const normalizedY = Math.max(-30, Math.min(30, gamma)) / 3;
+        
+        setTilt(prev => ({
+          x: prev.x * 0.8 + normalizedX * 0.2, // Smooth interpolation
+          y: prev.y * 0.8 + normalizedY * 0.2,
+        }));
+      }
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation);
+    
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, [isGyroSupported, gyroPermission]);
+
+  // Request gyro permission on first interaction
+  const requestGyroPermission = useCallback(async () => {
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      try {
+        const permission = await (DeviceOrientationEvent as any).requestPermission();
+        setGyroPermission(permission);
+        setIsGyroSupported(permission === 'granted');
+        if (permission === 'granted') {
+          toast.success('3D tilt effects enabled! Move your device to see the magic ✨');
+        }
+      } catch (error) {
+        setGyroPermission('denied');
+        toast.error('3D effects require device orientation permission');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
@@ -101,13 +279,12 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     return option?.backendValue || (uiSortOption as SortOption);
   };
 
-  // UPDATED: Now using server-side search by passing searchTerm to the backend
   const {
     results: animeList, status, loadMore, isLoading,
   } = usePaginatedQuery(
     api.anime.getFilteredAnime,
     {
-      searchTerm: debouncedSearchQuery || undefined, // NEW: Pass search term to backend
+      searchTerm: debouncedSearchQuery || undefined,
       filters: Object.values(filters).some(value => 
         Array.isArray(value) ? value.length > 0 : 
         typeof value === 'object' ? Object.values(value).some(v => v !== undefined) : 
@@ -118,9 +295,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     { initialNumItems: 20 }
   );
 
-  // REMOVED: Client-side filtering is no longer needed since backend handles search
-  // All search functionality now happens server-side
-  const filteredAnimeList = animeList; // Backend already returns filtered/searched results
+  const filteredAnimeList = animeList;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -136,7 +311,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const clearSearch = useCallback(() => { setSearchQuery(""); setDebouncedSearchQuery(""); }, []);
   const clearAll = useCallback(() => { clearFilters(); clearSearch(); }, [clearFilters, clearSearch]);
 
-  // Poster enhancement function
   const handleEnhancePosters = useCallback(async () => {
     if (!filteredAnimeList || filteredAnimeList.length === 0) {
       toast.error("No anime to enhance!");
@@ -150,8 +324,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     toast.loading("Enhancing anime posters...", { id: toastId });
 
     try {
-      // Get the IDs of visible anime
-      const animeIds = filteredAnimeList.slice(0, 24).map(anime => anime._id); // Limit to first 24 visible anime
+      const animeIds = filteredAnimeList.slice(0, 24).map(anime => anime._id);
       
       const result = await enhanceBatchPosters({
         animeIds: animeIds,
@@ -179,6 +352,83 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
 
   return (
     <div className="relative min-h-screen">
+      <style jsx>{`
+        .tilt-card-3d {
+          position: relative;
+          transform-style: preserve-3d;
+          transition: transform 0.1s ease-out;
+        }
+        
+        .card-3d-inner {
+          position: relative;
+          transform-style: preserve-3d;
+        }
+        
+        .card-3d-shadow {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), transparent 70%);
+          border-radius: 2rem;
+          filter: blur(20px);
+          pointer-events: none;
+        }
+        
+        .card-3d-glow {
+          position: absolute;
+          inset: -2px;
+          background: linear-gradient(135deg, #FF6B35, #B08968, #E76F51);
+          border-radius: 2rem;
+          opacity: 0;
+          filter: blur(10px);
+          pointer-events: none;
+        }
+        
+        .card-3d-content {
+          position: relative;
+          transform-style: preserve-3d;
+        }
+        
+        .card-3d-float {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          width: 40px;
+          height: 40px;
+          background: radial-gradient(circle, rgba(255, 107, 53, 0.8), transparent 70%);
+          border-radius: 50%;
+          filter: blur(8px);
+          pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+          .discovery-grid-3d {
+            perspective: 1200px;
+            transform-style: preserve-3d;
+          }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+          .tilt-card-3d {
+            transform: none !important;
+          }
+        }
+      `}</style>
+
+      {/* 3D Permission Banner for iOS */}
+      {gyroPermission === 'prompt' && typeof (DeviceOrientationEvent as any).requestPermission === 'function' && (
+        <div className="fixed top-20 left-0 right-0 z-50 px-4">
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-4 shadow-2xl max-w-md mx-auto">
+            <p className="text-white text-sm mb-2">Enable 3D tilt effects for an immersive experience! 🎮</p>
+            <button
+              onClick={requestGyroPermission}
+              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-medium text-sm"
+            >
+              Enable 3D Effects
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <ParallaxBackground
@@ -211,6 +461,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
           <p className="mobile-optimized-text text-white/80 max-w-2xl mx-auto">
             Explore our curated collection and find your next anime obsession
+            {isGyroSupported && <span className="block text-sm mt-2 text-brand-accent-gold">✨ Tilt your device to see 3D effects!</span>}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             {onBack && (
@@ -223,7 +474,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </StyledButton>
             )}
             
-            {/* Poster Enhancement Button */}
             <StyledButton 
               onClick={handleEnhancePosters}
               disabled={isEnhancingPosters || !filteredAnimeList || filteredAnimeList.length === 0}
@@ -243,7 +493,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             </StyledButton>
           </div>
           
-          {/* Enhancement Progress */}
           {enhancementProgress && (
             <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
               <span className="text-white/80 text-sm">
@@ -258,7 +507,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
           <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
-              {/* Search Input */}
               <div className="relative flex-1 group">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   <svg className="w-5 h-5 text-white/60 group-focus-within:text-brand-primary-action transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,7 +532,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 )}
               </div>
 
-              {/* Sort Selector */}
               <div className="flex items-center gap-4">
                 <select 
                   value={sortBy} 
@@ -313,7 +560,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </div>
             </div>
 
-            {/* Quick Actions */}
             {hasAnyActive && (
               <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
                 <StyledButton 
@@ -328,7 +574,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
         </div>
 
-        {/* Search Results Summary - UPDATED to reflect server-side search */}
         {hasActiveSearch && (
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
@@ -349,7 +594,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
         )}
 
-        {/* Advanced Filters Panel */}
         {showFilters && filterOptions && (
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
@@ -368,7 +612,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Genres Filter */}
                 {filterOptions.genres && filterOptions.genres.length > 0 && (
                   <FilterSection title="Genres" icon="🎭">
                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
@@ -389,7 +632,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   </FilterSection>
                 )}
 
-                {/* Year Range Filter */}
                 {filterOptions.yearRange && (
                   <FilterSection title="Release Year" icon="📅">
                     <div className="space-y-3">
@@ -418,7 +660,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   </FilterSection>
                 )}
 
-                {/* Rating Filter */}
                 {filterOptions.ratingRange && (
                   <FilterSection title="External Rating" icon="⭐">
                     <div className="flex items-center gap-3">
@@ -447,7 +688,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   </FilterSection>
                 )}
 
-                {/* Minimum Reviews Filter */}
                 <FilterSection title="Minimum Reviews" icon="📝">
                   <input 
                     type="number" 
@@ -463,12 +703,10 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           </div>
         )}
 
-        {/* Loading State */}
         {isLoading && status === "LoadingFirstPage" && (
           <DiscoverLoadingSpinner message={hasActiveSearch ? "Searching your anime database..." : "Discovering anime..."} />
         )}
         
-        {/* Results Grid */}
         {filteredAnimeList && filteredAnimeList.length > 0 ? (
           <div className="space-y-8">
             <div className="text-center">
@@ -482,43 +720,50 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               </div>
             </div>
 
-            {/* Updated with specific CSS class for mobile override */}
-            <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+            {/* 3D Grid with device orientation support */}
+            <div 
+              className="discovery-grid discovery-grid-3d grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6"
+              onClick={gyroPermission === 'prompt' ? requestGyroPermission : undefined}
+            >
               {filteredAnimeList.map((anime, index) => (
-                <div 
-                  key={anime._id} 
-                  className="group relative transform transition-all duration-300 hover:scale-105"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                <TiltCard3D
+                  key={anime._id}
+                  index={index}
+                  tiltX={tilt.x}
+                  tiltY={tilt.y}
+                  isGyroSupported={isGyroSupported && gyroPermission === 'granted'}
                 >
-                  {/* Glow Effect */}
-                  <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                    <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+                  <div 
+                    className="group relative transform transition-all duration-300"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     
-                    {/* Compact title for mobile */}
-                    <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h4 
-                        className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: '1.2',
-                          maxHeight: '2.4em',
-                        }}
-                        title={anime.title}
-                      >
-                        {anime.title}
-                      </h4>
+                    <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                      <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
+                      
+                      <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
+                        <h4 
+                          className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: '1.2',
+                            maxHeight: '2.4em',
+                          }}
+                          title={anime.title}
+                        >
+                          {anime.title}
+                        </h4>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </TiltCard3D>
               ))}
             </div>
 
-            {/* Load More Button - UPDATED for search context */}
             {status === "CanLoadMore" && (
               <div className="text-center">
                 <StyledButton 
@@ -552,7 +797,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             )}
           </div>
         ) : (
-          // Empty state
           status !== "LoadingFirstPage" && (
             <div className="text-center py-16">
               <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
