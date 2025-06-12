@@ -138,6 +138,7 @@ const TiltCard3D: React.FC<{
         `,
         transition: 'transform 0.2s ease-out',
         transformStyle: 'preserve-3d',
+        zIndex: isHovered || (isGyroActive && depthZ > 0) ? 1000 + index : index,
       }}
     >
       <div className="card-3d-inner">
@@ -411,6 +412,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
           transform-style: preserve-3d;
           cursor: pointer;
           will-change: transform;
+          z-index: 0;
         }
         
         .card-3d-inner {
