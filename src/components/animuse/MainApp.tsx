@@ -16,6 +16,7 @@ import AdminDashboardPage from "../admin/AdminDashboardPage";
 import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
 import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
+import SideNavigationBar from "./SideNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -772,7 +773,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
         </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-12">
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-12 md:max-w-5xl lg:max-w-6xl mx-auto">
         {/* Hero Welcome Section */}
          <motion.div
           className="text-center space-y-6"
@@ -1378,13 +1379,18 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
   // --------------------------------------------------------------------------
 
   return (
-    <div className="w-full pb-20">
-       <AnimatePresence mode="wait" onExitComplete={handleTransitionEnd}>
-        <PageTransition key={currentView} className="pt-0">
-          {renderContent()}
-        </PageTransition>
-      </AnimatePresence>
-      <BottomNavigationBar currentView={currentView} onTabChange={handleTabChange} />
-    </div>
+    <>
+      <SideNavigationBar currentView={currentView} onTabChange={handleTabChange} />
+      <div className="w-full md:pl-20 pb-20">
+        <AnimatePresence mode="wait" onExitComplete={handleTransitionEnd}>
+          <PageTransition key={currentView} className="pt-0">
+            {renderContent()}
+          </PageTransition>
+        </AnimatePresence>
+        <div className="md:hidden">
+          <BottomNavigationBar currentView={currentView} onTabChange={handleTabChange} />
+        </div>
+      </div>
+    </>
   );
 }

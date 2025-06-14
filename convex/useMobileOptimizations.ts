@@ -1,6 +1,9 @@
 // convex/useMobileOptimizations.ts - Enhanced with Performance Monitoring
 import { useEffect, useState, useCallback } from 'react';
 
+// Custom event for animation preference changes
+const ANIMATION_PREF_CHANGE_EVENT = 'animuse-animation-preference-changed';
+
 interface PerformanceMetrics {
   fps: number;
   memoryUsage?: number;
@@ -209,9 +212,23 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
       }
       updateState();
     };
+    
+    // Listen for storage changes (for when animation preference is updated)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'animuse-animations-enabled') {
+        updateState();
+      }
+    };
+    
+    // Listen for custom animation preference changes (same window)
+    const handleAnimationPrefChange = () => {
+      updateState();
+    };
 
     window.addEventListener('resize', handleResize);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(ANIMATION_PREF_CHANGE_EVENT, handleAnimationPrefChange);
 
     // Check for connection changes
     if ('connection' in navigator) {
@@ -223,6 +240,8 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
     return () => {
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(ANIMATION_PREF_CHANGE_EVENT, handleAnimationPrefChange);
       
       if ('connection' in navigator) {
         const connection = (navigator as any).connection;
@@ -302,4 +321,11 @@ export const useBackgroundOptimization = () => {
     shouldUseBlur: !isLowBandwidth,
     backgroundComplexity: shouldUseSimpleBackgrounds ? 'simple' : 'complex',
   };
+};
+
+// Utility function to trigger animation preference update
+export const updateAnimationPreference = (enabled: boolean) => {
+  localStorage.setItem('animuse-animations-enabled', String(enabled));
+  // Dispatch custom event for same-window updates
+  window.dispatchEvent(new CustomEvent(ANIMATION_PREF_CHANGE_EVENT));
 };

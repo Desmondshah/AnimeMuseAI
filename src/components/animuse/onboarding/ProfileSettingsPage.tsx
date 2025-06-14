@@ -222,7 +222,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-8">
+      <div className="relative z-10 px-4 sm:px-6 py-8 md:max-w-5xl lg:max-w-6xl mx-auto space-y-8">
         {/* Hero Header */}
         <div className="text-center space-y-6">
           <div className="inline-block">
@@ -293,7 +293,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
           {/* Content Preferences Section */}
           <SectionWrapper title="Content Preferences" icon="🎭" gradient="from-purple-500/20 to-pink-500/20" index={1}>
             <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 <div>
                   <label className="block text-sm font-medium text-white/90 mb-3">Favorite Genres</label>
                   <MultiSelectButtons
@@ -335,7 +335,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
 
           {/* Advanced Preferences Section */}
           <SectionWrapper title="Advanced Preferences" icon="🎨" gradient="from-cyan-500/20 to-blue-500/20" index={2}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               <div>
                 <label className="block text-sm font-medium text-white/90 mb-3">Character Archetypes</label>
                 <MultiSelectButtons

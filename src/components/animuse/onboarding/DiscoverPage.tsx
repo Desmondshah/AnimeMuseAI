@@ -200,7 +200,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8 md:max-w-5xl lg:max-w-6xl mx-auto">
         {/* Hero Header */}
         <div className="text-center space-y-4">
           <div className="inline-block">
@@ -367,7 +367,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {/* Genres Filter */}
                 {filterOptions.genres && filterOptions.genres.length > 0 && (
                   <FilterSection title="Genres" icon="🎭">
@@ -483,7 +483,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             </div>
 
             {/* Updated with specific CSS class for mobile override */}
-            <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+            <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
               {filteredAnimeList.map((anime, index) => (
                 <div 
                   key={anime._id} 

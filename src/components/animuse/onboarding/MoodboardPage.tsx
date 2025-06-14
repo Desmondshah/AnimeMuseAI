@@ -691,7 +691,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-10">
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-10 md:max-w-5xl lg:max-w-6xl mx-auto">
         
         {/* Enhanced Hero Section */}
         <div className="text-center space-y-6">
@@ -789,7 +789,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
     </div>
     
     {/* FIXED: Properly contained mood cues grid */}
-    <div className={`moodboard-vibes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 ${
+    <div className={`moodboard-vibes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 ${
       advancedMode ? 'advanced-mode' : ''
     }`}>
       {filteredCues.map(cue => {
@@ -982,7 +982,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
               </div>
             </div>
             
-            <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+            <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
               {moodBoardRecommendations.map((rec, index) => (
                 <div 
                   key={`enhanced-mood-${index}-${rec.title}`} 

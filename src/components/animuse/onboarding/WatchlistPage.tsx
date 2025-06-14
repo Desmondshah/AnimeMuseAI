@@ -173,7 +173,7 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8">
+      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-8 md:max-w-5xl lg:max-w-6xl mx-auto">
         {/* Hero Header */}
         <div className="text-center space-y-6">
           <div className="inline-block">
@@ -240,7 +240,7 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
             </div>
 
             {/* Anime Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-6">
               {filteredWatchlist.map((item, index) => (
                 <div 
                   key={item._id} 
