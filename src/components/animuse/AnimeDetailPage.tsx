@@ -945,7 +945,7 @@ export default function AnimeDetailPage({
   if (!anime) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center max-w-md mx-auto">
+        <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center max-w-md sm:max-w-lg md:max-w-xl mx-auto">
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold text-red-400 mb-4">Anime Not Found</h2>
           <p className="mb-6 text-sm text-red-300">
@@ -1742,7 +1742,7 @@ const AddToCustomListModal: React.FC<{
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-brand-surface text-white p-5 rounded-xl shadow-xl w-full max-w-md space-y-4">
+      <div className="bg-brand-surface text-white p-5 rounded-xl shadow-xl w-full max-w-md sm:max-w-lg md:max-w-xl space-y-4">
         <h3 className="text-lg font-heading">Manage Custom Lists</h3>
         {lists.length === 0 ? (
           <p className="text-sm text-center">No custom lists available.</p>

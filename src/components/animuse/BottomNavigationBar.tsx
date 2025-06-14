@@ -74,7 +74,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
       }}
       viewport={{ once: false, margin: "0px" }}
     >
-      <div className="max-w-lg mx-auto flex justify-around items-center h-20 px-1">
+      <div className="max-w-lg sm:max-w-xl md:max-w-2xl mx-auto flex justify-around items-center h-20 px-1">
         {tabs.map((tab) => {
           const isActive = currentView === tab.view;
           return (

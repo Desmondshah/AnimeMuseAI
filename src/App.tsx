@@ -47,7 +47,7 @@ export default function App() {
         </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center w-full">
-        <div className="w-full max-w-lg mx-auto">
+        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
           <Content
             key={verificationFlowKey} // Use key to help with re-rendering after verification
             onPhoneVerified={handleVerified}

@@ -303,7 +303,7 @@ export default function OnboardingFlow() {
 
               {/* Step Content */}
               <div className="flex-1 flex items-center justify-center">
-                <div className="w-full max-w-lg">
+                <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl">
                   <StepWrapper 
                     currentStep={currentStep} 
                     isVisible={true} 

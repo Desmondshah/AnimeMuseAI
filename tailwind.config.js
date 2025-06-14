@@ -218,6 +218,7 @@ export default {
         'xs': '375px',
         'sm': '414px',
         'md': '768px',
+        'mdp': '834px',
         'lg': '1024px',
         'xl': '1280px',
         '2xl': '1536px',

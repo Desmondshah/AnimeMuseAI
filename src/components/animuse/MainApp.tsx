@@ -881,7 +881,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               {/* Error State */}
               {category.error && (
                 <div className="text-center">
-                  <div className="bg-red-900/20 backdrop-blur-sm border border-red-500/30 rounded-3xl p-8 max-w-md mx-auto">
+                  <div className="bg-red-900/20 backdrop-blur-sm border border-red-500/30 rounded-3xl p-8 max-w-md sm:max-w-lg md:max-w-xl mx-auto">
                     <div className="text-6xl mb-4">⚠️</div>
                     <h3 className="text-xl font-heading text-red-400 mb-2">Oops!</h3>
                     <p className="text-red-300 text-sm mb-4">{category.error}</p>
@@ -970,7 +970,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               {/* Empty State */}
               {!category.isLoading && !category.error && category.recommendations.length === 0 && (
                 <div className="text-center py-16">
-                  <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-md mx-auto">
+                  <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-md sm:max-w-lg md:max-w-xl mx-auto">
                     <div className="text-8xl mb-6 animate-bounce">🎯</div>
                     <h3 className="text-2xl font-heading text-white mb-4">Getting Ready...</h3>
                     <p className="text-white/80 text-base leading-relaxed mb-6">
@@ -1125,7 +1125,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-        <form onSubmit={handleSubmit} className="bg-brand-surface text-white p-5 sm:p-6 rounded-xl shadow-2xl w-full max-w-md space-y-4">
+        <form onSubmit={handleSubmit} className="bg-brand-surface text-white p-5 sm:p-6 rounded-xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-xl space-y-4">
           <h3 className="text-xl font-heading text-brand-primary-action mb-2">Create New List</h3>
           <div>
             <label htmlFor="newListName" className="block text-sm font-medium text-white mb-1">Name*</label>

@@ -64,7 +64,7 @@ const NotesModal: React.FC<{
         {/* Glow Effect */}
         <div className="absolute -inset-4 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-3xl blur-xl opacity-60"></div>
         
-        <div className="relative bg-black/80 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 w-full max-w-lg">
+        <div className="relative bg-black/80 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 w-full max-w-lg sm:max-w-xl md:max-w-2xl">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="inline-block p-3 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-full mb-4">
@@ -308,7 +308,7 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg mx-auto">
+            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
               <div className="text-8xl mb-6 animate-bounce">
                 {filterStatus === "All" ? "📚" : statusConfig[filterStatus]?.icon || "📚"}
               </div>

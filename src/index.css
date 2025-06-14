@@ -4172,3 +4172,4 @@ h1, h2, h3, h4, h5, h6 {
 .glowing-button {
   @apply shadow-glow-primary hover:shadow-glow-accent transition-all duration-300;
 }
+

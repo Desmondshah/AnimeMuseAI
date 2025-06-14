@@ -169,7 +169,7 @@ export function SignInForm() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md sm:max-w-lg md:max-w-xl">
         {/* Enhanced Form Card */}
         <div className="relative">
           {/* Card Glow Effect - Conditionally rendered */}

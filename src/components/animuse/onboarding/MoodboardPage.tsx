@@ -1057,7 +1057,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
 
         {!isLoadingMoodBoard && selectedMoodCues.length === 0 && (
           <div className="text-center py-16">
-            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-8 border border-white/10 max-w-lg mx-auto">
+            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-8 border border-white/10 max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
               <div className="text-8xl mb-6 animate-bounce">🎨</div>
               <h3 className="text-2xl font-heading text-white mb-4">Create Your Mood Canvas</h3>
               <p className="text-white/80 text-lg leading-relaxed mb-6">

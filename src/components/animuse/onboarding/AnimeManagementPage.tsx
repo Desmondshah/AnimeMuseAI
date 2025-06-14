@@ -123,7 +123,7 @@ const importTrendingAnimeAction = useAction(api.externalApis.callImportTrendingA
       {isEditModalOpen && editingAnime && (
         // Modal Overlay and Panel
         <div className="fixed inset-0 bg-brand-background/70 backdrop-blur-sm flex items-center justify-center z-[101] p-4"> {/* Higher z-index for modal */}
-          <div className="bg-brand-surface text-brand-text-primary p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar border border-brand-accent-peach/30">
+          <div className="bg-brand-surface text-brand-text-primary p-4 sm:p-5 rounded-xl shadow-2xl w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar border border-brand-accent-peach/30">
             <div className="flex justify-between items-center mb-3">
                 <h3 className="text-base sm:text-lg font-heading text-brand-primary-action">Edit Anime: {editingAnime.title}</h3>
                 <button onClick={handleCloseEditModal} className="text-2xl text-brand-text-primary/70 hover:text-brand-primary-action p-1 leading-none focus:outline-none" aria-label="Close edit modal">&times;</button>
