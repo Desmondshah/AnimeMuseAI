@@ -150,8 +150,12 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
                               metrics.devicePixelRatio > 2;
 
       // Optimization decisions
-      const shouldReduceAnimations = isLowBandwidth || 
-                                   isLowPerformance || 
+      const storedPref = localStorage.getItem('animuse-animations-enabled');
+      const animationsEnabled = storedPref === null ? true : storedPref === 'true';
+
+      const shouldReduceAnimations = !animationsEnabled ||
+                                   isLowBandwidth ||
+                                   isLowPerformance ||
                                    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       const shouldDisableParticles = isLowBandwidth || 

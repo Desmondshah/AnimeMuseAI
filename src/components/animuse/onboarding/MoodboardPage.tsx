@@ -8,6 +8,27 @@ import AnimeCard from "../AnimeCard";
 import { AnimeRecommendation } from "../../../../convex/types";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+const HISTORY_KEY = "animuse-mood-rec-history";
+
+function getHistoryTitles(): string[] {
+  try {
+    const stored = localStorage.getItem(HISTORY_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addHistoryTitles(titles: string[]): void {
+  try {
+    const prev = getHistoryTitles();
+    const updated = Array.from(new Set([...prev, ...titles])).slice(-50);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
 // ============================================================================
 // EXPANDED MOOD BOARD CUES - Organized by Categories
 // ============================================================================
@@ -625,17 +646,20 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
         return `${weight} ${cueLabel}`;
       });
       
-      const result = await getRecommendationsByMoodTheme({ 
-        selectedCues: enhancedCues, 
-        userProfile: profileForAI, 
-        count: 8, 
+      const result = await getRecommendationsByMoodTheme({
+        selectedCues: enhancedCues,
+        userProfile: profileForAI,
+        count: 10,
+        previousTitles: getHistoryTitles(), 
         messageId: `enhanced-mood-${Date.now()}`
       });
       
       if (result.error && result.error !== "OpenAI API key not configured.") {
         toast.error(`Mood board error: ${result.error.substring(0,100)}`);
       } else {
-        onRecommendationsChange(result.recommendations || []);
+        const recs = result.recommendations || [];
+        onRecommendationsChange(recs);
+        addHistoryTitles(recs.map(r => r.title));
       }
     } catch (e: any) {
       toast.error(`Error fetching mood board: ${e.message}`);

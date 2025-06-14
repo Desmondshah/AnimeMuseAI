@@ -31,6 +31,7 @@ type UserProfileForEdit = {
   artStyles?: string[];
   narrativePacing?: string;
   watchlistIsPublic?: boolean;
+  animationsEnabled?: boolean;
 };
 
 const LoadingSpinnerFullPage: React.FC = memo(() => (
@@ -106,6 +107,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
 
   useEffect(() => {
     if (userProfile) {
+      const animationsPref = localStorage.getItem('animuse-animations-enabled');
       setFormData({
         name: userProfile.name || "",
         moods: userProfile.moods || [],
@@ -119,6 +121,10 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         artStyles: userProfile.artStyles || [],
         narrativePacing: userProfile.narrativePacing || "",
         watchlistIsPublic: userProfile.watchlistIsPublic || false,
+        animationsEnabled:
+          animationsPref !== null
+            ? animationsPref === 'true'
+            : userProfile.animationsEnabled ?? true,
       });
     }
   }, [userProfile]);
@@ -126,7 +132,11 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const isCheckbox = type === 'checkbox';
-    setFormData(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
+    const newValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
+    setFormData(prev => ({ ...prev, [name]: newValue }));
+    if (name === 'animationsEnabled' && isCheckbox) {
+      localStorage.setItem('animuse-animations-enabled', String(newValue));
+    }
   };
 
   const toggleArrayItem = (field: keyof UserProfileForEdit, item: string) => {
@@ -177,6 +187,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         artStyles: formData.artStyles || [],
         narrativePacing: formData.narrativePacing || "",
         watchlistIsPublic: formData.watchlistIsPublic || false,
+        animationsEnabled: formData.animationsEnabled ?? true,
       };
       await updateUserPreferences(preferencesToUpdate);
       toast.success("Profile updated successfully!", { id: "profile-settings-save" });
@@ -464,6 +475,26 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
                     name="watchlistIsPublic" 
                     checked={formData.watchlistIsPublic || false} 
                     onChange={handleInputChange} 
+                    className="sr-only peer"
+                  />
+                  <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-primary-action/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-brand-primary-action peer-checked:to-brand-accent-gold"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm rounded-2xl border border-white/10">
+                <div>
+                  <label htmlFor="animationsEnabled" className="text-sm font-medium text-white/90 cursor-pointer">
+                    Enable Animations
+                  </label>
+                  <p className="text-xs text-white/60 mt-1">Turn off for better performance on slow devices</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="animationsEnabled"
+                    name="animationsEnabled"
+                    checked={formData.animationsEnabled ?? true}
+                    onChange={handleInputChange}
                     className="sr-only peer"
                   />
                   <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-primary-action/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-brand-primary-action peer-checked:to-brand-accent-gold"></div>

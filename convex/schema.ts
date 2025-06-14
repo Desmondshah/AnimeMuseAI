@@ -25,6 +25,7 @@ const applicationTables = {
     artStyles: v.optional(v.array(v.string())), // e.g., "Retro", "Photorealistic", "Minimalist"
     narrativePacing: v.optional(v.string()), // e.g., "Slow Burn", "Fast-Paced"
     watchlistIsPublic: v.optional(v.boolean()), // User's general preference for watchlist privacy
+    animationsEnabled: v.optional(v.boolean()), // User toggle for animated UI
   })
   .index("by_userId", ["userId"])
   .index("by_phoneNumber", ["phoneNumber"]),

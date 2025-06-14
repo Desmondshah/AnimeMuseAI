@@ -31,5 +31,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "convex/useTheme.ts"]
+  "include": ["src", "convex/useTheme.ts", "convex/useRafInterval.ts"]
 }

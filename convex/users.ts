@@ -34,6 +34,7 @@ export const updateUserProfilePreferences = mutation({
     artStyles: v.optional(v.array(v.string())),
     narrativePacing: v.optional(v.string()),
     watchlistIsPublic: v.optional(v.boolean()),
+    animationsEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -64,6 +65,7 @@ export const updateUserProfilePreferences = mutation({
     if (args.artStyles !== undefined) updates.artStyles = args.artStyles;
     if (args.narrativePacing !== undefined) updates.narrativePacing = args.narrativePacing;
     if (args.watchlistIsPublic !== undefined) updates.watchlistIsPublic = args.watchlistIsPublic;
+    if (args.animationsEnabled !== undefined) updates.animationsEnabled = args.animationsEnabled;
 
     if (Object.keys(updates).length === 0) {
       return { success: true, message: "No preferences updated." };
@@ -150,6 +152,7 @@ export const completeOnboarding = mutation({
     artStyles: v.optional(v.array(v.string())),
     narrativePacing: v.optional(v.string()),
     watchlistIsPublic: v.optional(v.boolean()), // Default to private during onboarding
+    animationsEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -179,6 +182,7 @@ export const completeOnboarding = mutation({
       artStyles: args.artStyles ?? existingProfile?.artStyles ?? [],
       narrativePacing: args.narrativePacing ?? existingProfile?.narrativePacing ?? undefined,
       watchlistIsPublic: args.watchlistIsPublic ?? existingProfile?.watchlistIsPublic ?? false, // Default to false
+      animationsEnabled: args.animationsEnabled ?? existingProfile?.animationsEnabled ?? true,
       // Preserve phone details if they exist
       phoneNumber: existingProfile?.phoneNumber,
       phoneNumberVerified: existingProfile?.phoneNumberVerified,

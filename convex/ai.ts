@@ -1691,6 +1691,7 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
 
         try {
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+            const openaiTemperature = 0.8 + Math.random() * 0.2;
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
@@ -1753,6 +1754,7 @@ export const getEnhancedRecommendationsByMoodTheme = action({
         messageId: v.string(),
         advancedMode: v.optional(v.boolean()),
         dominantCategory: v.optional(v.string()),
+        previousTitles: v.optional(v.array(v.string())),
     },
     handler: async (ctx, args): Promise<{
         recommendations: any[];
@@ -1784,6 +1786,10 @@ MOOD ANALYSIS:
 - Complexity Score: ${moodAnalysis.complexityScore}/5
 - Mood Categories: ${moodAnalysis.categories.join(", ")}
 - Dominant Theme: ${moodAnalysis.dominantTheme}`;
+
+if (args.previousTitles && args.previousTitles.length > 0) {
+            systemPrompt += `\n\nPreviously recommended titles to avoid: ${args.previousTitles.join(', ')}`;
+        }
 
         // Add intensity information if available
         if (args.cueIntensities && Object.keys(args.cueIntensities).length > 0) {
@@ -1857,10 +1863,12 @@ Each recommendation must include:
 - studios: Animation studios
 - targetEmotionalImpact: The primary emotional experience this anime delivers`;
 
+const recommendationCount = Math.min(args.count ?? 10, 10);
+
         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}
         
-Provide ${args.count || 6} carefully curated recommendations that create a cohesive mood journey.
-Make each recommendation distinctive while staying true to the emotional profile.`;
+Provide ${recommendationCount} carefully curated recommendations that create a cohesive mood journey.
+        Make each recommendation distinctive while staying true to the emotional profile.`;
 
         let recommendations: any[] = [];
         let errorResult: string | undefined = undefined;
@@ -1869,6 +1877,7 @@ Make each recommendation distinctive while staying true to the emotional profile
             console.log(`[Enhanced Mood AI] Calling OpenAI with ${systemPrompt.length} character prompt...`);
             
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+            const openaiTemperature = 0.8 + Math.random() * 0.2;
             const completion = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [
@@ -1876,12 +1885,12 @@ Make each recommendation distinctive while staying true to the emotional profile
                     { role: "user", content: `Find anime that perfectly captures this mood combination: ${args.selectedCues.join(" + ")}. Focus on authentic emotional resonance.` }
                 ],
                 response_format: { type: "json_object" },
-                temperature: 0.7, // Slightly higher for creative mood matching
+                temperature: openaiTemperature,
             });
 
             const parsed = tryParseAIResponse(completion.choices[0].message.content, "getEnhancedRecommendationsByMoodTheme");
             if (parsed) {
-                const rawRecommendations = parsed.slice(0, args.count || 6);
+                const rawRecommendations = parsed.slice(0, recommendationCount);
                 
                 console.log(`[Enhanced Mood AI] Enhancing ${rawRecommendations.length} mood-based recommendations...`);
                 recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
@@ -1896,6 +1905,8 @@ Make each recommendation distinctive while staying true to the emotional profile
                     // Ensure moodMatchScore is present (required by AnimeRecommendation type)
                     moodMatchScore: rec.moodMatchScore || 7 // Default score if AI didn't provide one
                 }));
+
+                recommendations = shuffleArray(recommendations);
                 
                 console.log(`[Enhanced Mood AI] Successfully processed ${recommendations.length} mood recommendations`);
             } else {
@@ -2173,6 +2184,14 @@ function getIntensityLabel(intensity: number): string {
         case 5: return "overwhelming";
         default: return "moderate";
     }
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
 
 export const getMoodPresetRecommendations = action({
