@@ -1,4 +1,4 @@
-// src/components/animuse/AnimeDetailPage.tsx - Complete with Dynamic UI Theming
+// src/components/animuse/AnimeDetailPage.tsx - Complete with Dynamic UI Theming and Episode Preview
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -673,15 +673,24 @@ const CharacterCard: React.FC<{
   );
 });
 
-// Enhanced episode card component with dynamic theming
+// Enhanced episode card component with dynamic theming and preview functionality
 const EpisodeCard: React.FC<{
   episode: any;
   index: number;
   themePalette?: ColorPalette;
-}> = memo(({ episode, index, themePalette }) => {
+  onPreview?: (previewUrl: string) => void;
+}> = memo(({ episode, index, themePalette, onPreview }) => {
   const buttonStyle = themePalette ? {
     background: themePalette.gradient
   } : {};
+
+  const previewButtonStyle = themePalette ? {
+    background: `linear-gradient(135deg, ${themePalette.secondary}, ${themePalette.accent})`,
+    boxShadow: `0 4px 15px ${themePalette.secondary}30`
+  } : {
+    background: 'linear-gradient(135deg, #8B5CF6, #A855F7)',
+    boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
+  };
 
   const cardStyle = themePalette ? {
     borderColor: `${themePalette.primary}20`
@@ -740,27 +749,161 @@ const EpisodeCard: React.FC<{
           </div>
         )}
 
-        {/* Watch button */}
-        {episode.url ? (
-          <a href={episode.url} target="_blank" rel="noopener noreferrer">
+        {/* Action buttons container */}
+        <div className="space-y-2">
+          {/* Preview button - only show if previewUrl exists */}
+          {episode.previewUrl && onPreview && (
             <StyledButton
+              onClick={() => onPreview(episode.previewUrl)}
               variant="primary"
-              className="w-full !text-xs !py-2"
-              style={buttonStyle}
+              className="w-full !text-xs !py-2 !border-0"
+              style={previewButtonStyle}
             >
-              <span className="mr-2">▶️</span>
-              Watch Now
+              <span className="mr-2">👁️</span>
+              Preview Episode
             </StyledButton>
-          </a>
-        ) : (
-          <div className="text-center py-2 text-xs text-white/50">
-            No streaming link available
-          </div>
-        )}
+          )}
+
+          {/* Watch button */}
+          {episode.url ? (
+            <a href={episode.url} target="_blank" rel="noopener noreferrer">
+              <StyledButton
+                variant="primary"
+                className="w-full !text-xs !py-2"
+                style={buttonStyle}
+              >
+                <span className="mr-2">▶️</span>
+                Watch Now
+              </StyledButton>
+            </a>
+          ) : (
+            <div className="text-center py-2 text-xs text-white/50">
+              No streaming link available
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 });
+
+// Episode Preview Modal Component
+const EpisodePreviewModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  previewUrl: string | null;
+  themePalette?: ColorPalette;
+}> = ({ isOpen, onClose, previewUrl, themePalette }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Close modal on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
+  // Close modal on backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      onClose();
+    }
+  };
+
+  if (!isOpen || !previewUrl) return null;
+
+  const modalStyle = themePalette ? {
+    backgroundColor: themePalette.dark,
+    borderColor: `${themePalette.primary}40`
+  } : {
+    backgroundColor: '#1A1A1A',
+    borderColor: 'rgba(255,255,255,0.2)'
+  };
+
+  const closeButtonStyle = themePalette ? {
+    backgroundColor: `${themePalette.primary}20`,
+    borderColor: `${themePalette.primary}40`,
+    color: themePalette.primary
+  } : {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.3)',
+    color: '#ffffff'
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        ref={modalRef}
+        className="relative w-full max-w-4xl mx-auto rounded-2xl border overflow-hidden shadow-2xl"
+        style={modalStyle}
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <h3 className="text-lg font-heading text-white">Episode Preview</h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full border transition-all duration-200 hover:scale-105"
+            style={closeButtonStyle}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Video Player */}
+        <div className="aspect-video bg-black">
+          <video
+            src={previewUrl}
+            controls
+            autoPlay
+            className="w-full h-full"
+            onError={(e) => {
+              console.error('Video failed to load:', e);
+            }}
+          >
+            <p className="text-white text-center p-8">
+              Your browser doesn't support video playback.
+            </p>
+          </video>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 border-t border-white/10">
+          <div className="flex justify-end">
+            <StyledButton
+              onClick={onClose}
+              variant="secondary"
+              className="!text-sm"
+              style={themePalette ? {
+                backgroundColor: `${themePalette.secondary}20`,
+                borderColor: `${themePalette.secondary}40`,
+                color: themePalette.secondary
+              } : {}}
+            >
+              Close Preview
+            </StyledButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Custom hook for enriched characters
 const useEnrichedCharacters = (
@@ -889,6 +1032,12 @@ export default function AnimeDetailPage({
   const [extractedColors, setExtractedColors] = useState<ExtractedColors | null>(null);
   const [themePalette, setThemePalette] = useState<ColorPalette | null>(null);
   const [isExtractingColors, setIsExtractingColors] = useState(false);
+  
+  // ============================================================================
+  // EPISODE PREVIEW STATE MANAGEMENT
+  // ============================================================================
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [currentPreviewUrl, setCurrentPreviewUrl] = useState<string | null>(null);
   
   // ============================================================================
   // EXISTING STATE MANAGEMENT
@@ -1031,6 +1180,20 @@ export default function AnimeDetailPage({
     { id: "reviews", label: "Reviews", icon: "⭐" },
     { id: "similar", label: "Similar", icon: "🔍" },
   ];
+
+  // ============================================================================
+  // EPISODE PREVIEW HANDLERS
+  // ============================================================================
+  
+  const handleOpenPreview = useCallback((previewUrl: string) => {
+    setCurrentPreviewUrl(previewUrl);
+    setIsPreviewOpen(true);
+  }, []);
+
+  const handleClosePreview = useCallback(() => {
+    setIsPreviewOpen(false);
+    setCurrentPreviewUrl(null);
+  }, []);
 
   // ============================================================================
   // COLOR EXTRACTION HANDLERS
@@ -1649,35 +1812,35 @@ export default function AnimeDetailPage({
 
           {/* Genre tags with dynamic theming */}
           {anime.genres && anime.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {anime.genres.slice(0, 4).map((genre, idx) => (
-                <span 
-                  key={idx} 
-                  className="character-badge text-white px-3 py-1 rounded-full backdrop-blur-sm font-medium border"
-                  style={themePalette ? {
-                    background: `linear-gradient(135deg, ${themePalette.primary}80, ${themePalette.accent}80)`,
-                    borderColor: `${themePalette.primary}60`
-                  } : {
-                    background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.8), rgba(255, 107, 53, 0.8))',
-                    borderColor: 'rgba(236, 176, 145, 0.6)'
-                  }}
-                >
-                  {genre}
-                </span>
-              ))}
-              {anime.genres.length > 4 && (
-                <span 
-                  className="character-badge backdrop-blur-sm rounded-full px-3 py-1 text-white font-medium border"
-                  style={themePalette ? {
-                    backgroundColor: `${themePalette.dark}60`,
-                    borderColor: `${themePalette.primary}30`
-                  } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-                >
-                  +{anime.genres.length - 4} more
-                </span>
-              )}
-            </div>
-          )}
+  <div className="flex flex-wrap gap-2 mb-6">
+    {anime.genres.slice(0, 4).map((genre: string, idx: number) => (
+      <span 
+        key={idx} 
+        className="character-badge text-white px-3 py-1 rounded-full backdrop-blur-sm font-medium border"
+        style={themePalette ? {
+          background: `linear-gradient(135deg, ${themePalette.primary}80, ${themePalette.accent}80)`,
+          borderColor: `${themePalette.primary}60`
+        } : {
+          background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.8), rgba(255, 107, 53, 0.8))',
+          borderColor: 'rgba(236, 176, 145, 0.6)'
+        }}
+      >
+        {genre}
+      </span>
+    ))}
+    {anime.genres.length > 4 && (
+      <span 
+        className="character-badge backdrop-blur-sm rounded-full px-3 py-1 text-white font-medium border"
+        style={themePalette ? {
+          backgroundColor: `${themePalette.dark}60`,
+          borderColor: `${themePalette.primary}30`
+        } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+      >
+        +{anime.genres.length - 4} more
+      </span>
+    )}
+  </div>
+)}
 
           {/* Action buttons with enhanced dynamic styling */}
           <div className="flex gap-3 flex-wrap">
@@ -1972,6 +2135,7 @@ export default function AnimeDetailPage({
                       episode={episode}
                       index={index}
                       themePalette={themePalette || undefined}
+                      onPreview={handleOpenPreview}
                     />
                   ))}
                 </div>
@@ -2585,6 +2749,14 @@ export default function AnimeDetailPage({
           </div>
         </div>
       )}
+
+      {/* Episode Preview Modal */}
+      <EpisodePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={handleClosePreview}
+        previewUrl={currentPreviewUrl}
+        themePalette={themePalette || undefined}
+      />
 
       {/* Custom List Modal */}
       {isAddToCustomListModalOpen && myCustomLists && anime && (

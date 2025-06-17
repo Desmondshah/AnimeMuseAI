@@ -51,11 +51,25 @@ const applicationTables = {
     })),
     // Episode and streaming data
     streamingEpisodes: v.optional(v.array(v.object({
-      title: v.optional(v.string()),
-      thumbnail: v.optional(v.string()),
-      url: v.optional(v.string()),
-      site: v.optional(v.string()),
-    }))),
+  title: v.optional(v.string()),
+  thumbnail: v.optional(v.string()),
+  url: v.optional(v.string()),
+  site: v.optional(v.string()),
+  previewUrl: v.optional(v.string()), // ADD THIS LINE
+}))),
+    episodes: v.optional(
+      v.array(
+        v.object({
+          episodeNumber: v.number(),
+          title: v.string(),
+          airDate: v.optional(v.string()),
+          duration: v.optional(v.number()),
+          thumbnailUrl: v.optional(v.string()),
+          previewUrl: v.optional(v.string()),
+        })
+      )
+    ),
+    myAnimeListId: v.optional(v.number()),
     totalEpisodes: v.optional(v.number()),
     episodeDuration: v.optional(v.number()), // in minutes
     airingStatus: v.optional(v.string()), // "RELEASING", "FINISHED", "NOT_YET_RELEASED", "CANCELLED"

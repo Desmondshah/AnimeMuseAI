@@ -7,6 +7,7 @@ import AnimeCard from "../AnimeCard";
 import StyledButton from "../shared/StyledButton";
 import ParallaxBackground from "../shared/ParallaxBackground";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 interface FilterState {
   genres: string[];
@@ -68,6 +69,18 @@ const FilterSection: React.FC<{title: string; children: React.ReactNode; icon?: 
     </div>
   </div>
 ));
+
+const gridVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -370,24 +383,24 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Genres Filter */}
                 {filterOptions.genres && filterOptions.genres.length > 0 && (
-                  <FilterSection title="Genres" icon="🎭">
-                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
-                      {filterOptions.genres.map(genre => (
-                        <button
-                          key={genre}
-                          onClick={() => toggleArrayFilter("genres", genre)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                            filters.genres.includes(genre)
-                              ? 'bg-brand-primary-action text-white shadow-lg shadow-brand-primary-action/50'
-                              : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
-                          }`}
-                        >
-                          {genre}
-                        </button>
-                      ))}
-                    </div>
-                  </FilterSection>
-                )}
+  <FilterSection title="Genres" icon="🎭">
+    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+      {filterOptions.genres.map((genre: string) => (
+        <button
+          key={genre}
+          onClick={() => toggleArrayFilter("genres", genre)}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+            filters.genres.includes(genre)
+              ? 'bg-brand-primary-action text-white shadow-lg shadow-brand-primary-action/50'
+              : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+          }`}
+        >
+          {genre}
+        </button>
+      ))}
+    </div>
+  </FilterSection>
+)}
 
                 {/* Year Range Filter */}
                 {filterOptions.yearRange && (
@@ -483,12 +496,17 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             </div>
 
             {/* Updated with specific CSS class for mobile override */}
-            <div className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
-              {filteredAnimeList.map((anime, index) => (
-                <div 
-                  key={anime._id} 
+            <motion.div
+              className="discovery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6"
+              variants={gridVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {filteredAnimeList.map((anime) => (
+                <motion.div
+                  key={anime._id}
                   className="group relative transform transition-all duration-300 hover:scale-105"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  variants={itemVariants}
                 >
                   {/* Glow Effect */}
                   <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -514,9 +532,9 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                       </h4>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Load More Button - UPDATED for search context */}
             {status === "CanLoadMore" && (

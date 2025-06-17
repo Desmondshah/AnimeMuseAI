@@ -1,10 +1,11 @@
-// src/components/animuse/AIAssistantPage.tsx - Advanced Artistic Version
+// src/components/animuse/AIAssistantPage.tsx - Fixed JSX Tag Issues
 import React, { useState, FormEvent, useRef, useEffect, useCallback, memo } from "react";
 import { useAction, useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "./shared/StyledButton";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 import { AnimeRecommendation } from "../../../convex/types";
 import AnimeCard from "./AnimeCard";
 import { usePersistentChatHistory } from '../../../convex/usePersistentChatHistory.ts';
@@ -115,6 +116,18 @@ const ArtisticLoadingSpinner: React.FC<{ size?: string; message?: string }> = me
     )}
   </div>
 ));
+
+const listVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0 },
+};
 
 // Floating Particle Component
 const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string }> = memo(({ 
@@ -739,10 +752,13 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                     </div>
                   )}
 
-                <div
+                <motion.div
                   ref={chatContainerRef}
                   className="h-96 overflow-y-auto p-6 space-y-6 custom-scrollbar"
                   style={{ scrollbarWidth: "thin" }}
+                  variants={listVariants}
+                  initial="hidden"
+                  animate="visible"
                 >
                   {!chatHistoryLoaded && (
                     <div className="text-center py-8">
@@ -752,9 +768,10 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
                   {/* Chat Messages */}
                   {chatHistory.map((msg) => (
-                    <div
+                    <motion.div
                       key={msg.id}
                       className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
+                      variants={itemVariants}
                     >
                       <div
                         className={`max-w-[85%] ${
@@ -779,11 +796,17 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           {msg.type === "ai" &&
                             msg.recommendations &&
                             msg.recommendations.length > 0 && (
-                              <div className="mt-4 space-y-4">
+                              <motion.div
+                                className="mt-4 space-y-4"
+                                variants={listVariants}
+                                initial="hidden"
+                                animate="visible"
+                              >
                                 {msg.recommendations.map((animeRec, idx) => (
-                                  <div
+                                  <motion.div
                                     key={`${msg.id}-rec-${idx}`}
                                     className="relative group"
+                                    variants={itemVariants}
                                   >
                                     <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                     <div className="relative bg-black/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">
@@ -867,9 +890,9 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
+                                  </motion.div>
                                 ))}
-                              </div>
+                              </motion.div>
                             )}
 
                           {/* Analysis Results Display */}
@@ -947,23 +970,29 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                 {msg.analysis.recommendations &&
                                   Array.isArray(msg.analysis.recommendations) &&
                                   msg.analysis.recommendations.length > 0 && (
-                                    <div className="mt-4 pt-3 border-t border-white/10">
+                                    <motion.div
+                                      className="mt-4 pt-3 border-t border-white/10"
+                                      variants={listVariants}
+                                      initial="hidden"
+                                      animate="visible"
+                                    >
                                       <h6 className="font-semibold text-brand-accent-gold text-sm mb-2">
                                         💡 You Might Also Like
                                       </h6>
-                                      <div className="flex flex-wrap gap-2">
+                                      <motion.div className="flex flex-wrap gap-2" variants={listVariants}>
                                         {msg.analysis.recommendations.map(
                                           (rec: string, idx: number) => (
-                                            <span
+                                            <motion.span
                                               key={idx}
                                               className="bg-brand-accent-gold/20 text-brand-accent-gold text-xs px-2 py-1 rounded-full"
+                                              variants={itemVariants}
                                             >
                                               {rec}
-                                            </span>
+                                            </motion.span>
                                           )
                                         )}
-                                      </div>
-                                    </div>
+                                      </motion.div>
+                                    </motion.div>
                                   )}
                               </div>
                             </div>
@@ -1105,7 +1134,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
 
                   {/* Loading indicator */}
@@ -1116,7 +1145,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                       </div>
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Input Area */}
                 <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-4 pb-safe-bottom">

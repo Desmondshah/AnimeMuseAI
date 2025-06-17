@@ -177,6 +177,14 @@ crons.weekly(
   }
 );
 
+// Daily job to enrich episode previews via Jikan
+crons.daily(
+  "enrichEpisodePreviewsYouTube",
+  { hourUTC: 5, minuteUTC: 30 },
+  internal.anime.batchEnrichEpisodesWithYouTubePreviews,
+  { maxAnimeToProcess: 15 } // Process 15 anime per day
+);
+
 // Daily job to deduplicate anime database
 crons.daily(
   "deduplicateAnimeDatabase",

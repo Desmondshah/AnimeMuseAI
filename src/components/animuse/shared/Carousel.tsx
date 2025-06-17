@@ -41,6 +41,7 @@ const ShuffleCard = memo(
     childrenLength,
     shouldReduceAnimations,
     isMobile,
+    screenWidth,
     onIndexChange,
     onItemClick,
   }: {
@@ -50,6 +51,7 @@ const ShuffleCard = memo(
     childrenLength: number;
     shouldReduceAnimations: boolean;
     isMobile: boolean; // FIXED: Added isMobile prop
+    screenWidth: number;
     onIndexChange: (newIndex: number) => void;
     onItemClick?: (index: number) => void;
   }) => {
@@ -63,19 +65,26 @@ const ShuffleCard = memo(
       const isActive = offset === 0;
       const absOffset = Math.abs(offset);
 
+      const width = screenWidth ||
+        (typeof window !== "undefined" ? window.innerWidth : 768);
+      const spacing = isMobile
+        ? Math.min(16, Math.max(10, width / 25))
+        : 20;
+
       return {
         offset,
         isVisible,
         isActive,
         absOffset,
         baseRotationY: offset * 8,
-        baseX: offset * (isMobile ? 16 : 20),
-        baseY: absOffset * 4,
+        baseX: offset * spacing,
+        baseY: absOffset * (spacing / 4),
+        baseZ: -absOffset * spacing * 3,
         baseScale: 1 - absOffset * 0.04,
         baseOpacity: 1 - absOffset * 0.12,
         zIndex: childrenLength - absOffset,
       };
-    }, [index, currentIndex, childrenLength, isMobile]);
+    }, [index, currentIndex, childrenLength, isMobile, screenWidth]);
 
     const rotateY = useTransform(
       dragX,
@@ -158,7 +167,7 @@ const ShuffleCard = memo(
           backfaceVisibility: "hidden",
           WebkitBackfaceVisibility: "hidden",
           zIndex: cardData.zIndex,
-          transform: `translate3d(0,0,${-cardData.absOffset * 50}px)`,
+          transform: `translate3d(0,0,${cardData.baseZ}px)`,
           rotateY,
           x: translateX,
           y: cardData.baseY,
@@ -280,7 +289,9 @@ export default function OptimizedCarousel({
   snapToCenter = false,
   onItemClick,
 }: CarouselProps) {
-  const { isMobile, shouldReduceAnimations } = useMobileOptimizations();
+  const { isMobile, shouldReduceAnimations, performanceMetrics } =
+    useMobileOptimizations();
+  const screenWidth = performanceMetrics.screenSize.width;
   const containerRef = useRef<HTMLDivElement>(null);
 
   // FIXED: Better state management for default carousel
@@ -441,7 +452,7 @@ export default function OptimizedCarousel({
       <div
         className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-visible"
         style={{
-          perspective: isMobile ? "600px" : "800px",
+          perspective: `${Math.min(800, Math.max(500, screenWidth * (isMobile ? 1.2 : 1))) }px`,
           touchAction: "pan-y pinch-zoom", // Allow vertical scroll but manage horizontal
         }}
       >
@@ -455,6 +466,7 @@ export default function OptimizedCarousel({
             childrenLength={children.length}
             shouldReduceAnimations={shouldReduceAnimations}
             isMobile={isMobile} // FIXED: Pass isMobile prop
+            screenWidth={screenWidth}
             onIndexChange={handleIndexChange}
             onItemClick={onItemClick}
           />
@@ -472,6 +484,7 @@ export default function OptimizedCarousel({
       debouncedCurrentIndex,
       shouldReduceAnimations,
       isMobile, // FIXED: Added to dependencies
+      screenWidth,
       handleIndexChange,
       onItemClick,
       currentIndex,

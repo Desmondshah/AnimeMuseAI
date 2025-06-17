@@ -8,7 +8,8 @@ import { Toaster } from "sonner";
 import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow"; // Adjust path if needed
 import MainApp from "./components/animuse/MainApp"; // Adjust path if needed
 import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt"; // Adjust path if needed
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "./components/animuse/shared/PageTransition";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 import NotificationsPanel from "./components/animuse/onboarding/NotificationsPanel"; // Adjust path if needed
@@ -48,10 +49,14 @@ export default function App() {
       </header>
       <main className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
-          <Content
-            key={verificationFlowKey} // Use key to help with re-rendering after verification
-            onPhoneVerified={handleVerified}
-          />
+          <AnimatePresence mode="wait">
+            <PageTransition key={verificationFlowKey}>
+              <Content
+                key={verificationFlowKey}
+                onPhoneVerified={handleVerified}
+              />
+            </PageTransition>
+          </AnimatePresence>
         </div>
       </main>
       <Toaster richColors theme="dark" />

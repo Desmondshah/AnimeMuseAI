@@ -36,6 +36,14 @@ async function findExistingAnimeByTitle(ctx: any, title: string): Promise<Doc<"a
   return existing;
 }
 
+type StreamingEpisode = {
+  title?: string;
+  thumbnail?: string;
+  url?: string;
+  site?: string;
+  previewUrl?: string;
+};
+
 export const getAnimeById = query({
   args: { animeId: v.id("anime") },
   handler: async (ctx, args): Promise<Doc<"anime"> | null> => {
@@ -547,13 +555,14 @@ export const updateAnimeWithExternalData = internalMutation({
       trailerUrl: v.optional(v.string()), 
       studios: v.optional(v.array(v.string())), 
       themes: v.optional(v.array(v.string())),
-      anilistId: v.optional(v.number()), // Phase 2
+      anilistId: v.optional(v.number()),
       // Episode and streaming data fields
       streamingEpisodes: v.optional(v.array(v.object({
         title: v.optional(v.string()),
         thumbnail: v.optional(v.string()),
         url: v.optional(v.string()),
         site: v.optional(v.string()),
+        previewUrl: v.optional(v.string()), // ADD THIS LINE
       }))),
       totalEpisodes: v.optional(v.number()),
       episodeDuration: v.optional(v.number()),
@@ -563,42 +572,42 @@ export const updateAnimeWithExternalData = internalMutation({
         episode: v.optional(v.number()),
         timeUntilAiring: v.optional(v.number()),
       })),
-      // NEW: Character data
+      // Character data (unchanged)
       characters: v.optional(v.array(v.object({
-    id: v.optional(v.number()),
-    name: v.string(),
-    imageUrl: v.optional(v.string()),
-    role: v.string(),
-    description: v.optional(v.string()),
-    status: v.optional(v.string()),
-    gender: v.optional(v.string()),
-    age: v.optional(v.string()),
-    dateOfBirth: v.optional(v.object({
-      year: v.optional(v.number()),
-      month: v.optional(v.number()),
-      day: v.optional(v.number()),
-    })),
-    bloodType: v.optional(v.string()),
-    height: v.optional(v.string()),
-    weight: v.optional(v.string()),
-    species: v.optional(v.string()),
-    powersAbilities: v.optional(v.array(v.string())),
-    weapons: v.optional(v.array(v.string())),
-    nativeName: v.optional(v.string()),
-    siteUrl: v.optional(v.string()),
-    voiceActors: v.optional(v.array(v.object({
-      id: v.optional(v.number()),
-      name: v.string(),
-      language: v.string(),
-      imageUrl: v.optional(v.string()),
-    }))),
-    relationships: v.optional(v.array(v.object({
-      relatedCharacterId: v.optional(v.number()),
-      relationType: v.string(),
-    }))),
-  }))),
+        id: v.optional(v.number()),
+        name: v.string(),
+        imageUrl: v.optional(v.string()),
+        role: v.string(),
+        description: v.optional(v.string()),
+        status: v.optional(v.string()),
+        gender: v.optional(v.string()),
+        age: v.optional(v.string()),
+        dateOfBirth: v.optional(v.object({
+          year: v.optional(v.number()),
+          month: v.optional(v.number()),
+          day: v.optional(v.number()),
+        })),
+        bloodType: v.optional(v.string()),
+        height: v.optional(v.string()),
+        weight: v.optional(v.string()),
+        species: v.optional(v.string()),
+        powersAbilities: v.optional(v.array(v.string())),
+        weapons: v.optional(v.array(v.string())),
+        nativeName: v.optional(v.string()),
+        siteUrl: v.optional(v.string()),
+        voiceActors: v.optional(v.array(v.object({
+          id: v.optional(v.number()),
+          name: v.string(),
+          language: v.string(),
+          imageUrl: v.optional(v.string()),
+        }))),
+        relationships: v.optional(v.array(v.object({
+          relatedCharacterId: v.optional(v.number()),
+          relationType: v.string(),
+        }))),
+      }))),
     }),
-    sourceApi: v.string(), // Phase 2: e.g., "jikan", "anilist"
+    sourceApi: v.string(),
   },
   handler: async (ctx, args) => {
     const existingAnime = await ctx.db.get(args.animeId);
@@ -704,6 +713,17 @@ export const getAllAnimeInternal = internalQuery({
   args: {},
   handler: async (ctx): Promise<Doc<"anime">[]> => {
     return await ctx.db.query("anime").collect();
+  },
+});
+
+// Get all anime with a MyAnimeList ID
+export const getAllAnimeWithMalId = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<Doc<"anime">[]> => {
+    return await ctx.db
+      .query("anime")
+      .filter(q => q.neq(q.field("myAnimeListId"), undefined))
+      .collect();
   },
 });
 
@@ -835,4 +855,237 @@ export const deduplicateAnimeDatabase = internalAction({
     console.log(`[Dedup] Removed ${duplicatesRemoved} duplicate anime entries`);
     return { removed: duplicatesRemoved };
   }
+});
+
+export const enrichEpisodesWithPreviews = internalAction({
+  args: { animeId: v.id("anime"), myAnimeListId: v.number() },
+  handler: async (ctx, args) => {
+    const response = await fetch(
+      `https://api.jikan.moe/v4/anime/${args.myAnimeListId}/videos`
+    );
+    if (!response.ok) {
+      console.error(`Failed to fetch videos for MAL ID ${args.myAnimeListId}`);
+      return;
+    }
+    const data = await response.json();
+    const episodes = data?.data?.episodes || [];
+
+    const anime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, {
+      animeId: args.animeId,
+    });
+    if (!anime || !anime.episodes) return;
+
+    const updatedEpisodes = anime.episodes.map((ep) => {
+      const match = episodes.find((e: any) => e.mal_id === ep.episodeNumber);
+      if (match && match.url) {
+        return { ...ep, previewUrl: match.url };
+      }
+      return ep;
+    });
+
+    await ctx.runMutation(internal.anime.updateAnimeEpisodesWithPreviews, {
+  animeId: args.animeId,
+  episodes: updatedEpisodes
+});
+  },
+});
+
+export const batchEnrichEpisodesWithPreviews = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const allAnime = await ctx.runQuery(
+      internal.anime.getAllAnimeWithMalId,
+      {}
+    );
+
+    for (const anime of allAnime) {
+      if (
+        anime.myAnimeListId &&
+        anime.episodes?.some((e) => !e.previewUrl)
+      ) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.anime.enrichEpisodesWithPreviews,
+          { animeId: anime._id, myAnimeListId: anime.myAnimeListId }
+        );
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  },
+  });
+
+  export const updateAnimeEpisodes = internalMutation({
+  args: {
+    animeId: v.id("anime"),
+    episodes: v.array(v.object({
+      title: v.optional(v.string()),
+      thumbnail: v.optional(v.string()),
+      url: v.optional(v.string()),
+      site: v.optional(v.string()),
+      previewUrl: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.animeId, { streamingEpisodes: args.episodes });
+  },
+});
+
+export const updateAnimeEpisodesWithPreviews = internalMutation({
+  args: {
+    animeId: v.id("anime"),
+    episodes: v.array(v.object({
+      episodeNumber: v.number(),
+      title: v.string(),
+      airDate: v.optional(v.string()),
+      duration: v.optional(v.number()),
+      thumbnailUrl: v.optional(v.string()),
+      previewUrl: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.animeId, { episodes: args.episodes });
+  },
+});
+
+export const enrichEpisodesWithYouTubePreviews = internalAction({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    const anime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, {
+      animeId: args.animeId,
+    });
+    
+    if (!anime || !anime.streamingEpisodes || anime.streamingEpisodes.length === 0) {
+      console.log(`No episodes found for anime ${args.animeId}`);
+      return;
+    }
+
+    // YouTube API key - you'll need to add this to your environment variables
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    if (!YOUTUBE_API_KEY) {
+      console.error("YouTube API key not found");
+      return;
+    }
+
+    const updatedEpisodes: StreamingEpisode[] = [];
+    
+    for (let i = 0; i < Math.min(anime.streamingEpisodes.length, 5); i++) {
+      const episode = anime.streamingEpisodes[i];
+      
+      if (episode.previewUrl) {
+        // Skip if already has preview
+        updatedEpisodes.push(episode as StreamingEpisode);
+        continue;
+      }
+
+      try {
+        // Search for episode preview on YouTube
+        const episodeTitle = episode.title || `Episode ${i + 1}`;
+        const searchQuery = `${anime.title} ${episodeTitle} preview`;
+        
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=3&key=${YOUTUBE_API_KEY}`
+        );
+        
+        if (!response.ok) {
+          console.error(`YouTube API error for ${searchQuery}: ${response.status}`);
+          updatedEpisodes.push(episode as StreamingEpisode);
+          continue;
+        }
+        
+        const data = await response.json();
+        const videos = data.items || [];
+        
+        // Look for official previews (prioritize channels with "official" or anime studio names)
+        let previewVideo = videos.find((video: any) => {
+          const channelTitle = video.snippet.channelTitle.toLowerCase();
+          const videoTitle = video.snippet.title.toLowerCase();
+          return (
+            channelTitle.includes('official') ||
+            channelTitle.includes('anime') ||
+            videoTitle.includes('preview') ||
+            videoTitle.includes('pv') ||
+            videoTitle.includes('trailer')
+          );
+        });
+        
+        // Fallback to first result if no official preview found
+        if (!previewVideo && videos.length > 0) {
+          previewVideo = videos[0];
+        }
+        
+        if (previewVideo) {
+          const previewUrl = `https://www.youtube.com/watch?v=${previewVideo.id.videoId}`;
+          updatedEpisodes.push({
+            ...episode,
+            previewUrl: previewUrl
+          } as StreamingEpisode);
+          console.log(`Found preview for ${anime.title} ${episodeTitle}: ${previewUrl}`);
+        } else {
+          updatedEpisodes.push(episode as StreamingEpisode);
+        }
+        
+        // Rate limiting - wait 100ms between requests
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        console.error(`Error fetching YouTube preview for episode ${i + 1}:`, error);
+        updatedEpisodes.push(episode as StreamingEpisode);
+      }
+    }
+
+    // Update the anime with new episode data
+    if (updatedEpisodes.length > 0) {
+      await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+        animeId: args.animeId,
+        updates: { streamingEpisodes: updatedEpisodes },
+        sourceApi: "youtube"
+      });
+      
+      console.log(`Updated ${anime.title} with ${updatedEpisodes.filter(ep => ep.previewUrl).length} episode previews`);
+    }
+  },
+});
+
+export const batchEnrichEpisodesWithYouTubePreviews = internalAction({
+  args: { maxAnimeToProcess: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const maxToProcess = args.maxAnimeToProcess || 10;
+    
+    // Get anime that have episodes but no previews
+    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    
+    const animeNeedingPreviews = allAnime.filter(anime => {
+      return anime.streamingEpisodes && 
+             anime.streamingEpisodes.length > 0 && 
+             anime.streamingEpisodes.some((ep: any) => !ep.previewUrl);
+    }).slice(0, maxToProcess);
+
+    console.log(`Processing ${animeNeedingPreviews.length} anime for YouTube episode previews`);
+
+    for (const anime of animeNeedingPreviews) {
+      try {
+        await ctx.runAction(internal.anime.enrichEpisodesWithYouTubePreviews, {
+          animeId: anime._id
+        });
+        
+        // Wait 2 seconds between anime to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+      } catch (error) {
+        console.error(`Error processing anime ${anime.title}:`, error);
+      }
+    }
+    
+    return { processed: animeNeedingPreviews.length };
+  },
+});
+
+// Also add a manual trigger function for testing
+export const triggerYouTubePreviewEnrichment = internalAction({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    await ctx.runAction(internal.anime.enrichEpisodesWithYouTubePreviews, {
+      animeId: args.animeId
+    });
+  },
 });
