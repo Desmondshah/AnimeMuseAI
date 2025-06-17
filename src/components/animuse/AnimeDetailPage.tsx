@@ -1,5 +1,6 @@
 // src/components/animuse/AnimeDetailPage.tsx - Complete iOS-Optimized Version with Extended Background
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import { getPalette } from "color-thief-react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -165,7 +166,8 @@ const IOSTabBar: React.FC<{
   activeTab: string;
   onTabChange: (tab: string) => void;
   tabs: Array<{ id: string; label: string; icon: string }>;
-}> = ({ activeTab, onTabChange, tabs }) => {
+themeColors?: string[] | null;
+}> = ({ activeTab, onTabChange, tabs, themeColors }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   return (
@@ -179,10 +181,15 @@ const IOSTabBar: React.FC<{
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`ios-tab-button flex-shrink-0 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300 ${
-              activeTab === tab.id 
-                ? 'bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg' 
+              activeTab === tab.id
+                ? 'text-white shadow-lg'
                 : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
+            style={
+              activeTab === tab.id && themeColors
+                ? { background: `linear-gradient(to right, ${themeColors[0]}, ${themeColors[1]})` }
+                : undefined
+            }
           >
             <span className="mr-2">{tab.icon}</span>
             {tab.label}
@@ -524,6 +531,7 @@ export default function AnimeDetailPage({
   // State management
   const [activeTab, setActiveTab] = useState("overview");
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const [themeColors, setThemeColors] = useState<string[] | null>(null);
   const [reviewSortOption, setReviewSortOption] = useState<ReviewSortOption>("newest");
   const [watchlistNotes, setWatchlistNotes] = useState(watchlistEntry?.notes || "");
   const [showNotesInput, setShowNotesInput] = useState(false);
@@ -585,6 +593,7 @@ export default function AnimeDetailPage({
 
   // Refs for smooth scrolling and parallax
   const heroRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const scrollY = useRef(0);
 
   // Define tabs for navigation
@@ -960,9 +969,32 @@ export default function AnimeDetailPage({
   }
 
   const placeholderPoster = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(anime.title.substring(0, 10))}&font=poppins`;
+const posterSrc = anime.posterUrl || placeholderPoster;
+  useEffect(() => {
+    const loadPalette = async () => {
+      if (!heroImageLoaded) return;
+      try {
+        const palette = await getPalette(posterSrc, 2, "hex", "anonymous");
+        setThemeColors(palette as string[]);
+      } catch (err) {
+        console.error("Palette extraction failed", err);
+      }
+    };
+    loadPalette();
+  }, [heroImageLoaded, posterSrc]);
+
+  const themeStyle = themeColors
+    ? ({
+        "--theme-primary": themeColors[0],
+        "--theme-secondary": themeColors[1],
+      } as React.CSSProperties)
+    : undefined;
 
   return (
-    <div className="ios-character-page min-h-screen bg-brand-background relative overflow-hidden">
+    <div
+      className="ios-character-page min-h-screen bg-brand-background relative overflow-hidden"
+      style={themeStyle}
+    >
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/12 to-transparent rounded-full blur-3xl animate-pulse"></div>
@@ -977,15 +1009,20 @@ export default function AnimeDetailPage({
           className="character-hero-image fixed inset-0 w-full h-screen"
         >
           <img
-            src={anime.posterUrl || placeholderPoster}
+            ref={imgRef}
+            src={posterSrc}
             alt={anime.title}
             className="w-full h-full object-cover"
+            crossOrigin="anonymous"
             onLoad={() => setHeroImageLoaded(true)}
             onError={(e) => { (e.target as HTMLImageElement).src = placeholderPoster; }}
           />
         </div>
         
-        <div className="character-hero-overlay absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div
+          className="character-hero-overlay absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"
+          style={themeColors ? { background: `linear-gradient(to top, rgba(0,0,0,0.8), var(--theme-primary), transparent)` } : undefined}
+        />
         
         {/* Back button */}
         <div className="absolute top-safe-top left-4 z-20 pt-4">
@@ -1053,9 +1090,16 @@ export default function AnimeDetailPage({
             {isAuthenticated ? (
               <>
                 {watchlistEntry?.status === "Plan to Watch" ? (
-                  <StyledButton 
-                    onClick={() => handleWatchlistAction("Watching")} 
-                    className="!bg-gradient-to-r !from-brand-accent-gold !to-brand-primary-action !text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                  <StyledButton
+                    onClick={() => handleWatchlistAction("Watching")}
+                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                    style={
+                      themeColors
+                        ? {
+                            background: `linear-gradient(to right, ${themeColors[0]}, ${themeColors[1]})`,
+                          }
+                        : undefined
+                    }
                   >
                     🎬 Start Watching
                   </StyledButton>
@@ -1073,10 +1117,15 @@ export default function AnimeDetailPage({
                     </span>
                   </div>
                 ) : (
-                  <StyledButton 
-                    onClick={() => handleWatchlistAction("Plan to Watch")} 
-                    variant="primary" 
-                    className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold !text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                  <StyledButton
+                    onClick={() => handleWatchlistAction("Plan to Watch")}
+                    variant="primary"
+                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                    style={
+                      themeColors
+                        ? { background: `linear-gradient(to right, ${themeColors[0]}, ${themeColors[1]})` }
+                        : undefined
+                    }
                   >
                     📚 Add to Watchlist
                   </StyledButton>
@@ -1196,6 +1245,7 @@ export default function AnimeDetailPage({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         tabs={tabs}
+        themeColors={themeColors}
       />
 
       {/* Content Sections */}
