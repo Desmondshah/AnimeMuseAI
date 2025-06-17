@@ -1,4 +1,4 @@
-// src/components/animuse/AnimeDetailPage.tsx - Complete iOS-Optimized Version with Extended Background
+// src/components/animuse/AnimeDetailPage.tsx - Complete with Dynamic UI Theming
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useQuery, useMutation, useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -11,6 +11,327 @@ import AnimeCard from "./AnimeCard";
 import { AnimeRecommendation } from "../../../convex/types";
 import { formatDistanceToNow } from 'date-fns';
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+
+// ============================================================================
+// COLOR EXTRACTION UTILITIES
+// ============================================================================
+
+interface ExtractedColors {
+  dominant: string;
+  palette: string[];
+  light: string;
+  dark: string;
+  accent: string;
+  complementary: string;
+}
+
+interface ColorPalette {
+  primary: string;
+  secondary: string;
+  accent: string;
+  light: string;
+  dark: string;
+  gradient: string;
+  gradientReverse: string;
+}
+
+/**
+ * Convert RGB to HSL for better color manipulation
+ */
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return [h * 360, s * 100, l * 100];
+}
+
+/**
+ * Convert HSL back to RGB
+ */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  h /= 360;
+  s /= 100;
+  l /= 100;
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+/**
+ * Get complementary color
+ */
+function getComplementaryColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  
+  const [h, s, l] = rgbToHsl(r, g, b);
+  const compH = (h + 180) % 360;
+  const [compR, compG, compB] = hslToRgb(compH, s, l);
+  
+  return `#${compR.toString(16).padStart(2, '0')}${compG.toString(16).padStart(2, '0')}${compB.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Adjust color brightness
+ */
+function adjustBrightness(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  
+  const [h, s, l] = rgbToHsl(r, g, b);
+  const newL = Math.max(0, Math.min(100, l + factor));
+  const [newR, newG, newB] = hslToRgb(h, s, newL);
+  
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Extract dominant colors from an image using canvas sampling
+ * Note: May fail for external images due to CORS restrictions
+ */
+const extractColorsFromImage = async (imageElement: HTMLImageElement): Promise<ExtractedColors> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      console.warn('🎨 Canvas context not available, using defaults');
+      resolve({
+        dominant: '#ECB091',
+        palette: ['#ECB091', '#8B4513', '#D2691E'],
+        light: '#F5E6D3',
+        dark: '#654321',
+        accent: '#FF6B35',
+        complementary: '#4A90E2'
+      });
+      return;
+    }
+
+    // Sample the image at a smaller resolution for performance
+    const sampleSize = 50;
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    
+    try {
+      ctx.drawImage(imageElement, 0, 0, sampleSize, sampleSize);
+      
+      // Try to get image data - this may fail due to CORS
+      let imageData;
+      try {
+        imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+      } catch (corsError) {
+        console.warn('🎨 CORS restriction prevented color extraction, using image-based fallback');
+        // Fallback: generate colors based on image source URL and filename
+        const urlParts = imageElement.src.split('/').pop() || '';
+        const filename = urlParts.split('.')[0] || '';
+        
+        // Create a more sophisticated hash from URL
+        let urlHash = 0;
+        for (let i = 0; i < filename.length; i++) {
+          urlHash = ((urlHash << 5) - urlHash) + filename.charCodeAt(i);
+          urlHash = urlHash & urlHash; // Convert to 32-bit integer
+        }
+        
+        // Generate multiple hues for a richer palette
+        const baseHue = Math.abs(urlHash) % 360;
+        const saturation = 45 + (Math.abs(urlHash >> 8) % 40); // 45-85% saturation
+        const lightness = 35 + (Math.abs(urlHash >> 16) % 20); // 35-55% lightness
+        
+        const [r, g, b] = hslToRgb(baseHue, saturation, lightness);
+        const dominantHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // Generate a small palette with variations
+        const palette = [
+          dominantHex,
+          adjustBrightness(dominantHex, -15),
+          adjustBrightness(dominantHex, 15),
+        ];
+        
+        console.log('🎨 Generated CORS fallback colors:', { dominant: dominantHex, source: 'url-hash' });
+        
+        resolve({
+          dominant: dominantHex,
+          palette: palette,
+          light: adjustBrightness(dominantHex, 30),
+          dark: adjustBrightness(dominantHex, -40),
+          accent: adjustBrightness(dominantHex, 10),
+          complementary: getComplementaryColor(dominantHex)
+        });
+        return;
+      }
+      
+      const data = imageData.data;
+
+      // Count color frequency
+      const colorMap = new Map<string, number>();
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+
+        // Skip transparent pixels
+        if (a < 128) continue;
+
+        // Group similar colors (reduce precision for clustering)
+        const colorKey = `${Math.floor(r/32)*32}-${Math.floor(g/32)*32}-${Math.floor(b/32)*32}`;
+        colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
+      }
+
+      // Convert to array and sort by frequency
+      const sortedColors = Array.from(colorMap.entries())
+        .map(([color, count]) => {
+          const [r, g, b] = color.split('-').map(Number);
+          return { r, g, b, count };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8); // Get top 8 colors
+
+      if (sortedColors.length === 0) {
+        resolve({
+          dominant: '#ECB091',
+          palette: ['#ECB091', '#8B4513', '#D2691E'],
+          light: '#F5E6D3',
+          dark: '#654321',
+          accent: '#FF6B35',
+          complementary: '#4A90E2'
+        });
+        return;
+      }
+
+      // Find the most vibrant and prominent color as dominant
+      let dominantColor = sortedColors[0];
+      let bestScore = 0;
+
+      for (const color of sortedColors.slice(0, 5)) {
+        const [h, s, l] = rgbToHsl(color.r, color.g, color.b);
+        
+        // Score based on saturation, lightness, and frequency
+        // Prefer colors that are vibrant but not too dark or too light
+        const saturationScore = s / 100;
+        const lightnessScore = l > 20 && l < 80 ? 1 : 0.5; // Prefer mid-range lightness
+        const frequencyScore = Math.min(color.count / sortedColors[0].count, 1);
+        
+        const totalScore = saturationScore * 0.4 + lightnessScore * 0.3 + frequencyScore * 0.3;
+        
+        if (totalScore > bestScore) {
+          bestScore = totalScore;
+          dominantColor = color;
+        }
+      }
+
+      const dominant = `#${dominantColor.r.toString(16).padStart(2, '0')}${dominantColor.g.toString(16).padStart(2, '0')}${dominantColor.b.toString(16).padStart(2, '0')}`;
+
+      // Create palette from top colors
+      const palette = sortedColors.slice(0, 5).map(color => 
+        `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`
+      );
+
+      // Generate variations
+      const light = adjustBrightness(dominant, 30);
+      const dark = adjustBrightness(dominant, -40);
+      const accent = adjustBrightness(dominant, 15);
+      const complementary = getComplementaryColor(dominant);
+
+      resolve({
+        dominant,
+        palette,
+        light,
+        dark,
+        accent,
+        complementary
+      });
+
+    } catch (error) {
+      console.warn('🎨 Color extraction failed, using defaults:', error);
+      resolve({
+        dominant: '#ECB091',
+        palette: ['#ECB091', '#8B4513', '#D2691E'],
+        light: '#F5E6D3',
+        dark: '#654321',
+        accent: '#FF6B35',
+        complementary: '#4A90E2'
+      });
+    }
+  });
+};
+
+/**
+ * Generate a cohesive color palette from extracted colors
+ * Keeps the original dominant color as primary for better fidelity
+ */
+const generateThemePalette = (extractedColors: ExtractedColors): ColorPalette => {
+  const { dominant, palette, light, dark, complementary } = extractedColors;
+  
+  // Use the second most prominent color as accent if available, otherwise lighten dominant
+  const accent = palette.length > 1 ? palette[1] : adjustBrightness(dominant, 10);
+  
+  // Use a harmonious color instead of pure complementary
+  const [h, s, l] = rgbToHsl(
+    parseInt(dominant.slice(1, 3), 16),
+    parseInt(dominant.slice(3, 5), 16),
+    parseInt(dominant.slice(5, 7), 16)
+  );
+  
+  // Create a harmonious secondary color (analogous, not complementary)
+  const harmoniousHue = (h + 60) % 360; // 60 degrees for analogous harmony
+  const [secR, secG, secB] = hslToRgb(harmoniousHue, Math.max(30, s * 0.8), l);
+  const harmonious = `#${secR.toString(16).padStart(2, '0')}${secG.toString(16).padStart(2, '0')}${secB.toString(16).padStart(2, '0')}`;
+  
+  return {
+    primary: dominant,        // Keep the true dominant color
+    secondary: harmonious,    // Use harmonious instead of complementary
+    accent: accent,           // Use second color from palette or subtle variant
+    light: light,
+    dark: dark,
+    gradient: `linear-gradient(135deg, ${dominant}, ${accent})`,
+    gradientReverse: `linear-gradient(135deg, ${accent}, ${dominant})`
+  };
+};
+
+// ============================================================================
+// EXISTING INTERFACES AND COMPONENTS
+// ============================================================================
 
 interface BackendReviewProps extends Doc<"reviews"> {
   userName: string; userAvatarUrl?: string; upvotes: number; downvotes: number;
@@ -92,20 +413,31 @@ interface EnhancedCharacterType {
   enrichmentTimestamp?: number;
 }
 
-// Smart refresh indicator component
+// Smart refresh indicator component with dynamic theming
 const DataFreshnessIndicator: React.FC<{ 
   freshnessScore: number; 
   priority: string; 
   lastFetched?: number; 
   isRefreshing?: boolean;
   onRefresh?: () => void;
-}> = ({ freshnessScore, priority, lastFetched, isRefreshing, onRefresh }) => {
+  themePalette?: ColorPalette;
+}> = ({ freshnessScore, priority, lastFetched, isRefreshing, onRefresh, themePalette }) => {
   const getStatusColor = () => {
-    if (priority === "critical") return "text-red-400 bg-red-500/20 border-red-500/30";
-    if (priority === "high") return "text-orange-400 bg-orange-500/20 border-orange-500/30";
-    if (priority === "medium") return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
-    if (priority === "low") return "text-blue-400 bg-blue-500/20 border-blue-500/30";
-    return "text-green-400 bg-green-500/20 border-green-500/30";
+    if (!themePalette) {
+      if (priority === "critical") return "text-red-400 bg-red-500/20 border-red-500/30";
+      if (priority === "high") return "text-orange-400 bg-orange-500/20 border-orange-500/30";
+      if (priority === "medium") return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
+      if (priority === "low") return "text-blue-400 bg-blue-500/20 border-blue-500/30";
+      return "text-green-400 bg-green-500/20 border-green-500/30";
+    }
+
+    // Use theme colors
+    const baseStyle = `border-white/20`;
+    if (priority === "critical") return `text-red-400 bg-red-500/20 ${baseStyle}`;
+    if (priority === "high") return `text-orange-400 bg-orange-500/20 ${baseStyle}`;
+    if (priority === "medium") return `text-yellow-400 bg-yellow-500/20 ${baseStyle}`;
+    if (priority === "low") return `text-blue-400 bg-blue-500/20 ${baseStyle}`;
+    return `text-green-400 bg-green-500/20 ${baseStyle}`;
   };
 
   const getStatusIcon = () => {
@@ -126,8 +458,17 @@ const DataFreshnessIndicator: React.FC<{
     return "Data is Fresh";
   };
 
+  const dynamicStyle = themePalette ? {
+    backgroundColor: `${themePalette.primary}15`,
+    borderColor: `${themePalette.primary}40`,
+    color: themePalette.light
+  } : {};
+
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border backdrop-blur-sm ${getStatusColor()}`}>
+    <div 
+      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border backdrop-blur-sm ${getStatusColor()}`}
+      style={priority !== "critical" && priority !== "high" ? dynamicStyle : {}}
+    >
       <span className={isRefreshing ? "animate-spin" : ""}>{getStatusIcon()}</span>
       <span className="font-medium">{getStatusText()}</span>
       {lastFetched && (
@@ -148,26 +489,57 @@ const DataFreshnessIndicator: React.FC<{
   );
 };
 
-// iOS-style loading component
-const IOSLoadingSpinner: React.FC<{ message?: string }> = memo(({ message = "Loading..." }) => (
-  <div className="ios-loading-spinner flex flex-col justify-center items-center py-16">
-    <div className="relative">
-      <div className="w-20 h-20 border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin"></div>
-      <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
-      <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
-    </div>
-    <p className="mt-4 text-lg text-white/80 font-medium animate-pulse">{message}</p>
-  </div>
-));
+// iOS-style loading component with dynamic theming
+const IOSLoadingSpinner: React.FC<{ message?: string; themePalette?: ColorPalette }> = memo(({ 
+  message = "Loading...", 
+  themePalette 
+}) => {
+  const primaryColor = themePalette?.primary || '#ECB091';
+  const accentColor = themePalette?.accent || '#FF6B35';
 
-// iOS-style tab bar component
+  return (
+    <div className="ios-loading-spinner flex flex-col justify-center items-center py-16">
+      <div className="relative">
+        <div 
+          className="w-20 h-20 border-4 border-transparent rounded-full animate-spin"
+          style={{
+            borderTopColor: primaryColor,
+            borderRightColor: accentColor
+          }}
+        ></div>
+        <div 
+          className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent rounded-full animate-spin animate-reverse"
+          style={{
+            borderBottomColor: themePalette?.secondary || '#4A90E2',
+            borderLeftColor: 'rgba(255, 255, 255, 0.5)'
+          }}
+        ></div>
+        <div 
+          className="absolute top-6 left-6 w-8 h-8 rounded-full animate-pulse"
+          style={{
+            background: themePalette?.gradient || `linear-gradient(to right, ${primaryColor}, ${accentColor})`
+          }}
+        ></div>
+      </div>
+      <p className="mt-4 text-lg text-white/80 font-medium animate-pulse">{message}</p>
+    </div>
+  );
+});
+
+// iOS-style tab bar component with dynamic theming
 const IOSTabBar: React.FC<{
   activeTab: string;
   onTabChange: (tab: string) => void;
   tabs: Array<{ id: string; label: string; icon: string }>;
-}> = ({ activeTab, onTabChange, tabs }) => {
+  themePalette?: ColorPalette;
+}> = ({ activeTab, onTabChange, tabs, themePalette }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  const activeButtonStyle = themePalette ? {
+    background: themePalette.gradient,
+    boxShadow: `0 4px 15px ${themePalette.primary}30`
+  } : {};
+
   return (
     <div className="ios-tab-bar sticky top-0 z-50 bg-black/40 backdrop-blur-lg border-b border-white/20">
       <div 
@@ -180,9 +552,10 @@ const IOSTabBar: React.FC<{
             onClick={() => onTabChange(tab.id)}
             className={`ios-tab-button flex-shrink-0 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300 ${
               activeTab === tab.id 
-                ? 'bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg' 
+                ? 'text-white shadow-lg' 
                 : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
+            style={activeTab === tab.id ? activeButtonStyle : {}}
           >
             <span className="mr-2">{tab.icon}</span>
             {tab.label}
@@ -193,20 +566,34 @@ const IOSTabBar: React.FC<{
   );
 };
 
-// Enhanced character card component
+// Enhanced character card component with dynamic theming
 const CharacterCard: React.FC<{
   character: EnhancedCharacterType;
   onClick: () => void;
-}> = memo(({ character, onClick }) => {
+  themePalette?: ColorPalette;
+}> = memo(({ character, onClick, themePalette }) => {
   // Safety check for character data
   if (!character || !character.name) {
     return null;
   }
 
+  const cardStyle = themePalette ? {
+    borderColor: `${themePalette.primary}30`
+  } : {};
+
+  const roleStyle = themePalette ? {
+    backgroundColor: character.role === "MAIN" 
+      ? `${themePalette.accent}80` 
+      : character.role === "SUPPORTING"
+      ? `${themePalette.secondary}80`
+      : `${themePalette.dark}80`
+  } : {};
+
   return (
     <div
       onClick={onClick}
       className="group relative w-full bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105"
+      style={cardStyle}
     >
       {/* Character Image */}
       <div className="relative aspect-[3/4] overflow-hidden">
@@ -221,7 +608,12 @@ const CharacterCard: React.FC<{
             }}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-brand-primary-action/30 to-brand-accent-gold/30 flex items-center justify-center">
+          <div 
+            className="w-full h-full flex items-center justify-center"
+            style={{
+              background: themePalette?.gradient || 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))'
+            }}
+          >
             <span className="text-4xl font-bold text-white/60">
               {character.name.charAt(0).toUpperCase()}
             </span>
@@ -233,25 +625,29 @@ const CharacterCard: React.FC<{
         
         {/* Role badge */}
         <div className="absolute top-3 right-3">
-          <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border ${
-            character.role === "MAIN" 
-              ? "bg-yellow-500/80 text-yellow-100 border-yellow-400/50" 
-              : character.role === "SUPPORTING"
-              ? "bg-blue-500/80 text-blue-100 border-blue-400/50"
-              : "bg-gray-500/80 text-gray-100 border-gray-400/50"
-          }`}>
+          <span 
+            className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border border-white/30`}
+            style={roleStyle}
+          >
             {character.role === "MAIN" && "⭐"}
             {character.role === "SUPPORTING" && "🎭"}
             {character.role === "BACKGROUND" && "👤"}
-            <span className="ml-1">{character.role || "Unknown"}</span>
+            <span className="ml-1 text-white">{character.role || "Unknown"}</span>
           </span>
         </div>
 
         {/* AI Enhancement badge */}
         {character.isAIEnriched && (
           <div className="absolute top-3 left-3">
-            <span className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm bg-gradient-to-r from-purple-500/90 to-blue-500/90 text-purple-100 border border-purple-400/50">
-              🤖 <span className="ml-1">AI</span>
+            <span 
+              className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border border-purple-400/50"
+              style={{
+                background: themePalette ? 
+                  `linear-gradient(135deg, ${themePalette.secondary}90, ${themePalette.accent}90)` : 
+                  'linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(59, 130, 246, 0.9))'
+              }}
+            >
+              🤖 <span className="ml-1 text-white">AI</span>
             </span>
           </div>
         )}
@@ -277,71 +673,94 @@ const CharacterCard: React.FC<{
   );
 });
 
-// Enhanced episode card component
+// Enhanced episode card component with dynamic theming
 const EpisodeCard: React.FC<{
   episode: any;
   index: number;
-}> = memo(({ episode, index }) => (
-  <div className="group bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02]">
-    {/* Episode thumbnail */}
-    {episode.thumbnail && (
-      <div className="relative aspect-video overflow-hidden">
-        <img
-          src={episode.thumbnail}
-          alt={episode.title || `Episode ${index + 1}`}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Play button overlay */}
-        {episode.url && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
-              <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
+  themePalette?: ColorPalette;
+}> = memo(({ episode, index, themePalette }) => {
+  const buttonStyle = themePalette ? {
+    background: themePalette.gradient
+  } : {};
+
+  const cardStyle = themePalette ? {
+    borderColor: `${themePalette.primary}20`
+  } : {};
+
+  return (
+    <div 
+      className="group bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+      style={cardStyle}
+    >
+      {/* Episode thumbnail */}
+      {episode.thumbnail && (
+        <div className="relative aspect-video overflow-hidden">
+          <img
+            src={episode.thumbnail}
+            alt={episode.title || `Episode ${index + 1}`}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          {/* Play button overlay */}
+          {episode.url && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div 
+                className="w-16 h-16 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30"
+                style={{
+                  backgroundColor: themePalette ? `${themePalette.primary}30` : 'rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Episode info */}
+      <div className="p-4">
+        <h4 className="text-white font-medium text-sm mb-2 line-clamp-2">
+          {episode.title || `Episode ${index + 1}`}
+        </h4>
+        
+        {episode.site && (
+          <div className="flex items-center gap-2 mb-3 text-xs text-white/60">
+            <span 
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: themePalette?.accent || '#10B981' }}
+            ></span>
+            <span>Available on {episode.site}</span>
+          </div>
+        )}
+
+        {/* Watch button */}
+        {episode.url ? (
+          <a href={episode.url} target="_blank" rel="noopener noreferrer">
+            <StyledButton
+              variant="primary"
+              className="w-full !text-xs !py-2"
+              style={buttonStyle}
+            >
+              <span className="mr-2">▶️</span>
+              Watch Now
+            </StyledButton>
+          </a>
+        ) : (
+          <div className="text-center py-2 text-xs text-white/50">
+            No streaming link available
           </div>
         )}
       </div>
-    )}
-
-    {/* Episode info */}
-    <div className="p-4">
-      <h4 className="text-white font-medium text-sm mb-2 line-clamp-2">
-        {episode.title || `Episode ${index + 1}`}
-      </h4>
-      
-      {episode.site && (
-        <div className="flex items-center gap-2 mb-3 text-xs text-white/60">
-          <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-          <span>Available on {episode.site}</span>
-        </div>
-      )}
-
-      {/* Watch button */}
-      {episode.url ? (
-        <a href={episode.url} target="_blank" rel="noopener noreferrer">
-          <StyledButton
-            variant="primary"
-            className="w-full !text-xs !py-2 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
-          >
-            <span className="mr-2">▶️</span>
-            Watch Now
-          </StyledButton>
-        </a>
-      ) : (
-        <div className="text-center py-2 text-xs text-white/50">
-          No streaming link available
-        </div>
-      )}
     </div>
-  </div>
-));
+  );
+});
 
 // Custom hook for enriched characters
 const useEnrichedCharacters = (
@@ -422,19 +841,25 @@ const useEnrichedCharacters = (
 
    // Automatically enrich a few characters once per anime
   useEffect(() => {
-  if (!animeId || isEnriching) return;  // Only check if already enriching
+    if (!animeId || isEnriching) return;
 
-  const stored = localStorage.getItem(`anime_${animeId}_characters`);
-  let dataset: EnhancedCharacterType[] = enrichedCharacters; // Use enrichedCharacters instead
-  if (stored) {
-    try { dataset = JSON.parse(stored); } catch { /* ignore */ }
-  }
+    const stored = localStorage.getItem(`anime_${animeId}_characters`);
+    let dataset: EnhancedCharacterType[] = characters; // Use original characters, not enrichedCharacters
+    if (stored) {
+      try { 
+        const parsedData = JSON.parse(stored);
+        if (Array.isArray(parsedData)) {
+          dataset = parsedData;
+        }
+      } catch { /* ignore */ }
+    }
 
-  if (dataset.some(c => !c.isAIEnriched)) {
-    // Don't set any blocking flag, just enrich
-    enrichMissingCharacters();
-  }
-}, [animeId, enrichedCharacters, isEnriching, enrichMissingCharacters]);
+    // Only trigger enrichment if we have unenriched characters
+    const hasUnenrichedCharacters = dataset.some(c => c && !c.isAIEnriched);
+    if (hasUnenrichedCharacters && characters.length > 0) {
+      enrichMissingCharacters();
+    }
+  }, [animeId, characters.length, isEnriching]); // Removed enrichMissingCharacters and enrichedCharacters from deps
 
   return { enrichedCharacters, isEnriching, enrichMissingCharacters };
 };
@@ -457,6 +882,17 @@ export default function AnimeDetailPage({
   
   // Mobile optimizations
   const mobileOpts = useMobileOptimizations();
+  
+  // ============================================================================
+  // DYNAMIC THEMING STATE
+  // ============================================================================
+  const [extractedColors, setExtractedColors] = useState<ExtractedColors | null>(null);
+  const [themePalette, setThemePalette] = useState<ColorPalette | null>(null);
+  const [isExtractingColors, setIsExtractingColors] = useState(false);
+  
+  // ============================================================================
+  // EXISTING STATE MANAGEMENT
+  // ============================================================================
   
   // Smart auto-refresh
   const smartAutoRefreshAction = useAction(api.autoRefresh.callSmartAutoRefreshAnime);
@@ -596,6 +1032,86 @@ export default function AnimeDetailPage({
     { id: "similar", label: "Similar", icon: "🔍" },
   ];
 
+  // ============================================================================
+  // COLOR EXTRACTION HANDLERS
+  // ============================================================================
+  
+  const handleImageLoad = useCallback(async (imageElement: HTMLImageElement) => {
+    setHeroImageLoaded(true);
+    
+    if (isExtractingColors) return; // Prevent multiple extractions
+    
+    setIsExtractingColors(true);
+    console.log('🎨 Starting color extraction from poster...');
+    
+    try {
+      const colors = await extractColorsFromImage(imageElement);
+      const palette = generateThemePalette(colors);
+      
+      setExtractedColors(colors);
+      setThemePalette(palette);
+      
+      console.log('🎨 Color extraction complete:', {
+        dominant: colors.dominant,
+        originalPalette: colors.palette,
+        generatedTheme: palette,
+        source: 'canvas-analysis'
+      });
+      
+      // Apply CSS custom properties for global theming
+      const root = document.documentElement;
+      root.style.setProperty('--theme-primary', palette.primary);
+      root.style.setProperty('--theme-secondary', palette.secondary);
+      root.style.setProperty('--theme-accent', palette.accent);
+      root.style.setProperty('--theme-light', palette.light);
+      root.style.setProperty('--theme-dark', palette.dark);
+      root.style.setProperty('--theme-gradient', palette.gradient);
+      
+      // Set focus ring colors for proper focus styling
+      root.style.setProperty('--theme-focus-ring', `${palette.primary}50`);
+      root.style.setProperty('--theme-focus-border', palette.primary);
+      
+    } catch (error) {
+      console.warn('🎨 Color extraction failed, using defaults:', error);
+      // Still set up default theme even if extraction fails
+      const defaultPalette = generateThemePalette({
+        dominant: '#ECB091',
+        palette: ['#ECB091', '#8B4513', '#D2691E'],
+        light: '#F5E6D3',
+        dark: '#654321',
+        accent: '#FF6B35',
+        complementary: '#4A90E2'
+      });
+      setThemePalette(defaultPalette);
+    } finally {
+      setIsExtractingColors(false);
+    }
+  }, [isExtractingColors]);
+
+  // Clear theme when anime changes
+  useEffect(() => {
+    if (animeId) {
+      setExtractedColors(null);
+      setThemePalette(null);
+      setIsExtractingColors(false);
+      
+      // Reset CSS variables
+      const root = document.documentElement;
+      root.style.removeProperty('--theme-primary');
+      root.style.removeProperty('--theme-secondary');
+      root.style.removeProperty('--theme-accent');
+      root.style.removeProperty('--theme-light');
+      root.style.removeProperty('--theme-dark');
+      root.style.removeProperty('--theme-gradient');
+      root.style.removeProperty('--theme-focus-ring');
+      root.style.removeProperty('--theme-focus-border');
+    }
+  }, [animeId]);
+
+  // ============================================================================
+  // EXISTING EFFECT HOOKS
+  // ============================================================================
+
   // Load refresh recommendation when anime loads
   useEffect(() => {
     if (anime && animeId) {
@@ -651,6 +1167,10 @@ export default function AnimeDetailPage({
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [mobileOpts.shouldReduceAnimations]);
+
+  // ============================================================================
+  // EXISTING CALLBACK HANDLERS
+  // ============================================================================
 
   // Smart refresh handler
   const handleSmartRefresh = useCallback(async (triggerType: "user_visit" | "manual" | "background" = "manual", forceRefresh = false) => {
@@ -933,13 +1453,17 @@ export default function AnimeDetailPage({
     }
   };
 
+  // ============================================================================
+  // LOADING STATES AND ERROR HANDLING
+  // ============================================================================
+
   // Loading states
   if (animeId && anime === undefined && !authIsLoading) {
-    return <IOSLoadingSpinner message="Loading anime details..." />;
+    return <IOSLoadingSpinner message="Loading anime details..." themePalette={themePalette || undefined} />;
   }
   
   if (authIsLoading && anime === undefined) {
-    return <IOSLoadingSpinner message="Checking authentication..." />;
+    return <IOSLoadingSpinner message="Checking authentication..." themePalette={themePalette || undefined} />;
   }
   
   if (!anime) {
@@ -961,16 +1485,75 @@ export default function AnimeDetailPage({
 
   const placeholderPoster = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(anime.title.substring(0, 10))}&font=poppins`;
 
+  // ============================================================================
+  // DYNAMIC STYLING HELPERS
+  // ============================================================================
+
+  const dynamicBackgroundStyle = themePalette ? {
+    background: `
+      radial-gradient(ellipse at top left, ${themePalette.primary}15, transparent 50%),
+      radial-gradient(ellipse at bottom right, ${themePalette.accent}10, transparent 50%),
+      radial-gradient(ellipse at center, ${themePalette.secondary}08, transparent 70%),
+      #0A0A0A
+    `
+  } : {};
+
+  const heroOverlayStyle = themePalette ? {
+    background: `linear-gradient(to top, 
+      #000000 0%, 
+      ${themePalette.dark}40 30%, 
+      ${themePalette.primary}20 60%, 
+      transparent 100%
+    )`
+  } : {};
+
+  const actionButtonStyle = themePalette ? {
+    background: themePalette.gradient,
+    boxShadow: `0 8px 32px ${themePalette.primary}30`
+  } : {};
+
+  const sectionCardStyle = themePalette ? {
+    borderColor: `${themePalette.primary}20`,
+    background: `linear-gradient(135deg, 
+      rgba(0,0,0,0.6) 0%, 
+      ${themePalette.dark}20 50%, 
+      rgba(0,0,0,0.8) 100%
+    )`
+  } : {};
+
   return (
-    <div className="ios-character-page min-h-screen bg-brand-background relative overflow-hidden">
-      {/* Background Elements */}
+    <div className="ios-character-page min-h-screen bg-brand-background relative overflow-hidden" style={dynamicBackgroundStyle}>
+      {/* Enhanced Background Elements with Dynamic Colors */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/12 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-32 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/8 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div 
+          className="absolute top-20 left-10 w-80 h-80 rounded-full blur-3xl animate-pulse"
+          style={{
+            background: themePalette ? 
+              `radial-gradient(circle, ${themePalette.primary}12, transparent)` : 
+              'radial-gradient(circle, rgba(236, 176, 145, 0.12), transparent)'
+          }}
+        ></div>
+        <div 
+          className="absolute bottom-32 right-16 w-96 h-96 rounded-full blur-3xl animate-pulse"
+          style={{
+            background: themePalette ? 
+              `radial-gradient(circle, ${themePalette.accent}10, transparent)` : 
+              'radial-gradient(circle, rgba(255, 107, 53, 0.10), transparent)',
+            animationDelay: '1000ms'
+          }}
+        ></div>
+        <div 
+          className="absolute top-1/2 right-1/4 w-64 h-64 rounded-full blur-3xl animate-pulse"
+          style={{
+            background: themePalette ? 
+              `radial-gradient(circle, ${themePalette.secondary}08, transparent)` : 
+              'radial-gradient(circle, rgba(74, 144, 226, 0.08), transparent)',
+            animationDelay: '2000ms'
+          }}
+        ></div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero Section with Dynamic Theming */}
       <div className="character-hero relative">
         <div 
           ref={heroRef}
@@ -980,18 +1563,25 @@ export default function AnimeDetailPage({
             src={anime.posterUrl || placeholderPoster}
             alt={anime.title}
             className="w-full h-full object-cover"
-            onLoad={() => setHeroImageLoaded(true)}
+            onLoad={(e) => handleImageLoad(e.target as HTMLImageElement)}
             onError={(e) => { (e.target as HTMLImageElement).src = placeholderPoster; }}
           />
         </div>
         
-        <div className="character-hero-overlay absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div 
+          className="character-hero-overlay absolute inset-0"
+          style={heroOverlayStyle || { background: 'linear-gradient(to top, black, rgba(0,0,0,0.6), transparent)' }}
+        />
         
-        {/* Back button */}
+        {/* Back button with dynamic theming */}
         <div className="absolute top-safe-top left-4 z-20 pt-4">
           <button
             onClick={onBack}
             className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-3 transition-all duration-300 hover:scale-105"
+            style={themePalette ? {
+              borderColor: `${themePalette.primary}30`,
+              backgroundColor: `${themePalette.dark}40`
+            } : {}}
           >
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -999,75 +1589,127 @@ export default function AnimeDetailPage({
           </button>
         </div>
 
-        {/* Hero content */}
+        {/* Color extraction status indicator */}
+        {isExtractingColors && (
+          <div className="absolute top-safe-top right-4 z-20 pt-4">
+            <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl px-4 py-2 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span className="text-white/80 text-sm font-medium">Extracting theme...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Hero content with enhanced dynamic styling */}
         <div className="character-hero-content absolute bottom-20 left-0 right-0 p-6 sm:p-8 md:p-12 z-10">
           <h1 className="character-name text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading text-white font-bold mb-4 drop-shadow-2xl">
             {anime.title}
           </h1>
           
-          {/* Quick info badges */}
+          {/* Quick info badges with dynamic theming */}
           <div className="flex flex-wrap gap-3 mb-6">
             {anime.year && (
-              <span className="character-badge bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium">
+              <span 
+                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.primary}30`,
+                  borderColor: `${themePalette.primary}50`
+                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+              >
                 📅 {anime.year}
               </span>
             )}
             {anime.rating && (
-              <span className="character-badge bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium">
+              <span 
+                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.accent}30`,
+                  borderColor: `${themePalette.accent}50`
+                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+              >
                 ⭐ {(anime.rating / 2).toFixed(1)}/5
               </span>
             )}
             {anime.totalEpisodes && (
-              <span className="character-badge bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium">
+              <span 
+                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.secondary}30`,
+                  borderColor: `${themePalette.secondary}50`
+                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+              >
                 📺 {anime.totalEpisodes} episodes
               </span>
             )}
             {anime.airingStatus && anime.airingStatus !== "FINISHED" && (
-              <span className="character-badge bg-green-500/80 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium">
+              <span className="character-badge bg-green-500/80 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border border-green-400/50">
                 🔴 {anime.airingStatus === "RELEASING" ? "Airing" : anime.airingStatus}
               </span>
             )}
           </div>
 
-          {/* Genre tags */}
+          {/* Genre tags with dynamic theming */}
           {anime.genres && anime.genres.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {anime.genres.slice(0, 4).map((genre, idx) => (
                 <span 
                   key={idx} 
-                  className="character-badge bg-gradient-to-r from-brand-primary-action/80 to-brand-accent-gold/80 text-white px-3 py-1 rounded-full backdrop-blur-sm font-medium"
+                  className="character-badge text-white px-3 py-1 rounded-full backdrop-blur-sm font-medium border"
+                  style={themePalette ? {
+                    background: `linear-gradient(135deg, ${themePalette.primary}80, ${themePalette.accent}80)`,
+                    borderColor: `${themePalette.primary}60`
+                  } : {
+                    background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.8), rgba(255, 107, 53, 0.8))',
+                    borderColor: 'rgba(236, 176, 145, 0.6)'
+                  }}
                 >
                   {genre}
                 </span>
               ))}
               {anime.genres.length > 4 && (
-                <span className="character-badge bg-black/60 backdrop-blur-sm rounded-full px-3 py-1 text-white font-medium">
+                <span 
+                  className="character-badge backdrop-blur-sm rounded-full px-3 py-1 text-white font-medium border"
+                  style={themePalette ? {
+                    backgroundColor: `${themePalette.dark}60`,
+                    borderColor: `${themePalette.primary}30`
+                  } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+                >
                   +{anime.genres.length - 4} more
                 </span>
               )}
             </div>
           )}
 
-          {/* Action buttons */}
+          {/* Action buttons with enhanced dynamic styling */}
           <div className="flex gap-3 flex-wrap">
             {isAuthenticated ? (
               <>
                 {watchlistEntry?.status === "Plan to Watch" ? (
                   <StyledButton 
                     onClick={() => handleWatchlistAction("Watching")} 
-                    className="!bg-gradient-to-r !from-brand-accent-gold !to-brand-primary-action !text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
+                    style={actionButtonStyle}
                   >
                     🎬 Start Watching
                   </StyledButton>
                 ) : watchlistEntry?.status === "Watching" ? (
                   <StyledButton 
                     onClick={() => handleWatchlistAction("Completed")} 
-                    className="!bg-gradient-to-r !from-green-500 !to-emerald-400 !text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
+                    style={{
+                      background: 'linear-gradient(135deg, #10B981, #34D399)',
+                      boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)'
+                    }}
                   >
                     ✅ Mark Completed
                   </StyledButton>
                 ) : watchlistEntry?.status === "Completed" ? (
-                  <div className="bg-black/60 backdrop-blur-lg border border-white/20 px-6 py-3 rounded-2xl">
+                  <div 
+                    className="backdrop-blur-lg border px-6 py-3 rounded-2xl"
+                    style={themePalette ? {
+                      backgroundColor: `${themePalette.primary}20`,
+                      borderColor: `${themePalette.primary}40`
+                    } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+                  >
                     <span className="text-green-400 font-semibold flex items-center gap-2">
                       🏆 Completed
                     </span>
@@ -1076,14 +1718,21 @@ export default function AnimeDetailPage({
                   <StyledButton 
                     onClick={() => handleWatchlistAction("Plan to Watch")} 
                     variant="primary" 
-                    className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold !text-white !font-semibold !px-6 !py-3 !rounded-2xl"
+                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
+                    style={actionButtonStyle}
                   >
                     📚 Add to Watchlist
                   </StyledButton>
                 )}
               </>
             ) : (
-              <div className="bg-black/60 backdrop-blur-lg border border-white/20 px-6 py-3 rounded-2xl">
+              <div 
+                className="backdrop-blur-lg border px-6 py-3 rounded-2xl"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.dark}40`,
+                  borderColor: `${themePalette.primary}20`
+                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
+              >
                 <span className="text-white/70 text-sm">Login to manage watchlist</span>
               </div>
             )}
@@ -1093,7 +1742,11 @@ export default function AnimeDetailPage({
               <StyledButton
                 onClick={() => setIsAddToCustomListModalOpen(true)}
                 variant="ghost"
-                className="!bg-white/10 !backdrop-blur-lg !border-white/20 hover:!bg-white/20 !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2"
+                className="!backdrop-blur-lg !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2 !border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.primary}15`,
+                  borderColor: `${themePalette.primary}30`
+                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
               >
                 <span className="text-lg">➕</span>
                 <span className="font-medium">Custom Lists</span>
@@ -1104,7 +1757,11 @@ export default function AnimeDetailPage({
             <StyledButton 
               onClick={() => handleSmartRefresh("manual", true)} 
               variant="ghost" 
-              className="!bg-white/10 !backdrop-blur-lg !border-white/20 hover:!bg-white/20 !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2"
+              className="!backdrop-blur-lg !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2 !border"
+              style={themePalette ? {
+                backgroundColor: `${themePalette.secondary}15`,
+                borderColor: `${themePalette.secondary}30`
+              } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
               disabled={isAutoRefreshing}
             >
               <span className={`text-lg ${isAutoRefreshing ? "animate-spin" : ""}`}>🔄</span>
@@ -1112,25 +1769,39 @@ export default function AnimeDetailPage({
             </StyledButton>
           </div>
 
-          {/* Scroll indicator */}
+          {/* Scroll indicator with dynamic theming */}
           <div className="scroll-indicator absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div className="scroll-indicator-mouse w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
-              <div className="scroll-indicator-dot w-1 h-1 bg-white/70 rounded-full mt-2 animate-pulse"></div>
+            <div 
+              className="scroll-indicator-mouse w-6 h-10 border-2 rounded-full flex justify-center"
+              style={themePalette ? {
+                borderColor: `${themePalette.primary}50`
+              } : { borderColor: 'rgba(255,255,255,0.5)' }}
+            >
+              <div 
+                className="scroll-indicator-dot w-1 h-1 rounded-full mt-2 animate-pulse"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.accent}70`
+                } : { backgroundColor: 'rgba(255,255,255,0.7)' }}
+              ></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Data Freshness Indicator */}
+      {/* Data Freshness Indicator with Dynamic Theming */}
       {refreshRecommendation && (
         <div className="relative z-10 px-6 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-black/30 backdrop-blur-lg border border-white/20 rounded-2xl">
+          <div 
+            className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-lg border rounded-2xl"
+            style={sectionCardStyle}
+          >
             <DataFreshnessIndicator
               freshnessScore={refreshRecommendation.freshnessScore}
               priority={refreshRecommendation.priority}
               lastFetched={refreshRecommendation.anime?.lastFetched}
               isRefreshing={isAutoRefreshing}
               onRefresh={() => handleSmartRefresh("manual")}
+              themePalette={themePalette || undefined}
             />
             
             <div className="flex items-center gap-3">
@@ -1139,7 +1810,10 @@ export default function AnimeDetailPage({
                   type="checkbox"
                   checked={autoRefreshEnabled}
                   onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                  className="rounded border-white/30 bg-white/10 text-brand-primary-action focus:ring-brand-primary-action"
+                  className="rounded border-white/30 bg-white/10 focus:ring-2"
+                  style={themePalette ? {
+                    accentColor: themePalette.primary
+                  } : { accentColor: '#ECB091' }}
                 />
                 Auto-update
               </label>
@@ -1147,16 +1821,23 @@ export default function AnimeDetailPage({
               <StyledButton
                 onClick={() => setShowRefreshDetails(!showRefreshDetails)}
                 variant="ghost"
-                className="!text-xs !py-1 !px-2 !bg-white/10 hover:!bg-white/20 !text-white/70"
+                className="!text-xs !py-1 !px-2 !text-white/70 !border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.primary}10`,
+                  borderColor: `${themePalette.primary}20`
+                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
               >
                 {showRefreshDetails ? "Hide Details" : "Details"}
               </StyledButton>
             </div>
           </div>
 
-          {/* Refresh Details Panel */}
+          {/* Refresh Details Panel with Dynamic Theming */}
           {showRefreshDetails && (
-            <div className="mt-4 p-4 bg-black/40 backdrop-blur-lg border border-white/20 rounded-2xl">
+            <div 
+              className="mt-4 p-4 backdrop-blur-lg border rounded-2xl"
+              style={sectionCardStyle}
+            >
               <h4 className="text-white font-medium mb-3">Data Status Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
@@ -1164,8 +1845,13 @@ export default function AnimeDetailPage({
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-white/10 rounded-full h-2">
                       <div 
-                        className="h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
-                        style={{ width: `${refreshRecommendation.freshnessScore}%` }}
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${refreshRecommendation.freshnessScore}%`,
+                          background: themePalette ? 
+                            `linear-gradient(to right, ${themePalette.primary}, ${themePalette.accent})` :
+                            'linear-gradient(to right, #EF4444, #F59E0B, #10B981)'
+                        }}
                       ></div>
                     </div>
                     <span className="text-white">{refreshRecommendation.freshnessScore}/100</span>
@@ -1191,22 +1877,31 @@ export default function AnimeDetailPage({
         </div>
       )}
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation with Dynamic Theming */}
       <IOSTabBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         tabs={tabs}
+        themePalette={themePalette || undefined}
       />
 
-      {/* Content Sections */}
+      {/* Content Sections with Enhanced Dynamic Theming */}
       <div className="relative z-10 pb-24 min-h-screen bg-gradient-to-t from-brand-background via-brand-background/95 to-transparent">
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="ios-scroll-section px-6 py-8 space-y-8">
             {/* Synopsis */}
-            <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-6">
+            <div 
+              className="section-card backdrop-blur-lg border rounded-3xl p-6"
+              style={sectionCardStyle}
+            >
               <div className="section-card-header flex items-center gap-3 mb-6">
-                <div className="section-card-icon bg-gradient-to-br from-brand-primary-action/30 to-brand-accent-gold/30 p-2 rounded-full">
+                <div 
+                  className="section-card-icon p-2 rounded-full"
+                  style={themePalette ? {
+                    background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
+                  } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
+                >
                   📖
                 </div>
                 <h2 className="section-card-title text-2xl font-heading text-white font-bold">Synopsis</h2>
@@ -1216,30 +1911,42 @@ export default function AnimeDetailPage({
               </p>
             </div>
 
-            {/* Quick Stats */}
+            {/* Quick Stats with Dynamic Theming */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-2xl mb-2">📊</div>
                 <div className="text-white/60 text-sm">Rating</div>
                 <div className="text-white font-semibold">
                   {anime.rating ? `${(anime.rating / 2).toFixed(1)}/5` : "N/A"}
                 </div>
               </div>
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-2xl mb-2">📺</div>
                 <div className="text-white/60 text-sm">Episodes</div>
                 <div className="text-white font-semibold">
                   {anime.totalEpisodes || "N/A"}
                 </div>
               </div>
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-2xl mb-2">🎬</div>
                 <div className="text-white/60 text-sm">Studio</div>
                 <div className="text-white font-semibold text-xs">
                   {anime.studios?.[0] || "N/A"}
                 </div>
               </div>
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-2xl mb-2">📅</div>
                 <div className="text-white/60 text-sm">Year</div>
                 <div className="text-white font-semibold">
@@ -1264,12 +1971,16 @@ export default function AnimeDetailPage({
                       key={`episode-${index}`}
                       episode={episode}
                       index={index}
+                      themePalette={themePalette || undefined}
                     />
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-3xl p-8 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-6xl mb-4 opacity-50">📺</div>
                 <h3 className="text-xl text-white/70 mb-2">No Episodes Available</h3>
                 <p className="text-white/50 text-sm">
@@ -1290,9 +2001,22 @@ export default function AnimeDetailPage({
                       👥 Characters ({charactersForDisplay.length})
                     </h2>
                     {isEnriching && (
-                      <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
-                        <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-blue-300 text-xs font-medium">Enhancing...</span>
+                      <div 
+                        className="flex items-center gap-2 rounded-full px-3 py-1 border"
+                        style={themePalette ? {
+                          backgroundColor: `${themePalette.secondary}20`,
+                          borderColor: `${themePalette.secondary}30`
+                        } : { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                      >
+                        <div 
+                          className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                          style={themePalette ? {
+                            borderColor: themePalette.secondary
+                          } : { borderColor: '#3B82F6' }}
+                        ></div>
+                        <span className="text-xs font-medium" style={{ color: themePalette?.secondary || '#60A5FA' }}>
+                          Enhancing...
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1305,12 +2029,16 @@ export default function AnimeDetailPage({
                       key={`character-${character.id || character.name || index}`}
                       character={character}
                       onClick={() => onCharacterClick(character, anime.title)}
+                      themePalette={themePalette || undefined}
                     />
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-8 text-center">
+              <div 
+                className="section-card backdrop-blur-lg border rounded-3xl p-8 text-center"
+                style={sectionCardStyle}
+              >
                 <div className="text-6xl mb-4 opacity-50">👥</div>
                 <h3 className="text-xl text-white/70 mb-2">No Character Data</h3>
                 <p className="text-white/50 text-sm">
@@ -1321,13 +2049,21 @@ export default function AnimeDetailPage({
           </div>
         )}
 
-        {/* Reviews Tab */}
+        {/* Reviews Tab with Enhanced Theming */}
         {activeTab === "reviews" && (
           <div className="ios-scroll-section px-6 py-8">
-            <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-6">
+            <div 
+              className="section-card backdrop-blur-lg border rounded-3xl p-6"
+              style={sectionCardStyle}
+            >
               <div className="section-card-header flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="section-card-icon bg-gradient-to-br from-pink-500/30 to-purple-500/30 p-2 rounded-full">
+                  <div 
+                    className="section-card-icon p-2 rounded-full"
+                    style={themePalette ? {
+                      background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.accent}30)`
+                    } : { background: 'linear-gradient(135deg, rgba(236, 112, 199, 0.3), rgba(168, 85, 247, 0.3))' }}
+                  >
                     ⭐
                   </div>
                   <h2 className="section-card-title text-2xl font-heading text-white font-bold">Reviews</h2>
@@ -1336,7 +2072,11 @@ export default function AnimeDetailPage({
                   <StyledButton
                     onClick={() => setShowReviewForm(!showReviewForm)}
                     variant="primary"
-                    className="!text-sm !px-4 !py-2 !rounded-xl !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
+                    className="!text-sm !px-4 !py-2 !rounded-xl !border-0"
+                    style={themePalette ? {
+                      background: themePalette.gradient,
+                      boxShadow: `0 4px 15px ${themePalette.primary}30`
+                    } : {}}
                   >
                     {showReviewForm ? "Cancel" : "Write Review"}
                   </StyledButton>
@@ -1361,11 +2101,18 @@ export default function AnimeDetailPage({
 
               {/* Reviews List */}
               {reviewsIsLoadingInitial && reviewsForDisplay.length === 0 ? (
-                <IOSLoadingSpinner message="Loading reviews..." />
+                <IOSLoadingSpinner message="Loading reviews..." themePalette={themePalette || undefined} />
               ) : reviewsForDisplay.length > 0 ? (
                 <div className="space-y-6">
                   {reviewsForDisplay.map((review) => (
-                    <div key={review._id} className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                    <div 
+                      key={review._id} 
+                      className="backdrop-blur-sm border rounded-2xl p-6"
+                      style={themePalette ? {
+                        backgroundColor: `${themePalette.dark}40`,
+                        borderColor: `${themePalette.primary}10`
+                      } : { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }}
+                    >
                       <ReviewCard
                         review={review}
                         currentUserId={currentUserId}
@@ -1387,18 +2134,23 @@ export default function AnimeDetailPage({
                         }}
                       />
                       
-                      {/* Review Actions */}
+                      {/* Review Actions with Dynamic Theming */}
                       <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <StyledButton
                               onClick={() => handleVote(review._id, "up")}
                               variant="ghost"
-                              className={`!text-xs !px-2 !py-1 ${
+                              className={`!text-xs !px-2 !py-1 !border ${
                                 review.currentUserVote === "up" 
-                                  ? "!text-brand-primary-action !bg-brand-primary-action/10" 
-                                  : "!text-white/70 hover:!text-brand-primary-action !bg-white/5 hover:!bg-white/10"
+                                  ? "!text-brand-primary-action" 
+                                  : "!text-white/70 hover:!text-brand-primary-action"
                               }`}
+                              style={review.currentUserVote === "up" && themePalette ? {
+                                backgroundColor: `${themePalette.primary}10`,
+                                borderColor: `${themePalette.primary}30`,
+                                color: themePalette.primary
+                              } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
                               disabled={!isAuthenticated || review.userId === currentUserId}
                             >
                               👍 {review.upvotes || 0}
@@ -1406,11 +2158,16 @@ export default function AnimeDetailPage({
                             <StyledButton
                               onClick={() => handleVote(review._id, "down")}
                               variant="ghost"
-                              className={`!text-xs !px-2 !py-1 ${
+                              className={`!text-xs !px-2 !py-1 !border ${
                                 review.currentUserVote === "down" 
-                                  ? "!text-red-500 !bg-red-500/10" 
-                                  : "!text-white/70 hover:!text-red-500 !bg-white/5 hover:!bg-white/10"
+                                  ? "!text-red-500" 
+                                  : "!text-white/70 hover:!text-red-500"
                               }`}
+                              style={review.currentUserVote === "down" ? {
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderColor: 'rgba(239, 68, 68, 0.3)',
+                                color: '#EF4444'
+                              } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
                               disabled={!isAuthenticated || review.userId === currentUserId}
                             >
                               👎 {review.downvotes || 0}
@@ -1420,7 +2177,12 @@ export default function AnimeDetailPage({
                           <StyledButton
                             onClick={() => handleToggleComments(review._id)}
                             variant="ghost"
-                            className="!text-xs !px-2 !py-1 !text-brand-accent-gold hover:!text-brand-primary-action !bg-white/5 hover:!bg-white/10"
+                            className="!text-xs !px-2 !py-1 hover:!text-brand-primary-action !border"
+                            style={themePalette ? {
+                              backgroundColor: `${themePalette.accent}10`,
+                              borderColor: `${themePalette.accent}20`,
+                              color: themePalette.accent
+                            } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#ECB091' }}
                           >
                             💬 {review.commentCount || 0} Comments
                           </StyledButton>
@@ -1438,7 +2200,14 @@ export default function AnimeDetailPage({
                                 rows={3}
                                 maxLength={1000}
                                 placeholder="Add a comment..."
-                                className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 resize-none mb-3"
+                                className="w-full backdrop-blur-sm border rounded-2xl p-4 text-white placeholder-white/60 focus:outline-none transition-all duration-300 resize-none mb-3 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                                style={themePalette ? {
+                                  backgroundColor: `${themePalette.dark}40`,
+                                  borderColor: `${themePalette.primary}20`
+                                } : { 
+                                  backgroundColor: 'rgba(0,0,0,0.4)', 
+                                  borderColor: 'rgba(255,255,255,0.2)'
+                                }}
                               />
                               <div className="flex justify-between items-center">
                                 <p className="text-white/60 text-xs">
@@ -1447,7 +2216,11 @@ export default function AnimeDetailPage({
                                 <StyledButton
                                   onClick={() => handleAddComment(review._id)}
                                   variant="primary"
-                                  className="!text-xs !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                                  className="!text-xs !border-0"
+                                  style={themePalette ? {
+                                    background: themePalette.gradient,
+                                    boxShadow: `0 4px 15px ${themePalette.primary}30`
+                                  } : {}}
                                   disabled={isSubmittingComment || !(newCommentText[review._id] || "").trim()}
                                 >
                                   {isSubmittingComment ? "Posting..." : "Post Comment"}
@@ -1457,13 +2230,20 @@ export default function AnimeDetailPage({
                           )}
 
                           {commentsIsLoading && (
-                            <IOSLoadingSpinner message="Loading comments..." />
+                            <IOSLoadingSpinner message="Loading comments..." themePalette={themePalette || undefined} />
                           )}
 
                           {commentsDataForActiveReview && commentsDataForActiveReview.length > 0 ? (
                             <div className="space-y-4">
                               {commentsDataForActiveReview.map((comment) => (
-                                <div key={comment._id} className="bg-black/20 backdrop-blur-sm rounded-xl p-4 border border-white/5">
+                                <div 
+                                  key={comment._id} 
+                                  className="backdrop-blur-sm rounded-xl p-4 border"
+                                  style={themePalette ? {
+                                    backgroundColor: `${themePalette.dark}20`,
+                                    borderColor: `${themePalette.primary}05`
+                                  } : { backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)' }}
+                                >
                                   <div className="flex items-start gap-3 mb-3">
                                     {comment.userAvatarUrl ? (
                                       <img 
@@ -1472,7 +2252,12 @@ export default function AnimeDetailPage({
                                         className="w-8 h-8 rounded-full object-cover" 
                                       />
                                     ) : (
-                                      <div className="w-8 h-8 rounded-full bg-brand-accent-gold text-brand-surface flex items-center justify-center text-xs font-semibold">
+                                      <div 
+                                        className="w-8 h-8 rounded-full text-brand-surface flex items-center justify-center text-xs font-semibold"
+                                        style={themePalette ? {
+                                          backgroundColor: themePalette.accent
+                                        } : { backgroundColor: '#ECB091' }}
+                                      >
                                         {comment.userName?.charAt(0).toUpperCase() || "U"}
                                       </div>
                                     )}
@@ -1507,7 +2292,11 @@ export default function AnimeDetailPage({
                               <StyledButton
                                 onClick={() => commentsLoadMore(3)}
                                 variant="ghost"
-                                className="!text-xs !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                                className="!text-xs !backdrop-blur-sm !border !text-white"
+                                style={themePalette ? {
+                                  backgroundColor: `${themePalette.primary}10`,
+                                  borderColor: `${themePalette.primary}20`
+                                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
                                 disabled={commentsIsLoading}
                               >
                                 {commentsIsLoading ? "Loading..." : "Load More Comments"}
@@ -1524,7 +2313,11 @@ export default function AnimeDetailPage({
                       <StyledButton
                         onClick={() => reviewsLoadMore(3)}
                         variant="secondary"
-                        className="!bg-black/30 !backdrop-blur-sm !border-white/20 hover:!bg-white/10 !text-white"
+                        className="!backdrop-blur-sm !border !text-white"
+                        style={themePalette ? {
+                          backgroundColor: `${themePalette.dark}30`,
+                          borderColor: `${themePalette.primary}20`
+                        } : { backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.2)' }}
                         disabled={reviewsIsLoadingInitial}
                       >
                         {reviewsIsLoadingInitial ? "Loading..." : "Load More Reviews"}
@@ -1546,7 +2339,11 @@ export default function AnimeDetailPage({
                     <StyledButton
                       onClick={() => setShowReviewForm(true)}
                       variant="primary"
-                      className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                      className="!border-0"
+                      style={themePalette ? {
+                        background: themePalette.gradient,
+                        boxShadow: `0 8px 32px ${themePalette.primary}30`
+                      } : {}}
                     >
                       Write the First Review
                     </StyledButton>
@@ -1557,13 +2354,21 @@ export default function AnimeDetailPage({
           </div>
         )}
 
-        {/* Similar Tab */}
+        {/* Similar Tab with Enhanced Theming */}
         {activeTab === "similar" && (
           <div className="ios-scroll-section px-6 py-8">
-            <div className="section-card bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-6">
+            <div 
+              className="section-card backdrop-blur-lg border rounded-3xl p-6"
+              style={sectionCardStyle}
+            >
               <div className="section-card-header flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="section-card-icon bg-gradient-to-br from-cyan-500/30 to-blue-500/30 p-2 rounded-full">
+                  <div 
+                    className="section-card-icon p-2 rounded-full"
+                    style={themePalette ? {
+                      background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.primary}30)`
+                    } : { background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3))' }}
+                  >
                     🔍
                   </div>
                   <h2 className="section-card-title text-2xl font-heading text-white font-bold">Similar Anime</h2>
@@ -1571,14 +2376,18 @@ export default function AnimeDetailPage({
                 <StyledButton
                   onClick={loadSimilarAnime}
                   variant="primary"
-                  className="!text-sm !px-4 !py-2 !rounded-xl !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
+                  className="!text-sm !px-4 !py-2 !rounded-xl !border-0"
+                  style={themePalette ? {
+                    background: themePalette.gradient,
+                    boxShadow: `0 4px 15px ${themePalette.primary}30`
+                  } : {}}
                   disabled={loadingSimilar}
                 >
                   {loadingSimilar ? "Finding..." : "Find Similar"}
                 </StyledButton>
               </div>
               
-              {loadingSimilar && <IOSLoadingSpinner message="Finding similar anime..." />}
+              {loadingSimilar && <IOSLoadingSpinner message="Finding similar anime..." themePalette={themePalette || undefined} />}
               {similarAnimeError && <p className="text-red-400 text-center py-8">{similarAnimeError}</p>}
               
               {!loadingSimilar && !similarAnimeError && showSimilarAnime && similarAnime.length > 0 && (
@@ -1589,15 +2398,31 @@ export default function AnimeDetailPage({
                       className="group relative transform transition-all duration-500 hover:scale-105"
                       style={{ animationDelay: `${idx * 100}ms` }}
                     >
-                      <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                      <div 
+                        className="absolute -inset-2 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        style={themePalette ? {
+                          background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
+                        } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
+                      ></div>
+                      <div 
+                        className="relative backdrop-blur-sm rounded-2xl overflow-hidden border group-hover:border-white/30 transition-all duration-300"
+                        style={themePalette ? {
+                          backgroundColor: `${themePalette.dark}20`,
+                          borderColor: `${themePalette.primary}10`
+                        } : { backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)' }}
+                      >
                         <AnimeCard 
                           anime={rec} 
                           isRecommendation={true} 
                           onViewDetails={navigateToDetail}
                           className="w-full"
                         />
-                        <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
+                        <div 
+                          className="p-3"
+                          style={themePalette ? {
+                            background: `linear-gradient(to top, ${themePalette.dark}80, transparent)`
+                          } : { background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}
+                        >
                           <h4 className="text-sm font-medium text-white text-center truncate" title={rec.title}>
                             {rec.title || "Unknown Title"}
                           </h4>
@@ -1618,7 +2443,11 @@ export default function AnimeDetailPage({
                   <StyledButton
                     onClick={loadSimilarAnime}
                     variant="primary"
-                    className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold"
+                    className="!border-0"
+                    style={themePalette ? {
+                      background: themePalette.gradient,
+                      boxShadow: `0 8px 32px ${themePalette.primary}30`
+                    } : {}}
                     disabled={loadingSimilar}
                   >
                     🔍 Find Similar Anime
@@ -1637,15 +2466,28 @@ export default function AnimeDetailPage({
         )}
       </div>
 
-      {/* Watchlist Notes Section - Only show if user has added to watchlist */}
+      {/* Watchlist Notes Section with Enhanced Theming */}
       {watchlistEntry && (
         <div className="relative z-10 px-6 pb-8">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-3xl blur-xl"></div>
-            <div className="relative bg-black/60 backdrop-blur-lg border border-white/20 rounded-3xl p-6 sm:p-8">
+            <div 
+              className="absolute inset-0 rounded-3xl blur-xl"
+              style={themePalette ? {
+                background: `linear-gradient(135deg, ${themePalette.accent}10, ${themePalette.secondary}10)`
+              } : { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(249, 115, 22, 0.1))' }}
+            ></div>
+            <div 
+              className="relative backdrop-blur-lg border rounded-3xl p-6 sm:p-8"
+              style={sectionCardStyle}
+            >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full">
+                  <div 
+                    className="p-2 rounded-full"
+                    style={themePalette ? {
+                      background: `linear-gradient(135deg, ${themePalette.accent}20, ${themePalette.secondary}20)`
+                    } : { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.2))' }}
+                  >
                     <span className="text-2xl">📝</span>
                   </div>
                   <h3 className="text-xl font-heading text-white font-bold">My Notes</h3>
@@ -1653,7 +2495,11 @@ export default function AnimeDetailPage({
                 <StyledButton
                   onClick={() => setShowNotesInput(!showNotesInput)}
                   variant="ghost"
-                  className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                  className="!text-sm !backdrop-blur-sm !border !text-white"
+                  style={themePalette ? {
+                    backgroundColor: `${themePalette.primary}10`,
+                    borderColor: `${themePalette.primary}20`
+                  } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
                 >
                   {showNotesInput ? "Cancel" : watchlistEntry.notes ? "Edit Notes" : "Add Notes"}
                 </StyledButton>
@@ -1667,7 +2513,14 @@ export default function AnimeDetailPage({
                     rows={4}
                     maxLength={500}
                     placeholder="Your private thoughts about this anime..."
-                    className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 resize-none"
+                    className="w-full backdrop-blur-sm border rounded-2xl p-4 text-white placeholder-white/60 focus:outline-none transition-all duration-300 resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                    style={themePalette ? {
+                      backgroundColor: `${themePalette.dark}40`,
+                      borderColor: `${themePalette.primary}20`
+                    } : { 
+                      backgroundColor: 'rgba(0,0,0,0.4)', 
+                      borderColor: 'rgba(255,255,255,0.2)'
+                    }}
                   />
                   <div className="flex justify-between items-center">
                     <p className="text-white/60 text-xs">
@@ -1680,7 +2533,11 @@ export default function AnimeDetailPage({
                           setShowNotesInput(false);
                         }}
                         variant="ghost"
-                        className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                        className="!text-sm !backdrop-blur-sm !border !text-white"
+                        style={themePalette ? {
+                          backgroundColor: `${themePalette.primary}10`,
+                          borderColor: `${themePalette.primary}20`
+                        } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
                         disabled={isSavingNotes}
                       >
                         Cancel
@@ -1688,7 +2545,11 @@ export default function AnimeDetailPage({
                       <StyledButton
                         onClick={handleSaveWatchlistNotes}
                         variant="primary"
-                        className="!text-sm !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                        className="!text-sm !border-0"
+                        style={themePalette ? {
+                          background: themePalette.gradient,
+                          boxShadow: `0 4px 15px ${themePalette.primary}30`
+                        } : {}}
                         disabled={isSavingNotes}
                       >
                         {isSavingNotes ? "Saving..." : "Save Notes"}
@@ -1699,7 +2560,13 @@ export default function AnimeDetailPage({
               ) : (
                 <div>
                   {watchlistEntry.notes ? (
-                    <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+                    <div 
+                      className="backdrop-blur-sm rounded-2xl p-4 border"
+                      style={themePalette ? {
+                        backgroundColor: `${themePalette.dark}40`,
+                        borderColor: `${themePalette.primary}10`
+                      } : { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }}
+                    >
                       <p className="text-white/90 leading-relaxed whitespace-pre-wrap">
                         {watchlistEntry.notes}
                       </p>
@@ -1719,13 +2586,15 @@ export default function AnimeDetailPage({
         </div>
       )}
 
-    {isAddToCustomListModalOpen && myCustomLists && anime && (
+      {/* Custom List Modal */}
+      {isAddToCustomListModalOpen && myCustomLists && anime && (
         <AddToCustomListModal
           isOpen={isAddToCustomListModalOpen}
           onClose={() => setIsAddToCustomListModalOpen(false)}
           lists={myCustomLists}
           animeId={anime._id}
           onToggle={toggleAnimeInCustomList}
+          themePalette={themePalette || undefined}
         />
       )}
     </div>
@@ -1738,11 +2607,21 @@ const AddToCustomListModal: React.FC<{
   lists: CustomListType[];
   animeId: Id<"anime">;
   onToggle: (listId: Id<"customLists">, inList: boolean) => void;
-}> = ({ isOpen, onClose, lists, animeId, onToggle }) => {
+  themePalette?: ColorPalette;
+}> = ({ isOpen, onClose, lists, animeId, onToggle, themePalette }) => {
   if (!isOpen) return null;
+  
+  const modalStyle = themePalette ? {
+    backgroundColor: themePalette.dark,
+    borderColor: `${themePalette.primary}40`
+  } : {};
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-brand-surface text-white p-5 rounded-xl shadow-xl w-full max-w-md sm:max-w-lg md:max-w-xl space-y-4">
+      <div 
+        className="text-white p-5 rounded-xl shadow-xl w-full max-w-md sm:max-w-lg md:max-w-xl space-y-4 border"
+        style={modalStyle || { backgroundColor: '#1A1A1A', borderColor: 'rgba(255,255,255,0.2)' }}
+      >
         <h3 className="text-lg font-heading">Manage Custom Lists</h3>
         {lists.length === 0 ? (
           <p className="text-sm text-center">No custom lists available.</p>
@@ -1756,6 +2635,11 @@ const AddToCustomListModal: React.FC<{
                   <StyledButton
                     variant="secondary_small"
                     onClick={() => onToggle(list._id, inList)}
+                    style={themePalette && inList ? {
+                      backgroundColor: `${themePalette.primary}20`,
+                      borderColor: `${themePalette.primary}40`,
+                      color: themePalette.primary
+                    } : {}}
                   >
                     {inList ? "Remove" : "Add"}
                   </StyledButton>
@@ -1765,7 +2649,17 @@ const AddToCustomListModal: React.FC<{
           </ul>
         )}
         <div className="text-right pt-2">
-          <StyledButton variant="secondary_small" onClick={onClose}>Close</StyledButton>
+          <StyledButton 
+            variant="secondary_small" 
+            onClick={onClose}
+            style={themePalette ? {
+              backgroundColor: `${themePalette.secondary}20`,
+              borderColor: `${themePalette.secondary}40`,
+              color: themePalette.secondary
+            } : {}}
+          >
+            Close
+          </StyledButton>
         </div>
       </div>
     </div>
