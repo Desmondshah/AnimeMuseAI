@@ -54,6 +54,7 @@ const ShuffleCard = memo(
     onItemClick?: (index: number) => void;
   }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const dragEndTimeout = useRef<number | null>(null);
     const dragX = useMotionValue(0);
 
     const cardData = useMemo(() => {
@@ -87,7 +88,8 @@ const ShuffleCard = memo(
 
     const handleDragEnd = useCallback(
       (_: any, info: PanInfo) => {
-        setIsDragging(false);
+         if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
+        dragEndTimeout.current = window.setTimeout(() => setIsDragging(false), 50);
         dragX.set(0);
 
         const threshold = 60;
@@ -106,6 +108,7 @@ const ShuffleCard = memo(
     );
 
     const handleDragStart = useCallback(() => {
+      if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
       setIsDragging(true);
       if ("vibrate" in navigator) navigator.vibrate(20);
     }, []);
@@ -128,12 +131,22 @@ const ShuffleCard = memo(
     );
 
     const handleTap = useCallback(() => {
-      if (!cardData.isActive && !isDragging) {
+      if (isDragging) return;
+
+      if (!cardData.isActive) {
         onIndexChange(index);
         if ("vibrate" in navigator) navigator.vibrate(25);
+        return;
       }
+
       onItemClick?.(index);
     }, [cardData.isActive, isDragging, index, onIndexChange, onItemClick]);
+
+    useEffect(() => {
+      return () => {
+        if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
+      };
+    }, []);
 
     if (!cardData.isVisible) return null;
 

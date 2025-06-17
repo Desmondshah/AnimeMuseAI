@@ -348,18 +348,15 @@ export default function MainApp() {
   // Enhanced function to handle recommendation clicks
   const handleRecommendationClick = useCallback(async (recommendation: AnimeRecommendation) => {
   console.log(`[MainApp] Recommendation clicked:`, recommendation);
-  console.log(`[MainApp] Recommendation has _id:`, '_id' in recommendation);
-  console.log(`[MainApp] Recommendation._id value:`, recommendation._id);
+  const existingId = (recommendation as any)._id || (recommendation as any).id;
 
-  // Check if the recommendation has an _id field
-  if ('_id' in recommendation && recommendation._id) {
-    console.log(`[MainApp] ✅ Using existing ID: ${recommendation._id}`);
-    navigateToDetail(recommendation._id as Id<"anime">);
+  if (existingId) {
+    console.log(`[MainApp] ✅ Using existing ID: ${existingId}`);
+    navigateToDetail(existingId as Id<"anime">);
     return;
   }
 
-  // FIXED: Instead of redirecting to AI, try to add the anime to database first
-  console.log(`[MainApp] ❌ No _id found, attempting to add to database first...`);
+  console.log(`[MainApp] ❌ No ID found, attempting to add to database first...`);
   
   try {
     const toastId = `add-recommendation-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;

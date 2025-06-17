@@ -60,21 +60,7 @@ export const getAnimeByTitle = query({
 export const getAnimeByTitleInternal = internalQuery({
   args: { title: v.string() },
   handler: async (ctx, args): Promise<Doc<"anime"> | null> => {
-    // Try exact match first
-    let anime = await ctx.db
-      .query("anime")
-      .withIndex("by_title", q => q.eq("title", args.title))
-      .first();
-    
-    // If no exact match, try case-insensitive search
-    if (!anime) {
-      const allAnime = await ctx.db.query("anime").collect();
-      anime = allAnime.find(a => 
-        a.title.toLowerCase() === args.title.toLowerCase()
-      ) || null;
-    }
-    
-    return anime;
+    return await findExistingAnimeByTitle(ctx, args.title);
   },
 });
 
@@ -814,6 +800,9 @@ export const mergeAnimeDuplicate = internalMutation({
     await ctx.db.delete(duplicateId);
   }
 });
+
+// Export helper for testing
+export { findExistingAnimeByTitle };
 
 export const deduplicateAnimeDatabase = internalAction({
   args: {},

@@ -407,6 +407,7 @@ const enhanceRecommendationsWithDatabaseFirst = async (
             if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
               posterUrl = dbAnime.posterUrl;
               foundInDatabase = true;
+              rec._id = dbAnime._id;
               console.log(`[Database-First Enhancement] ✅ Found in DB with valid poster: ${rec.title}`);
               
               // Enhance other fields from database if they're better
