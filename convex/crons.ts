@@ -177,4 +177,12 @@ crons.weekly(
   }
 );
 
+// Daily job to deduplicate anime database
+crons.daily(
+  "deduplicateAnimeDatabase",
+  { hourUTC: 6, minuteUTC: 0 },
+  internal.anime.deduplicateAnimeDatabase,
+  {}
+);
+
 export default crons;

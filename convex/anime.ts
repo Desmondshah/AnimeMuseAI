@@ -1,13 +1,40 @@
 // convex/anime.ts - Updated with server-side search
 
 import { v } from "convex/values";
-import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery, internalAction } from "./_generated/server";
 import { Doc, Id, DataModel } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { PaginationResult, Query, OrderedQuery } from "convex/server";
 import { internal } from "./_generated/api";
 
 const FILTER_METADATA_IDENTIFIER = "singleton_filter_options_v1";
+
+function normalizeTitle(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/gi, "");
+}
+
+async function findExistingAnimeByTitle(ctx: any, title: string): Promise<Doc<"anime"> | null> {
+  const clean = normalizeTitle(title);
+
+  let existing = await ctx.db
+    .query("anime")
+    .withIndex("by_title", (q: any) => q.eq("title", title))
+    .first();
+
+  if (!existing) {
+    const matches = await ctx.db
+      .query("anime")
+      .withSearchIndex("search_title", (q: any) => q.search("title", title))
+      .take(50);
+    existing =
+      matches.find((a: any) => normalizeTitle(a.title) === clean) || null;
+  }
+
+  return existing;
+}
 
 export const getAnimeById = query({
   args: { animeId: v.id("anime") },
@@ -448,24 +475,7 @@ export async function addAnimeByUserHandler(ctx: any, args: {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("User not authenticated");
 
-  const normalizedTitle = args.title.trim().toLowerCase();
-
-  // Exact match first
-  let existing = await ctx.db
-    .query("anime")
-    .withIndex("by_title", (q: any) => q.eq("title", args.title))
-    .first();
-
-  if (!existing) {
-    // Case-insensitive check using search index
-    const matches = await ctx.db
-      .query("anime")
-      .withSearchIndex("search_title", (q: any) => q.search("title", normalizedTitle))
-      .take(20);
-    existing = matches.find(
-      (a: any) => a.title.trim().toLowerCase() === normalizedTitle,
-    );
-  }
+  const existing = await findExistingAnimeByTitle(ctx, args.title);
 
   if (existing) {
     console.warn(
@@ -522,7 +532,7 @@ export const addAnimeInternal = internalMutation({
       anilistId: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        const existing = await ctx.db.query("anime").withIndex("by_title", q => q.eq("title", args.title)).unique();
+        const existing = await findExistingAnimeByTitle(ctx, args.title);
         if (existing) return existing._id;
         
         const animeId = await ctx.db.insert("anime", args);
@@ -731,4 +741,109 @@ export const getAnimeWithEpisodes = query({
     
     return results;
   },
+});
+
+export const mergeAnimeDuplicate = internalMutation({
+  args: { targetId: v.id("anime"), duplicateId: v.id("anime") },
+  handler: async (ctx, args) => {
+    const targetId = args.targetId;
+    const duplicateId = args.duplicateId;
+
+    const duplicate = await ctx.db.get(duplicateId);
+    const target = await ctx.db.get(targetId);
+    if (!duplicate || !target) return;
+
+    const watchlistItems = await ctx.db
+      .query("watchlist")
+      .filter(q => q.eq(q.field("animeId"), duplicateId))
+      .collect();
+    for (const item of watchlistItems) {
+      await ctx.db.patch(item._id, { animeId: targetId });
+    }
+
+    const reviews = await ctx.db
+      .query("reviews")
+      .withIndex("by_animeId_createdAt", q => q.eq("animeId", duplicateId))
+      .collect();
+    for (const review of reviews) {
+      await ctx.db.patch(review._id, { animeId: targetId });
+    }
+
+    const lists = await ctx.db.query("customLists").collect();
+    for (const list of lists) {
+      if (list.animeIds.includes(duplicateId)) {
+        const updated = Array.from(
+          new Set(list.animeIds.map(id => (id === duplicateId ? targetId : id)))
+        );
+        await ctx.db.patch(list._id, { animeIds: updated, updatedAt: Date.now() });
+      }
+    }
+
+    const fieldsToMerge: (keyof Doc<"anime">)[] = [
+      "description",
+      "posterUrl",
+      "genres",
+      "year",
+      "rating",
+      "emotionalTags",
+      "trailerUrl",
+      "studios",
+      "themes",
+      "anilistId",
+      "streamingEpisodes",
+      "totalEpisodes",
+      "episodeDuration",
+      "airingStatus",
+      "nextAiringEpisode",
+      "characters",
+    ];
+
+    const updates: Partial<Doc<"anime">> = {};
+    for (const field of fieldsToMerge) {
+      const current = (target as any)[field];
+      const incoming = (duplicate as any)[field];
+      if ((current === undefined || (Array.isArray(current) && current.length === 0)) && incoming !== undefined) {
+        (updates as any)[field] = incoming;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(targetId, updates);
+    }
+
+    await ctx.db.delete(duplicateId);
+  }
+});
+
+export const deduplicateAnimeDatabase = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const map = new Map<string, Doc<"anime">[]>();
+    for (const anime of allAnime) {
+      const key = normalizeTitle(anime.title);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(anime);
+    }
+
+    let duplicatesRemoved = 0;
+    for (const group of map.values()) {
+      if (group.length < 2) continue;
+      group.sort((a, b) => a._creationTime - b._creationTime);
+      const [target, ...dups] = group;
+      for (const dup of dups) {
+        await ctx.runMutation(internal.anime.mergeAnimeDuplicate, {
+          targetId: target._id,
+          duplicateId: dup._id,
+        });
+        duplicatesRemoved++;
+      }
+      await ctx.runMutation(internal.reviews.updateAnimeAverageRating, {
+        animeId: target._id,
+      });
+    }
+
+    console.log(`[Dedup] Removed ${duplicatesRemoved} duplicate anime entries`);
+    return { removed: duplicatesRemoved };
+  }
 });
