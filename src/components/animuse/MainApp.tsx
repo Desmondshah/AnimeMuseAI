@@ -193,6 +193,7 @@ export default function MainApp() {
       }))
     : undefined;
   const createCustomListMutation = useMutation(api.users.createCustomList);
+  const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
   const fetchTrendingAnimeAction = useAction(api.externalApis.fetchTrendingAnime);
   const fetchTopRatedAnimeAction = useAction(api.externalApis.fetchTopRatedAnime);
   const fetchPopularAnimeAction = useAction(api.externalApis.fetchPopularAnime);
@@ -347,61 +348,49 @@ export default function MainApp() {
 
   // Enhanced function to handle recommendation clicks
   const handleRecommendationClick = useCallback(async (recommendation: AnimeRecommendation) => {
-  console.log(`[MainApp] Recommendation clicked:`, recommendation);
   const existingId = (recommendation as any)._id || (recommendation as any).id;
 
-  if (existingId) {
-    console.log(`[MainApp] ✅ Using existing ID: ${existingId}`);
-    navigateToDetail(existingId as Id<"anime">);
-    return;
-  }
-
-  console.log(`[MainApp] ❌ No ID found, attempting to add to database first...`);
-  
-  try {
-    const toastId = `add-recommendation-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;
-    toast.loading(`Adding "${recommendation.title}" to database...`, { id: toastId });
-    
-    // Create robust anime object for database
-    const animeToAdd = {
-      title: recommendation.title?.trim() || "Unknown Title",
-      description: recommendation.description?.trim() || "No description available.",
-      posterUrl: recommendation.posterUrl && !recommendation.posterUrl.includes('placeholder') 
-        ? recommendation.posterUrl 
-        : `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(recommendation.title?.substring(0, 20) || 'Anime')}&font=roboto`,
-      genres: Array.isArray(recommendation.genres) ? recommendation.genres.filter(g => g && g.trim()) : [],
-      year: typeof recommendation.year === 'number' && recommendation.year > 1900 ? recommendation.year : undefined,
-      rating: typeof recommendation.rating === 'number' && recommendation.rating >= 0 && recommendation.rating <= 10 ? recommendation.rating : undefined,
-      emotionalTags: Array.isArray(recommendation.emotionalTags) ? recommendation.emotionalTags.filter(tag => tag && tag.trim()) : [],
-      trailerUrl: recommendation.trailerUrl && recommendation.trailerUrl.trim() ? recommendation.trailerUrl : undefined,
-      studios: Array.isArray(recommendation.studios) ? recommendation.studios.filter(s => s && s.trim()) : [],
-      themes: Array.isArray(recommendation.themes) ? recommendation.themes.filter(t => t && t.trim()) : []
-    };
-    
-    console.log(`[MainApp] Adding recommendation to database:`, animeToAdd);
-    
-    // Add anime to database using a mutation (you'll need to import this)
-    // const addAnimeByUser = useMutation(api.anime.addAnimeByUser);
-    // const newAnimeId = await addAnimeByUser(animeToAdd);
-    
-    // For now, since we can't import the mutation here, redirect to AI with more context
-    toast.info(`🎯 "${recommendation.title}" needs to be added to database. Use the detail view to add it.`, { id: toastId });
-    
-    // Store the recommendation data in sessionStorage for the AI assistant to use
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pendingAnimeRecommendation', JSON.stringify(recommendation));
+    if (existingId) {
+      navigateToDetail(existingId as Id<"anime">);
+      return;
     }
-    
-    navigateToAIAssistant();
-    
-  } catch (error: any) {
-    console.error(`[MainApp] Failed to handle recommendation:`, error);
-    toast.error(`Failed to process recommendation: ${error.message}`);
-    
-    // Fallback: redirect to AI assistant
-    navigateToAIAssistant();
-  }
-}, [navigateToDetail, navigateToAIAssistant]);
+
+    const toastId = `add-recommendation-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;
+    toast.loading('Adding anime to your universe...', { id: toastId });
+
+    const animeToAdd = {
+      title: recommendation.title?.trim() || 'Unknown Title',
+      description: recommendation.description?.trim() || 'No description available.',
+      posterUrl:
+        recommendation.posterUrl && !recommendation.posterUrl.includes('placeholder')
+          ? recommendation.posterUrl
+          : `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(
+              recommendation.title?.substring(0, 20) || 'Anime',
+            )}&font=roboto`,
+      genres: Array.isArray(recommendation.genres) ? recommendation.genres.filter((g) => g && g.trim()) : [],
+      year: typeof recommendation.year === 'number' && recommendation.year > 1900 ? recommendation.year : undefined,
+      rating:
+        typeof recommendation.rating === 'number' && recommendation.rating >= 0 && recommendation.rating <= 10
+          ? recommendation.rating
+          : undefined,
+      emotionalTags: Array.isArray(recommendation.emotionalTags)
+        ? recommendation.emotionalTags.filter((tag) => tag && tag.trim())
+        : [],
+      trailerUrl: recommendation.trailerUrl && recommendation.trailerUrl.trim() ? recommendation.trailerUrl : undefined,
+      studios: Array.isArray(recommendation.studios) ? recommendation.studios.filter((s) => s && s.trim()) : [],
+      themes: Array.isArray(recommendation.themes) ? recommendation.themes.filter((t) => t && t.trim()) : [],
+      anilistId: (recommendation as any).anilistId ?? undefined,
+    };
+
+    try {
+      const newAnimeId = await addAnimeByUserMutation(animeToAdd);
+      toast.success('Anime added!', { id: toastId });
+      navigateToDetail(newAnimeId);
+    } catch (error: any) {
+      console.error('[MainApp] Failed to add recommendation:', error);
+      toast.error(`Failed to add anime: ${error.message || 'Unknown error'}`, { id: toastId });
+    }
+  }, [addAnimeByUserMutation, navigateToDetail]);
 
 // Also add a fallback navigation function
 const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
