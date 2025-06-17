@@ -190,7 +190,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         animationsEnabled: formData.animationsEnabled ?? true,
       };
       await updateUserPreferences(preferencesToUpdate);
-      toast.success("Profile updated successfully!", { id: "profile-settings-save" });
+      toast.success("Profile updated successfully! Refreshing recommendations...", { id: "profile-settings-save" });
     } catch (error: any) {
       toast.error(error.data?.message || error.message || "Could not save preferences.", { id: "profile-settings-save" });
     } finally {

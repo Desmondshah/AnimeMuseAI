@@ -183,7 +183,15 @@ export default function MainApp() {
   const fullWatchlist = useQuery(api.anime.getMyWatchlist);
   const isUserAdmin = useQuery(api.admin.isCurrentUserAdmin);
   const myCustomLists = useQuery(api.users.getMyCustomLists);
-  const getPersonalizedRecommendationsAction = useAction(api.ai.debugPersonalizedRecommendations);
+  const getPersonalizedRecommendationsAction = useAction(api.ai.getPersonalizedRecommendationsWithDatabaseFirst);
+
+  const watchlistActivity: WatchlistActivityItem[] | undefined = fullWatchlist
+    ? (fullWatchlist as any[]).slice(0, 5).map((item: any) => ({
+        animeTitle: item.anime?.title || 'Unknown',
+        status: item.status,
+        userRating: item.userRating ?? undefined,
+      }))
+    : undefined;
   const createCustomListMutation = useMutation(api.users.createCustomList);
   const fetchTrendingAnimeAction = useAction(api.externalApis.fetchTrendingAnime);
   const fetchTopRatedAnimeAction = useAction(api.externalApis.fetchTopRatedAnime);
@@ -227,6 +235,8 @@ export default function MainApp() {
   // FIXED: Move useRef hooks INSIDE the component
   const fetchInProgressRef = useRef<boolean>(false);
   const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
+  // Track previous profile to detect changes
+  const previousProfileRef = useRef<any>(null);
 
   // --------------------------------------------------------------------------
   // SUBSECTION 4.2: HELPER FUNCTIONS
@@ -448,6 +458,7 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
 
       const result = await getPersonalizedRecommendationsAction({
         userProfile: profileDataForAI,
+        watchlistActivity,
         count: 10,
         messageId: `manual-refresh-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       });
@@ -485,7 +496,7 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
     } finally {
       fetchInProgressRef.current = false;
     }
-  }, [forYouCategories, userProfile, getPersonalizedRecommendationsAction]);
+  }, [forYouCategories, userProfile, watchlistActivity, getPersonalizedRecommendationsAction]);
 
   // --------------------------------------------------------------------------
   // SUBSECTION 4.6: CUSTOM LIST FUNCTIONS
@@ -667,6 +678,7 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
               try {
                 const result = await getPersonalizedRecommendationsAction({
                   userProfile: args.userProfile,
+                  watchlistActivity,
                   count: args.count || 10,
                   messageId: args.messageId
                 });
@@ -716,7 +728,21 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
         clearTimeout(debouncedFetchRef.current);
       }
     };
-  }, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist, forYouCategories, needsRefresh]);
+  }, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist, watchlistActivity, forYouCategories, needsRefresh]);
+
+  // Trigger refresh when profile preferences change
+  useEffect(() => {
+    if (currentView !== "dashboard") return;
+    if (previousProfileRef.current && userProfile) {
+      const prev = JSON.stringify(previousProfileRef.current);
+      const curr = JSON.stringify(userProfile);
+      if (prev !== curr) {
+        console.log('[MainApp] Detected profile update, refreshing recommendations...');
+        refreshPersonalizedRecommendations();
+      }
+    }
+    if (userProfile) previousProfileRef.current = userProfile;
+  }, [userProfile, currentView, refreshPersonalizedRecommendations]);
 
 
   // --------------------------------------------------------------------------
@@ -902,7 +928,14 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
                   
                   <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-                    <Carousel variant="shuffle">
+                    <Carousel
+                      variant="shuffle"
+                      onItemClick={(i) =>
+                        handleRecommendationClick(
+                          category.recommendations[i]
+                        )
+                      }
+                    >
   {category.recommendations.map((rec, index) => (
     <motion.div
       key={`${category.id}-${index}-${rec.title}`}

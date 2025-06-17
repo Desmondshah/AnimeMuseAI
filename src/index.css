@@ -4137,6 +4137,33 @@ body {
 /* Mobile optimizations for shuffle carousel */
 .carousel-shuffle-container {
   touch-action: pan-y;
+  overflow: visible;
+  position: relative;
+  /* Subtle orange glow behind cards */
+  --glow-color-start: rgba(255, 107, 53, 0.2);
+  --glow-color-end: rgba(255, 181, 72, 0.15);
+}
+
+.carousel-shuffle-container::before {
+  content: "";
+  position: absolute;
+  inset: -1rem;
+  border-radius: 1.5rem;
+  background: radial-gradient(circle at center, var(--glow-color-start), transparent 70%), linear-gradient(to right, var(--glow-color-start), var(--glow-color-end));
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.carousel-shuffle-container::before {
+  content: "";
+  position: absolute;
+  inset: -1rem;
+  border-radius: 1.5rem;
+  background: radial-gradient(circle at center, var(--glow-color-start), transparent 70%), linear-gradient(to right, var(--glow-color-start), var(--glow-color-end));
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 @media (max-width: 475px) {

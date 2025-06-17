@@ -32,7 +32,7 @@ interface CarouselProps {
   onItemClick?: (index: number) => void;
 }
 
-// ShuffleCard component (unchanged)
+// ShuffleCard component - FIXED: Added isMobile prop
 const ShuffleCard = memo(
   ({
     child,
@@ -40,6 +40,7 @@ const ShuffleCard = memo(
     currentIndex,
     childrenLength,
     shouldReduceAnimations,
+    isMobile,
     onIndexChange,
     onItemClick,
   }: {
@@ -48,6 +49,7 @@ const ShuffleCard = memo(
     currentIndex: number;
     childrenLength: number;
     shouldReduceAnimations: boolean;
+    isMobile: boolean; // FIXED: Added isMobile prop
     onIndexChange: (newIndex: number) => void;
     onItemClick?: (index: number) => void;
   }) => {
@@ -66,13 +68,13 @@ const ShuffleCard = memo(
         isActive,
         absOffset,
         baseRotationY: offset * 8,
-        baseX: offset * 20,
+        baseX: offset * (isMobile ? 16 : 20),
         baseY: absOffset * 4,
         baseScale: 1 - absOffset * 0.04,
         baseOpacity: 1 - absOffset * 0.12,
         zIndex: childrenLength - absOffset,
       };
-    }, [index, currentIndex, childrenLength]);
+    }, [index, currentIndex, childrenLength, isMobile]);
 
     const rotateY = useTransform(
       dragX,
@@ -139,6 +141,9 @@ const ShuffleCard = memo(
       <motion.div
         className="absolute cursor-pointer"
         style={{
+          willChange: "transform",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
           zIndex: cardData.zIndex,
           transform: `translate3d(0,0,${-cardData.absOffset * 50}px)`,
           rotateY,
@@ -417,16 +422,17 @@ export default function OptimizedCarousel({
     }
   }, []);
 
-  // Shuffle variant (unchanged)
+  // Shuffle variant - FIXED: Pass isMobile prop
   const shuffleVariant = useMemo(
     () => (
       <div
-        className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-hidden"
+        className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-visible"
         style={{
           perspective: isMobile ? "600px" : "800px",
           touchAction: "pan-y pinch-zoom", // Allow vertical scroll but manage horizontal
         }}
       >
+        
         {children.map((child, index) => (
           <ShuffleCard
             key={`shuffle-card-${index}`}
@@ -435,6 +441,7 @@ export default function OptimizedCarousel({
             currentIndex={debouncedCurrentIndex}
             childrenLength={children.length}
             shouldReduceAnimations={shouldReduceAnimations}
+            isMobile={isMobile} // FIXED: Pass isMobile prop
             onIndexChange={handleIndexChange}
             onItemClick={onItemClick}
           />
@@ -451,6 +458,7 @@ export default function OptimizedCarousel({
       children,
       debouncedCurrentIndex,
       shouldReduceAnimations,
+      isMobile, // FIXED: Added to dependencies
       handleIndexChange,
       onItemClick,
       currentIndex,
