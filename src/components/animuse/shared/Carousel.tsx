@@ -32,6 +32,25 @@ interface CarouselProps {
   onItemClick?: (index: number) => void;
 }
 
+let userHasInteracted = false;
+
+// Safe vibration function that only works after user interaction
+const safeVibrate = (duration: number) => {
+  if (!userHasInteracted || !('vibrate' in navigator)) return;
+  
+  try {
+    navigator.vibrate(duration);
+  } catch (error) {
+    // Silently fail if vibration is not supported or blocked
+    console.debug('Vibration not available:', error);
+  }
+};
+
+// Track user interaction - add this to your component
+const markUserInteraction = () => {
+  userHasInteracted = true;
+};
+
 // ShuffleCard component - FIXED: Added isMobile prop
 const ShuffleCard = memo(
   ({
@@ -96,60 +115,45 @@ const ShuffleCard = memo(
     );
 
     const handleDragEnd = useCallback(
-      (_: any, info: PanInfo) => {
-         if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
-        dragEndTimeout.current = window.setTimeout(() => setIsDragging(false), 50);
-        dragX.set(0);
+  (_: any, info: PanInfo) => {
+    if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
+    dragEndTimeout.current = window.setTimeout(() => setIsDragging(false), 50);
+    dragX.set(0);
 
-        const threshold = 60;
-        const velocity = Math.abs(info.velocity.x);
+    const threshold = 60;
+    const velocity = Math.abs(info.velocity.x);
 
-        if (Math.abs(info.offset.x) > threshold || velocity > 400) {
-          if (info.offset.x > 0 || (velocity > 400 && info.velocity.x > 0)) {
-            onIndexChange(Math.max(currentIndex - 1, 0));
-          } else {
-            onIndexChange(Math.min(currentIndex + 1, childrenLength - 1));
-          }
-          if ("vibrate" in navigator) navigator.vibrate(40);
-        }
-      },
-      [currentIndex, childrenLength, onIndexChange, dragX],
-    );
-
-    const handleDragStart = useCallback(() => {
-      if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
-      setIsDragging(true);
-      if ("vibrate" in navigator) navigator.vibrate(20);
-    }, []);
-
-    const handleDrag = useCallback(
-      (_: any, info: PanInfo) => {
-        dragX.set(info.offset.x);
-
-        // Prevent page scroll if dragging horizontally
-        const horizontalMovement = Math.abs(info.offset.x);
-        const verticalMovement = Math.abs(info.offset.y);
-
-        if (horizontalMovement > verticalMovement && horizontalMovement > 5) {
-          if (window.event) {
-            window.event.preventDefault?.();
-          }
-        }
-      },
-      [dragX],
-    );
-
-    const handleTap = useCallback(() => {
-      if (isDragging) return;
-
-      if (!cardData.isActive) {
-        onIndexChange(index);
-        if ("vibrate" in navigator) navigator.vibrate(25);
-        return;
+    if (Math.abs(info.offset.x) > threshold || velocity > 400) {
+      if (info.offset.x > 0 || (velocity > 400 && info.velocity.x > 0)) {
+        onIndexChange(Math.max(currentIndex - 1, 0));
+      } else {
+        onIndexChange(Math.min(currentIndex + 1, childrenLength - 1));
       }
+      safeVibrate(40); // FIXED: Use safe vibration
+    }
+  },
+  [currentIndex, childrenLength, onIndexChange, dragX],
+);
 
-      onItemClick?.(index);
-    }, [cardData.isActive, isDragging, index, onIndexChange, onItemClick]);
+const handleDragStart = useCallback(() => {
+  markUserInteraction(); // FIXED: Mark user interaction
+  if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
+  setIsDragging(true);
+  safeVibrate(20); // FIXED: Use safe vibration
+}, []);
+
+const handleTap = useCallback(() => {
+  markUserInteraction(); // FIXED: Mark user interaction
+  if (isDragging) return;
+
+  if (!cardData.isActive) {
+    onIndexChange(index);
+    safeVibrate(25); // FIXED: Use safe vibration
+    return;
+  }
+
+  onItemClick?.(index);
+}, [cardData.isActive, isDragging, index, onIndexChange, onItemClick]);
 
     useEffect(() => {
       return () => {
@@ -197,7 +201,7 @@ const ShuffleCard = memo(
         dragElastic={0.05}
         dragMomentum={false}
         onDragStart={handleDragStart}
-        onDrag={handleDrag}
+        onDrag={handleDragEnd}
         onDragEnd={handleDragEnd}
         onTap={handleTap}
       >
@@ -383,16 +387,17 @@ export default function OptimizedCarousel({
 
   // FIXED: Enhanced gesture handling with proper snapping and scroll prevention
   const handleDragStart = useCallback((event: any) => {
-    setIsDragging(true);
-    setAutoPlayActive(false);
+  markUserInteraction(); // FIXED: Mark user interaction
+  setIsDragging(true);
+  setAutoPlayActive(false);
 
-    // Prevent page scrolling during carousel drag
-    if (event.touches) {
-      event.preventDefault();
-    }
+  // Prevent page scrolling during carousel drag
+  if (event.touches) {
+    event.preventDefault();
+  }
 
-    if ("vibrate" in navigator) navigator.vibrate(20);
-  }, []);
+  safeVibrate(20); // FIXED: Use safe vibration
+}, []);
 
   const handleDragEnd = useCallback(
     (_event: any, info: PanInfo) => {
@@ -539,12 +544,13 @@ export default function OptimizedCarousel({
                   }
                 }}
                 onTap={() => {
-                  if (!isActive) {
-                    setCurrentIndex(index);
-                    if ("vibrate" in navigator) navigator.vibrate(30);
-                  }
-                  onItemClick?.(index);
-                }}
+  markUserInteraction(); // FIXED: Mark user interaction
+  if (!isActive) {
+    setCurrentIndex(index);
+    safeVibrate(30); // FIXED: Use safe vibration
+  }
+  onItemClick?.(index);
+}}
               >
                 {child}
               </motion.div>
@@ -595,11 +601,12 @@ export default function OptimizedCarousel({
               className="flex-shrink-0 carousel-item"
               whileTap={{ scale: 0.95 }}
               onTap={() => {
-                if (!isDragging) {
-                  if ("vibrate" in navigator) navigator.vibrate(25);
-                  onItemClick?.(index);
-                }
-              }}
+  markUserInteraction(); // FIXED: Mark user interaction
+  if (!isDragging) {
+    safeVibrate(25); // FIXED: Use safe vibration
+    onItemClick?.(index);
+  }
+}}
             >
               {child}
             </motion.div>

@@ -1499,18 +1499,41 @@ const useEnrichedCharacters = (
 ) => {
   const [enrichedCharacters, setEnrichedCharacters] = useState<EnhancedCharacterType[]>(characters);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [hasTriggeredEnrichment, setHasTriggeredEnrichment] = useState(false);
   const enrichCharacterDetails = useAction(api.ai.fetchEnrichedCharacterDetails);
 
   // Load cached characters on mount or when anime changes
   useEffect(() => {
     if (!animeId) return;
+    
     const stored = localStorage.getItem(`anime_${animeId}_characters`);
     if (stored) {
-      try { setEnrichedCharacters(JSON.parse(stored)); } catch { /* ignore */ }
-    } else {
+      try { 
+        const parsedData = JSON.parse(stored);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          setEnrichedCharacters(parsedData);
+          // Reset enrichment state when loading from cache
+          setHasTriggeredEnrichment(true);
+          setIsEnriching(false);
+          return;
+        }
+      } catch { 
+        console.warn('Failed to parse cached characters'); 
+      }
+    }
+    
+    // If no cache, use the provided characters
+    setEnrichedCharacters(characters);
+    setHasTriggeredEnrichment(false);
+    setIsEnriching(false);
+  }, [animeId]);
+
+  // Update enriched characters when base characters change
+  useEffect(() => {
+    if (characters.length > 0 && !hasTriggeredEnrichment) {
       setEnrichedCharacters(characters);
     }
-  }, [animeId, characters]);
+  }, [characters, hasTriggeredEnrichment]);
 
   // Persist characters to cache
   useEffect(() => {
@@ -1520,32 +1543,58 @@ const useEnrichedCharacters = (
   }, [animeId, enrichedCharacters]);
 
   const enrichMissingCharacters = useCallback(async () => {
+    if (isEnriching || hasTriggeredEnrichment) return;
+    
     setIsEnriching(true);
+    setHasTriggeredEnrichment(true);
 
     // Enrich up to five characters that haven't been enhanced yet
     const charactersToEnrich = characters
-      .filter(char => !char.isAIEnriched)
+      .filter(char => char && char.name && !char.isAIEnriched)
       .slice(0, 5);
+    
+    if (charactersToEnrich.length === 0) {
+      console.log('No characters to enrich');
+      setIsEnriching(false);
+      return;
+    }
+
+    console.log(`Starting enrichment for ${charactersToEnrich.length} characters`);
     
     try {
       const enrichmentPromises = charactersToEnrich.map(async (character) => {
-        const result = await enrichCharacterDetails({
-          characterName: character.name,
-          animeName: animeName,
-          existingData: {
-            description: character.description,
-            role: character.role,
-            gender: character.gender,
-            age: character.age,
-            species: character.species,
-            powersAbilities: character.powersAbilities,
-            voiceActors: character.voiceActors,
-          },
-          enrichmentLevel: 'basic' as const,
-          messageId: `batch_enrich_${character.name}_${Date.now()}`,
-        });
-        
-        return result.error ? character : { ...character, ...result.mergedCharacter, isAIEnriched: true };
+        try {
+          const result = await enrichCharacterDetails({
+            characterName: character.name,
+            animeName: animeName,
+            existingData: {
+              description: character.description,
+              role: character.role,
+              gender: character.gender,
+              age: character.age,
+              species: character.species,
+              powersAbilities: character.powersAbilities,
+              voiceActors: character.voiceActors,
+            },
+            enrichmentLevel: 'basic' as const,
+            messageId: `batch_enrich_${character.name}_${Date.now()}`,
+          });
+          
+          if (result.error) {
+            console.warn(`Failed to enrich character ${character.name}:`, result.error);
+            return character;
+          }
+          
+          return { 
+            ...character, 
+            ...result.mergedCharacter, 
+            isAIEnriched: true,
+            enrichmentTimestamp: Date.now()
+          };
+        } catch (error) {
+          console.error(`Error enriching character ${character.name}:`, error);
+          return character;
+        }
       });
       
       const enrichedResults = await Promise.allSettled(enrichmentPromises);
@@ -1560,37 +1609,64 @@ const useEnrichedCharacters = (
         return match || char;
       });
       
+      console.log(`Enrichment complete. Enhanced ${enriched.filter(c => c.isAIEnriched).length} characters`);
       setEnrichedCharacters(allEnriched);
+      
     } catch (error) {
       console.error('Batch enrichment failed:', error);
     } finally {
       setIsEnriching(false);
     }
-  }, [characters, animeName, enrichCharacterDetails]);
+  }, [characters, animeName, enrichCharacterDetails, isEnriching, hasTriggeredEnrichment]);
 
-   // Automatically enrich a few characters once per anime
+  // Automatically enrich characters when they first load
   useEffect(() => {
-    if (!animeId || isEnriching) return;
-
-    const stored = localStorage.getItem(`anime_${animeId}_characters`);
-    let dataset: EnhancedCharacterType[] = characters; // Use original characters, not enrichedCharacters
-    if (stored) {
-      try { 
-        const parsedData = JSON.parse(stored);
-        if (Array.isArray(parsedData)) {
-          dataset = parsedData;
-        }
-      } catch { /* ignore */ }
+    if (
+      animeId && 
+      characters.length > 0 && 
+      !isEnriching && 
+      !hasTriggeredEnrichment
+    ) {
+      // Check if we have unenriched characters
+      const hasUnenrichedCharacters = characters.some(c => c && c.name && !c.isAIEnriched);
+      
+      if (hasUnenrichedCharacters) {
+        console.log('Auto-triggering character enrichment');
+        enrichMissingCharacters();
+      } else {
+        // All characters are already enriched
+        setHasTriggeredEnrichment(true);
+        setIsEnriching(false);
+      }
     }
+  }, [animeId, characters.length]);
 
-    // Only trigger enrichment if we have unenriched characters
-    const hasUnenrichedCharacters = dataset.some(c => c && !c.isAIEnriched);
-    if (hasUnenrichedCharacters && characters.length > 0) {
-      enrichMissingCharacters();
+  // Force stop enriching if all characters are enriched
+  useEffect(() => {
+    if (
+      enrichedCharacters.length > 0 &&
+      enrichedCharacters.every((c) => c.isAIEnriched || !c.name) &&
+      isEnriching
+    ) {
+      console.log('All characters enriched, stopping enrichment indicator');
+      setIsEnriching(false);
     }
-  }, [animeId, characters.length, isEnriching]); // Removed enrichMissingCharacters and enrichedCharacters from deps
+  }, [enrichedCharacters, isEnriching]);
 
-  return { enrichedCharacters, isEnriching, enrichMissingCharacters };
+  // Debug logging
+  useEffect(() => {
+    if (enrichedCharacters.length > 0) {
+      const enrichedCount = enrichedCharacters.filter(c => c.isAIEnriched).length;
+      console.log(`Characters status: ${enrichedCount}/${enrichedCharacters.length} enriched, isEnriching: ${isEnriching}, hasTriggered: ${hasTriggeredEnrichment}`);
+    }
+  }, [enrichedCharacters, isEnriching, hasTriggeredEnrichment]);
+  
+  return { 
+    enrichedCharacters, 
+    isEnriching, 
+    enrichMissingCharacters,
+    hasTriggeredEnrichment 
+  };
 };
 
 type ReviewSortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_helpful";
@@ -2741,61 +2817,104 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
 
         {/* Characters Tab */}
         {activeTab === "characters" && (
-          <div className="ios-scroll-section px-6 py-8">
-            {charactersForDisplay && charactersForDisplay.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-white">
-                      👥 Characters ({charactersForDisplay.length})
-                    </h2>
-                    {isEnriching && (
-                      <div 
-                        className="flex items-center gap-2 rounded-full px-3 py-1 border"
-                        style={themePalette ? {
-                          backgroundColor: `${themePalette.secondary}20`,
-                          borderColor: `${themePalette.secondary}30`
-                        } : { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
-                      >
-                        <div 
-                          className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
-                          style={themePalette ? {
-                            borderColor: themePalette.secondary
-                          } : { borderColor: '#3B82F6' }}
-                        ></div>
-                        <span className="text-xs font-medium" style={{ color: themePalette?.secondary || '#60A5FA' }}>
-                          Enhancing...
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                  {charactersForDisplay
-                    .filter(character => character && character.name) // Filter out invalid characters
-                    .map((character, index) => (
-                    <CharacterCard
-                      key={`character-${character.id || character.name || index}`}
-                      character={character}
-                      onClick={() => onCharacterClick(character, anime.title)}
-                      themePalette={themePalette || undefined}
-                    />
-                  ))}
-                </div>
+  <div className="ios-scroll-section px-6 py-8">
+    {charactersForDisplay && charactersForDisplay.length > 0 ? (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white">
+            👥 Characters ({charactersForDisplay.length})
+          </h2>
+          
+          {/* Enhanced Status Indicator */}
+          <div className="flex items-center gap-3">
+            {/* Enrichment Status */}
+            {isEnriching ? (
+              <div 
+                className="flex items-center gap-2 rounded-full px-3 py-1 border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.secondary}20`,
+                  borderColor: `${themePalette.secondary}30`
+                } : { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+              >
+                <div 
+                  className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                  style={themePalette ? {
+                    borderColor: themePalette.secondary
+                  } : { borderColor: '#3B82F6' }}
+                ></div>
+                <span className="text-xs font-medium" style={{ color: themePalette?.secondary || '#60A5FA' }}>
+                  Enhancing...
+                </span>
               </div>
             ) : (
               <div 
-                className="section-card backdrop-blur-lg border rounded-3xl p-8 text-center"
-                style={sectionCardStyle}
+                className="flex items-center gap-2 rounded-full px-3 py-1 border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.primary}15`,
+                  borderColor: `${themePalette.primary}30`
+                } : { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }}
               >
-                <div className="text-6xl mb-4 opacity-50">👥</div>
-                <h3 className="text-xl text-white/70 mb-2">No Character Data</h3>
-                <p className="text-white/50 text-sm">
-                  Character information is not yet available for this anime.
-                </p>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-xs font-medium text-green-400">
+                  {(() => {
+                    const enrichedCount = charactersForDisplay.filter(c => c.isAIEnriched).length;
+                    const totalCount = charactersForDisplay.length;
+                    return enrichedCount === totalCount ? 'Fully Enhanced' : `${enrichedCount}/${totalCount} Enhanced`;
+                  })()}
+                </span>
               </div>
             )}
+
+            {/* Manual Refresh Button */}
+            {!isEnriching && (
+              <StyledButton
+                onClick={enrichMissingCharacters}
+                variant="ghost"
+                className="!text-xs !py-1 !px-2 !border"
+                style={themePalette ? {
+                  backgroundColor: `${themePalette.accent}10`,
+                  borderColor: `${themePalette.accent}20`,
+                  color: themePalette.accent
+                } : { 
+                  backgroundColor: 'rgba(168, 85, 247, 0.1)', 
+                  borderColor: 'rgba(168, 85, 247, 0.2)',
+                  color: '#A855F7'
+                }}
+                title="Enhance more characters"
+              >
+                🤖 Enhance
+              </StyledButton>
+            )}
           </div>
-        )}
+        </div>
+      
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+          {charactersForDisplay
+            .filter(character => character && character.name) // Filter out invalid characters
+            .map((character, index) => (
+            <CharacterCard
+              key={`character-${character.id || character.name || index}`}
+              character={character}
+              onClick={() => onCharacterClick(character, anime.title)}
+              themePalette={themePalette || undefined}
+            />
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div 
+        className="section-card backdrop-blur-lg border rounded-3xl p-8 text-center"
+        style={sectionCardStyle}
+      >
+        <div className="text-6xl mb-4 opacity-50">👥</div>
+        <h3 className="text-xl text-white/70 mb-2">No Character Data</h3>
+        <p className="text-white/50 text-sm">
+          Character information is not yet available for this anime.
+        </p>
+      </div>
+    )}
+  </div>
+)}
 
         {/* Reviews Tab with Enhanced Theming */}
         {activeTab === "reviews" && (
