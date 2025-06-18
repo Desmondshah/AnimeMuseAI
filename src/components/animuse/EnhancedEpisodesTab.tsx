@@ -3,6 +3,149 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
+
+// iOS-Native CSS Styles
+const iOSStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+  
+  .ios-episodes-container {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .ios-glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.1) inset;
+  }
+  
+  .ios-glass-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .ios-glass-button:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.96);
+    transition: all 0.1s ease;
+  }
+  
+  .ios-input {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .ios-input:focus {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+  }
+  
+  .ios-shadow-soft {
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.12),
+      0 2px 4px rgba(0, 0, 0, 0.08);
+  }
+  
+  .ios-shadow-strong {
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.16),
+      0 4px 8px rgba(0, 0, 0, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  }
+  
+  .ios-text-primary {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  
+  .ios-text-secondary {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  
+  .ios-text-tertiary {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  
+  .ios-scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .ios-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .ios-spring-animation {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .ios-episode-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  .ios-episode-card:active {
+    transform: scale(0.96);
+    transition: all 0.1s ease;
+  }
+  
+  .ios-blur-strong {
+    backdrop-filter: blur(40px) saturate(180%) brightness(110%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(110%);
+  }
+  
+  .ios-border-subtle {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  
+  .ios-border-emphasis {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Custom scrollbar for webkit browsers */
+  .ios-custom-scroll::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+  
+  .ios-custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .ios-custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+  
+  .ios-custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = iOSStyles;
+  document.head.appendChild(styleSheet);
+}
 
 // Interface definitions
 interface ColorPalette {
@@ -25,8 +168,8 @@ interface StreamingEpisode {
   airDate?: string;
 }
 
-// Enhanced Episode Card Component with Cinematic Design
-const CinematicEpisodeCard: React.FC<{
+// iOS-Native Episode Card Component with Sophisticated Design
+const IOSEpisodeCard: React.FC<{
   episode: StreamingEpisode;
   index: number;
   themePalette?: ColorPalette;
@@ -45,203 +188,172 @@ const CinematicEpisodeCard: React.FC<{
   watchProgress = 0,
   isFeatured = false 
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
   
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const cardStyle = themePalette ? {
-    borderColor: `${themePalette.primary}20`,
-    background: `linear-gradient(135deg, 
-      ${themePalette.dark}60 0%, 
-      ${themePalette.primary}10 50%, 
-      ${themePalette.dark}80 100%
-    )`
-  } : {};
-
-  const handlePreviewClick = () => {
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (episode.previewUrl && onPreview) {
-      setPreviewError(false);
       onPreview(episode.previewUrl);
     }
   };
 
-  const handleWatchClick = () => {
+  const handleWatchClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (episode.url && onWatch) {
       onWatch(episode.url);
+    }
+  };
+
+  const cardVariants = {
+    initial: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    animate: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.4,
+        delay: index * 0.08,
+        ease: [0.25, 0.46, 0.45, 0.94]
+      }
+    },
+    pressed: {
+      scale: 0.96,
+      transition: { duration: 0.1 }
     }
   };
 
   return (
     <motion.div
       ref={cardRef}
-      layout
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -30, scale: 0.9 }}
-      transition={{ 
-        duration: 0.6, 
-        delay: index * 0.1,
-        type: "spring",
-        stiffness: 100
-      }}
-      className={`
-        episode-card-cinematic group relative overflow-hidden rounded-3xl border backdrop-blur-xl
-        transition-all duration-700 cursor-pointer
-        ${isFeatured 
-          ? 'featured-episode col-span-2 row-span-2 min-h-[500px]' 
-          : 'col-span-1 row-span-1 min-h-[280px] aspect-[4/5]'
-        }
-        hover:scale-[1.02] hover:z-10
-      `}
-      style={cardStyle}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ 
-        boxShadow: themePalette ? 
-          `0 25px 50px ${themePalette.primary}30` : 
-          '0 25px 50px rgba(0,0,0,0.3)'
-      }}
+      variants={cardVariants}
+      initial="initial"
+      animate="animate"
+      whileTap="pressed"
+      className="ios-episode-card group relative"
+      onTouchStart={() => setIsPressed(true)}
+      onTouchEnd={() => setIsPressed(false)}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
     >
-      {/* Background Image with Parallax Effect */}
-      <div className="absolute inset-0 overflow-hidden">
-        {episode.thumbnail ? (
-          <motion.img
-            src={episode.thumbnail}
-            alt={episode.title || `Episode ${index + 1}`}
-            className="episode-thumbnail w-full h-full object-cover"
-            style={{
-              filter: isWatched ? 'grayscale(0.3) brightness(0.8)' : 'none'
-            }}
-            animate={{
-              scale: isHovered ? 1.1 : 1,
-              filter: isHovered ? 'brightness(0.7)' : 'brightness(1)'
-            }}
-            transition={{ duration: 0.7 }}
-            onLoad={() => setImageLoaded(true)}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = `https://placehold.co/600x400/${
-                themePalette?.primary?.replace('#', '') || 'ECB091'
-              }/000000/png?text=Episode+${index + 1}&font=poppins`;
-            }}
-          />
-        ) : (
-          <div 
-            className="w-full h-full flex items-center justify-center"
-            style={{
-              background: themePalette?.gradient || 
-                'linear-gradient(135deg, rgba(236, 176, 145, 0.5), rgba(255, 107, 53, 0.5))'
-            }}
-          >
-            <span className="text-6xl font-bold text-white/30">
-              {index + 1}
-            </span>
+      {/* Main Card Container */}
+      <div className="relative bg-white/[0.08] backdrop-blur-xl rounded-3xl overflow-hidden border border-white/[0.12] shadow-2xl shadow-black/20">
+        
+        {/* Episode Thumbnail */}
+        <div className="relative aspect-[16/10] overflow-hidden">
+          {episode.thumbnail ? (
+            <motion.img
+              src={episode.thumbnail}
+              alt={episode.title || `Episode ${index + 1}`}
+              className="w-full h-full object-cover"
+              initial={{ scale: 1.1, opacity: 0 }}
+              animate={{ 
+                scale: imageLoaded ? 1 : 1.1, 
+                opacity: imageLoaded ? 1 : 0 
+              }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              onLoad={() => setImageLoaded(true)}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://placehold.co/400x250/${
+                  themePalette?.primary?.replace('#', '') || 'ECB091'
+                }/FFFFFF/png?text=EP+${index + 1}&font=system-ui`;
+              }}
+            />
+          ) : (
+            <div 
+              className="w-full h-full flex items-center justify-center"
+              style={{
+                background: themePalette?.gradient || 
+                  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }}
+            >
+              <span className="text-3xl font-bold text-white/90 font-mono">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            </div>
+          )}
+          
+          {/* Progress Indicator */}
+          {watchProgress > 0 && (
+            <motion.div 
+              className="absolute bottom-0 left-0 right-0 h-1"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: watchProgress / 100 }}
+              transition={{ duration: 1, delay: 0.5 }}
+              style={{ 
+                transformOrigin: 'left',
+                background: 'linear-gradient(90deg, #34D399, #10B981)'
+              }}
+            />
+          )}
+
+          {/* Episode Number Badge */}
+          <div className="absolute top-3 left-3">
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl px-3 py-1.5 border border-white/20">
+              <span className="text-white text-sm font-semibold font-mono tracking-wide">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+            </div>
           </div>
-        )}
-        
-        {/* Cinematic Overlay Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      </div>
 
-      {/* Watch Progress Indicator */}
-      {watchProgress > 0 && (
-        <motion.div 
-          className="episode-progress-bar absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-green-600 z-20"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: watchProgress / 100 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          style={{ transformOrigin: 'left' }}
-        />
-      )}
 
-      {/* Status Badges */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-        {/* Removed the watched checkmark badge */}
-        
-        {/* Removed the preview badge */}
 
-        {/* Removed the site badge */}
-      </div>
-
-      {/* Episode Number Badge */}
-      <motion.div 
-        className="absolute top-4 left-4 z-20"
-        initial={{ scale: 0, rotate: -90 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ delay: 0.4, type: "spring" }}
-      >
-        <div 
-          className="w-16 h-16 rounded-2xl backdrop-blur-xl border flex items-center justify-center"
-          style={{
-            background: themePalette ? 
-              `linear-gradient(135deg, ${themePalette.primary}80, ${themePalette.accent}60)` :
-              'linear-gradient(135deg, rgba(255, 107, 53, 0.8), rgba(176, 137, 104, 0.6))',
-            borderColor: themePalette?.primary + '40' || 'rgba(255, 255, 255, 0.2)'
-          }}
-        >
-          <span className="text-white font-bold text-lg">
-            {index + 1}
-          </span>
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-active:opacity-100 transition-opacity duration-300" />
         </div>
-      </motion.div>
 
-      {/* Removed Central Play Button entirely */}
-
-      {/* Episode Information Overlay */}
-      <motion.div 
-        className="episode-info-overlay absolute bottom-0 left-0 right-0 p-6 z-20"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="episode-controls backdrop-blur-xl bg-black/30 rounded-2xl p-4 border border-white/10">
-          <h3 className="text-white font-bold text-lg mb-2 line-clamp-2">
+        {/* Episode Information */}
+        <div className="p-4 space-y-3">
+          {/* Title */}
+          <h3 className="text-white text-lg font-semibold leading-tight line-clamp-2 font-system">
             {episode.title || `Episode ${index + 1}`}
           </h3>
           
-          {/* Episode Metadata */}
-          <div className="episode-stats flex items-center gap-4 text-white/70 text-sm mb-4">
-            {episode.duration && (
-              <div className="stat-item flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                </svg>
-                {episode.duration}
-              </div>
-            )}
-            
-            {episode.airDate && (
-              <div className="stat-item flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>
-                {episode.airDate}
-              </div>
-            )}
-          </div>
+          {/* Metadata */}
+          {(episode.duration || episode.airDate || episode.site) && (
+            <div className="flex items-center text-white/60 text-sm space-x-4">
+              {episode.duration && (
+                <div className="flex items-center space-x-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">{episode.duration}</span>
+                </div>
+              )}
+              
+              {episode.site && (
+                <div className="flex items-center space-x-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">{episode.site}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
-          <motion.div 
-            className="flex gap-3"
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
+          <div className="flex space-x-2 pt-2">
             {episode.previewUrl && (
               <motion.button
                 onClick={handlePreviewClick}
-                className="episode-action-button flex-1 bg-white/10 backdrop-blur-sm rounded-xl py-3 px-4 border border-white/20 text-white font-medium transition-all duration-300"
-                whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl py-3 px-4 border border-white/20 text-white font-medium text-sm active:bg-white/20 transition-all duration-200"
                 whileTap={{ scale: 0.98 }}
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
               >
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
-                  Preview
+                  <span>Preview</span>
                 </span>
               </motion.button>
             )}
@@ -249,32 +361,32 @@ const CinematicEpisodeCard: React.FC<{
             {episode.url && (
               <motion.button
                 onClick={handleWatchClick}
-                className="episode-action-button flex-1 backdrop-blur-sm rounded-xl py-3 px-4 border text-white font-medium transition-all duration-300 hover:brightness-110"
+                className="flex-1 backdrop-blur-sm rounded-2xl py-3 px-4 border text-white font-medium text-sm active:brightness-90 transition-all duration-200"
                 style={{
                   background: themePalette?.gradient || 
-                    'linear-gradient(135deg, #FF6B35, #E55A2B)',
-                  borderColor: themePalette?.primary + '60' || 'rgba(255, 107, 53, 0.6)'
+                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderColor: themePalette?.primary + '60' || 'rgba(102, 126, 234, 0.6)',
+                  boxShadow: `0 4px 20px ${themePalette?.primary || '#667eea'}40`
                 }}
-                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M8 5v10l8-5-8-5z"/>
                   </svg>
-                  Watch Now
+                  <span>Watch</span>
                 </span>
               </motion.button>
             )}
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
 
-// Episodes Timeline Component
-const EpisodesTimeline: React.FC<{
+// iOS-Native Timeline Component
+const IOSEpisodesTimeline: React.FC<{
   episodes: StreamingEpisode[];
   currentEpisode?: number;
   onEpisodeSelect: (index: number) => void;
@@ -292,44 +404,45 @@ const EpisodesTimeline: React.FC<{
   }, [currentEpisode]);
 
   return (
-    <div className="relative mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-bold text-lg">Episode Timeline</h3>
-        <div className="text-white/60 text-sm">
-          {episodes.length} Episodes
+    <div className="space-y-4 mb-8">
+      {/* Section Header */}
+      <div className="flex items-center justify-between px-1">
+        <h3 className="ios-text-primary text-xl font-bold">Timeline</h3>
+        <div className="ios-text-tertiary text-sm font-medium">
+          {episodes.length} episodes
         </div>
       </div>
       
+      {/* Timeline Scroll */}
       <div 
         ref={scrollRef}
-        className="episode-timeline flex gap-2 overflow-x-auto pb-4 scrollbar-hide"
-        style={{ scrollbarWidth: 'none' }}
+        className="flex space-x-3 overflow-x-auto pb-4 px-1 ios-scrollbar-hide ios-custom-scroll"
       >
         {episodes.map((episode, index) => (
           <motion.button
             key={index}
             onClick={() => onEpisodeSelect(index)}
-            className={`
-              episode-timeline-item flex-shrink-0 w-20 h-12 rounded-xl border backdrop-blur-sm transition-all duration-300
-              ${currentEpisode === index 
-                ? 'active border-2' 
-                : 'border border-white/20 hover:border-white/40'
-              }
-            `}
+            className={`flex-shrink-0 w-16 h-16 rounded-2xl ios-blur-strong ios-border-subtle ios-spring-animation ${
+              currentEpisode === index 
+                ? 'ios-border-emphasis ios-shadow-strong' 
+                : 'active:scale-95'
+            }`}
             style={{
               background: currentEpisode === index 
-                ? themePalette?.gradient || 'linear-gradient(135deg, #FF6B35, #E55A2B)'
-                : 'rgba(255, 255, 255, 0.05)',
+                ? themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                : 'rgba(255, 255, 255, 0.08)',
               borderColor: currentEpisode === index 
-                ? themePalette?.primary || '#FF6B35'
+                ? themePalette?.primary || '#667eea'
+                : undefined,
+              boxShadow: currentEpisode === index 
+                ? `0 8px 25px ${themePalette?.primary || '#667eea'}40`
                 : undefined
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.9 }}
           >
             <div className="flex flex-col items-center justify-center h-full">
-              <span className="text-white text-xs font-medium">EP</span>
-              <span className="text-white text-sm font-bold">{index + 1}</span>
+              <span className="ios-text-tertiary text-xs font-medium font-mono">EP</span>
+              <span className="ios-text-primary text-sm font-bold font-mono">{index + 1}</span>
             </div>
           </motion.button>
         ))}
@@ -338,8 +451,8 @@ const EpisodesTimeline: React.FC<{
   );
 };
 
-// Episodes Filter and Sort Component
-const EpisodesControls: React.FC<{
+// iOS-Native Controls Panel
+const IOSEpisodesControls: React.FC<{
   episodes: StreamingEpisode[];
   onFilterChange: (filter: string) => void;
   onSortChange: (sort: string) => void;
@@ -352,32 +465,37 @@ const EpisodesControls: React.FC<{
 
   return (
     <motion.div 
-      className="episode-controls-panel mb-8 backdrop-blur-xl rounded-2xl p-6 border"
-      style={{
-        background: themePalette ? 
-          `linear-gradient(135deg, ${themePalette.dark}40, ${themePalette.primary}10)` :
-          'rgba(0, 0, 0, 0.4)',
-        borderColor: themePalette?.primary + '20' || 'rgba(255, 255, 255, 0.2)'
-      }}
+      className="mb-8 ios-glass-card rounded-3xl ios-border-subtle overflow-hidden ios-shadow-strong"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-bold text-xl">Episodes Collection</h3>
-        <motion.button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-white/70 hover:text-white transition-colors"
-          whileHover={{ scale: 1.05 }}
-        >
-          <svg 
-            className={`w-6 h-6 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-            fill="currentColor" 
-            viewBox="0 0 20 20"
+      {/* Header */}
+      <div className="p-6 border-b ios-border-subtle">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="ios-text-primary text-xl font-bold mb-1">Episodes</h3>
+            <p className="ios-text-secondary text-sm font-medium">
+              {episodes.length} episodes available
+            </p>
+          </div>
+          <motion.button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-3 rounded-full ios-glass-button ios-spring-animation"
+            whileTap={{ scale: 0.9 }}
           >
-            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </motion.button>
+            <motion.svg 
+              className="w-5 h-5 ios-text-primary" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </motion.button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -386,72 +504,98 @@ const EpisodesControls: React.FC<{
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="p-6 space-y-6">
               {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search episodes..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    onFilterChange(e.target.value);
-                  }}
-                  className="episode-search-input w-full bg-white/10 backdrop-blur-sm rounded-xl py-3 px-4 pl-12 text-white placeholder-white/60 border border-white/20 focus:border-white/50 focus:outline-none transition-all"
-                />
-                <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
+              <div className="space-y-3">
+                <label className="ios-text-secondary text-sm font-medium block">Search Episodes</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by title or number..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      onFilterChange(e.target.value);
+                    }}
+                    className="w-full ios-input rounded-2xl py-4 px-5 pl-12 ios-text-primary placeholder-white/50"
+                  />
+                  <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ios-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
               </div>
 
-              {/* Sort */}
-              <select
-                onChange={(e) => onSortChange(e.target.value)}
-                className="w-full bg-white/10 backdrop-blur-sm rounded-xl py-3 px-4 text-white border border-white/20 focus:border-white/50 focus:outline-none appearance-none cursor-pointer"
-              >
-                <option value="default" className="bg-gray-800">Default Order</option>
-                <option value="title" className="bg-gray-800">By Title</option>
-                <option value="duration" className="bg-gray-800">By Duration</option>
-                <option value="date" className="bg-gray-800">By Air Date</option>
-              </select>
-
-              {/* View Mode */}
-              <div className="episode-view-toggle flex rounded-xl overflow-hidden border border-white/20">
-                <button
-                  onClick={() => onViewModeChange('grid')}
-                  className={`flex-1 py-3 px-4 transition-all ${
-                    viewMode === 'grid' 
-                      ? 'active bg-white/20 text-white' 
-                      : 'bg-white/5 text-white/70 hover:bg-white/10'
-                  }`}
+              {/* Sort Options */}
+              <div className="space-y-3">
+                <label className="ios-text-secondary text-sm font-medium block">Sort By</label>
+                <select
+                  onChange={(e) => onSortChange(e.target.value)}
+                  className="w-full ios-input rounded-2xl py-4 px-5 ios-text-primary appearance-none cursor-pointer"
                 >
-                  <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => onViewModeChange('list')}
-                  className={`flex-1 py-3 px-4 transition-all ${
-                    viewMode === 'list' 
-                      ? 'active bg-white/20 text-white' 
-                      : 'bg-white/5 text-white/70 hover:bg-white/10'
-                  }`}
-                >
-                  <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
+                  <option value="default" className="bg-gray-900">Default Order</option>
+                  <option value="title" className="bg-gray-900">Episode Title</option>
+                  <option value="duration" className="bg-gray-900">Duration</option>
+                  <option value="date" className="bg-gray-900">Air Date</option>
+                </select>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="episode-stats flex items-center gap-6 text-white/60 text-sm">
-              <div>Total Episodes: {episodes.length}</div>
-              <div>With Previews: {episodes.filter(ep => ep.previewUrl).length}</div>
-              <div>Available to Watch: {episodes.filter(ep => ep.url).length}</div>
+              {/* View Mode Toggle */}
+              <div className="space-y-3">
+                <label className="ios-text-secondary text-sm font-medium block">View Mode</label>
+                <div className="ios-glass-card rounded-2xl p-1 ios-border-subtle">
+                  <div className="flex">
+                    <button
+                      onClick={() => onViewModeChange('grid')}
+                      className={`flex-1 py-3 px-4 rounded-xl ios-spring-animation font-medium text-sm ${
+                        viewMode === 'grid' 
+                          ? 'ios-glass-button ios-text-primary ios-shadow-soft' 
+                          : 'ios-text-secondary hover:ios-text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        <span>Grid</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => onViewModeChange('list')}
+                      className={`flex-1 py-3 px-4 rounded-xl ios-spring-animation font-medium text-sm ${
+                        viewMode === 'list' 
+                          ? 'ios-glass-button ios-text-primary ios-shadow-soft' 
+                          : 'ios-text-secondary hover:ios-text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span>List</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statistics */}
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t ios-border-subtle">
+                <div className="text-center">
+                  <div className="ios-text-primary text-lg font-bold font-mono">{episodes.length}</div>
+                  <div className="ios-text-tertiary text-xs font-medium">Total</div>
+                </div>
+                <div className="text-center">
+                  <div className="ios-text-primary text-lg font-bold font-mono">{episodes.filter(ep => ep.previewUrl).length}</div>
+                  <div className="ios-text-tertiary text-xs font-medium">Previews</div>
+                </div>
+                <div className="text-center">
+                  <div className="ios-text-primary text-lg font-bold font-mono">{episodes.filter(ep => ep.url).length}</div>
+                  <div className="ios-text-tertiary text-xs font-medium">Available</div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -460,9 +604,9 @@ const EpisodesControls: React.FC<{
   );
 };
 
-// Preview Management Panel Component
-const PreviewManagementPanel: React.FC<{
-  animeId: string;
+// iOS-Native Preview Management Panel
+const IOSPreviewManagementPanel: React.FC<{
+  animeId: Id<"anime">;
   animeTitle: string;
   themePalette?: ColorPalette;
 }> = ({ animeId, animeTitle, themePalette }) => {
@@ -490,121 +634,129 @@ const PreviewManagementPanel: React.FC<{
     }
   };
 
-  const panelStyle = themePalette ? {
-    backgroundColor: `${themePalette.dark}40`,
-    borderColor: `${themePalette.primary}20`
-  } : {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderColor: 'rgba(255,255,255,0.2)'
-  };
-
-  const buttonStyle = themePalette ? {
-    background: `linear-gradient(135deg, ${themePalette.secondary}, ${themePalette.accent})`,
-    boxShadow: `0 4px 15px ${themePalette.secondary}30`
-  } : {
-    background: 'linear-gradient(135deg, #8B5CF6, #A855F7)',
-    boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
-  };
-
   return (
     <motion.div 
-      className="backdrop-blur-lg border rounded-2xl p-4 mb-6"
-      style={panelStyle}
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="mb-8 ios-glass-card rounded-3xl ios-border-subtle overflow-hidden ios-shadow-strong"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, delay: 0.1 }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-white font-medium text-sm mb-1">Preview Status</h3>
-          {episodePreviewStatus && (
-            <p className="text-white/60 text-xs">
-              {episodePreviewStatus.episodesWithPreviews} of {episodePreviewStatus.totalEpisodes} episodes have previews 
-              ({episodePreviewStatus.previewPercentage}%)
-            </p>
-          )}
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center ios-shadow-soft">
+              <span className="text-white text-lg">🎬</span>
+            </div>
+            <div>
+              <h3 className="ios-text-primary font-bold text-lg">Preview Status</h3>
+              {episodePreviewStatus && (
+                <p className="ios-text-secondary text-sm font-medium">
+                  {episodePreviewStatus.episodesWithPreviews} of {episodePreviewStatus.totalEpisodes} episodes ({episodePreviewStatus.previewPercentage}%)
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <motion.button
+            onClick={handleEnrichPreviews}
+            disabled={isEnriching}
+            className="px-6 py-3 rounded-2xl font-semibold text-sm ios-text-primary ios-blur-strong ios-border-subtle ios-spring-animation ios-shadow-soft"
+            style={{
+              background: isEnriching 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'linear-gradient(135deg, #8B5CF6, #A855F7)',
+              boxShadow: isEnriching 
+                ? 'none' 
+                : '0 8px 25px rgba(139, 92, 246, 0.4)'
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <div className="flex items-center space-x-2">
+              <motion.span
+                animate={{ rotate: isEnriching ? 360 : 0 }}
+                transition={{ 
+                  duration: 1, 
+                  repeat: isEnriching ? Infinity : 0,
+                  ease: "linear"
+                }}
+              >
+                🔄
+              </motion.span>
+              <span>{isEnriching ? 'Finding...' : 'Find Previews'}</span>
+            </div>
+          </motion.button>
         </div>
-        <motion.button
-          onClick={handleEnrichPreviews}
-          className="text-xs py-2 px-4 border-0 rounded-xl font-medium text-white transition-all"
-          style={buttonStyle}
-          disabled={isEnriching}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {isEnriching ? (
-            <>
-              <span className="mr-2 animate-spin">🔄</span>
-              Enriching...
-            </>
-          ) : (
-            <>
-              <span className="mr-2">🎬</span>
-              Find Previews
-            </>
-          )}
-        </motion.button>
-      </div>
 
-      {episodePreviewStatus && episodePreviewStatus.totalEpisodes > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-white/60 text-xs">Progress:</span>
-            <div className="flex-1 bg-white/10 rounded-full h-2">
+        {/* Progress Bar */}
+        {episodePreviewStatus && episodePreviewStatus.totalEpisodes > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="ios-text-secondary text-sm font-medium">Progress</span>
+              <span className="ios-text-primary text-sm font-bold font-mono">
+                {episodePreviewStatus.previewPercentage}%
+              </span>
+            </div>
+            <div className="h-2 ios-glass-card rounded-full overflow-hidden">
               <motion.div 
-                className="h-2 rounded-full transition-all duration-500"
+                className="h-full rounded-full"
                 style={{
-                  width: `${episodePreviewStatus.previewPercentage}%`,
                   background: themePalette ? 
-                    `linear-gradient(to right, ${themePalette.primary}, ${themePalette.accent})` :
-                    'linear-gradient(to right, #10B981, #34D399)'
+                    `linear-gradient(90deg, ${themePalette.primary}, ${themePalette.accent})` :
+                    'linear-gradient(90deg, #10B981, #34D399)'
                 }}
                 initial={{ width: 0 }}
                 animate={{ width: `${episodePreviewStatus.previewPercentage}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
+                transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
               />
             </div>
-            <span className="text-white text-xs">{episodePreviewStatus.previewPercentage}%</span>
           </div>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {enrichmentResult && (
-          <motion.div 
-            className={`text-xs p-3 rounded-lg ${
-              enrichmentResult.success 
-                ? 'bg-green-500/20 border border-green-500/30 text-green-400' 
-                : 'bg-red-500/20 border border-red-500/30 text-red-400'
-            }`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-          >
-            {enrichmentResult.success ? '✅' : '❌'} {enrichmentResult.message || enrichmentResult.error}
-          </motion.div>
         )}
-      </AnimatePresence>
+
+        {/* Result Message */}
+        <AnimatePresence>
+          {enrichmentResult && (
+            <motion.div 
+              className={`p-4 rounded-2xl border ${
+                enrichmentResult.success 
+                  ? 'bg-green-500/20 border-green-500/30 text-green-400' 
+                  : 'bg-red-500/20 border-red-500/30 text-red-400'
+              }`}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">
+                  {enrichmentResult.success ? '✅' : '❌'}
+                </span>
+                <span className="font-medium text-sm">
+                  {enrichmentResult.message || enrichmentResult.error}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 };
 
-// Enhanced Episodes Tab Component
+// Main Enhanced Episodes Tab Component
 export const EnhancedEpisodesTab: React.FC<{
   episodes: StreamingEpisode[];
   themePalette?: ColorPalette;
   onPreview: (previewUrl: string) => void;
   anime: any;
-  animeId?: string; // Add animeId prop
+  animeId?: string;
 }> = ({ episodes, themePalette, onPreview, anime, animeId }) => {
   const [filteredEpisodes, setFilteredEpisodes] = useState(episodes);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentEpisode, setCurrentEpisode] = useState(0);
   const [watchProgress, setWatchProgress] = useState<{[key: number]: number}>({});
 
-  // Mock watched episodes data - in real app, this would come from user data
-  const watchedEpisodes = new Set([0, 1, 2]); // First 3 episodes watched
+  // Mock watched episodes data
+  const watchedEpisodes = new Set([0, 1, 2]);
 
   useEffect(() => {
     setFilteredEpisodes(episodes);
@@ -642,50 +794,44 @@ export const EnhancedEpisodesTab: React.FC<{
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  // Empty State
   if (!episodes || episodes.length === 0) {
     return (
-      <div className="ios-scroll-section px-6 py-8">
+      <div className="ios-episodes-container px-6 py-12">
         <motion.div 
-          className="backdrop-blur-xl border rounded-3xl p-12 text-center"
-          style={{
-            background: themePalette ? 
-              `linear-gradient(135deg, ${themePalette.dark}40, ${themePalette.primary}10)` :
-              'rgba(0, 0, 0, 0.4)',
-            borderColor: themePalette?.primary + '20' || 'rgba(255, 255, 255, 0.2)'
-          }}
+          className="ios-glass-card rounded-3xl ios-border-subtle p-16 text-center ios-shadow-strong"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <motion.div 
-            className="text-8xl mb-6 opacity-50"
+            className="text-8xl mb-8 opacity-60"
             animate={{ 
-              rotateY: [0, 360],
-              scale: [1, 1.1, 1]
+              scale: [1, 1.05, 1],
+              opacity: [0.6, 0.8, 0.6]
             }}
             transition={{ 
-              duration: 4,
+              duration: 3,
               repeat: Infinity,
-              repeatType: "loop"
+              ease: "easeInOut"
             }}
           >
             📺
           </motion.div>
-          <h3 className="text-2xl text-white/70 mb-4 font-bold">No Episodes Available</h3>
-          <p className="text-white/50 text-lg mb-6 max-w-md mx-auto">
-            Episode data is not yet available for this anime. Check back later or help us by adding episode information.
+          <h3 className="ios-text-primary text-2xl font-bold mb-4">No Episodes Available</h3>
+          <p className="ios-text-secondary text-lg mb-8 max-w-md mx-auto leading-relaxed">
+            Episode data is not yet available for this anime. Check back later for updates.
           </p>
           <motion.button
-            className="backdrop-blur-sm rounded-xl py-3 px-8 border text-white font-medium"
+            className="ios-glass-button rounded-2xl py-4 px-8 ios-text-primary font-semibold ios-spring-animation ios-shadow-soft"
             style={{
-              background: themePalette?.gradient || 'linear-gradient(135deg, #FF6B35, #E55A2B)',
-              borderColor: themePalette?.primary + '60' || 'rgba(255, 107, 53, 0.6)'
+              background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: `0 8px 25px ${themePalette?.primary || '#667eea'}40`
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {/* Handle add episodes */}}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            Help Add Episodes
+            Request Episodes
           </motion.button>
         </motion.div>
       </div>
@@ -693,16 +839,16 @@ export const EnhancedEpisodesTab: React.FC<{
   }
 
   return (
-    <div className="ios-scroll-section px-6 py-8">
-      {/* Preview Management Panel for Testing */}
-      <PreviewManagementPanel 
-        animeId={animeId || anime?._id || ''}
+    <div className="ios-episodes-container px-6 py-8 space-y-8">
+      {/* Preview Management Panel */}
+      <IOSPreviewManagementPanel 
+        animeId={animeId || anime?._id}
         animeTitle={anime?.title || ''}
         themePalette={themePalette}
       />
 
       {/* Episodes Controls */}
-      <EpisodesControls
+      <IOSEpisodesControls
         episodes={filteredEpisodes}
         onFilterChange={handleFilterChange}
         onSortChange={handleSortChange}
@@ -712,19 +858,19 @@ export const EnhancedEpisodesTab: React.FC<{
       />
 
       {/* Episodes Timeline */}
-      <EpisodesTimeline
+      <IOSEpisodesTimeline
         episodes={filteredEpisodes}
         currentEpisode={currentEpisode}
         onEpisodeSelect={setCurrentEpisode}
         themePalette={themePalette}
       />
 
-      {/* Episodes Grid */}
+      {/* Episodes Content */}
       {viewMode === 'grid' ? (
         <motion.div 
-          className="episodes-grid grid gap-6 auto-rows-min"
+          className="grid gap-6"
           style={{
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
           }}
           layout
         >
@@ -732,7 +878,7 @@ export const EnhancedEpisodesTab: React.FC<{
             const originalIndex = episodes.indexOf(episode);
             
             return (
-              <CinematicEpisodeCard
+              <IOSEpisodeCard
                 key={originalIndex}
                 episode={episode}
                 index={originalIndex}
@@ -747,7 +893,6 @@ export const EnhancedEpisodesTab: React.FC<{
           })}
         </motion.div>
       ) : (
-        // List View
         <div className="space-y-4">
           {filteredEpisodes.map((episode, index) => {
             const originalIndex = episodes.indexOf(episode);
@@ -755,20 +900,16 @@ export const EnhancedEpisodesTab: React.FC<{
             return (
               <motion.div
                 key={originalIndex}
-                className="episode-list-item backdrop-blur-xl rounded-2xl p-6 border"
-                style={{
-                  background: themePalette ? 
-                    `linear-gradient(90deg, ${themePalette.dark}60, ${themePalette.primary}10)` :
-                    'rgba(0, 0, 0, 0.4)',
-                  borderColor: themePalette?.primary + '20' || 'rgba(255, 255, 255, 0.2)'
-                }}
+                className="ios-glass-card rounded-3xl p-6 ios-shadow-strong"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.05, duration: 0.4 }}
                 whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="flex items-center space-x-4">
+                  {/* Thumbnail */}
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 ios-glass-card">
                     {episode.thumbnail ? (
                       <img 
                         src={episode.thumbnail} 
@@ -778,29 +919,41 @@ export const EnhancedEpisodesTab: React.FC<{
                     ) : (
                       <div 
                         className="w-full h-full flex items-center justify-center"
-                        style={{ background: themePalette?.gradient }}
+                        style={{ background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
                       >
-                        <span className="text-white font-bold">{originalIndex + 1}</span>
+                        <span className="ios-text-primary font-bold font-mono text-sm">
+                          {String(originalIndex + 1).padStart(2, '0')}
+                        </span>
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex-1">
-                    <h4 className="text-white font-semibold text-lg mb-1">
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="ios-text-primary font-bold text-lg mb-2 truncate">
                       {episode.title || `Episode ${originalIndex + 1}`}
                     </h4>
-                    <div className="episode-stats flex items-center gap-4 text-white/60 text-sm">
-                      <span>EP {originalIndex + 1}</span>
-                      {episode.duration && <span>{episode.duration}</span>}
-                      {episode.site && <span>{episode.site}</span>}
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-3 ios-text-tertiary text-sm">
+                        <span className="font-mono">EP {String(originalIndex + 1).padStart(2, '0')}</span>
+                        {episode.duration && <span>{episode.duration}</span>}
+                      </div>
+                      {episode.site && (
+                        <div className="flex items-start">
+                          <span className="ios-glass-button px-3 py-1 rounded-xl text-xs font-medium ios-text-secondary">
+                            {episode.site}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
-                  <div className="flex gap-2">
+                  {/* Actions */}
+                  <div className="flex space-x-2">
                     {episode.previewUrl && (
                       <button
                         onClick={() => onPreview(episode.previewUrl!)}
-                        className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl py-2 px-4 text-white font-medium transition-all"
+                        className="ios-glass-button rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation"
                       >
                         Preview
                       </button>
@@ -808,9 +961,10 @@ export const EnhancedEpisodesTab: React.FC<{
                     {episode.url && (
                       <button
                         onClick={() => handleWatchEpisode(episode.url!)}
-                        className="backdrop-blur-sm rounded-xl py-2 px-4 text-white font-medium transition-all"
+                        className="backdrop-blur-sm rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation ios-shadow-soft"
                         style={{
-                          background: themePalette?.gradient || 'linear-gradient(135deg, #FF6B35, #E55A2B)'
+                          background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          boxShadow: `0 4px 15px ${themePalette?.primary || '#667eea'}30`
                         }}
                       >
                         Watch
