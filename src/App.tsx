@@ -49,7 +49,7 @@ export default function App() {
       </header>
       <main className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <PageTransition key={verificationFlowKey}>
               <Content
                 key={verificationFlowKey}

@@ -1401,7 +1401,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
     <>
       <SideNavigationBar currentView={currentView} onTabChange={handleTabChange} />
       <div className="w-full md:pl-20 pb-20">
-        <AnimatePresence mode="wait" onExitComplete={handleTransitionEnd}>
+        <AnimatePresence mode="sync" onExitComplete={handleTransitionEnd}>
           <PageTransition key={currentView} className="pt-0">
             {renderContent()}
           </PageTransition>

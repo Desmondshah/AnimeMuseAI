@@ -4236,6 +4236,7 @@ h1, h2, h3, h4, h5, h6 {
     grid-column: span 1;
     grid-row: span 1;
     min-height: 280px;
+    aspect-ratio: 16/9;
   }
   
   .episode-controls-panel .grid {
@@ -4252,14 +4253,16 @@ h1, h2, h3, h4, h5, h6 {
 .episodes-grid .featured-episode {
   grid-column: span 2;
   grid-row: span 2;
-  min-height: 400px;
+  min-height: 360px;
+  aspect-ratio: 16/9;
 }
 
 @media (max-width: 767px) {
   .episodes-grid .featured-episode {
     grid-column: span 1;
     grid-row: span 1;
-    min-height: 280px;
+    min-height: 240px;
+    aspect-ratio: 16/9;
   }
 }
 
@@ -4387,7 +4390,8 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: 10;
+  transform: translateY(3rem);
 }
 
 /* Episode action buttons with hover effects */
@@ -4502,11 +4506,13 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .episode-card-cinematic {
-    min-height: 200px;
+    min-height: 180px;
+    aspect-ratio: 16/9;
   }
-  
+
   .episode-card-cinematic.featured-episode {
     min-height: 240px;
+    aspect-ratio: 16/9;
   }
   
   .episode-timeline {
@@ -4546,7 +4552,8 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .episode-card-cinematic {
-    min-height: 180px;
+    min-height: 160px;
+    aspect-ratio: 16/9;
     border-radius: 1rem;
   }
   

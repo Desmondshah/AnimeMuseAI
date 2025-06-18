@@ -1,6 +1,9 @@
 // src/components/animuse/EnhancedEpisodesTab.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+
 
 // Interface definitions
 interface ColorPalette {
@@ -467,19 +470,11 @@ const PreviewManagementPanel: React.FC<{
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichmentResult, setEnrichmentResult] = useState<any>(null);
   
-  // Mock mutation - replace with actual useMutation from your app
-  const triggerPreviewEnrichment = async (args: { animeId: string }) => {
-    // This should be replaced with actual mutation call
-    console.log('Triggering preview enrichment for:', args.animeId);
-    return { success: true, message: "Preview enrichment started! Check back in a few minutes." };
-  };
-
-  // Mock query - replace with actual useQuery from your app
-  const episodePreviewStatus = {
-    totalEpisodes: 12,
-    episodesWithPreviews: 8,
-    previewPercentage: 67
-  };
+  const triggerPreviewEnrichment = useMutation(api.anime.triggerPreviewEnrichment);
+  const episodePreviewStatus = useQuery(
+    api.anime.getEpisodePreviewStatus,
+    animeId ? { animeId } : "skip"
+  );
 
   const handleEnrichPreviews = async () => {
     setIsEnriching(true);
