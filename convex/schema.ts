@@ -271,6 +271,14 @@ aiFeedback: defineTable({
     .index("by_aiAction", ["aiAction"])
     .index("by_feedbackType", ["feedbackType"])
     .index("by_timestamp", ["timestamp"]),
+
+    aiCache: defineTable({
+    cacheKey: v.string(),
+    value: v.any(),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+  })
+    .index("by_cacheKey", ["cacheKey"]),
     
 };
 

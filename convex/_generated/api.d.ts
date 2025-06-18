@@ -16,6 +16,7 @@ import type {
 import type * as admin from "../admin.js";
 import type * as advancedPresets from "../advancedPresets.js";
 import type * as ai from "../ai.js";
+import type * as aiCache from "../aiCache.js";
 import type * as anime from "../anime.js";
 import type * as animeQueries from "../animeQueries.js";
 import type * as auth from "../auth.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   advancedPresets: typeof advancedPresets;
   ai: typeof ai;
+  aiCache: typeof aiCache;
   anime: typeof anime;
   animeQueries: typeof animeQueries;
   auth: typeof auth;

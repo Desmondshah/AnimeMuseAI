@@ -6,6 +6,25 @@ import OpenAI from "openai";
 import { Id, Doc } from "./_generated/dataModel"; // Doc added for clarity
 import { AnimeRecommendation } from "./types"; // Ensure this type is comprehensive
 
+// Use cheaper model by default, can be overridden via env
+const OPENAI_MODEL = process.env.CONVEX_OPENAI_CHEAP_MODEL || "gpt-3.5-turbo-0125";
+
+function formatUserProfile(profile: any | undefined): string {
+  if (!profile) return "";
+  const parts: string[] = [];
+  if (profile.name) parts.push(`Name: ${profile.name}`);
+  if (profile.moods?.length) parts.push(`Moods: ${profile.moods.join("/")}`);
+  if (profile.genres?.length) parts.push(`Genres: ${profile.genres.join("/")}`);
+  if (profile.favoriteAnimes?.length) parts.push(`Fav: ${profile.favoriteAnimes.slice(0,3).join("/")}`);
+  if (profile.experienceLevel) parts.push(`Exp: ${profile.experienceLevel}`);
+  if (profile.dislikedGenres?.length) parts.push(`Dislikes: ${profile.dislikedGenres.join("/")}`);
+  if (profile.characterArchetypes?.length) parts.push(`Chars: ${profile.characterArchetypes.join("/")}`);
+  if (profile.tropes?.length) parts.push(`Tropes: ${profile.tropes.join("/")}`);
+  if (profile.artStyles?.length) parts.push(`Art: ${profile.artStyles.join("/")}`);
+  if (profile.narrativePacing) parts.push(`Pacing: ${profile.narrativePacing}`);
+  return parts.length ? "\nUser: " + parts.join("; ") : "";
+}
+
 // Interface for debug anime addition response
 interface DebugAnimeAdditionResponse {
   success: boolean;
@@ -520,15 +539,7 @@ Each anime object should have:
 
 Focus on providing diverse and relevant choices with accurate information.`;
 
-    if (args.userProfile) {
-      systemPrompt += "\n\nUser Profile Context:";
-      if (args.userProfile.name) systemPrompt += `\n- Name: ${args.userProfile.name}`;
-      if (args.userProfile.moods?.length) systemPrompt += `\n- Current Moods: ${args.userProfile.moods.join(", ")}`;
-      if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-      if (args.userProfile.favoriteAnimes?.length) systemPrompt += `\n- Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
-      if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
-      if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
 
     let recommendations: any[] = [];
     let errorResult: string | undefined = undefined;
@@ -537,7 +548,7 @@ Focus on providing diverse and relevant choices with accurate information.`;
       console.log(`[AI Recommendations] Calling OpenAI API...`);
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+         model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.prompt }
@@ -666,7 +677,7 @@ Rules:
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.query }
@@ -735,12 +746,7 @@ ORIGINAL RECOMMENDATIONS:`;
       systemPrompt += `\n${idx + 1}. ${rec.title} - ${rec.reasoning || rec.description}`;
     });
 
-    systemPrompt += `\n\nUser Profile:`;
-    if (args.userProfile) {
-      if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-      if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Avoid: ${args.userProfile.dislikedGenres.join(", ")}`;
-      if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience: ${args.userProfile.experienceLevel}`;
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
 
     systemPrompt += `\n\nRefinement Strategy:
 1. Understand what the user wants to adjust (more/less of something, different direction)
@@ -766,7 +772,7 @@ Each recommendation: title, description, reasoning (explain how this addresses t
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.refinementRequest }
@@ -853,7 +859,7 @@ Output JSON: {
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: "Generate follow-up suggestions based on my interactions" }
@@ -960,7 +966,7 @@ For "improvement_suggestions":
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Analyze feedback for ${args.analysisType || "general insights"}` }
@@ -1046,12 +1052,7 @@ export const getRoleBasedRecommendations = action({
 
     systemPrompt += `\n\nUser Query: "${args.query}"`;
 
-    if (args.userProfile) {
-      systemPrompt += `\n\nUser Context:`;
-      if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience: ${args.userProfile.experienceLevel}`;
-      if (args.userProfile.genres?.length) systemPrompt += `\n- Likes: ${args.userProfile.genres.join(", ")}`;
-      if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Avoids: ${args.userProfile.dislikedGenres.join(", ")}`;
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
 
     systemPrompt += `\n\nProvide recommendations in your role as ${role.replace("_", " ")}. Use your expertise and voice while being helpful.
 
@@ -1064,7 +1065,7 @@ Each recommendation: title, description, reasoning (in your role's voice/perspec
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+         model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.query }
@@ -1113,21 +1114,8 @@ USER REQUEST: Find anime with characters similar to: "${args.characterDescriptio
       systemPrompt += `\nReference anime mentioned: "${args.referenceAnime}"`;
     }
 
-    systemPrompt += `\n\nUser Profile:`;
-    if (args.userProfile) {
-      if (args.userProfile.characterArchetypes?.length) {
-        systemPrompt += `\n- Liked Character Types: ${args.userProfile.characterArchetypes.join(", ")}`;
-      }
-      if (args.userProfile.genres?.length) {
-        systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-      }
-      if (args.userProfile.dislikedGenres?.length) {
-        systemPrompt += `\n- Avoid Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
-      }
-      if (args.userProfile.narrativePacing) {
-        systemPrompt += `\n- Preferred Pacing: ${args.userProfile.narrativePacing}`;
-      }
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
+
 
     systemPrompt += `\n\nFocus on:
 1. Character personality traits and development arcs
@@ -1144,7 +1132,7 @@ Each recommendation: title, description, reasoning (focus on character similarit
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.characterDescription }
@@ -1195,18 +1183,8 @@ USER REQUEST: "${args.plotDescription}"`;
       systemPrompt += `\nSpecific tropes mentioned: ${args.specificTropes.join(", ")}`;
     }
 
-    systemPrompt += `\n\nUser Profile:`;
-    if (args.userProfile) {
-      if (args.userProfile.tropes?.length) {
-        systemPrompt += `\n- Enjoyed Tropes: ${args.userProfile.tropes.join(", ")}`;
-      }
-      if (args.userProfile.narrativePacing) {
-        systemPrompt += `\n- Preferred Pacing: ${args.userProfile.narrativePacing}`;
-      }
-      if (args.userProfile.genres?.length) {
-        systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-      }
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
+
 
     systemPrompt += `\n\nAnalyze the request for:
 1. Core narrative tropes and plot devices
@@ -1223,7 +1201,7 @@ Each recommendation: title, description, reasoning (focus on plot/trope similari
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+       model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.plotDescription }
@@ -1274,15 +1252,7 @@ USER REQUEST: "${args.artStyleDescription}"`;
       systemPrompt += `\nPreferred Studios: ${args.preferredStudios.join(", ")}`;
     }
 
-    systemPrompt += `\n\nUser Profile:`;
-    if (args.userProfile) {
-      if (args.userProfile.artStyles?.length) {
-        systemPrompt += `\n- Preferred Art Styles: ${args.userProfile.artStyles.join(", ")}`;
-      }
-      if (args.userProfile.genres?.length) {
-        systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-      }
-    }
+    systemPrompt += formatUserProfile(args.userProfile);
 
     systemPrompt += `\n\nFocus on:
 1. Visual aesthetics and animation quality
@@ -1300,7 +1270,7 @@ Each recommendation: title, description, reasoning (focus on visual/studio aspec
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.artStyleDescription }
@@ -1384,7 +1354,7 @@ Output JSON: {
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+         model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Compare ${args.animeA} and ${args.animeB}` }
@@ -1465,7 +1435,7 @@ Each recommendation: title, description, reasoning (why this is a perfect surpri
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Surprise me with ${surpriseLevel} hidden gems!` }
@@ -1554,7 +1524,7 @@ Output JSON: {
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+         model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Guide me through the ${args.franchiseName} franchise` }
@@ -1666,17 +1636,7 @@ Each recommendation MUST include:
 
 The "reasoning" field is crucial for personalization. Make it insightful and specific to the user.`;
 
-        systemPrompt += "\n\nUSER PROFILE:";
-        systemPrompt += `\n- Name: ${args.userProfile.name || "N/A"}`;
-        if (args.userProfile.moods?.length) systemPrompt += `\n- Current Moods: ${args.userProfile.moods.join(", ")}`;
-        if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-        if (args.userProfile.favoriteAnimes?.length) systemPrompt += `\n- Favorite Anime: ${args.userProfile.favoriteAnimes.join(", ")}`;
-        if (args.userProfile.experienceLevel) systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
-        if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")}`;
-        if (args.userProfile.characterArchetypes?.length) systemPrompt += `\n- Liked Character Archetypes: ${args.userProfile.characterArchetypes.join(", ")}`;
-        if (args.userProfile.tropes?.length) systemPrompt += `\n- Liked Tropes: ${args.userProfile.tropes.join(", ")}`;
-        if (args.userProfile.artStyles?.length) systemPrompt += `\n- Liked Art Styles: ${args.userProfile.artStyles.join(", ")}`;
-        if (args.userProfile.narrativePacing) systemPrompt += `\n- Preferred Pacing: ${args.userProfile.narrativePacing}`;
+        systemPrompt += formatUserProfile(args.userProfile);
 
         if (args.watchlistActivity?.length) {
             systemPrompt += "\n\nRECENT WATCHLIST ACTIVITY (last 5 items):";
@@ -1694,7 +1654,7 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const openaiTemperature = 0.8 + Math.random() * 0.2;
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: OPENAI_MODEL,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: "Generate personalized anime recommendations based on my profile and activity." }
@@ -1814,26 +1774,7 @@ if (args.previousTitles && args.previousTitles.length > 0) {
         }
 
         // Add user profile context
-        if (args.userProfile) {
-            systemPrompt += `\n\nUSER PROFILE CONTEXT:`;
-            if (args.userProfile.experienceLevel) {
-                systemPrompt += `\n- Experience Level: ${args.userProfile.experienceLevel}`;
-                if (args.userProfile.experienceLevel === "beginner") {
-                    systemPrompt += ` (Prioritize accessible anime with clear emotional beats)`;
-                } else if (args.userProfile.experienceLevel === "veteran") {
-                    systemPrompt += ` (Can handle complex, nuanced emotional narratives)`;
-                }
-            }
-            if (args.userProfile.genres?.length) {
-                systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")} (Use as secondary filter)`;
-            }
-            if (args.userProfile.dislikedGenres?.length) {
-                systemPrompt += `\n- Avoid Genres: ${args.userProfile.dislikedGenres.join(", ")} (Unless mood match is exceptional)`;
-            }
-            if (args.userProfile.moods?.length) {
-                systemPrompt += `\n- General Mood Preferences: ${args.userProfile.moods.join(", ")}`;
-            }
-        }
+        systemPrompt += formatUserProfile(args.userProfile);
 
         // Add mood-specific recommendation strategy
         systemPrompt += `\n\nRECOMMENDATION STRATEGY:
@@ -1880,7 +1821,7 @@ Provide ${recommendationCount} carefully curated recommendations that create a c
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const openaiTemperature = 0.8 + Math.random() * 0.2;
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                 model: OPENAI_MODEL,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `Find anime that perfectly captures this mood combination: ${args.selectedCues.join(" + ")}. Focus on authentic emotional resonance.` }
@@ -2308,11 +2249,7 @@ For each recommendation, provide:
 - moodMatchScore: (number, REQUIRED) 1-10 score for similarity to the target anime
 - similarityScore: (number, optional) Alternative similarity metric`;
 
-        if (args.userProfile) {
-            systemPrompt += "\n\nUser Profile Context (use to refine similarity focus):";
-            if (args.userProfile.genres?.length) systemPrompt += `\n- Preferred Genres: ${args.userProfile.genres.join(", ")}`;
-            if (args.userProfile.dislikedGenres?.length) systemPrompt += `\n- Disliked Genres: ${args.userProfile.dislikedGenres.join(", ")} (try to avoid these in suggestions if possible, unless a core aspect of similarity)`;
-        }
+        systemPrompt += formatUserProfile(args.userProfile);
         systemPrompt += `\n\nOutput JSON: {"recommendations": [...]}`;
 
         let recommendations: any[] = [];
@@ -2321,7 +2258,7 @@ For each recommendation, provide:
         try {
             const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                 model: OPENAI_MODEL,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `Find anime similar to "${targetAnime.title}". Focus on strong thematic and genre similarities.` }
@@ -2849,6 +2786,13 @@ export const fetchEnrichedCharacterDetails = action({
     }
 
     const enrichmentLevel = args.enrichmentLevel || "detailed";
+
+    const cacheKey = `char_enrich_${args.characterName}_${args.animeName}_${enrichmentLevel}`;
+    const cached = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cached) {
+      const mergedCharacter = mergeCharacterData(args.existingData || {}, cached.enrichedData || {});
+      return { enrichedData: cached.enrichedData || {}, mergedCharacter, error: undefined, sources: cached.sources };
+    }
     
     console.log(`[Character AI Enrichment] Enriching ${args.characterName} from ${args.animeName} (${enrichmentLevel} level)`);
 
@@ -2956,7 +2900,7 @@ Make this character profile comprehensive and engaging while maintaining accurac
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Research and provide ${enrichmentLevel} enriched details for ${args.characterName} from ${args.animeName}. Focus on information that goes beyond what's typically available in structured databases.` }
@@ -2982,6 +2926,12 @@ Make this character profile comprehensive and engaging while maintaining accurac
 
     // Merge existing data with enriched data
     const mergedCharacter = mergeCharacterData(args.existingData || {}, enrichedData);
+
+    await ctx.runMutation(internal.aiCache.setCache, {
+      key: cacheKey,
+      value: { enrichedData, sources },
+      ttl: 1000 * 60 * 60 * 24 * 7,
+    });
 
     // Store feedback
     if (args.messageId) {
@@ -3014,6 +2964,12 @@ export const analyzeCharacterRelationships = action({
   handler: async (ctx, args) => {
     if (!process.env.CONVEX_OPENAI_API_KEY) {
       return { relationships: [], error: "OpenAI API key not configured." };
+    }
+
+    const cacheKey = `char_rel_${args.characterName}_${args.animeName}_${(args.focusCharacters || []).join("|")}`;
+    const cached = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cached) {
+      return { relationships: cached.relationships || [], error: undefined };
     }
 
     let systemPrompt = `You are an expert anime relationship analyst. Analyze the relationships of "${args.characterName}" from "${args.animeName}".
@@ -3050,7 +3006,7 @@ Output JSON: {
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Analyze the relationships of ${args.characterName} from ${args.animeName}` }
@@ -3059,6 +3015,12 @@ Output JSON: {
       });
 
       const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+      await ctx.runMutation(internal.aiCache.setCache, {
+        key: cacheKey,
+        value: { relationships: result.relationships || [] },
+        ttl: 1000 * 60 * 60 * 24 * 7,
+      });
 
       await ctx.runMutation(api.ai.storeAiFeedback, {
         prompt: `Relationship analysis: ${args.characterName} from ${args.animeName}`,
@@ -3087,6 +3049,12 @@ export const getCharacterDevelopmentTimeline = action({
   handler: async (ctx, args) => {
     if (!process.env.CONVEX_OPENAI_API_KEY) {
       return { timeline: [], error: "OpenAI API key not configured." };
+    }
+
+    const cacheKey = `char_timeline_${args.characterName}_${args.animeName}_${args.includeArcs ? 1 : 0}`;
+    const cached = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cached) {
+      return { timeline: cached.timeline || [], overallArc: cached.overallArc, majorTurningPoints: cached.majorTurningPoints || [], error: undefined };
     }
 
     let systemPrompt = `You are an expert at analyzing character development arcs in anime. Create a detailed development timeline for "${args.characterName}" from "${args.animeName}".
@@ -3120,7 +3088,7 @@ Output JSON: {
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OPENAI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a character development timeline for ${args.characterName}` }
@@ -3129,6 +3097,12 @@ Output JSON: {
       });
 
       const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+      await ctx.runMutation(internal.aiCache.setCache, {
+        key: cacheKey,
+        value: { timeline: result.timeline || [], overallArc: result.overallArc, majorTurningPoints: result.majorTurningPoints || [] },
+        ttl: 1000 * 60 * 60 * 24 * 7,
+      });
 
       await ctx.runMutation(api.ai.storeAiFeedback, {
         prompt: `Character timeline: ${args.characterName} from ${args.animeName}`,

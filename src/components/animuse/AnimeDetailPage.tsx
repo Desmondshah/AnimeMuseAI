@@ -2153,7 +2153,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
         setSimilarAnimeError(result.error);
         toast.error(`Could not find similar anime: ${result.error.substring(0, 60)}`);
       } else {
-        const validRecommendations = (result.recommendations || []).filter(rec => rec && rec.title);
+        const validRecommendations = (result.recommendations || []).filter((rec: any) => rec && rec.title);
         setSimilarAnime(validRecommendations as AnimeRecommendation[]);
       }
       setShowSimilarAnime(true);
