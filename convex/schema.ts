@@ -122,10 +122,33 @@ const applicationTables = {
   }))),
   
   // Character relationships (if available)
-  relationships: v.optional(v.array(v.object({ 
-    relatedCharacterId: v.optional(v.number()), 
+  relationships: v.optional(v.array(v.object({
+    relatedCharacterId: v.optional(v.number()),
     relationType: v.string() // "Father", "Sister", "Friend", "Rival", etc.
-  })))
+  }))),
+
+  // AI enrichment fields
+  isAIEnriched: v.optional(v.boolean()),
+  personalityAnalysis: v.optional(v.string()),
+  keyRelationships: v.optional(v.array(v.object({
+    relatedCharacterName: v.string(),
+    relationshipDescription: v.string(),
+    relationType: v.string(),
+  }))),
+  detailedAbilities: v.optional(v.array(v.object({
+    abilityName: v.string(),
+    abilityDescription: v.string(),
+    powerLevel: v.optional(v.string()),
+  }))),
+  majorCharacterArcs: v.optional(v.array(v.string())),
+  trivia: v.optional(v.array(v.string())),
+  backstoryDetails: v.optional(v.string()),
+  characterDevelopment: v.optional(v.string()),
+  notableQuotes: v.optional(v.array(v.string())),
+  symbolism: v.optional(v.string()),
+  fanReception: v.optional(v.string()),
+  culturalSignificance: v.optional(v.string()),
+  enrichmentTimestamp: v.optional(v.number()),
 }))),
   })
   .index("by_title", ["title"])
