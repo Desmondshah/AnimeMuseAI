@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
-
 // Interface definitions
 interface ColorPalette {
   primary: string;
