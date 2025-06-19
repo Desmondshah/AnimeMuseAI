@@ -165,8 +165,12 @@ interface CustomListWithAnime {
 // SECTION 3: CONSTANTS
 // ============================================================================
 
+
+
 // 12 hours in milliseconds (FIXED: was 10 minutes)
 const PERSONALIZED_REFRESH_INTERVAL = 12 * 60 * 60 * 1000;
+
+
 
 // ============================================================================
 // SECTION 4: MAIN COMPONENT
@@ -200,6 +204,8 @@ export default function MainApp() {
 
 
   const { shouldReduceAnimations } = useMobileOptimizations();
+
+  
   
   // Navigation State
   const [currentView, setCurrentView] = useState<CurrentView>("dashboard");
@@ -765,12 +771,14 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
     setHasFetchedForYou(true);
   }, 500);
 
+
   return () => {
     if (debouncedFetchRef.current) {
       clearTimeout(debouncedFetchRef.current);
     }
   };
 }, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist, watchlistActivity, forYouCategories, needsRefresh]);
+
 
   // Trigger refresh when profile preferences change
   useEffect(() => {
@@ -808,6 +816,29 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
   
   return truncated + '...';
 };
+
+const popularRef = useRef<HTMLDivElement>(null);
+useEffect(() => {
+  if (!popularRef.current) return;
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        // load 10 more posters each time you hit the end
+        fetchPopularAnimeAction({ limit: popularAnime.length + 10 })
+          .then(res => setPopularAnime(res.animes || []))
+          .catch(console.error);
+      }
+    },
+    {
+      root: popularRef.current,
+      threshold: 1.0,
+    }
+  );
+  const items = popularRef.current.querySelectorAll(".snap-center");
+  const last = items[items.length - 1];
+  if (last) observer.observe(last);
+  return () => observer.disconnect();
+}, [popularAnime, fetchPopularAnimeAction]);
 
   const renderDashboard = useCallback(() => (
     <div className="relative min-h-screen">
@@ -872,29 +903,29 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
         </motion.div>
 
         {popularAnime.length > 0 && (
-          <div className="mb-6">
-            <Carousel
-              autoPlay
-              autoPlayInterval={5000}
-              className="px-2"
-              snapToCenter
-            >
-              {popularAnime.map((a, i) => (
-                <div
-                  key={`featured-${i}`}
-                  className="w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw]"
-                >
-                  <AnimeCard
-                    anime={a}
-                    isRecommendation
-                    onViewDetails={handleAnimeCardClick}
-                    className="w-full"
-                  />
-                </div>
-              ))}
-            </Carousel>
+  <div className="mb-6">
+    <div
+      ref={popularRef}
+      className="relative overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x"
+    >
+      <div className="flex space-x-4 px-4">
+        {popularAnime.map((a, i) => (
+          <div
+            key={`featured-${i}`}
+            className="snap-center flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw]"
+          >
+            <AnimeCard
+              anime={a}
+              isRecommendation
+              onViewDetails={handleAnimeCardClick}
+              className="w-full"
+            />
           </div>
-        )}
+        ))}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* AI Assistant CTA */}
         <div className="flex justify-center">
@@ -1134,22 +1165,6 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             <Carousel>
               {topAnime.map((a, i) => (
                 <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
-              ))}
-            </Carousel>
-          </div>
-        )}
-
-        {popularAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="section-title font-heading text-white font-bold">⭐ Popular</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Carousel>
-              {popularAnime.map((a, i) => (
-                <div key={`pop-${i}`} className="w-32 xs:w-36 sm:w-40">
                   <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
                 </div>
               ))}
