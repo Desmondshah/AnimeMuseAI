@@ -1,6 +1,6 @@
 // src/components/animuse/MainApp.tsx - Fixed and Organized Version
 
-import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo } from "react";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -252,6 +252,10 @@ export default function MainApp() {
   const [trendingAnime, setTrendingAnime] = useState<AnimeRecommendation[]>([]);
   const [topAnime, setTopAnime] = useState<AnimeRecommendation[]>([]);
   const [popularAnime, setPopularAnime] = useState<AnimeRecommendation[]>([]);
+  const loopedPopularAnime = useMemo(
+    () => popularAnime.length ? [...popularAnime, ...popularAnime, ...popularAnime] : [],
+    [popularAnime]
+  );
 
   // NEW CHARACTER STATE:
   const [selectedCharacterData, setSelectedCharacterData] = useState<EnhancedCharacter | null>(null);
@@ -818,27 +822,28 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 };
 
 const popularRef = useRef<HTMLDivElement>(null);
+
 useEffect(() => {
-  if (!popularRef.current) return;
-  const observer = new IntersectionObserver(
-    ([entry]) => {
-      if (entry.isIntersecting) {
-        // load 10 more posters each time you hit the end
-        fetchPopularAnimeAction({ limit: popularAnime.length + 10 })
-          .then(res => setPopularAnime(res.animes || []))
-          .catch(console.error);
-      }
-    },
-    {
-      root: popularRef.current,
-      threshold: 1.0,
+  const container = popularRef.current;
+  if (!container) return;
+
+  const cycleWidth = container.scrollWidth / 3;
+  container.scrollLeft = cycleWidth;
+
+  const handleScroll = () => {
+    const width = container.scrollWidth / 3;
+    if (container.scrollLeft <= width * 0.1) {
+      container.scrollLeft += width;
+    } else if (container.scrollLeft >= width * 2 - width * 0.1) {
+      container.scrollLeft -= width;
     }
-  );
-  const items = popularRef.current.querySelectorAll(".snap-center");
-  const last = items[items.length - 1];
-  if (last) observer.observe(last);
-  return () => observer.disconnect();
-}, [popularAnime, fetchPopularAnimeAction]);
+  };
+
+  container.addEventListener("scroll", handleScroll);
+  return () => {
+    container.removeEventListener("scroll", handleScroll);
+  };
+}, [loopedPopularAnime]);
 
   const renderDashboard = useCallback(() => (
     <div className="relative min-h-screen">
@@ -902,17 +907,17 @@ useEffect(() => {
          </motion.p>
         </motion.div>
 
-        {popularAnime.length > 0 && (
+        {loopedPopularAnime.length > 0 && (
   <div className="mb-6">
     <div
       ref={popularRef}
-      className="relative overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x"
+      className="relative overflow-x-auto overflow-y-hidden touch-pan-x"
     >
       <div className="flex space-x-4 px-4">
-        {popularAnime.map((a, i) => (
+        {loopedPopularAnime.map((a, i) => (
           <div
             key={`featured-${i}`}
-            className="snap-center flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw]"
+            className="flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw]"
           >
             <AnimeCard
               anime={a}
