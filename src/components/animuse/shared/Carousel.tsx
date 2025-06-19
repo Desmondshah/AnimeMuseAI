@@ -307,11 +307,11 @@ export default function OptimizedCarousel({
   // FIXED: Motion values with proper spring configuration
   const x = useMotionValue(0);
   const springX = useSpring(x, {
-    damping: 25,
-    stiffness: 180,
-    mass: 0.8,
-    restDelta: 0.001,
-  });
+  damping: 25,
+  stiffness: 180,
+  mass: 0.8,
+  restDelta: 0.001,
+});
 
   // Transform values for effects
   const rotate = useTransform(
@@ -357,17 +357,17 @@ export default function OptimizedCarousel({
 
   // FIXED: Proper position calculation and animation
   useEffect(() => {
-    if (itemWidth > 0) {
-      const targetPosition = -currentIndex * itemWidth;
-      const maxPosition = -(children.length - visibleItems) * itemWidth;
-      const clampedPosition = Math.max(
-        maxPosition,
-        Math.min(0, targetPosition),
-      );
+  if (itemWidth > 0) {
+    const targetPosition = -currentIndex * itemWidth;  // This centers each item
+    const maxPosition = -(children.length - visibleItems) * itemWidth;
+    const clampedPosition = Math.max(
+      maxPosition,
+      Math.min(0, targetPosition),
+    );
 
-      x.set(clampedPosition);
-    }
-  }, [currentIndex, itemWidth, visibleItems, children.length, x]);
+    x.set(clampedPosition);
+  }
+}, [currentIndex, itemWidth, visibleItems, children.length, x]);
 
   // Auto-play effect using requestAnimationFrame for smoother updates
   useRafInterval(
@@ -395,34 +395,31 @@ export default function OptimizedCarousel({
   }, []);
 
   const handleDragEnd = useCallback(
-    (_event: any, info: PanInfo) => {
-      setIsDragging(false);
+  (_event: any, info: PanInfo) => {
+    setIsDragging(false);
 
-      if (itemWidth === 0) return;
+    if (itemWidth === 0) return;
 
-      const threshold = itemWidth * 0.2; // 20% of item width
-      const velocity = Math.abs(info.velocity.x);
-      const offset = info.offset.x;
+    const threshold = itemWidth * 0.1;  // Very strict
+    const velocity = Math.abs(info.velocity.x);
+    const offset = info.offset.x;
 
-      let newIndex = currentIndex;
+    let newIndex = currentIndex;
 
-      // Determine direction based on offset and velocity
-      if (offset > threshold || (velocity > 300 && offset > 10)) {
-        // Swiping right (previous item)
+    // Snap to nearest item for ANY movement
+    if (Math.abs(offset) > 10) {  // Even tiny movements snap
+      if (offset > 0) {
         newIndex = Math.max(0, currentIndex - 1);
-      } else if (offset < -threshold || (velocity > 300 && offset < -10)) {
-        // Swiping left (next item)
+      } else {
         const maxIndex = Math.max(0, children.length - visibleItems);
         newIndex = Math.min(maxIndex, currentIndex + 1);
       }
+    }
 
-      setCurrentIndex(newIndex);
-
-      // Re-enable autoplay after a delay
-      setTimeout(() => setAutoPlayActive(autoPlay), 2000);
-    },
-    [currentIndex, children.length, autoPlay, itemWidth, visibleItems],
-  );
+    setCurrentIndex(newIndex);
+  },
+  [currentIndex, children.length, autoPlay, itemWidth, visibleItems],
+);
 
   // FIXED: Better drag constraints and scroll prevention
   const dragConstraints = useMemo(() => {
@@ -574,7 +571,7 @@ export default function OptimizedCarousel({
           }}
           drag="x"
           dragConstraints={dragConstraints}
-          dragElastic={0.1}
+          dragElastic={0.05}
           dragMomentum={false}
           dragDirectionLock={true} // Lock to horizontal dragging only
           onDragStart={handleDragStart}
@@ -582,12 +579,12 @@ export default function OptimizedCarousel({
           onDragEnd={handleDragEnd}
           whileTap={{ cursor: "grabbing" }}
           transition={{
-            type: shouldReduceAnimations ? "tween" : "spring",
-            damping: 25,
-            stiffness: 180,
-            mass: 0.8,
-            duration: shouldReduceAnimations ? 0.2 : undefined,
-          }}
+  type: shouldReduceAnimations ? "tween" : "spring",
+  damping: 35,        // Increased from 25
+  stiffness: 100,     // Decreased from 180
+  mass: 1.2,          // Increased from 0.8
+  duration: shouldReduceAnimations ? 0.4 : undefined,  // Increased from 0.2
+}}
         >
           {children.map((child, index) => (
             <motion.div
