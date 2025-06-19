@@ -392,7 +392,7 @@ interface EnhancedCharacterType {
     relatedCharacterId?: number;
     relationType: string;
   }[];
-  isAIEnriched?: boolean;
+  enrichmentStatus?: "pending" | "success" | "failed";
   personalityAnalysis?: string;
   keyRelationships?: Array<{
     relatedCharacterName: string;
@@ -640,7 +640,7 @@ const CharacterCard: React.FC<{
         </div>
 
         {/* AI Enhancement badge */}
-        {character.isAIEnriched && (
+         {character.enrichmentStatus === "success" && (
           <div className="absolute top-3 left-3">
             <span 
               className="text-xs px-2 py-1 rounded-full font-medium backdrop-blur-sm border border-purple-400/50"
@@ -1550,7 +1550,7 @@ const useEnrichedCharacters = (
 
     // Enrich up to five characters that haven't been enhanced yet
     const charactersToEnrich = characters
-      .filter(char => char && char.name && !char.isAIEnriched)
+      .filter(char => char && char.name && char.enrichmentStatus !== "success")
       .slice(0, 5);
     
     if (charactersToEnrich.length === 0) {
@@ -1585,10 +1585,10 @@ const useEnrichedCharacters = (
             return character;
           }
           
-          return { 
-            ...character, 
-            ...result.mergedCharacter, 
-            isAIEnriched: true,
+          return {
+            ...character,
+            ...result.mergedCharacter,
+            enrichmentStatus: "success",
             enrichmentTimestamp: Date.now()
           };
         } catch (error) {
@@ -1609,7 +1609,7 @@ const useEnrichedCharacters = (
         return match || char;
       });
       
-      console.log(`Enrichment complete. Enhanced ${enriched.filter(c => c.isAIEnriched).length} characters`);
+      console.log(`Enrichment complete. Enhanced ${enriched.filter(c => c.enrichmentStatus === "success").length} characters`);
       setEnrichedCharacters(allEnriched);
       
     } catch (error) {
@@ -1628,7 +1628,9 @@ const useEnrichedCharacters = (
       !hasTriggeredEnrichment
     ) {
       // Check if we have unenriched characters
-      const hasUnenrichedCharacters = characters.some(c => c && c.name && !c.isAIEnriched);
+      const hasUnenrichedCharacters = characters.some(
+        c => c && c.name && c.enrichmentStatus !== "success"
+      );
       
       if (hasUnenrichedCharacters) {
         console.log('Auto-triggering character enrichment');
@@ -1645,7 +1647,7 @@ const useEnrichedCharacters = (
   useEffect(() => {
     if (
       enrichedCharacters.length > 0 &&
-      enrichedCharacters.every((c) => c.isAIEnriched || !c.name) &&
+      enrichedCharacters.every((c) => c.enrichmentStatus === "success" || !c.name) &&
       isEnriching
     ) {
       console.log('All characters enriched, stopping enrichment indicator');
@@ -1656,7 +1658,7 @@ const useEnrichedCharacters = (
   // Debug logging
   useEffect(() => {
     if (enrichedCharacters.length > 0) {
-      const enrichedCount = enrichedCharacters.filter(c => c.isAIEnriched).length;
+      const enrichedCount = enrichedCharacters.filter(c => c.enrichmentStatus === "success").length;
       console.log(`Characters status: ${enrichedCount}/${enrichedCharacters.length} enriched, isEnriching: ${isEnriching}, hasTriggered: ${hasTriggeredEnrichment}`);
     }
   }, [enrichedCharacters, isEnriching, hasTriggeredEnrichment]);
@@ -2857,7 +2859,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 <span className="text-xs font-medium text-green-400">
                   {(() => {
-                    const enrichedCount = charactersForDisplay.filter(c => c.isAIEnriched).length;
+                    const enrichedCount = charactersForDisplay.filter(c => c.enrichmentStatus === "success").length;
                     const totalCount = charactersForDisplay.length;
                     return enrichedCount === totalCount ? 'Fully Enhanced' : `${enrichedCount}/${totalCount} Enhanced`;
                   })()}

@@ -3161,7 +3161,7 @@ function mergeCharacterData(existingData: any, enrichedData: EnrichedCharacterDa
   }
 
   // Mark as AI-enriched
-  merged.isAIEnriched = true;
+ merged.enrichmentStatus = "success";
   merged.enrichmentTimestamp = Date.now();
 
   return merged;

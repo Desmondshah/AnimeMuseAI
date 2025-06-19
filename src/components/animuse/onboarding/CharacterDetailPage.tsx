@@ -40,7 +40,7 @@ interface EnhancedCharacter {
     relationType: string;
   }[];
   // AI enriched fields
-  isAIEnriched?: boolean;
+  enrichmentStatus?: "pending" | "success" | "failed";
   personalityAnalysis?: string;
   keyRelationships?: Array<{
     relatedCharacterName: string;
@@ -198,7 +198,7 @@ const CharacterHero: React.FC<{
 
         {/* AI Enhancement Status */}
         <div className="flex items-center gap-2">
-          {character.isAIEnriched && (
+          {character.enrichmentStatus === "success" && (
             <div className="flex items-center gap-2 bg-green-500/20 backdrop-blur-xl rounded-2xl px-3 py-2 border border-green-500/30">
               <span className="text-green-400">🤖</span>
               <span className="text-green-300 text-xs font-medium">Enhanced</span>
@@ -291,7 +291,7 @@ const OverviewSection: React.FC<{ character: EnhancedCharacter }> = ({ character
               <span className="text-xl">📖</span>
             </div>
             <h3 className="text-xl font-heading font-bold text-white">Character Profile</h3>
-            {character.isAIEnriched && (
+            {character.enrichmentStatus === "success" && (
               <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full">AI Enhanced</span>
             )}
           </div>
