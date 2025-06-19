@@ -888,33 +888,53 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 
         {loopedPopularAnime.length > 0 && (
   <div className="mb-6">
-            <Swiper
-              modules={[EffectCoverflow]}
-              effect="coverflow"
-              centeredSlides
-              slidesPerView="auto"
-              spaceBetween={50}
-              loop
-              grabCursor
-              className="w-full px-4"
-              coverflowEffect={{ rotate: 0, stretch: 25, depth: 100, modifier: 1, slideShadows: false }}
-            >
-              {loopedPopularAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`featured-${i}`}
-                  className="popular-item w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
-                >
-                  <AnimeCard
-                    anime={a}
-                    isRecommendation
-                    onViewDetails={handleAnimeCardClick}
-                    className="w-full"
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
+    <Swiper
+      modules={[EffectCoverflow]}
+      effect="coverflow"
+      centeredSlides
+      slidesPerView="auto"
+      spaceBetween={25} // Reduced spacing
+      loop
+      grabCursor
+      className="w-full px-4"
+      coverflowEffect={{ 
+        rotate: 0, 
+        stretch: 0, // Set to 0 to prevent overlap
+        depth: 100, 
+        modifier: 1, 
+        slideShadows: false 
+      }}
+      breakpoints={{
+        // Mobile
+        320: {
+          spaceBetween: 25,
+        },
+        // Tablet
+        768: {
+          spaceBetween: 25,
+        },
+        // Desktop
+        1024: {
+          spaceBetween: 30,
+        },
+      }}
+    >
+      {loopedPopularAnime.map((a, i) => (
+        <SwiperSlide
+          key={`featured-${i}`}
+          className="popular-item w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
+        >
+          <AnimeCard
+            anime={a}
+            isRecommendation
+            onViewDetails={handleAnimeCardClick}
+            className="w-full"
+          />
+        </SwiperSlide>
+      ))}
+    </Swiper>
+  </div>
+)}
 
 
         {/* AI Assistant CTA */}
