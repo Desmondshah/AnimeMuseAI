@@ -830,6 +830,22 @@ useEffect(() => {
   const cycleWidth = container.scrollWidth / 3;
   container.scrollLeft = cycleWidth;
 
+  const updateCoverflow = () => {
+    const containerRect = container.getBoundingClientRect();
+    const center = containerRect.left + containerRect.width / 2;
+    const maxDist = containerRect.width / 2;
+    container.querySelectorAll<HTMLElement>(".popular-item").forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const itemCenter = rect.left + rect.width / 2;
+      const dist = Math.min(Math.abs(center - itemCenter), maxDist);
+      const ratio = dist / maxDist;
+      const scale = 1 - ratio * 0.25;
+      const rotate = ((center - itemCenter) / maxDist) * 10;
+      el.style.transform = `perspective(800px) rotateY(${rotate}deg) scale(${scale})`;
+      el.style.zIndex = String(Math.round(100 - ratio * 50));
+    });
+  };
+
   const handleScroll = () => {
     const width = container.scrollWidth / 3;
     if (container.scrollLeft <= width * 0.1) {
@@ -837,9 +853,11 @@ useEffect(() => {
     } else if (container.scrollLeft >= width * 2 - width * 0.1) {
       container.scrollLeft -= width;
     }
+    updateCoverflow();
   };
 
-  container.addEventListener("scroll", handleScroll);
+  updateCoverflow();
+  container.addEventListener("scroll", handleScroll, { passive: true });
   return () => {
     container.removeEventListener("scroll", handleScroll);
   };
@@ -911,13 +929,13 @@ useEffect(() => {
   <div className="mb-6">
     <div
       ref={popularRef}
-      className="relative overflow-x-auto overflow-y-hidden touch-pan-x"
+      className="relative overflow-x-auto overflow-y-visible touch-auto"
     >
       <div className="flex space-x-4 px-4">
         {loopedPopularAnime.map((a, i) => (
           <div
             key={`featured-${i}`}
-            className="flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw]"
+            className="popular-item flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw] transition-transform"
           >
             <AnimeCard
               anime={a}
