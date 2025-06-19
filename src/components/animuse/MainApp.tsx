@@ -23,6 +23,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./shared/PageTransition";
 import Carousel from "./shared/Carousel";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { EffectCoverflow } from "swiper/modules";
+
 
 // ============================================================================
 // SECTION 1: COMPONENTS AND CONSTANTS
@@ -821,74 +824,6 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
   return truncated + '...';
 };
 
-const popularRef = useRef<HTMLDivElement>(null);
-
-useEffect(() => {
-  const container = popularRef.current;
-  if (!container || loopedPopularAnime.length === 0) return;
-
-  // Set initial position to middle cycle for infinite scroll
-  const cycleWidth = container.scrollWidth / 3;
-  container.scrollLeft = cycleWidth;
-
-  const updateCoverFlow = () => {
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const centerX = containerRect.left + containerRect.width / 2;
-    
-    container.querySelectorAll<HTMLElement>(".popular-item").forEach((item) => {
-      const itemRect = item.getBoundingClientRect();
-      const itemCenterX = itemRect.left + itemRect.width / 2;
-      const distanceFromCenter = Math.abs(centerX - itemCenterX);
-      const maxDistance = containerRect.width / 2;
-      
-      // Normalize distance (0 = center, 1 = edge)
-      const normalizedDistance = Math.min(distanceFromCenter / maxDistance, 1);
-      
-      // Scale: 1.0 at center, 0.8 at edges (less dramatic for tighter spacing)
-      const scale = 1 - (normalizedDistance * 0.2);
-      
-      // Opacity: 1.0 at center, 0.7 at edges (less fade for better visibility)
-      const opacity = 1 - (normalizedDistance * 0.3);
-      
-      // Z-index for proper layering
-      const zIndex = Math.round(100 - (normalizedDistance * 50));
-      
-      // Apply transforms
-      item.style.transform = `scale(${scale})`;
-      item.style.opacity = String(opacity);
-      item.style.zIndex = String(zIndex);
-    });
-  };
-
-  const handleScroll = () => {
-    if (!container) return;
-    
-    const cycleWidth = container.scrollWidth / 3;
-    const currentScroll = container.scrollLeft;
-    
-    // Infinite scroll logic
-    if (currentScroll <= 5) {
-      container.scrollLeft = cycleWidth * 2 - 5;
-    } else if (currentScroll >= cycleWidth * 2 - 5) {
-      container.scrollLeft = cycleWidth + 5;
-    }
-    
-    // Update cover flow effect
-    updateCoverFlow();
-  };
-
-  // Initial setup
-  updateCoverFlow();
-  
-  container.addEventListener("scroll", handleScroll, { passive: true });
-  
-  return () => {
-    container.removeEventListener("scroll", handleScroll);
-  };
-}, [loopedPopularAnime]);
-
   const renderDashboard = useCallback(() => (
     <div className="relative min-h-screen">
       {/* Floating Background Elements */}
@@ -953,28 +888,33 @@ useEffect(() => {
 
         {loopedPopularAnime.length > 0 && (
   <div className="mb-6">
-    <div
-      ref={popularRef}
-      className="relative overflow-x-auto overflow-y-visible touch-auto snap-x snap-mandatory scrollbar-hide"
-    >
-      <div className="flex space-x-0 px-4">
-        {loopedPopularAnime.map((a, i) => (
-          <div
-            key={`featured-${i}`}
-            className="popular-item flex-shrink-0 w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
-          >
-            <AnimeCard
-              anime={a}
-              isRecommendation
-              onViewDetails={handleAnimeCardClick}
-              className="w-full"
-            />
+            <Swiper
+              modules={[EffectCoverflow]}
+              effect="coverflow"
+              centeredSlides
+              slidesPerView="auto"
+              spaceBetween={16}
+              loop
+              grabCursor
+              className="w-full px-4"
+              coverflowEffect={{ rotate: 0, stretch: 0, depth: 100, modifier: 1, slideShadows: false }}
+            >
+              {loopedPopularAnime.map((a, i) => (
+                <SwiperSlide
+                  key={`featured-${i}`}
+                  className="popular-item w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
+                >
+                  <AnimeCard
+                    anime={a}
+                    isRecommendation
+                    onViewDetails={handleAnimeCardClick}
+                    className="w-full"
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+        )}
 
         {/* AI Assistant CTA */}
         <div className="flex justify-center">
