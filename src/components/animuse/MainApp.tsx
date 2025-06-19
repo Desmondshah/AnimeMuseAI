@@ -893,13 +893,13 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
       effect="coverflow"
       centeredSlides
       slidesPerView="auto"
-      spaceBetween={25} // Reduced spacing
+      spaceBetween={0} // Reduced spacing
       loop
       grabCursor
       className="w-full px-4"
       coverflowEffect={{ 
         rotate: 0, 
-        stretch: 0, // Set to 0 to prevent overlap
+        stretch: -20, // Set to 0 to prevent overlap
         depth: 100, 
         modifier: 1, 
         slideShadows: false 
@@ -907,7 +907,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
       breakpoints={{
         // Mobile
         320: {
-          spaceBetween: 25,
+          spaceBetween: 0,
         },
         // Tablet
         768: {
