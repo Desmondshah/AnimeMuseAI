@@ -893,7 +893,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               effect="coverflow"
               centeredSlides
               slidesPerView="auto"
-              spaceBetween={16}
+              spaceBetween={23}
               loop
               grabCursor
               className="w-full px-4"
