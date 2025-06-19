@@ -889,36 +889,27 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
         {loopedPopularAnime.length > 0 && (
   <div className="mb-6">
     <Swiper
-      modules={[EffectCoverflow]}
-      effect="coverflow"
-      centeredSlides
-      slidesPerView="auto"
-      spaceBetween={0} // Reduced spacing
-      loop
-      grabCursor
-      className="w-full px-4"
-      coverflowEffect={{ 
-        rotate: 0, 
-        stretch: -20, // Set to 0 to prevent overlap
-        depth: 100, 
-        modifier: 1, 
-        slideShadows: false 
-      }}
-      breakpoints={{
-        // Mobile
-        320: {
-          spaceBetween: 0,
-        },
-        // Tablet
-        768: {
-          spaceBetween: 25,
-        },
-        // Desktop
-        1024: {
-          spaceBetween: 30,
-        },
-      }}
-    >
+  modules={[EffectCoverflow]}
+  effect="coverflow"
+  centeredSlides
+  slidesPerView="auto"
+  spaceBetween={25}
+  loop
+  grabCursor
+  className="w-full px-4 swiper-center-fix" // Add custom class
+  coverflowEffect={{ 
+    rotate: 0, 
+    stretch: 0,
+    depth: 100, 
+    modifier: 1, 
+    slideShadows: false 
+  }}
+  style={{
+    overflow: 'visible', // Allow slides to be visible outside
+    paddingLeft: '50px', // Add padding to center properly
+    paddingRight: '50px',
+  }}
+>
       {loopedPopularAnime.map((a, i) => (
         <SwiperSlide
           key={`featured-${i}`}
