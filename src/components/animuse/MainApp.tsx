@@ -822,40 +822,43 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 };
 
 const popularRef = useRef<HTMLDivElement>(null);
-const isScrollingRef = useRef(false);
-const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
 useEffect(() => {
   const container = popularRef.current;
   if (!container || loopedPopularAnime.length === 0) return;
 
-  // Set initial position to middle cycle
+  // Set initial position to middle cycle for infinite scroll
   const cycleWidth = container.scrollWidth / 3;
   container.scrollLeft = cycleWidth;
 
-  const updateCoverflow = () => {
+  const updateCoverFlow = () => {
     if (!container) return;
     
     const containerRect = container.getBoundingClientRect();
-    const center = containerRect.left + containerRect.width / 2;
+    const centerX = containerRect.left + containerRect.width / 2;
     
-    container.querySelectorAll<HTMLElement>(".popular-item").forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const itemCenter = rect.left + rect.width / 2;
-      const distanceFromCenter = Math.abs(center - itemCenter);
+    container.querySelectorAll<HTMLElement>(".popular-item").forEach((item) => {
+      const itemRect = item.getBoundingClientRect();
+      const itemCenterX = itemRect.left + itemRect.width / 2;
+      const distanceFromCenter = Math.abs(centerX - itemCenterX);
       const maxDistance = containerRect.width / 2;
       
       // Normalize distance (0 = center, 1 = edge)
       const normalizedDistance = Math.min(distanceFromCenter / maxDistance, 1);
       
-      // Scale: 1.0 at center, 0.7 at edges
-      const scale = 1 - (normalizedDistance * 0.3);
+      // Scale: 1.0 at center, 0.8 at edges (less dramatic for tighter spacing)
+      const scale = 1 - (normalizedDistance * 0.2);
       
-      // Z-index: higher for items closer to center
+      // Opacity: 1.0 at center, 0.7 at edges (less fade for better visibility)
+      const opacity = 1 - (normalizedDistance * 0.3);
+      
+      // Z-index for proper layering
       const zIndex = Math.round(100 - (normalizedDistance * 50));
       
-      el.style.transform = `scale(${scale})`;
-      el.style.zIndex = String(zIndex);
+      // Apply transforms
+      item.style.transform = `scale(${scale})`;
+      item.style.opacity = String(opacity);
+      item.style.zIndex = String(zIndex);
     });
   };
 
@@ -865,62 +868,24 @@ useEffect(() => {
     const cycleWidth = container.scrollWidth / 3;
     const currentScroll = container.scrollLeft;
     
-    // Seamless infinite scroll - no jumps or snapping
-    if (currentScroll <= 10) {
-      // Near start, jump to end of middle cycle
-      container.scrollLeft = cycleWidth * 2 - 10;
-    } else if (currentScroll >= cycleWidth * 2 - 10) {
-      // Near end, jump to start of middle cycle
-      container.scrollLeft = cycleWidth + 10;
+    // Infinite scroll logic
+    if (currentScroll <= 5) {
+      container.scrollLeft = cycleWidth * 2 - 5;
+    } else if (currentScroll >= cycleWidth * 2 - 5) {
+      container.scrollLeft = cycleWidth + 5;
     }
     
-    updateCoverflow();
-  };
-
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY
-    };
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    if (!touchStartRef.current) return;
-    
-    const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
-    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
-    
-    // If vertical movement is greater than horizontal, allow page scroll
-    if (deltaY > deltaX) {
-      // Don't prevent default - allow vertical scrolling
-      return;
-    }
-    
-    // For horizontal movement, prevent default to enable smooth horizontal scroll
-    if (deltaX > 10) {
-      e.preventDefault();
-    }
-  };
-
-  const handleTouchEnd = () => {
-    touchStartRef.current = null;
+    // Update cover flow effect
+    updateCoverFlow();
   };
 
   // Initial setup
-  updateCoverflow();
+  updateCoverFlow();
   
-  // Event listeners
   container.addEventListener("scroll", handleScroll, { passive: true });
-  container.addEventListener("touchstart", handleTouchStart, { passive: true });
-  container.addEventListener("touchmove", handleTouchMove, { passive: false });
-  container.addEventListener("touchend", handleTouchEnd, { passive: true });
   
-  // Cleanup
   return () => {
     container.removeEventListener("scroll", handleScroll);
-    container.removeEventListener("touchstart", handleTouchStart);
-    container.removeEventListener("touchmove", handleTouchMove);
-    container.removeEventListener("touchend", handleTouchEnd);
   };
 }, [loopedPopularAnime]);
 
@@ -992,11 +957,11 @@ useEffect(() => {
       ref={popularRef}
       className="relative overflow-x-auto overflow-y-visible touch-auto snap-x snap-mandatory scrollbar-hide"
     >
-      <div className="flex space-x-4 px-4">
+      <div className="flex space-x-0 px-4">
         {loopedPopularAnime.map((a, i) => (
           <div
             key={`featured-${i}`}
-            className="popular-item snap-center flex-shrink-0 w-[70vw] sm:w-[50vw] md:w-[40vw] lg:w-[20vw] transition-transform"
+            className="popular-item flex-shrink-0 w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
           >
             <AnimeCard
               anime={a}
