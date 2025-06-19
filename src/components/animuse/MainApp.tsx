@@ -833,15 +833,15 @@ useEffect(() => {
   const updateCoverflow = () => {
     const containerRect = container.getBoundingClientRect();
     const center = containerRect.left + containerRect.width / 2;
-    const maxDist = containerRect.width / 2;
+    const itemSpan = containerRect.width / 5; // five items visible
+    const maxDist = itemSpan * 2; // two items to either side
     container.querySelectorAll<HTMLElement>(".popular-item").forEach((el) => {
       const rect = el.getBoundingClientRect();
       const itemCenter = rect.left + rect.width / 2;
       const dist = Math.min(Math.abs(center - itemCenter), maxDist);
       const ratio = dist / maxDist;
-      const scale = 1 - ratio * 0.25;
-      const rotate = ((center - itemCenter) / maxDist) * 10;
-      el.style.transform = `perspective(800px) rotateY(${rotate}deg) scale(${scale})`;
+      const scale = 1 - ratio * 0.2;
+      el.style.transform = `scale(${scale})`;
       el.style.zIndex = String(Math.round(100 - ratio * 50));
     });
   };
@@ -929,13 +929,13 @@ useEffect(() => {
   <div className="mb-6">
     <div
       ref={popularRef}
-      className="relative overflow-x-auto overflow-y-visible touch-auto"
+      className="relative overflow-x-auto overflow-y-visible touch-auto snap-x snap-mandatory scrollbar-hide"
     >
       <div className="flex space-x-4 px-4">
         {loopedPopularAnime.map((a, i) => (
           <div
             key={`featured-${i}`}
-            className="popular-item flex-shrink-0 w-[80vw] sm:w-[60vw] md:w-[45vw] lg:w-[33vw] transition-transform"
+            className="popular-item snap-center flex-shrink-0 w-[70vw] sm:w-[50vw] md:w-[40vw] lg:w-[20vw] transition-transform"
           >
             <AnimeCard
               anime={a}
