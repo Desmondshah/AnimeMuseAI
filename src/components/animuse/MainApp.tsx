@@ -871,6 +871,38 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
          </motion.p>
         </motion.div>
 
+        {popularAnime.length > 0 && (
+  <div className="mb-6">
+    <Carousel
+      autoPlay
+      autoPlayInterval={5000}
+      className="px-2"
+      enableInfiniteLoop={true}        // NEW: Enable infinite looping
+      showPartialPreviews={true}       // NEW: Show partial previews of adjacent items
+      onItemClick={(originalIndex) => {
+        // Handle click on the original anime (not cloned ones)
+        if (popularAnime[originalIndex]) {
+          handleRecommendationClick(popularAnime[originalIndex]);
+        }
+      }}
+    >
+      {popularAnime.map((a, i) => (
+        <div
+          key={`featured-${i}`}
+          className="w-full" // Removed fixed width - let the carousel handle sizing
+        >
+          <AnimeCard
+            anime={a}
+            isRecommendation
+            onViewDetails={handleAnimeCardClick}
+            className="w-full"
+          />
+        </div>
+      ))}
+    </Carousel>
+  </div>
+)}
+
         {/* AI Assistant CTA */}
         <div className="flex justify-center">
           <motion.div
@@ -1109,22 +1141,6 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             <Carousel>
               {topAnime.map((a, i) => (
                 <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
-              ))}
-            </Carousel>
-          </div>
-        )}
-
-        {popularAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="section-title font-heading text-white font-bold">⭐ Popular</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Carousel>
-              {popularAnime.map((a, i) => (
-                <div key={`pop-${i}`} className="w-32 xs:w-36 sm:w-40">
                   <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
                 </div>
               ))}

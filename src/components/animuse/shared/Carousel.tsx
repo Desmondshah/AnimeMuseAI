@@ -1,4 +1,4 @@
-// OptimizedCarousel.tsx - Fixed version with proper snapping and positioning
+// Enhanced Carousel.tsx - Fixed version with infinite looping and partial previews
 import React, {
   useRef,
   useState,
@@ -30,6 +30,8 @@ interface CarouselProps {
   centerMode?: boolean;
   snapToCenter?: boolean;
   onItemClick?: (index: number) => void;
+  enableInfiniteLoop?: boolean; // NEW: Enable infinite looping
+  showPartialPreviews?: boolean; // NEW: Show partial previews of adjacent items
 }
 
 // ShuffleCard component - FIXED: Added isMobile prop
@@ -50,7 +52,7 @@ const ShuffleCard = memo(
     currentIndex: number;
     childrenLength: number;
     shouldReduceAnimations: boolean;
-    isMobile: boolean; // FIXED: Added isMobile prop
+    isMobile: boolean;
     screenWidth: number;
     onIndexChange: (newIndex: number) => void;
     onItemClick?: (index: number) => void;
@@ -126,7 +128,6 @@ const ShuffleCard = memo(
       (_: any, info: PanInfo) => {
         dragX.set(info.offset.x);
 
-        // Prevent page scroll if dragging horizontally
         const horizontalMovement = Math.abs(info.offset.x);
         const verticalMovement = Math.abs(info.offset.y);
 
@@ -288,23 +289,37 @@ export default function OptimizedCarousel({
   centerMode = false,
   snapToCenter = false,
   onItemClick,
+  enableInfiniteLoop = false, // NEW: Default to false for backward compatibility
+  showPartialPreviews = false, // NEW: Default to false
 }: CarouselProps) {
   const { isMobile, shouldReduceAnimations, performanceMetrics } =
     useMobileOptimizations();
   const screenWidth = performanceMetrics.screenSize.width;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // FIXED: Better state management for default carousel
+  // Enhanced state management for infinite looping
   const [containerWidth, setContainerWidth] = useState(0);
   const [itemWidth, setItemWidth] = useState(0);
   const [visibleItems, setVisibleItems] = useState(1);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(enableInfiniteLoop ? children.length : 0); // Start at cloned items if infinite
   const [isDragging, setIsDragging] = useState(false);
   const [autoPlayActive, setAutoPlayActive] = useState(autoPlay);
 
   const debouncedCurrentIndex = useDebouncedIndex(currentIndex, 30);
 
-  // FIXED: Motion values with proper spring configuration
+  // Create extended children array for infinite loop
+  const extendedChildren = useMemo(() => {
+    if (!enableInfiniteLoop || children.length === 0) return children;
+    
+    // Clone first few and last few items for seamless looping
+    const clonesCount = Math.min(3, children.length);
+    const frontClones = children.slice(-clonesCount);
+    const backClones = children.slice(0, clonesCount);
+    
+    return [...frontClones, ...children, ...backClones];
+  }, [children, enableInfiniteLoop]);
+
+  // Motion values with proper spring configuration
   const x = useMotionValue(0);
   const springX = useSpring(x, {
     damping: 25,
@@ -325,11 +340,17 @@ export default function OptimizedCarousel({
     [scaleEffect ? 0.98 : 1, 1, scaleEffect ? 0.98 : 1],
   );
 
+  // Enhanced index change handler for infinite looping
   const handleIndexChange = useCallback((newIndex: number) => {
-    setCurrentIndex(newIndex);
-  }, []);
+    if (!enableInfiniteLoop) {
+      setCurrentIndex(Math.max(0, Math.min(children.length - 1, newIndex)));
+      return;
+    }
 
-  // FIXED: Better size calculation
+    setCurrentIndex(newIndex);
+  }, [enableInfiniteLoop, children.length]);
+
+  // Enhanced size calculation with partial preview support
   useLayoutEffect(() => {
     const updateSizes = () => {
       const container = containerRef.current;
@@ -340,53 +361,100 @@ export default function OptimizedCarousel({
 
       if (firstChild) {
         const childRect = firstChild.getBoundingClientRect();
-        const gap = isMobile ? 24 : 32; // 6 = 24px, 8 = 32px in Tailwind
+        let gap = isMobile ? 24 : 32;
+        
+        // Adjust gap for partial previews
+        if (showPartialPreviews) {
+          gap = isMobile ? 16 : 24;
+        }
 
         setContainerWidth(containerRect.width);
         setItemWidth(childRect.width + gap);
-        setVisibleItems(
-          Math.floor(containerRect.width / (childRect.width + gap)),
-        );
+        
+        // Calculate visible items with partial previews
+        if (showPartialPreviews) {
+          // Show one full item + partial previews
+          setVisibleItems(1);
+        } else {
+          setVisibleItems(
+            Math.floor(containerRect.width / (childRect.width + gap)),
+          );
+        }
       }
     };
 
     updateSizes();
     window.addEventListener("resize", updateSizes);
     return () => window.removeEventListener("resize", updateSizes);
-  }, [children, isMobile]);
+  }, [children, isMobile, showPartialPreviews]);
 
-  // FIXED: Proper position calculation and animation
+  // Enhanced position calculation for infinite loop
   useEffect(() => {
     if (itemWidth > 0) {
-      const targetPosition = -currentIndex * itemWidth;
-      const maxPosition = -(children.length - visibleItems) * itemWidth;
-      const clampedPosition = Math.max(
-        maxPosition,
-        Math.min(0, targetPosition),
-      );
+      let targetPosition;
+      
+      if (showPartialPreviews) {
+        // Center the current item with partial previews visible
+        targetPosition = -(currentIndex * itemWidth) + (containerWidth / 2) - (itemWidth / 2);
+      } else {
+        targetPosition = -currentIndex * itemWidth;
+      }
 
-      x.set(clampedPosition);
+      x.set(targetPosition);
     }
-  }, [currentIndex, itemWidth, visibleItems, children.length, x]);
+  }, [currentIndex, itemWidth, containerWidth, x, showPartialPreviews]);
 
-  // Auto-play effect using requestAnimationFrame for smoother updates
+  // Seamless infinite loop correction - only when user stops interacting
+  useEffect(() => {
+    if (!enableInfiniteLoop || children.length === 0 || isDragging || itemWidth === 0) return;
+
+    const clonesCount = Math.min(3, children.length);
+    const actualStart = clonesCount;
+    const actualEnd = actualStart + children.length - 1;
+
+    // Only correct position when we're definitely at a clone and user isn't interacting
+    const correctPosition = () => {
+      // Wait for any animations to complete first
+      setTimeout(() => {
+        if (isDragging) return; // Don't correct if user is still dragging
+        
+        // If we're at the beginning clones, seamlessly move to equivalent real position
+        if (currentIndex < actualStart) {
+          const equivalentIndex = actualStart + (children.length - (actualStart - currentIndex));
+          setCurrentIndex(equivalentIndex);
+        }
+        // If we're at the end clones, seamlessly move to equivalent real position  
+        else if (currentIndex > actualEnd) {
+          const equivalentIndex = actualStart + (currentIndex - actualEnd - 1);
+          setCurrentIndex(equivalentIndex);
+        }
+      }, 300); // Wait for drag/swipe animations to complete
+    };
+
+    correctPosition();
+  }, [currentIndex, enableInfiniteLoop, children.length, isDragging, itemWidth]);
+
+  // Enhanced auto-play with infinite loop support
   useRafInterval(
     () => {
-      setCurrentIndex((prev) => {
-        const maxIndex = Math.max(0, children.length - visibleItems);
-        return prev >= maxIndex ? 0 : prev + 1;
-      });
+      if (enableInfiniteLoop) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setCurrentIndex((prev) => {
+          const maxIndex = Math.max(0, children.length - visibleItems);
+          return prev >= maxIndex ? 0 : prev + 1;
+        });
+      }
     },
     autoPlayInterval,
     autoPlayActive && !isDragging && children.length > 1,
   );
 
-  // FIXED: Enhanced gesture handling with proper snapping and scroll prevention
+  // Enhanced gesture handling with infinite loop support
   const handleDragStart = useCallback((event: any) => {
     setIsDragging(true);
     setAutoPlayActive(false);
 
-    // Prevent page scrolling during carousel drag
     if (event.touches) {
       event.preventDefault();
     }
@@ -400,44 +468,51 @@ export default function OptimizedCarousel({
 
       if (itemWidth === 0) return;
 
-      const threshold = itemWidth * 0.2; // 20% of item width
+      const threshold = itemWidth * 0.2;
       const velocity = Math.abs(info.velocity.x);
       const offset = info.offset.x;
 
       let newIndex = currentIndex;
 
-      // Determine direction based on offset and velocity
       if (offset > threshold || (velocity > 300 && offset > 10)) {
-        // Swiping right (previous item)
-        newIndex = Math.max(0, currentIndex - 1);
+        newIndex = currentIndex - 1;
+        if (!enableInfiniteLoop) {
+          newIndex = Math.max(0, newIndex);
+        }
       } else if (offset < -threshold || (velocity > 300 && offset < -10)) {
-        // Swiping left (next item)
-        const maxIndex = Math.max(0, children.length - visibleItems);
-        newIndex = Math.min(maxIndex, currentIndex + 1);
+        newIndex = currentIndex + 1;
+        if (!enableInfiniteLoop) {
+          const maxIndex = Math.max(0, children.length - visibleItems);
+          newIndex = Math.min(maxIndex, newIndex);
+        }
       }
 
       setCurrentIndex(newIndex);
-
-      // Re-enable autoplay after a delay
       setTimeout(() => setAutoPlayActive(autoPlay), 2000);
     },
-    [currentIndex, children.length, autoPlay, itemWidth, visibleItems],
+    [currentIndex, children.length, autoPlay, itemWidth, visibleItems, enableInfiniteLoop],
   );
 
-  // FIXED: Better drag constraints and scroll prevention
+  // Enhanced drag constraints for infinite loop
   const dragConstraints = useMemo(() => {
     if (itemWidth === 0) return { left: 0, right: 0 };
 
+    if (enableInfiniteLoop) {
+      // Allow free dragging for infinite loop
+      return {
+        left: -itemWidth * extendedChildren.length,
+        right: itemWidth,
+      };
+    }
+
     const maxScroll = Math.max(0, (children.length - visibleItems) * itemWidth);
     return {
-      left: -maxScroll - itemWidth * 0.3, // Allow slight over-scroll
+      left: -maxScroll - itemWidth * 0.3,
       right: itemWidth * 0.3,
     };
-  }, [itemWidth, children.length, visibleItems]);
+  }, [itemWidth, children.length, visibleItems, enableInfiniteLoop, extendedChildren.length]);
 
-  // FIXED: Handle drag with direction detection to prevent page scroll
   const handleDrag = useCallback((event: any, info: PanInfo) => {
-    // If we're dragging more horizontally than vertically, prevent page scroll
     const horizontalMovement = Math.abs(info.offset.x);
     const verticalMovement = Math.abs(info.offset.y);
 
@@ -446,52 +521,49 @@ export default function OptimizedCarousel({
     }
   }, []);
 
-  // Shuffle variant - FIXED: Pass isMobile prop
+  // Enhanced shuffle variant with infinite loop support
   const shuffleVariant = useMemo(
     () => (
       <div
         className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-visible"
         style={{
           perspective: `${Math.min(800, Math.max(500, screenWidth * (isMobile ? 1.2 : 1))) }px`,
-          touchAction: "pan-y pinch-zoom", // Allow vertical scroll but manage horizontal
+          touchAction: "pan-y pinch-zoom",
         }}
       >
-        
-        {children.map((child, index) => (
+        {(enableInfiniteLoop ? extendedChildren : children).map((child, index) => (
           <ShuffleCard
             key={`shuffle-card-${index}`}
             child={child}
             index={index}
             currentIndex={debouncedCurrentIndex}
-            childrenLength={children.length}
+            childrenLength={(enableInfiniteLoop ? extendedChildren : children).length}
             shouldReduceAnimations={shouldReduceAnimations}
-            isMobile={isMobile} // FIXED: Pass isMobile prop
+            isMobile={isMobile}
             screenWidth={screenWidth}
             onIndexChange={handleIndexChange}
             onItemClick={onItemClick}
           />
         ))}
 
-        <PositionIndicators
-          childrenLength={children.length}
-          currentIndex={currentIndex}
-          onIndexChange={handleIndexChange}
-        />
+        {/* Removed position indicators for cleaner look */}
       </div>
     ),
     [
       children,
+      extendedChildren,
       debouncedCurrentIndex,
       shouldReduceAnimations,
-      isMobile, // FIXED: Added to dependencies
+      isMobile,
       screenWidth,
       handleIndexChange,
       onItemClick,
       currentIndex,
+      enableInfiniteLoop,
     ],
   );
 
-  // Stack variant (unchanged)
+  // Stack variant (unchanged for now)
   const stackVariant = useMemo(
     () => (
       <div className="relative h-80 w-full flex items-center justify-center">
@@ -556,27 +628,31 @@ export default function OptimizedCarousel({
     [children, currentIndex, shouldReduceAnimations, onItemClick],
   );
 
-  // FIXED: Default variant with proper positioning, snapping, and scroll prevention
+  // Enhanced default variant with infinite loop and partial previews
   const defaultVariant = useMemo(
     () => (
       <div
         ref={containerRef}
-        className="overflow-hidden"
-        style={{ touchAction: "pan-y pinch-zoom" }} // Allow vertical scroll but manage horizontal
+        className={`overflow-hidden ${showPartialPreviews ? 'px-8 sm:px-12' : ''}`}
+        style={{ touchAction: "pan-y pinch-zoom" }}
       >
         <motion.div
-          className="flex space-x-6 sm:space-x-8 will-change-transform"
+          className={`flex will-change-transform ${
+            showPartialPreviews 
+              ? 'space-x-4 sm:space-x-6' 
+              : 'space-x-6 sm:space-x-8'
+          }`}
           style={{
             x: springX,
             scale,
             rotateY: rotate,
-            touchAction: "none", // Disable browser touch handling for the draggable element
+            touchAction: "none",
           }}
           drag="x"
           dragConstraints={dragConstraints}
           dragElastic={0.1}
           dragMomentum={false}
-          dragDirectionLock={true} // Lock to horizontal dragging only
+          dragDirectionLock={true}
           onDragStart={handleDragStart}
           onDrag={handleDrag}
           onDragEnd={handleDragEnd}
@@ -589,26 +665,61 @@ export default function OptimizedCarousel({
             duration: shouldReduceAnimations ? 0.2 : undefined,
           }}
         >
-          {children.map((child, index) => (
-            <motion.div
-              key={`default-card-${index}`}
-              className="flex-shrink-0 carousel-item"
-              whileTap={{ scale: 0.95 }}
-              onTap={() => {
-                if (!isDragging) {
-                  if ("vibrate" in navigator) navigator.vibrate(25);
-                  onItemClick?.(index);
-                }
-              }}
-            >
-              {child}
-            </motion.div>
-          ))}
+          {(enableInfiniteLoop ? extendedChildren : children).map((child, index) => {
+            // Calculate if this item should be highlighted (center focus)
+            const isCenter = showPartialPreviews && 
+              (enableInfiniteLoop ? 
+                Math.abs(index - currentIndex) < 0.5 : 
+                index === currentIndex);
+            
+            return (
+              <motion.div
+                key={`default-card-${index}`}
+                className={`flex-shrink-0 carousel-item transition-all duration-300 ${
+                  showPartialPreviews ? (
+                    isCenter 
+                      ? 'scale-100 opacity-100 z-10' 
+                      : 'scale-90 opacity-70 z-0'
+                  ) : ''
+                }`}
+                style={{
+                  width: showPartialPreviews ? '70vw' : undefined,
+                  maxWidth: showPartialPreviews ? '320px' : undefined,
+                }}
+                whileTap={{ scale: 0.95 }}
+                whileHover={showPartialPreviews && !isCenter ? { 
+                  scale: 0.95, 
+                  opacity: 0.9 
+                } : undefined}
+                onTap={() => {
+                  if (!isDragging) {
+                    if ("vibrate" in navigator) navigator.vibrate(25);
+                    
+                    // If partial previews enabled and not center, move to center
+                    if (showPartialPreviews && !isCenter) {
+                      handleIndexChange(index);
+                    } else {
+                      // Get original index for click handler
+                      const originalIndex = enableInfiniteLoop ? 
+                        ((index - Math.min(3, children.length)) % children.length + children.length) % children.length :
+                        index;
+                      onItemClick?.(originalIndex);
+                    }
+                  }
+                }}
+              >
+                {child}
+              </motion.div>
+            );
+          })}
         </motion.div>
+        
+        {/* Removed position indicators for cleaner look */}
       </div>
     ),
     [
       children,
+      extendedChildren,
       springX,
       dragConstraints,
       handleDragStart,
@@ -619,6 +730,10 @@ export default function OptimizedCarousel({
       onItemClick,
       isDragging,
       shouldReduceAnimations,
+      showPartialPreviews,
+      enableInfiniteLoop,
+      currentIndex,
+      handleIndexChange,
     ],
   );
 
