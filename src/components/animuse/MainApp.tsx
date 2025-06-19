@@ -822,44 +822,105 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 };
 
 const popularRef = useRef<HTMLDivElement>(null);
+const isScrollingRef = useRef(false);
+const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
 useEffect(() => {
   const container = popularRef.current;
-  if (!container) return;
+  if (!container || loopedPopularAnime.length === 0) return;
 
+  // Set initial position to middle cycle
   const cycleWidth = container.scrollWidth / 3;
   container.scrollLeft = cycleWidth;
 
   const updateCoverflow = () => {
+    if (!container) return;
+    
     const containerRect = container.getBoundingClientRect();
     const center = containerRect.left + containerRect.width / 2;
-    const itemSpan = containerRect.width / 5; // five items visible
-    const maxDist = itemSpan * 2; // two items to either side
+    
     container.querySelectorAll<HTMLElement>(".popular-item").forEach((el) => {
       const rect = el.getBoundingClientRect();
       const itemCenter = rect.left + rect.width / 2;
-      const dist = Math.min(Math.abs(center - itemCenter), maxDist);
-      const ratio = dist / maxDist;
-      const scale = 1 - ratio * 0.2;
+      const distanceFromCenter = Math.abs(center - itemCenter);
+      const maxDistance = containerRect.width / 2;
+      
+      // Normalize distance (0 = center, 1 = edge)
+      const normalizedDistance = Math.min(distanceFromCenter / maxDistance, 1);
+      
+      // Scale: 1.0 at center, 0.7 at edges
+      const scale = 1 - (normalizedDistance * 0.3);
+      
+      // Z-index: higher for items closer to center
+      const zIndex = Math.round(100 - (normalizedDistance * 50));
+      
       el.style.transform = `scale(${scale})`;
-      el.style.zIndex = String(Math.round(100 - ratio * 50));
+      el.style.zIndex = String(zIndex);
     });
   };
 
   const handleScroll = () => {
-    const width = container.scrollWidth / 3;
-    if (container.scrollLeft <= width * 0.1) {
-      container.scrollLeft += width;
-    } else if (container.scrollLeft >= width * 2 - width * 0.1) {
-      container.scrollLeft -= width;
+    if (!container) return;
+    
+    const cycleWidth = container.scrollWidth / 3;
+    const currentScroll = container.scrollLeft;
+    
+    // Seamless infinite scroll - no jumps or snapping
+    if (currentScroll <= 10) {
+      // Near start, jump to end of middle cycle
+      container.scrollLeft = cycleWidth * 2 - 10;
+    } else if (currentScroll >= cycleWidth * 2 - 10) {
+      // Near end, jump to start of middle cycle
+      container.scrollLeft = cycleWidth + 10;
     }
+    
     updateCoverflow();
   };
 
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!touchStartRef.current) return;
+    
+    const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+    
+    // If vertical movement is greater than horizontal, allow page scroll
+    if (deltaY > deltaX) {
+      // Don't prevent default - allow vertical scrolling
+      return;
+    }
+    
+    // For horizontal movement, prevent default to enable smooth horizontal scroll
+    if (deltaX > 10) {
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null;
+  };
+
+  // Initial setup
   updateCoverflow();
+  
+  // Event listeners
   container.addEventListener("scroll", handleScroll, { passive: true });
+  container.addEventListener("touchstart", handleTouchStart, { passive: true });
+  container.addEventListener("touchmove", handleTouchMove, { passive: false });
+  container.addEventListener("touchend", handleTouchEnd, { passive: true });
+  
+  // Cleanup
   return () => {
     container.removeEventListener("scroll", handleScroll);
+    container.removeEventListener("touchstart", handleTouchStart);
+    container.removeEventListener("touchmove", handleTouchMove);
+    container.removeEventListener("touchend", handleTouchEnd);
   };
 }, [loopedPopularAnime]);
 
