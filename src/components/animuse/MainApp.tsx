@@ -893,11 +893,11 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               effect="coverflow"
               centeredSlides
               slidesPerView="auto"
-              spaceBetween={23}
+              spaceBetween={50}
               loop
               grabCursor
               className="w-full px-4"
-              coverflowEffect={{ rotate: 0, stretch: 16, depth: 100, modifier: 1, slideShadows: false }}
+              coverflowEffect={{ rotate: 0, stretch: 50, depth: 100, modifier: 1, slideShadows: false }}
             >
               {loopedPopularAnime.map((a, i) => (
                 <SwiperSlide
