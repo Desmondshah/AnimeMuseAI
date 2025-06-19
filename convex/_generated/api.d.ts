@@ -33,6 +33,7 @@ import type * as moodSuggestionEngine from "../moodSuggestionEngine.js";
 import type * as notifications from "../notifications.js";
 import type * as openaiProxy from "../openaiProxy.js";
 import type * as performanceMonitor from "../performanceMonitor.js";
+import type * as recommendationFilterWorker from "../recommendationFilterWorker.js";
 import type * as retryEnrichment from "../retryEnrichment.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   openaiProxy: typeof openaiProxy;
   performanceMonitor: typeof performanceMonitor;
+  recommendationFilterWorker: typeof recommendationFilterWorker;
   retryEnrichment: typeof retryEnrichment;
   reviews: typeof reviews;
   router: typeof router;

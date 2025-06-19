@@ -1,16 +1,9 @@
 // components/SmartRecommendationFilter.tsx
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { AnimeRecommendation } from '../../../../convex/types';
+import type { FilterOptions as WorkerFilterOptions, FilterMessage } from '../../../../convex/recommendationFilterWorker';
 
-interface FilterOptions {
-  minRating: number;
-  genres: string[];
-  years: [number, number];
-  studios: string[];
-  excludeWatched: boolean;
-  prioritizeNewReleases: boolean;
-  moodMatchThreshold: number;
-}
+type FilterOptions = WorkerFilterOptions;
 
 interface SmartRecommendationFilterProps {
   recommendations: AnimeRecommendation[];
@@ -25,6 +18,17 @@ const SmartRecommendationFilter: React.FC<SmartRecommendationFilterProps> = ({
   watchedAnimeIds,
   className = ''
 }) => {
+
+ const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    workerRef.current = new Worker(new URL('../../../../convex/recommendationFilterWorker.ts', import.meta.url), { type: 'module' });
+    const worker = workerRef.current;
+    worker.onmessage = (e: MessageEvent<AnimeRecommendation[]>) => {
+      onFilteredChange(e.data);
+    };
+    return () => worker.terminate();
+  }, [onFilteredChange]);
   const [filters, setFilters] = useState<FilterOptions>({
     minRating: 0,
     genres: [],
@@ -54,57 +58,15 @@ const SmartRecommendationFilter: React.FC<SmartRecommendationFilterProps> = ({
   }, [recommendations]);
 
   const applyFilters = useCallback(() => {
-    let filtered = [...recommendations];
-
-    // Filter by rating
-    if (filters.minRating > 0) {
-      filtered = filtered.filter(rec => (rec.rating || 0) >= filters.minRating);
-    }
-
-    // Filter by genres
-    if (filters.genres.length > 0) {
-      filtered = filtered.filter(rec => 
-        rec.genres?.some(genre => filters.genres.includes(genre))
-      );
-    }
-
-    // Filter by year range
-    filtered = filtered.filter(rec => {
-      const year = rec.year || 2000;
-      return year >= filters.years[0] && year <= filters.years[1];
-    });
-
-    // Filter by studios
-    if (filters.studios.length > 0) {
-      filtered = filtered.filter(rec =>
-        rec.studios?.some(studio => filters.studios.includes(studio))
-      );
-    }
-
-    // Exclude watched anime
-    if (filters.excludeWatched) {
-      filtered = filtered.filter(rec => 
-        !watchedAnimeIds.includes(rec.title)
-      );
-    }
-
-    // Filter by mood match threshold
-    if (filters.moodMatchThreshold > 0) {
-      filtered = filtered.filter(rec => 
-        (rec.moodMatchScore || 0) >= filters.moodMatchThreshold
-      );
-    }
-
-    // Sort by priority
-    if (filters.prioritizeNewReleases) {
-      filtered.sort((a, b) => (b.year || 0) - (a.year || 0));
-    } else {
-      // Sort by mood match score if available
-      filtered.sort((a, b) => (b.moodMatchScore || 0) - (a.moodMatchScore || 0));
-    }
-
-    onFilteredChange(filtered);
-  }, [recommendations, filters, watchedAnimeIds, onFilteredChange]);
+    const worker = workerRef.current;
+    if (!worker) return;
+    const message: FilterMessage = {
+      recommendations,
+      filters,
+      watchedAnimeIds,
+    };
+    worker.postMessage(message);
+  }, [recommendations, filters, watchedAnimeIds]);
 
   React.useEffect(() => {
     applyFilters();

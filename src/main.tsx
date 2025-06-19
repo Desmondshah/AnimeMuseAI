@@ -13,7 +13,8 @@ const setVh = () => {
   );
 };
 setVh();
-window.addEventListener("resize", setVh, { passive: true });
+const handleResize = () => requestAnimationFrame(setVh);
+window.addEventListener("resize", handleResize, { passive: true });
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 

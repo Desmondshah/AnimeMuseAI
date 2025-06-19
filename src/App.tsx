@@ -1,18 +1,18 @@
 // src/App.tsx
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api"; // Adjust path if needed
 import { SignInForm } from "./SignInForm"; // Adjust path if needed
 import { SignOutButton } from "./SignOutButton"; // Adjust path if needed
 import { Toaster } from "sonner";
-import OnboardingFlow from "./components/animuse/onboarding/OnboardingFlow"; // Adjust path if needed
-import MainApp from "./components/animuse/MainApp"; // Adjust path if needed
-import PhoneVerificationPrompt from "./components/animuse/onboarding/PhoneVerificationPrompt"; // Adjust path if needed
+const OnboardingFlow = lazy(() => import("./components/animuse/onboarding/OnboardingFlow"));
+const MainApp = lazy(() => import("./components/animuse/MainApp"));
+const PhoneVerificationPrompt = lazy(() => import("./components/animuse/onboarding/PhoneVerificationPrompt"));
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./components/animuse/shared/PageTransition";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
-import NotificationsPanel from "./components/animuse/onboarding/NotificationsPanel"; // Adjust path if needed
+const NotificationsPanel = lazy(() => import("./components/animuse/onboarding/NotificationsPanel"));
 
 export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
@@ -38,10 +38,12 @@ export default function App() {
           <Authenticated>
             <div className="relative">
               <NotificationsBell onTogglePanel={toggleNotificationsPanel} />
-              <NotificationsPanel
-                isOpen={isNotificationsPanelOpen}
-                onClose={() => setIsNotificationsPanelOpen(false)}
-              />
+              <Suspense fallback={null}>
+                <NotificationsPanel
+                  isOpen={isNotificationsPanelOpen}
+                  onClose={() => setIsNotificationsPanelOpen(false)}
+                />
+              </Suspense>
             </div>
           </Authenticated>
           <SignOutButton />
@@ -126,21 +128,31 @@ function Content({ onPhoneVerified }: ContentProps) {
             }
             // If anonymous user has no profile yet, or profile exists but onboarding not done
             if (userProfile === null || !userProfile.onboardingCompleted) {
-              return <OnboardingFlow />; // OnboardingFlow should handle creating profile for anon user
+              return (
+                <Suspense fallback={<div className="p-6 text-white">Loading...</div>}>
+                  <OnboardingFlow />
+                </Suspense>
+              );
             }
             // If anonymous user has completed onboarding
             if (userProfile.onboardingCompleted) {
-              return <MainApp />;
+              return (
+                <Suspense fallback={<div className="p-6 text-white">Loading app...</div>}>
+                  <MainApp />
+                </Suspense>
+              );
             }
           }
 
           // Case 2: Non-Anonymous User - Needs Phone Verification
           if (!verificationStatus.isVerified) {
             return (
-              <PhoneVerificationPrompt
-                onVerified={onPhoneVerified}
-                userIdForLog={loggedInUser?._id.toString()}
-              />
+              <Suspense fallback={<div className="p-6 text-white">Verifying...</div>}>
+                <PhoneVerificationPrompt
+                  onVerified={onPhoneVerified}
+                  userIdForLog={loggedInUser?._id.toString()}
+                />
+              </Suspense>
             );
           }
 
@@ -157,11 +169,19 @@ function Content({ onPhoneVerified }: ContentProps) {
             }
             // Profile loaded, check if onboarding is complete
             if (userProfile === null || !userProfile.onboardingCompleted) {
-              return <OnboardingFlow />;
+              return (
+                <Suspense fallback={<div className="p-6 text-white">Loading...</div>}>
+                  <OnboardingFlow />
+                </Suspense>
+              );
             }
             // Onboarding complete, show the main application
             if (userProfile.onboardingCompleted) {
-              return <MainApp />;
+              return (
+                <Suspense fallback={<div className="p-6 text-white">Loading app...</div>}>
+                  <MainApp />
+                </Suspense>
+              );
             }
           }
 

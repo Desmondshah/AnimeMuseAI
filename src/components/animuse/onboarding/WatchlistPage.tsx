@@ -3,11 +3,12 @@ import React, { useState, useCallback, useEffect, memo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
-import AnimeCard from "../AnimeCard";
+
 import StyledButton from "../shared/StyledButton";
 import ProfileStats from "../onboarding/ProfileStats";
 import { WatchlistStatusFilter } from "./watchlistTypes";
 import { toast } from "sonner";
+import VirtualizedWatchlist from "./VirtualizedWatchlist";
 
 interface WatchlistPageProps {
   onViewDetails: (animeId: Id<"anime">) => void;
@@ -240,71 +241,14 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
             </div>
 
             {/* Anime Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-6">
-              {filteredWatchlist.map((item, index) => (
-                <div 
-                  key={item._id} 
-                  className="group relative transform transition-all duration-500 hover:scale-105"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {item.anime && (
-                    <>
-                      {/* Card Glow Effect */}
-                      <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      
-                      <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                        {/* Anime Poster */}
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={item.anime} 
-                            onViewDetails={onViewDetails} 
-                            className="w-full" 
-                          />
-                          {/* Status Badge */}
-                          <div className="absolute top-2 right-2">
-                            <div className={`p-1.5 rounded-full bg-gradient-to-r ${statusConfig[item.status as keyof typeof statusConfig]?.color || statusConfig.All.color} shadow-lg`}>
-                              <span className="text-xs">
-                                {statusConfig[item.status as keyof typeof statusConfig]?.icon || "📚"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Title & Info Section */}
-                        <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-                          <h4 
-                            className="text-sm font-medium text-white text-center truncate mb-2 group-hover:text-brand-accent-gold transition-colors duration-300"
-                            title={item.anime.title}
-                          >
-                            {item.anime.title}
-                          </h4>
-                          
-                          {/* Notes Section */}
-                          <div className="space-y-2">
-                            <StyledButton 
-                              onClick={() => setEditingNotesFor(item)} 
-                              variant="ghost" 
-                              className="w-full !text-xs !py-1.5 !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white flex items-center justify-center gap-1"
-                            >
-                              <span className="text-sm">📝</span>
-                              {item.notes ? "Edit Notes" : "Add Notes"}
-                            </StyledButton>
-                            
-                            {item.notes && (
-                              <div className="bg-black/40 backdrop-blur-sm rounded-lg p-2 border border-white/10">
-                                <p className="text-xs text-white/80 line-clamp-2 leading-relaxed" title={item.notes}>
-                                  {item.notes}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
+            {filteredWatchlist && (
+              <VirtualizedWatchlist
+                items={filteredWatchlist}
+                statusConfig={statusConfig as any}
+                onViewDetails={onViewDetails}
+                onEditNotes={(item) => setEditingNotesFor(item)}
+              />
+            )}
           </div>
         ) : (
           <div className="text-center py-16">

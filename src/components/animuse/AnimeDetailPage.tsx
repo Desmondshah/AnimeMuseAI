@@ -2006,12 +2006,14 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
     const handleScroll = () => {
       if (mobileOpts.shouldReduceAnimations) return;
       
-      scrollY.current = window.scrollY;
-      
-      if (heroRef.current) {
-        const parallaxSpeed = 0.5;
-        heroRef.current.style.transform = `translateY(${scrollY.current * parallaxSpeed}px)`;
-      }
+      const y = window.scrollY;
+      requestAnimationFrame(() => {
+        scrollY.current = y;
+        if (heroRef.current) {
+          const parallaxSpeed = 0.5;
+          heroRef.current.style.transform = `translateY(${y * parallaxSpeed}px)`;
+        }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
