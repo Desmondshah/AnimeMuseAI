@@ -61,14 +61,14 @@ const ShuffleCard = memo(
 
     const cardData = useMemo(() => {
       const offset = index - currentIndex;
-      const isVisible = Math.abs(offset) <= 2;
+      const isVisible = Math.abs(offset) <= (isMobile ? 1 : 2); // Show fewer cards on mobile
       const isActive = offset === 0;
       const absOffset = Math.abs(offset);
 
       const width = screenWidth ||
         (typeof window !== "undefined" ? window.innerWidth : 768);
       const spacing = isMobile
-        ? Math.min(16, Math.max(10, width / 25))
+        ? Math.min(12, Math.max(8, width / 30)) // Tighter spacing on mobile
         : 20;
 
       return {
@@ -76,44 +76,44 @@ const ShuffleCard = memo(
         isVisible,
         isActive,
         absOffset,
-        baseRotationY: offset * 8,
+        baseRotationY: isMobile ? offset * 4 : offset * 8, // Less rotation on mobile
         baseX: offset * spacing,
-        baseY: absOffset * (spacing / 4),
-        baseZ: -absOffset * spacing * 3,
-        baseScale: 1 - absOffset * 0.04,
-        baseOpacity: 1 - absOffset * 0.12,
+        baseY: isMobile ? absOffset * (spacing / 6) : absOffset * (spacing / 4), // Less vertical offset on mobile
+        baseZ: isMobile ? -absOffset * spacing * 2 : -absOffset * spacing * 3, // Less depth on mobile
+        baseScale: isMobile ? (1 - absOffset * 0.08) : (1 - absOffset * 0.04), // More scale difference on mobile
+        baseOpacity: isMobile ? (1 - absOffset * 0.3) : (1 - absOffset * 0.12), // More opacity difference on mobile
         zIndex: childrenLength - absOffset,
       };
     }, [index, currentIndex, childrenLength, isMobile, screenWidth]);
 
     const rotateY = useTransform(
       dragX,
-      (v) => cardData.baseRotationY + (cardData.isActive ? v * 0.08 : 0),
+      (v) => cardData.baseRotationY + (cardData.isActive ? v * (isMobile ? 0.04 : 0.08) : 0),
     );
     const translateX = useTransform(
       dragX,
-      (v) => cardData.baseX + (cardData.isActive ? v * 0.2 : 0),
+      (v) => cardData.baseX + (cardData.isActive ? v * (isMobile ? 0.15 : 0.2) : 0),
     );
 
     const handleDragEnd = useCallback(
       (_: any, info: PanInfo) => {
          if (dragEndTimeout.current) clearTimeout(dragEndTimeout.current);
-        dragEndTimeout.current = window.setTimeout(() => setIsDragging(false), 50);
+        dragEndTimeout.current = window.setTimeout(() => setIsDragging(false), isMobile ? 30 : 50);
         dragX.set(0);
 
-        const threshold = 60;
+        const threshold = isMobile ? 40 : 60; // Lower threshold for mobile
         const velocity = Math.abs(info.velocity.x);
 
-        if (Math.abs(info.offset.x) > threshold || velocity > 400) {
-          if (info.offset.x > 0 || (velocity > 400 && info.velocity.x > 0)) {
+        if (Math.abs(info.offset.x) > threshold || velocity > (isMobile ? 250 : 400)) {
+          if (info.offset.x > 0 || (velocity > (isMobile ? 250 : 400) && info.velocity.x > 0)) {
             onIndexChange(Math.max(currentIndex - 1, 0));
           } else {
             onIndexChange(Math.min(currentIndex + 1, childrenLength - 1));
           }
-          if ("vibrate" in navigator) navigator.vibrate(40);
+          if ("vibrate" in navigator) navigator.vibrate(isMobile ? 30 : 40);
         }
       },
-      [currentIndex, childrenLength, onIndexChange, dragX],
+      [currentIndex, childrenLength, onIndexChange, dragX, isMobile],
     );
 
     const handleDragStart = useCallback(() => {
@@ -172,30 +172,32 @@ const ShuffleCard = memo(
           x: translateX,
           y: cardData.baseY,
           scale:
-            cardData.baseScale + (cardData.isActive && isDragging ? 0.01 : 0),
+            cardData.baseScale + (cardData.isActive && isDragging ? (isMobile ? 0.005 : 0.01) : 0),
           opacity: cardData.baseOpacity,
         }}
         transition={{
           type: shouldReduceAnimations ? "tween" : "spring",
-          damping: 30,
-          stiffness: 300,
-          duration: shouldReduceAnimations ? 0.15 : undefined,
+          damping: isMobile ? 18 : 25, // Even less damping on mobile
+          stiffness: isMobile ? 220 : 180, // Higher stiffness on mobile
+          mass: isMobile ? 0.5 : 0.8, // Lighter mass on mobile
+          duration: shouldReduceAnimations ? (isMobile ? 0.12 : 0.2) : undefined,
         }}
         whileHover={
-          cardData.isActive && !isDragging
+          cardData.isActive && !isDragging && !isMobile
             ? { scale: cardData.baseScale + 0.03, y: cardData.baseY - 6 }
-            : cardData.absOffset === 1
+            : cardData.absOffset === 1 && !isMobile
               ? {
                   scale: cardData.baseScale + 0.015,
                   opacity: cardData.baseOpacity + 0.08,
                 }
               : {}
         }
-        whileTap={{ scale: cardData.baseScale - 0.02 }}
+        whileTap={{ scale: cardData.baseScale - (isMobile ? 0.01 : 0.02) }}
         drag={cardData.isActive ? "x" : false}
-        dragConstraints={{ left: -120, right: 120 }}
-        dragElastic={0.05}
+        dragConstraints={{ left: isMobile ? -80 : -120, right: isMobile ? 80 : 120 }}
+        dragElastic={isMobile ? 0.03 : 0.05} // Much less elastic on mobile
         dragMomentum={false}
+        dragDirectionLock={true}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
@@ -307,9 +309,9 @@ export default function OptimizedCarousel({
   // FIXED: Motion values with proper spring configuration
   const x = useMotionValue(0);
   const springX = useSpring(x, {
-    damping: 25,
-    stiffness: 180,
-    mass: 0.8,
+    damping: isMobile ? 20 : 25, // Reduced damping for mobile
+    stiffness: isMobile ? 200 : 180, // Increased stiffness for mobile
+    mass: isMobile ? 0.6 : 0.8, // Reduced mass for mobile
     restDelta: 0.001,
   });
 
@@ -400,17 +402,17 @@ export default function OptimizedCarousel({
 
       if (itemWidth === 0) return;
 
-      const threshold = itemWidth * 0.2; // 20% of item width
+      const threshold = isMobile ? itemWidth * 0.15 : itemWidth * 0.2; // Lower threshold for mobile
       const velocity = Math.abs(info.velocity.x);
       const offset = info.offset.x;
 
       let newIndex = currentIndex;
 
       // Determine direction based on offset and velocity
-      if (offset > threshold || (velocity > 300 && offset > 10)) {
+      if (offset > threshold || (velocity > (isMobile ? 200 : 300) && offset > 10)) {
         // Swiping right (previous item)
         newIndex = Math.max(0, currentIndex - 1);
-      } else if (offset < -threshold || (velocity > 300 && offset < -10)) {
+      } else if (offset < -threshold || (velocity > (isMobile ? 200 : 300) && offset < -10)) {
         // Swiping left (next item)
         const maxIndex = Math.max(0, children.length - visibleItems);
         newIndex = Math.min(maxIndex, currentIndex + 1);
@@ -421,7 +423,7 @@ export default function OptimizedCarousel({
       // Re-enable autoplay after a delay
       setTimeout(() => setAutoPlayActive(autoPlay), 2000);
     },
-    [currentIndex, children.length, autoPlay, itemWidth, visibleItems],
+    [currentIndex, children.length, autoPlay, itemWidth, visibleItems, isMobile],
   );
 
   // FIXED: Better drag constraints and scroll prevention
@@ -429,11 +431,12 @@ export default function OptimizedCarousel({
     if (itemWidth === 0) return { left: 0, right: 0 };
 
     const maxScroll = Math.max(0, (children.length - visibleItems) * itemWidth);
+    const overScrollAmount = isMobile ? itemWidth * 0.2 : itemWidth * 0.3; // Less over-scroll on mobile
     return {
-      left: -maxScroll - itemWidth * 0.3, // Allow slight over-scroll
-      right: itemWidth * 0.3,
+      left: -maxScroll - overScrollAmount,
+      right: overScrollAmount,
     };
-  }, [itemWidth, children.length, visibleItems]);
+  }, [itemWidth, children.length, visibleItems, isMobile]);
 
   // FIXED: Handle drag with direction detection to prevent page scroll
   const handleDrag = useCallback((event: any, info: PanInfo) => {
@@ -452,7 +455,7 @@ export default function OptimizedCarousel({
       <div
         className="carousel-shuffle-container relative h-80 w-full flex items-center justify-center overflow-visible"
         style={{
-          perspective: `${Math.min(800, Math.max(500, screenWidth * (isMobile ? 1.2 : 1))) }px`,
+          perspective: isMobile ? "600px" : `${Math.min(800, Math.max(500, screenWidth * 1.2))}px`,
           touchAction: "pan-y pinch-zoom", // Allow vertical scroll but manage horizontal
         }}
       >
@@ -574,7 +577,7 @@ export default function OptimizedCarousel({
           }}
           drag="x"
           dragConstraints={dragConstraints}
-          dragElastic={0.1}
+          dragElastic={isMobile ? 0.08 : 0.1} // Slightly less elastic on mobile for better control
           dragMomentum={false}
           dragDirectionLock={true} // Lock to horizontal dragging only
           onDragStart={handleDragStart}
@@ -583,10 +586,10 @@ export default function OptimizedCarousel({
           whileTap={{ cursor: "grabbing" }}
           transition={{
             type: shouldReduceAnimations ? "tween" : "spring",
-            damping: 25,
-            stiffness: 180,
-            mass: 0.8,
-            duration: shouldReduceAnimations ? 0.2 : undefined,
+            damping: isMobile ? 20 : 25,
+            stiffness: isMobile ? 200 : 180,
+            mass: isMobile ? 0.6 : 0.8,
+            duration: shouldReduceAnimations ? (isMobile ? 0.15 : 0.2) : undefined,
           }}
         >
           {children.map((child, index) => (

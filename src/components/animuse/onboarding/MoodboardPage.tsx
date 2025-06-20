@@ -659,7 +659,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       } else {
         const recs = result.recommendations || [];
         onRecommendationsChange(recs);
-        addHistoryTitles(recs.map(r => r.title));
+        addHistoryTitles(recs.map((r: { title: string }) => r.title));
       }
     } catch (e: any) {
       toast.error(`Error fetching mood board: ${e.message}`);
@@ -982,16 +982,16 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
               </div>
             </div>
             
-            <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
+            <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 sm:gap-8 md:gap-10 gap-y-8 sm:gap-y-10 md:gap-y-12">
               {moodBoardRecommendations.map((rec, index) => (
                 <div 
                   key={`enhanced-mood-${index}-${rec.title}`} 
-                  className="group relative transform transition-all duration-300 hover:scale-105"
+                  className="group relative transform transition-all duration-300 hover:scale-105 hover:z-10 p-2 sm:p-3 md:p-4"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
-                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                  <div className="relative bg-black/20 backdrop-blur-sm overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
                     <AnimeCard 
                       anime={rec} 
                       isRecommendation={true} 

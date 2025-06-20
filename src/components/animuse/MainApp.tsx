@@ -891,29 +891,40 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
     <Swiper
   modules={[EffectCoverflow]}
   effect="coverflow"
-  centeredSlides
+  centeredSlides={true}
   slidesPerView="auto"
-  spaceBetween={25}
-  loop
-  grabCursor
-  className="w-full px-4 swiper-center-fix" // Add custom class
+  spaceBetween={30}
+  loop={true}
+  grabCursor={true}
+  className="w-full"
+  speed={400}
+  resistance={true}
+  resistanceRatio={0.85}
+  watchSlidesProgress={true}
   coverflowEffect={{ 
     rotate: 0, 
     stretch: 0,
-    depth: 100, 
-    modifier: 1, 
-    slideShadows: false 
+    depth: 150, 
+    modifier: 1.2, 
+    slideShadows: false,
+    scale: 0.9
   }}
   style={{
-    overflow: 'visible', // Allow slides to be visible outside
-    paddingLeft: '50px', // Add padding to center properly
-    paddingRight: '50px',
+    overflow: 'visible',
+    padding: '0 10%',
+    willChange: 'transform',
   }}
 >
       {loopedPopularAnime.map((a, i) => (
         <SwiperSlide
           key={`featured-${i}`}
-          className="popular-item w-[76vw] sm:w-[68vw] md:w-[54vw] lg:w-[41vw] xl:w-[32vw]"
+          className="popular-item w-[70vw] sm:w-[60vw] md:w-[45vw] lg:w-[35vw] xl:w-[28vw]"
+          style={{
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            willChange: 'transform',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}
         >
           <AnimeCard
             anime={a}
@@ -1144,12 +1155,12 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
         {trendingAnime.length > 0 && (
           <div className="space-y-4">
             <div className="text-left">
-              <h2 className="section-title font-heading text-white font-bold">🔥 Trending Now</h2>
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🔥 Trending Now</h2>
               <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
             </div>
             <Carousel>
               {trendingAnime.map((a, i) => (
-                <div key={`trend-${i}`} className="w-32 xs:w-36 sm:w-40">
+                <div key={`trend-${i}`} className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88">
                   <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
                 </div>
               ))}
@@ -1160,12 +1171,12 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
         {topAnime.length > 0 && (
           <div className="space-y-4">
             <div className="text-left">
-              <h2 className="section-title font-heading text-white font-bold">🏆 Top Ranked</h2>
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🏆 Top Ranked</h2>
               <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
             </div>
             <Carousel>
               {topAnime.map((a, i) => (
-                <div key={`top-${i}`} className="w-32 xs:w-36 sm:w-40">
+                <div key={`top-${i}`} className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88">
                   <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
                 </div>
               ))}
