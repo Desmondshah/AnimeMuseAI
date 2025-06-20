@@ -4205,3 +4205,405 @@ h1, h2, h3, h4, h5, h6 {
   @apply shadow-glow-primary hover:shadow-glow-accent transition-all duration-300;
 }
 
+/* ===== ENHANCED OST TAB STYLES ===== */
+/* Add these styles to your src/index.css file */
+
+/* Vinyl Record Animation */
+.vinyl-record {
+  background: 
+    radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.8) 25%, transparent 26%),
+    conic-gradient(from 0deg, #333, #666, #333, #666, #333);
+  border-radius: 50%;
+  position: relative;
+}
+
+.vinyl-record::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Music Wave Animation */
+@keyframes musicWave {
+  0%, 100% { height: 20%; }
+  25% { height: 60%; }
+  50% { height: 40%; }
+  75% { height: 80%; }
+}
+
+.music-wave {
+  animation: musicWave 1.5s ease-in-out infinite;
+}
+
+.music-wave:nth-child(2) { animation-delay: 0.1s; }
+.music-wave:nth-child(3) { animation-delay: 0.2s; }
+.music-wave:nth-child(4) { animation-delay: 0.3s; }
+.music-wave:nth-child(5) { animation-delay: 0.4s; }
+
+/* Waveform Visualization */
+.waveform-bar {
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.8) 0%, 
+    rgba(255, 255, 255, 0.6) 50%, 
+    rgba(255, 255, 255, 0.4) 100%);
+  border-radius: 1px;
+  animation: waveformPulse 1s ease-in-out infinite;
+}
+
+@keyframes waveformPulse {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Track Hover Effects */
+.track-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.track-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.1), 
+    transparent);
+  transition: left 0.5s ease;
+}
+
+.track-item:hover::before {
+  left: 100%;
+}
+
+/* Platform Card Glow Effect */
+.platform-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.platform-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  opacity: 0;
+  filter: blur(20px);
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.platform-card:hover::after {
+  opacity: 0.6;
+}
+
+/* Floating Musical Notes */
+@keyframes floatNote {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.floating-note {
+  position: absolute;
+  animation: floatNote 3s linear infinite;
+  pointer-events: none;
+  font-size: 1.5rem;
+}
+
+.floating-note:nth-child(1) { animation-delay: 0s; left: 10%; }
+.floating-note:nth-child(2) { animation-delay: 1s; left: 20%; }
+.floating-note:nth-child(3) { animation-delay: 2s; left: 30%; }
+.floating-note:nth-child(4) { animation-delay: 0.5s; left: 40%; }
+.floating-note:nth-child(5) { animation-delay: 1.5s; left: 50%; }
+
+/* Audio Equalizer Animation */
+.equalizer {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 20px;
+}
+
+.equalizer-bar {
+  width: 3px;
+  background: linear-gradient(180deg, #FF6B35, #ECB091);
+  border-radius: 1px;
+  animation: equalizer 1s ease-in-out infinite;
+}
+
+.equalizer-bar:nth-child(1) { animation-delay: 0s; height: 60%; }
+.equalizer-bar:nth-child(2) { animation-delay: 0.1s; height: 40%; }
+.equalizer-bar:nth-child(3) { animation-delay: 0.2s; height: 80%; }
+.equalizer-bar:nth-child(4) { animation-delay: 0.3s; height: 30%; }
+.equalizer-bar:nth-child(5) { animation-delay: 0.4s; height: 70%; }
+
+@keyframes equalizer {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Progress Ring Animation */
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* Mood Indicator Styles */
+.mood-epic {
+  background: linear-gradient(135deg, #F44336, #E91E63);
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+}
+
+.mood-calm {
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.mood-sad {
+  background: linear-gradient(135deg, #3F51B5, #9C27B0);
+  box-shadow: 0 4px 15px rgba(63, 81, 181, 0.3);
+}
+
+.mood-triumphant {
+  background: linear-gradient(135deg, #FF9800, #FFC107);
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+}
+
+/* Intensity Visualization */
+.intensity-low {
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+}
+
+.intensity-medium {
+  background: linear-gradient(90deg, #FF9800, #FFC107);
+}
+
+.intensity-high {
+  background: linear-gradient(90deg, #F44336, #E91E63);
+}
+
+/* Album Art Reflection */
+.album-art {
+  position: relative;
+}
+
+.album-art::after {
+  content: '';
+  position: absolute;
+  bottom: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  transform: scaleY(-1);
+  opacity: 0.3;
+  mask: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 70%);
+  -webkit-mask: linear-gradient(to bottom, rgba(0,0,0,1) 0%, transparent 70%);
+}
+
+/* Composer Spotlight Effects */
+.composer-highlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.composer-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 70%, 
+    rgba(255, 107, 53, 0.1) 0%, 
+    transparent 50%);
+  animation: composerGlow 4s ease-in-out infinite;
+}
+
+@keyframes composerGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Music Note Particles */
+.music-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.music-particle {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.1);
+  animation: particleFloat 6s linear infinite;
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Streaming Platform Hover Effects */
+.platform-spotify:hover {
+  box-shadow: 0 10px 30px rgba(29, 185, 84, 0.3);
+  border-color: rgba(29, 185, 84, 0.5);
+}
+
+.platform-apple:hover {
+  box-shadow: 0 10px 30px rgba(250, 36, 60, 0.3);
+  border-color: rgba(250, 36, 60, 0.5);
+}
+
+.platform-youtube:hover {
+  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
+  border-color: rgba(255, 0, 0, 0.5);
+}
+
+.platform-soundcloud:hover {
+  box-shadow: 0 10px 30px rgba(255, 51, 0, 0.3);
+  border-color: rgba(255, 51, 0, 0.5);
+}
+
+/* Genre Tag Animations */
+.genre-tag {
+  position: relative;
+  overflow: hidden;
+}
+
+.genre-tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.genre-tag:hover::before {
+  left: 100%;
+}
+
+/* Mobile Optimizations for OST Tab */
+@media (max-width: 768px) {
+  .vinyl-record {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .waveform-bar {
+    width: 1.5px;
+  }
+
+  .floating-note {
+    font-size: 1rem;
+  }
+
+  .equalizer-bar {
+    width: 2px;
+  }
+
+  .music-particle {
+    font-size: 0.8rem;
+  }
+
+  /* Simplify complex animations on mobile */
+  .composer-highlight::before {
+    animation: none;
+    opacity: 0.5;
+  }
+
+  .music-wave {
+    animation-duration: 2s;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-record,
+  .music-wave,
+  .waveform-bar,
+  .equalizer-bar,
+  .floating-note,
+  .music-particle {
+    animation: none !important;
+  }
+
+  .track-item::before,
+  .genre-tag::before {
+    transition: none;
+  }
+
+  .composer-highlight::before {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .mood-epic,
+  .mood-calm,
+  .mood-sad,
+  .mood-triumphant {
+    border: 2px solid white;
+  }
+
+  .platform-card {
+    border-width: 2px;
+  }
+
+  .genre-tag {
+    border-width: 2px;
+  }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+  .vinyl-record {
+    background: 
+      radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.9) 16%, rgba(0,0,0,0.9) 25%, transparent 26%),
+      conic-gradient(from 0deg, #222, #555, #222, #555, #222);
+  }
+
+  .album-art::after {
+    opacity: 0.2;
+  }
+}

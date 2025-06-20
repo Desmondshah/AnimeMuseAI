@@ -392,7 +392,8 @@ interface EnhancedCharacterType {
     relatedCharacterId?: number;
     relationType: string;
   }[];
-  enrichmentStatus?: "pending" | "success" | "failed";
+  // FIXED: Added "skipped" to the union type to match the backend
+  enrichmentStatus?: "pending" | "success" | "failed" | "skipped";
   personalityAnalysis?: string;
   keyRelationships?: Array<{
     relatedCharacterName: string;
@@ -1864,6 +1865,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
     { id: "overview", label: "Overview", icon: "📖" },
     { id: "episodes", label: "Episodes", icon: "📺" },
     { id: "characters", label: "Characters", icon: "👥" },
+    { id: "ost", label: "OST", icon: "🎵" },
     { id: "reviews", label: "Reviews", icon: "⭐" },
     { id: "similar", label: "Similar", icon: "🔍" },
   ];
@@ -2812,6 +2814,516 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
             </div>
           </div>
         )}
+
+        {/* OST Tab */}
+        {activeTab === "ost" && (
+  <div className="ios-scroll-section px-6 py-8 space-y-8">
+    {/* OST Header with Animated Background */}
+    <div className="relative overflow-hidden rounded-3xl p-8" style={sectionCardStyle}>
+      {/* Animated Music Waves Background */}
+      <div className="absolute inset-0 opacity-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
+            style={{
+              top: `${20 + i * 15}%`,
+              animationDelay: `${i * 0.3}s`,
+              animationDuration: `${2 + i * 0.5}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
+      {/* Header Content */}
+      <div className="relative z-10">
+        <div className="flex items-center gap-4 mb-6">
+          <div 
+            className="p-3 rounded-2xl"
+            style={themePalette ? {
+              background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
+            } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
+          >
+            <span className="text-3xl">🎵</span>
+          </div>
+          <div>
+            <h2 className="text-3xl font-heading font-bold text-white mb-2">
+              Official Soundtrack
+            </h2>
+            <p className="text-white/70 text-lg">
+              Immerse yourself in the musical world of {anime.title}
+            </p>
+          </div>
+        </div>
+
+        {/* Music Genre Tags */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {['Epic', 'Orchestral', 'Emotional', 'Action', 'Ambient'].map((genre, index) => (
+            <motion.span
+              key={genre}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.1 }}
+              className="px-3 py-1 rounded-full text-sm font-medium border"
+              style={themePalette ? {
+                background: `${themePalette.primary}20`,
+                borderColor: `${themePalette.primary}40`,
+                color: themePalette.primary
+              } : {
+                background: 'rgba(236, 176, 145, 0.2)',
+                borderColor: 'rgba(236, 176, 145, 0.4)',
+                color: '#ECB091'
+              }}
+            >
+              {genre}
+            </motion.span>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Music Player Interface */}
+    <div className="space-y-6">
+      {/* Featured Track Player */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative overflow-hidden rounded-3xl backdrop-blur-lg border"
+        style={sectionCardStyle}
+      >
+        {/* Vinyl Record Animation */}
+        <div className="absolute top-6 right-6 w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center overflow-hidden">
+          <div 
+            className="w-16 h-16 rounded-full animate-spin"
+            style={{
+              background: themePalette ? 
+                `conic-gradient(${themePalette.primary}, ${themePalette.accent}, ${themePalette.secondary}, ${themePalette.primary})` :
+                'conic-gradient(#ECB091, #FF6B35, #4A90E2, #ECB091)',
+              animationDuration: '3s'
+            }}
+          >
+            <div className="w-full h-full rounded-full bg-black/80 border-2 border-white/30 flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-white/60"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8">
+          <div className="max-w-2xl">
+            <h3 className="text-2xl font-bold text-white mb-2">
+              Now Playing: Main Theme
+            </h3>
+            <p className="text-white/70 mb-4">
+              Composed by Hiroyuki Sawano • Epic Orchestral
+            </p>
+
+            {/* Waveform Visualization */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-white/60">0:00</span>
+                <span className="text-sm text-white/60">3:42</span>
+              </div>
+              <div className="relative h-16 bg-black/20 rounded-xl overflow-hidden">
+                {/* Animated Waveform */}
+                <div className="flex items-end justify-center h-full gap-1 px-4">
+                  {[...Array(50)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-gradient-to-t from-white/80 to-white/40 rounded-full animate-pulse"
+                      style={{
+                        width: '2px',
+                        height: `${20 + Math.random() * 60}%`,
+                        animationDelay: `${i * 0.05}s`,
+                        animationDuration: `${1 + Math.random()}s`
+                      }}
+                    ></div>
+                  ))}
+                </div>
+                
+                {/* Progress Indicator */}
+                <div 
+                  className="absolute top-0 left-0 h-full opacity-60 transition-all duration-300"
+                  style={{
+                    width: '35%',
+                    background: themePalette ? 
+                      `linear-gradient(90deg, ${themePalette.primary}40, ${themePalette.accent}40)` :
+                      'linear-gradient(90deg, rgba(236, 176, 145, 0.4), rgba(255, 107, 53, 0.4))'
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Player Controls */}
+            <div className="flex items-center gap-4">
+              <button 
+                className="p-3 rounded-full backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+                style={themePalette ? {
+                  background: `${themePalette.primary}20`
+                } : { background: 'rgba(255, 255, 255, 0.1)' }}
+              >
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4l12 8-12 8V4z"/>
+                </svg>
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-white/60" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+                </svg>
+                <div className="w-20 h-1 bg-white/20 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full"
+                    style={{
+                      width: '70%',
+                      background: themePalette?.primary || '#ECB091'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Track Categories */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Opening & Ending Themes */}
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="backdrop-blur-lg border rounded-3xl p-6"
+          style={sectionCardStyle}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div 
+              className="p-2 rounded-xl"
+              style={themePalette ? {
+                background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.accent}30)`
+              } : { background: 'linear-gradient(135deg, rgba(74, 144, 226, 0.3), rgba(255, 107, 53, 0.3))' }}
+            >
+              🎭
+            </div>
+            <h3 className="text-xl font-bold text-white">Opening & Ending</h3>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              { title: 'Opening 1: "Resonance"', artist: 'TM Revolution', type: 'OP', duration: '1:30' },
+              { title: 'Opening 2: "Chain of Souls"', artist: 'Faylan', type: 'OP', duration: '1:28' },
+              { title: 'Ending 1: "Style"', artist: 'Kana Nishino', type: 'ED', duration: '1:25' },
+              { title: 'Ending 2: "Strength"', artist: 'Abingdon Boys School', type: 'ED', duration: '1:32' }
+            ].map((track, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + index * 0.1 }}
+                className="group flex items-center gap-4 p-4 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
+                whileHover={{ x: 8 }}
+              >
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold"
+                  style={themePalette ? {
+                    background: track.type === 'OP' ? 
+                      `linear-gradient(135deg, ${themePalette.primary}, ${themePalette.accent})` :
+                      `linear-gradient(135deg, ${themePalette.secondary}, ${themePalette.primary})`
+                  } : {
+                    background: track.type === 'OP' ? 
+                      'linear-gradient(135deg, #FF6B35, #E55A2B)' :
+                      'linear-gradient(135deg, #4A90E2, #6BAED6)'
+                  }}
+                >
+                  {track.type}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-white text-sm truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
+                    {track.title}
+                  </h4>
+                  <p className="text-white/60 text-xs">{track.artist}</p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-white/40 text-xs">{track.duration}</span>
+                  <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                    <svg className="w-4 h-4 text-white/60 hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Background Music */}
+        <motion.div 
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="backdrop-blur-lg border rounded-3xl p-6"
+          style={sectionCardStyle}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div 
+              className="p-2 rounded-xl"
+              style={themePalette ? {
+                background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.secondary}30)`
+              } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(74, 144, 226, 0.3))' }}
+            >
+              🎼
+            </div>
+            <h3 className="text-xl font-bold text-white">Background Scores</h3>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              { title: 'Battle Theme', mood: 'Epic', duration: '2:45', intensity: 90 },
+              { title: 'Peaceful Village', mood: 'Calm', duration: '3:12', intensity: 30 },
+              { title: 'Emotional Farewell', mood: 'Sad', duration: '2:58', intensity: 70 },
+              { title: 'Victory March', mood: 'Triumphant', duration: '3:33', intensity: 85 }
+            ].map((track, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + index * 0.1 }}
+                className="group p-4 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
+                whileHover={{ x: 8 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-white text-sm group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
+                    {track.title}
+                  </h4>
+                  <span className="text-white/40 text-xs">{track.duration}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span 
+                    className="text-xs px-2 py-1 rounded-full font-medium"
+                    style={themePalette ? {
+                      background: `${themePalette.accent}20`,
+                      color: themePalette.accent
+                    } : {
+                      background: 'rgba(255, 107, 53, 0.2)',
+                      color: '#FF6B35'
+                    }}
+                  >
+                    {track.mood}
+                  </span>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-white/60">Intensity:</span>
+                    <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-1000"
+                        style={{
+                          width: `${track.intensity}%`,
+                          background: track.intensity > 70 ? '#F44336' : 
+                                    track.intensity > 40 ? '#FF9800' : '#4CAF50'
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Streaming Platforms */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+        className="backdrop-blur-lg border rounded-3xl p-8"
+        style={sectionCardStyle}
+      >
+        <div className="text-center mb-8">
+          <h3 className="text-2xl font-bold text-white mb-4">Listen on Your Favorite Platform</h3>
+          <p className="text-white/70">Stream the complete soundtrack across multiple platforms</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { 
+              name: 'Spotify', 
+              icon: '🎵', 
+              color: '#1DB954',
+              tracks: '24 tracks',
+              url: 'https://open.spotify.com'
+            },
+            { 
+              name: 'Apple Music', 
+              icon: '🎵', 
+              color: '#FA243C',
+              tracks: '24 tracks',
+              url: 'https://music.apple.com'
+            },
+            { 
+              name: 'YouTube Music', 
+              icon: '📺', 
+              color: '#FF0000',
+              tracks: '28 tracks',
+              url: 'https://music.youtube.com'
+            },
+            { 
+              name: 'SoundCloud', 
+              icon: '☁️', 
+              color: '#FF3300',
+              tracks: '15 tracks',
+              url: 'https://soundcloud.com'
+            }
+          ].map((platform, index) => (
+            <motion.a
+              key={platform.name}
+              href={platform.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 + index * 0.1 }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.95 }}
+              className="group p-6 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all duration-300 text-center"
+            >
+              <div 
+                className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110"
+                style={{ 
+                  background: `linear-gradient(135deg, ${platform.color}20, ${platform.color}40)`,
+                  borderColor: `${platform.color}30`
+                }}
+              >
+                {platform.icon}
+              </div>
+              <h4 className="font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
+                {platform.name}
+              </h4>
+              <p className="text-white/60 text-sm">{platform.tracks}</p>
+              
+              {/* Hover Effect */}
+              <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div 
+                  className="w-full h-1 rounded-full"
+                  style={{ backgroundColor: platform.color }}
+                ></div>
+              </div>
+            </motion.a>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Composer Spotlight */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.8 }}
+        className="backdrop-blur-lg border rounded-3xl overflow-hidden"
+        style={sectionCardStyle}
+      >
+        <div className="relative p-8">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5"></div>
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`
+                }}
+              ></div>
+            ))}
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-6 mb-6">
+              <div 
+                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center text-3xl"
+                style={themePalette ? {
+                  background: `linear-gradient(135deg, ${themePalette.primary}40, ${themePalette.accent}40)`
+                } : {}}
+              >
+                🎹
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Featured Composer</h3>
+                <p className="text-white/70">The musical genius behind the soundtrack</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h4 className="text-xl font-semibold text-white mb-4">Hiroyuki Sawano</h4>
+                <p className="text-white/80 leading-relaxed mb-6">
+                  Renowned for his epic orchestral compositions and innovative use of electronic elements, 
+                  Sawano has created some of the most memorable anime soundtracks of the modern era. 
+                  His work perfectly captures the emotional depth and intensity of the series.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  {['Attack on Titan', 'Guilty Crown', 'Kill la Kill', 'Aldnoah.Zero'].map((work, index) => (
+                    <span 
+                      key={work}
+                      className="px-3 py-1 rounded-full text-sm border"
+                      style={themePalette ? {
+                        background: `${themePalette.secondary}15`,
+                        borderColor: `${themePalette.secondary}30`,
+                        color: themePalette.secondary
+                      } : {
+                        background: 'rgba(74, 144, 226, 0.15)',
+                        borderColor: 'rgba(74, 144, 226, 0.3)',
+                        color: '#4A90E2'
+                      }}
+                    >
+                      {work}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h5 className="text-lg font-semibold text-white">Musical Style</h5>
+                {[
+                  { style: 'Orchestral Grandeur', level: 95 },
+                  { style: 'Electronic Fusion', level: 80 },
+                  { style: 'Emotional Depth', level: 90 },
+                  { style: 'Battle Intensity', level: 100 }
+                ].map((item, index) => (
+                  <div key={item.style} className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/80 text-sm">{item.style}</span>
+                      <span className="text-white/60 text-sm">{item.level}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full rounded-full"
+                        style={{
+                          background: themePalette ? 
+                            `linear-gradient(90deg, ${themePalette.primary}, ${themePalette.accent})` :
+                            'linear-gradient(90deg, #ECB091, #FF6B35)'
+                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.level}%` }}
+                        transition={{ delay: 1 + index * 0.2, duration: 1 }}
+                      ></motion.div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  </div>
+)}
 
         {/* Episodes Tab */}
 {activeTab === "episodes" && (

@@ -6,6 +6,7 @@ import { Doc, Id, DataModel } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { PaginationResult, Query, OrderedQuery } from "convex/server";
 import { internal } from "./_generated/api";
+import OpenAI from "openai";
 
 const FILTER_METADATA_IDENTIFIER = "singleton_filter_options_v1";
 
@@ -1284,4 +1285,59 @@ export const triggerYouTubePreviewEnrichment = internalAction({
       animeId: args.animeId
     });
   },
+});
+
+export const enrichAnimeOSTWithAI = internalAction({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    // Use the correct Convex database API for actions
+    const anime = await ctx.runQuery(internal.anime.getAnimeById, { animeId: args.animeId });
+    if (!anime) throw new Error("Anime not found");
+    if (anime.ost && Array.isArray(anime.ost) && anime.ost.length > 0) {
+      return { success: true, message: "OST already present", ost: anime.ost };
+    }
+
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { success: false, error: "OpenAI API key not configured." };
+    }
+
+    const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+    const systemPrompt = `You are an expert on anime music. For the anime titled "${anime.title}", provide a JSON array of its official soundtrack entries. Each entry should have:
+- title (string)
+- type (one of: OP, ED, insert, bgm)
+- artist (string, if known)
+- composer (string, if known)
+- links (array of objects: {type: 'spotify'|'youtube'|'apple', url: string}, if known)
+
+Include all opening (OP), ending (ED), iconic insert songs, and notable background music (bgm) if available. Only include tracks that are actually from this anime.`;
+
+    const userPrompt = `List the official soundtracks for the anime "${anime.title}". Format as JSON.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2
+    });
+
+    let ost: any[] = [];
+    try {
+      const content = completion.choices[0].message.content;
+      const parsed = JSON.parse(content || "[]");
+      ost = Array.isArray(parsed) ? parsed : (parsed.ost || []);
+    } catch (e) {
+      return { success: false, error: "Failed to parse AI OST response." };
+    }
+
+    if (!Array.isArray(ost) || ost.length === 0) {
+      return { success: false, error: "No OST data returned by AI." };
+    }
+
+    // Use the correct Convex database API for actions
+    await ctx.runMutation(internal.anime.updateAnimeOST, { animeId: args.animeId, ost });
+    return { success: true, ost };
+  }
 });

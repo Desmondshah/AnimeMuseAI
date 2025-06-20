@@ -163,6 +163,21 @@ const applicationTables = {
       fanReception: v.optional(v.string()),
       culturalSignificance: v.optional(v.string()),
     }))),
+    ost: v.optional(v.array(v.object({
+      title: v.string(),
+      type: v.union(
+        v.literal("OP"),
+        v.literal("ED"),
+        v.literal("insert"),
+        v.literal("bgm")
+      ),
+      artist: v.optional(v.string()),
+      composer: v.optional(v.string()),
+      links: v.optional(v.array(v.object({
+        type: v.string(), // e.g., 'spotify', 'youtube', 'apple'
+        url: v.string(),
+      })))
+    }))),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
