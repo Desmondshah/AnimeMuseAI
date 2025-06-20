@@ -303,8 +303,6 @@ const IOSEpisodeCard: React.FC<{
             </div>
           </div>
 
-
-
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-active:opacity-100 transition-opacity duration-300" />
         </div>
@@ -758,6 +756,15 @@ export const EnhancedEpisodesTab: React.FC<{
   // Mock watched episodes data
   const watchedEpisodes = new Set([0, 1, 2]);
 
+  // Refs for episode cards
+  const cardRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  React.useEffect(() => {
+    if (cardRefs.current[currentEpisode]) {
+      cardRefs.current[currentEpisode]?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+  }, [currentEpisode]);
+
   useEffect(() => {
     setFilteredEpisodes(episodes);
   }, [episodes]);
@@ -868,114 +875,115 @@ export const EnhancedEpisodesTab: React.FC<{
       {/* Episodes Content */}
       {viewMode === 'grid' ? (
         <motion.div 
-          className="grid gap-6"
+          className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
           style={{
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
           }}
           layout
         >
           {filteredEpisodes.map((episode, index) => {
             const originalIndex = episodes.indexOf(episode);
-            
             return (
-              <IOSEpisodeCard
-                key={originalIndex}
-                episode={episode}
-                index={originalIndex}
-                themePalette={themePalette}
-                onPreview={onPreview}
-                onWatch={handleWatchEpisode}
-                isWatched={watchedEpisodes.has(originalIndex)}
-                watchProgress={watchProgress[originalIndex] || 0}
-                isFeatured={false}
-              />
+              <div ref={el => { cardRefs.current[originalIndex] = el; }} key={originalIndex}>
+                <IOSEpisodeCard
+                  episode={episode}
+                  index={originalIndex}
+                  themePalette={themePalette}
+                  onPreview={onPreview}
+                  onWatch={handleWatchEpisode}
+                  isWatched={watchedEpisodes.has(originalIndex)}
+                  watchProgress={watchProgress[originalIndex] || 0}
+                  isFeatured={false}
+                />
+              </div>
             );
           })}
         </motion.div>
       ) : (
-        <div className="space-y-4">
-          {filteredEpisodes.map((episode, index) => {
-            const originalIndex = episodes.indexOf(episode);
-            
-            return (
-              <motion.div
-                key={originalIndex}
-                className="ios-glass-card rounded-3xl p-6 ios-shadow-strong"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div className="flex items-center space-x-4">
-                  {/* Thumbnail */}
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 ios-glass-card">
-                    {episode.thumbnail ? (
-                      <img 
-                        src={episode.thumbnail} 
-                        alt={episode.title || `Episode ${originalIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div 
-                        className="w-full h-full flex items-center justify-center"
-                        style={{ background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-                      >
-                        <span className="ios-text-primary font-bold font-mono text-sm">
-                          {String(originalIndex + 1).padStart(2, '0')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="ios-text-primary font-bold text-lg mb-2 truncate">
-                      {episode.title || `Episode ${originalIndex + 1}`}
-                    </h4>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center space-x-3 ios-text-tertiary text-sm">
-                        <span className="font-mono">EP {String(originalIndex + 1).padStart(2, '0')}</span>
-                        {episode.duration && <span>{episode.duration}</span>}
-                      </div>
-                      {episode.site && (
-                        <div className="flex items-start">
-                          <span className="ios-glass-button px-3 py-1 rounded-xl text-xs font-medium ios-text-secondary">
-                            {episode.site}
+        filteredEpisodes.length === 0 ? (
+          <div className="text-center text-white/70 py-12">No episodes found.</div>
+        ) : (
+          <div className="space-y-4">
+            {filteredEpisodes.map((episode, index) => {
+              const originalIndex = episodes.indexOf(episode);
+              return (
+                <motion.div
+                  key={originalIndex}
+                  className="ios-glass-card rounded-3xl p-6 ios-shadow-strong"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <div className="flex items-center space-x-4">
+                    {/* Thumbnail */}
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 ios-glass-card">
+                      {episode.thumbnail ? (
+                        <img 
+                          src={episode.thumbnail} 
+                          alt={episode.title || `Episode ${originalIndex + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div 
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                        >
+                          <span className="ios-text-primary font-bold font-mono text-sm">
+                            {String(originalIndex + 1).padStart(2, '0')}
                           </span>
                         </div>
                       )}
                     </div>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="ios-text-primary font-bold text-lg mb-2 truncate">
+                        {episode.title || `Episode ${originalIndex + 1}`}
+                      </h4>
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center space-x-3 ios-text-tertiary text-sm">
+                          <span className="font-mono">EP {String(originalIndex + 1).padStart(2, '0')}</span>
+                          {episode.duration && <span>{episode.duration}</span>}
+                        </div>
+                        {episode.site && (
+                          <div className="flex items-start">
+                            <span className="ios-glass-button px-3 py-1 rounded-xl text-xs font-medium ios-text-secondary">
+                              {episode.site}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex space-x-2">
+                      {episode.previewUrl && (
+                        <button
+                          onClick={() => onPreview(episode.previewUrl!)}
+                          className="ios-glass-button rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation"
+                        >
+                          Preview
+                        </button>
+                      )}
+                      {episode.url && (
+                        <button
+                          onClick={() => handleWatchEpisode(episode.url!)}
+                          className="backdrop-blur-sm rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation ios-shadow-soft"
+                          style={{
+                            background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            boxShadow: `0 4px 15px ${themePalette?.primary || '#667eea'}30`
+                          }}
+                        >
+                          Watch
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  
-                  {/* Actions */}
-                  <div className="flex space-x-2">
-                    {episode.previewUrl && (
-                      <button
-                        onClick={() => onPreview(episode.previewUrl!)}
-                        className="ios-glass-button rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation"
-                      >
-                        Preview
-                      </button>
-                    )}
-                    {episode.url && (
-                      <button
-                        onClick={() => handleWatchEpisode(episode.url!)}
-                        className="backdrop-blur-sm rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation ios-shadow-soft"
-                        style={{
-                          background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          boxShadow: `0 4px 15px ${themePalette?.primary || '#667eea'}30`
-                        }}
-                      >
-                        Watch
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );
