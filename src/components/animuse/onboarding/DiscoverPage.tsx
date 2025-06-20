@@ -509,28 +509,28 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                   variants={itemVariants}
                 >
                   {/* Glow Effect */}
-                  <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   
-                  <div className="relative bg-black/20 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
+                  <div className="relative overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
                     <AnimeCard anime={anime as Doc<"anime">} onViewDetails={onViewDetails} className="w-full" />
-                    
-                    {/* Compact title for mobile */}
-                    <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h4 
-                        className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: '1.2',
-                          maxHeight: '2.4em',
-                        }}
-                        title={anime.title}
-                      >
-                        {anime.title}
-                      </h4>
-                    </div>
+                  </div>
+                  
+                  {/* Title moved outside the poster container */}
+                  <div className="mt-2">
+                    <h4 
+                      className="text-xs sm:text-sm font-medium text-white text-center leading-tight"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        lineHeight: '1.2',
+                        maxHeight: '2.4em',
+                      }}
+                      title={anime.title}
+                    >
+                      {anime.title}
+                    </h4>
                   </div>
                 </motion.div>
               ))}

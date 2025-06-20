@@ -2351,11 +2351,12 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
   } : {};
 
   const heroOverlayStyle = themePalette ? {
-    background: `linear-gradient(to top, 
-      #000000 0%, 
-      ${themePalette.dark}40 30%, 
-      ${themePalette.primary}20 60%, 
-      transparent 100%
+    background: `linear-gradient(to bottom, 
+      transparent 0%, 
+      ${themePalette.dark}20 30%, 
+      ${themePalette.dark}60 60%, 
+      ${themePalette.dark}90 85%, 
+      #000000 100%
     )`
   } : {};
 
@@ -2420,9 +2421,12 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
           />
         </div>
         
+        {/* Enhanced overlay for immersive fade effect */}
         <div 
           className="character-hero-overlay absolute inset-0"
-          style={heroOverlayStyle || { background: 'linear-gradient(to top, black, rgba(0,0,0,0.6), transparent)' }}
+          style={heroOverlayStyle || { 
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.9) 85%, rgba(0,0,0,1) 100%)' 
+          }}
         />
         
         {/* Back button with dynamic theming */}
@@ -2642,7 +2646,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
 
       {/* Data Freshness Indicator with Dynamic Theming */}
       {refreshRecommendation && (
-        <div className="relative z-10 px-6 pt-6">
+        <div className="relative z-10 px-6 pb-8 bg-gradient-to-b from-transparent via-black/30 to-black">
           <div 
             className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-lg border rounded-2xl"
             style={sectionCardStyle}
@@ -2738,7 +2742,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
       />
 
       {/* Content Sections with Enhanced Dynamic Theming */}
-      <div className="relative z-10 pb-24 min-h-screen bg-gradient-to-t from-brand-background via-brand-background/95 to-transparent">
+      <div className="relative z-10 pb-24 min-h-screen bg-black">
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="ios-scroll-section px-6 py-8 space-y-8">

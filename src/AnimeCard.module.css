@@ -74,7 +74,8 @@
   white-space: nowrap;
 }
 
-/* Loading shimmer effect */
+/* Loading shimmer effect - DISABLED */
+/*
 .imageContainer::before {
   content: '';
   position: absolute;
@@ -100,3 +101,4 @@
     left: 100%;
   }
 }
+*/
