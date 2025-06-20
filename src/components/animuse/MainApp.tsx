@@ -1200,13 +1200,38 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               <h2 className="text-base sm:text-lg font-heading text-white font-bold">🏆 Top Ranked</h2>
               <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
             </div>
-            <Carousel>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={20}
+              loop={true}
+              grabCursor={true}
+              speed={300}
+              resistance={false}
+              watchSlidesProgress={false}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                padding: '0 5%',
+                willChange: 'transform',
+                touchAction: 'pan-y pinch-zoom',
+              }}
+            >
               {topAnime.map((a, i) => (
-                <div key={`top-${i}`} className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88">
+                <SwiperSlide
+                  key={`top-${i}`}
+                  className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88"
+                  style={{
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
                   <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </div>
+                </SwiperSlide>
               ))}
-            </Carousel>
+            </Swiper>
           </div>
         )}
 
