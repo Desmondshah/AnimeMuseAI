@@ -4,6 +4,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
 import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
+import AutoRefreshProtectionManager from "./AutoRefreshProtectionManager";
 
 // Form data shape (what the local state holds)
 interface FormDataShape {
@@ -45,6 +46,11 @@ interface AnimeProp {
   trailerUrl?: string | null;
   studios?: string[] | null;
   themes?: string[] | null;
+  lastManualEdit?: {
+    adminUserId: Id<"users">;
+    timestamp: number;
+    fieldsEdited: string[];
+  } | null;
 }
 
 interface EditAnimeFormProps {
@@ -504,6 +510,15 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           </div>
         </div>
       </div>
+
+      {/* Auto-Refresh Protection Manager */}
+      <AutoRefreshProtectionManager 
+        animeId={anime._id}
+        anime={{
+          title: anime.title || undefined,
+          lastManualEdit: anime.lastManualEdit || undefined
+        }}
+      />
 
       <form onSubmit={handleSubmit} className={`${
         iPad.isIPadMini ? 'space-y-4' : iPad.isIPadPro12 ? 'space-y-8' : 'space-y-6'

@@ -631,6 +631,17 @@ export const updateAnimeWithExternalData = internalMutation({
         console.error(`[Update Anime External] Cannot update ${args.animeId}: not found.`);
         return;
     }
+    
+    // Check for manual edits by admin - PERMANENT PROTECTION
+    const manualEdit = existingAnime.lastManualEdit;
+    const manuallyEditedFields = new Set<string>();
+    
+    if (manualEdit) {
+      // Permanently protect all manually edited fields
+      manualEdit.fieldsEdited.forEach(field => manuallyEditedFields.add(field));
+      console.log(`[Update Anime External] Permanently protecting admin-edited fields for ${existingAnime.title}: ${manualEdit.fieldsEdited.join(', ')}`);
+    }
+    
     const updatesToApply: Partial<Doc<"anime">> = {
         lastFetchedFromExternal: { source: args.sourceApi, timestamp: Date.now() } // Phase 2
     };
@@ -647,6 +658,11 @@ export const updateAnimeWithExternalData = internalMutation({
         if (newValue !== undefined) {
             let applyChange = true;
             
+            // Skip fields that were manually edited by admin (permanent protection)
+            if (manuallyEditedFields.has(typedKey)) {
+                console.log(`[Update Anime External] Skipping ${typedKey} - permanently protected (admin edited)`);
+                applyChange = false;
+            }
             // Special handling for episode data
             if (typedKey === 'streamingEpisodes') {
                 if (Array.isArray(newValue) && newValue.length > 0) {

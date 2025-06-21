@@ -1020,11 +1020,12 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   const handleSaveAnime = async (animeId: Id<"anime">, updates: any) => {
     setIsSaving(true);
     try {
-      // TODO: Implement save mutation
+      await saveAnimeMutation({ animeId, updates });
       toast.success("Anime updated successfully!");
       setEditingAnime(null);
-    } catch (error) {
-      toast.error("Failed to update anime");
+    } catch (error: any) {
+      console.error("Failed to update anime:", error);
+      toast.error(error?.message || "Failed to update anime");
     } finally {
       setIsSaving(false);
     }

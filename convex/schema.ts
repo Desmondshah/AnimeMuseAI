@@ -49,6 +49,12 @@ const applicationTables = {
         source: v.string(), // e.g., "jikan", "anilist"
         timestamp: v.number(),
     })),
+    // Admin edit protection
+    lastManualEdit: v.optional(v.object({
+        adminUserId: v.id("users"),
+        timestamp: v.number(),
+        fieldsEdited: v.array(v.string()),
+    })),
     // Episode and streaming data
     streamingEpisodes: v.optional(v.array(v.object({
       title: v.optional(v.string()),

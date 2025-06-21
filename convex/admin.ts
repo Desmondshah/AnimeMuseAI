@@ -264,6 +264,16 @@ export const adminEditAnime = mutation({
         throw new Error("No updates provided.");
     }
     
+    // Add protection against auto-refresh overwriting manual edits
+    const fieldsEdited = changes.map(change => change.field);
+    if (fieldsEdited.length > 0) {
+      (definedUpdates as any).lastManualEdit = {
+        adminUserId,
+        timestamp: Date.now(),
+        fieldsEdited,
+      };
+    }
+    
     // Apply the updates
     await ctx.db.patch(animeId, definedUpdates);
     
@@ -587,4 +597,92 @@ export const adminSetUserAdminStatus = mutation({
         console.log(`Admin status for user ${args.targetUserId} set to ${args.isAdmin} by admin ${currentAdminUserId}.`);
         return { success: true, message: `User admin status updated.` };
     }
+});
+
+// Reset auto-refresh protection for specific fields (allow auto-refresh to update them again)
+export const adminResetAutoRefreshProtection = mutation({
+  args: {
+    animeId: v.id("anime"),
+    fieldsToReset: v.optional(v.array(v.string())), // If not provided, resets all protection
+  },
+  handler: async (ctx, args) => {
+    const adminUserId = await assertAdmin(ctx);
+    const { animeId, fieldsToReset } = args;
+
+    const anime = await ctx.db.get(animeId);
+    if (!anime) {
+      throw new Error("Anime not found.");
+    }
+
+    const currentManualEdit = anime.lastManualEdit;
+    if (!currentManualEdit) {
+      // No protection to reset - return success
+      return {
+        success: true,
+        message: "No protection to reset - all fields are already open to auto-refresh",
+        stillProtectedFields: []
+      };
+    }
+
+    let updatedFieldsEdited: string[];
+
+    if (fieldsToReset && fieldsToReset.length > 0) {
+      // Reset protection for specific fields only
+      updatedFieldsEdited = currentManualEdit.fieldsEdited.filter(
+        field => !fieldsToReset.includes(field)
+      );
+    } else {
+      // Reset all protection
+      updatedFieldsEdited = [];
+    }
+
+    if (updatedFieldsEdited.length === 0) {
+      // Remove protection entirely
+      await ctx.db.patch(animeId, { 
+        lastManualEdit: undefined 
+      });
+      console.log(`[Admin] Removed all auto-refresh protection for ${anime.title}`);
+    } else {
+      // Update with remaining protected fields
+      await ctx.db.patch(animeId, {
+        lastManualEdit: {
+          ...currentManualEdit,
+          fieldsEdited: updatedFieldsEdited,
+          timestamp: Date.now(), // Update timestamp
+        }
+      });
+      console.log(`[Admin] Updated auto-refresh protection for ${anime.title}. Still protected: ${updatedFieldsEdited.join(', ')}`);
+    }
+
+    // Get admin user info for logging
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+
+    // Log the change
+    await trackChange(
+      ctx,
+      adminUserId,
+      adminUserName,
+      "anime",
+      animeId,
+      anime.title || "Unknown Anime",
+      "update",
+      [{
+        field: "lastManualEdit",
+        oldValue: currentManualEdit.fieldsEdited,
+        newValue: updatedFieldsEdited,
+        changeDescription: fieldsToReset && fieldsToReset.length > 0 
+          ? `Reset auto-refresh protection for fields: ${fieldsToReset.join(', ')}`
+          : "Reset all auto-refresh protection"
+      }]
+    );
+
+    return {
+      success: true,
+      message: fieldsToReset && fieldsToReset.length > 0
+        ? `Reset protection for ${fieldsToReset.length} fields`
+        : "Reset all auto-refresh protection",
+      stillProtectedFields: updatedFieldsEdited
+    };
+  },
 });
