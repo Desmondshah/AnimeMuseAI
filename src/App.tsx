@@ -5,7 +5,6 @@ import { api } from "../convex/_generated/api"; // Adjust path if needed
 import { SignInForm } from "./SignInForm"; // Adjust path if needed
 import { SignOutButton } from "./SignOutButton"; // Adjust path if needed
 import { Toaster } from "sonner";
-import "./desktop.css";
 const OnboardingFlow = lazy(() => import("./components/animuse/onboarding/OnboardingFlow"));
 const MainApp = lazy(() => import("./components/animuse/MainApp"));
 const PhoneVerificationPrompt = lazy(() => import("./components/animuse/onboarding/PhoneVerificationPrompt"));
@@ -33,8 +32,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col text-white">
-      {/* Mobile Header - Hidden on Desktop */}
-      <header className="md:hidden sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30">
+      <header className="sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30">
         <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
         <div className="flex items-center gap-4">
           <Authenticated>
@@ -51,9 +49,7 @@ export default function App() {
           <SignOutButton />
         </div>
       </header>
-      
-      {/* Mobile Main Content - Hidden on Desktop */}
-      <main className="md:hidden flex-1 flex flex-col items-center justify-center w-full">
+      <main className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
           <AnimatePresence mode="sync">
             <PageTransition key={verificationFlowKey}>
@@ -65,19 +61,6 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
-
-      {/* Desktop Content - Full Screen */}
-      <div className="hidden md:block w-full h-screen">
-        <AnimatePresence mode="sync">
-          <PageTransition key={verificationFlowKey}>
-            <Content
-              key={verificationFlowKey}
-              onPhoneVerified={handleVerified}
-            />
-          </PageTransition>
-        </AnimatePresence>
-      </div>
-      
       <Toaster richColors theme="dark" />
     </div>
   );
