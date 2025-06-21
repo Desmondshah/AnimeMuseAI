@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import EditAnimeForm from "./EditAnimeForm";
 import CharacterEditor from "./CharacterEditor";
 import ChangeHistoryPanel from "./ChangeHistoryPanel";
+import BatchImportAnime from "./BatchImportAnime";
+import CreateAnimeForm from "./CreateAnimeForm";
 
 // BRUTALIST loading component
 const BrutalistLoading: React.FC = memo(() => {
@@ -828,49 +830,44 @@ const BrutalistSimpleAnimeCard: React.FC<{
 });
 
 const EnhancedAnimeManagementPageComponent: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterGenre, setFilterGenre] = useState("all");
-  const [filterYear, setFilterYear] = useState("all");
-  const [filterRating, setFilterRating] = useState("all");
-  const [editingAnime, setEditingAnime] = useState<any>(null);
-  const [managingCharacters, setManagingCharacters] = useState<any>(null);
-  const [editingCharacter, setEditingCharacter] = useState<any>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [showChangeHistory, setShowChangeHistory] = useState<Id<"anime"> | null>(null);
-  const [showGlobalChangeHistory, setShowGlobalChangeHistory] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isEnrichingCharacter, setIsEnrichingCharacter] = useState(false);
-  
-  const { isMobile, shouldReduceAnimations } = useMobileOptimizations();
-  
-  const animeData = usePaginatedQuery(api.admin.getAllAnimeForAdmin, 
-    { paginationOpts: { numItems: 20, cursor: null } },
-    { initialNumItems: 20 }
+  const { shouldReduceAnimations, isMobile } = useMobileOptimizations();
+  const { results: animeResults, status, loadMore } = usePaginatedQuery(
+    api.admin.getAllAnimeForAdmin,
+    {},
+    { initialNumItems: isMobile ? 10 : 20 }
   );
-  
+  const deleteAnimeMutation = useMutation(api.admin.adminDeleteAnime);
   const saveAnimeMutation = useMutation(api.admin.adminEditAnime);
   const saveCharactersMutation = useMutation(api.admin.adminUpdateAnimeCharacters);
-  const enrichCharacterMutation = useMutation(api.admin.adminEnrichCharacter);
-  
+
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showBatchImport, setShowBatchImport] = useState(false);
+  const [selectedAnime, setSelectedAnime] = useState<any | null>(null);
+  const [managingCharacters, setManagingCharacters] = useState<{ anime: any; characters: any[] } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterByGenre, setFilterByGenre] = useState<string>("");
+  const [confirmDelete, setConfirmDelete] = useState<{ animeId: string; title: string } | null>(null);
+  const [savingAnime, setSavingAnime] = useState<string | null>(null);
+  const [viewingHistory, setViewingHistory] = useState<Id<"anime"> | null>(null);
+  const [showGlobalChangeHistory, setShowGlobalChangeHistory] = useState(false);
+
   const {
     results: animeList,
-    status,
-    loadMore,
+    status: animeListStatus,
+    loadMore: loadMoreAnimeList,
     isLoading: isLoadingList,
   } = usePaginatedQuery(
     api.admin.getAllAnimeForAdmin, {}, { initialNumItems: 12 }
   );
   
   const filteredAnimes = useMemo(() => {
-    return animeList?.filter((anime) => {
+    return animeList?.filter((anime: any) => {
       const matchesSearch = anime.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            anime.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = filterGenre === "all" || anime.type === filterGenre;
-      const matchesYear = filterYear === "all" || anime.year === filterYear;
-      const matchesRating = filterRating === "all" || anime.rating === filterRating;
-      return matchesSearch && matchesType && matchesYear && matchesRating;
+      const matchesType = filterByGenre === "" || anime.type === filterByGenre;
+      return matchesSearch && matchesType;
     }) || [];
-  }, [animeList, searchTerm, filterGenre, filterYear, filterRating]);
+  }, [animeList, searchTerm, filterByGenre]);
 
   const stats = useMemo(() => {
     const total = animeList?.length || 0;
@@ -882,161 +879,103 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   }, [animeList]);
 
   const handleEditAnime = (anime: any) => {
-    setEditingAnime(anime);
+    setSelectedAnime(anime);
   };
 
   const handleDeleteAnime = (animeId: string) => {
-    setShowDeleteConfirm(animeId);
+    setConfirmDelete({ animeId, title: animeList.find(a => a._id === animeId)?.title || 'Untitled Anime' });
   };
 
   const handleManageCharacters = (anime: any) => {
-    setManagingCharacters(anime);
+    setManagingCharacters({ anime, characters: anime.characters || [] });
   };
 
   const handleSaveCharacters = async (characters: any[]) => {
-    if (managingCharacters) {
-      try {
-        await saveCharactersMutation({ 
-          animeId: managingCharacters._id, 
-          characters 
-        });
-        setManagingCharacters(null);
-      } catch (error) {
-        console.error('Failed to update characters:', error);
-      }
-    }
-  };
-
-  const handleEditCharacter = (character: any) => {
-    console.log('Editing character:', character);
-    console.log('Managing characters:', managingCharacters);
+    if (!managingCharacters) return;
     
-    // Find the character index
-    const characterIndex = managingCharacters.characters.findIndex((c: any) => 
-      c.id === character.id || c._id === character._id || c.name === character.name
-    );
-    
-    console.log('Character index found:', characterIndex);
-    
-    setEditingCharacter({
-      character: {
-        ...character,
-        // Ensure we have all required fields
-        id: character.id || character._id || Date.now(),
-        name: character.name || '',
-        role: character.role || 'Supporting',
-        description: character.description || '',
-        status: character.status || 'Alive',
-        gender: character.gender || '',
-        age: character.age || '',
-        imageUrl: character.imageUrl || '',
-        enrichmentStatus: character.enrichmentStatus || 'pending'
-      },
-      animeId: managingCharacters._id,
-      characterIndex: characterIndex >= 0 ? characterIndex : 0
-    });
-  };
-
-  const handleSaveCharacter = async (character: any) => {
-    setIsSaving(true);
     try {
-      // TODO: Implement character save mutation
-      toast.success("Character saved successfully!");
-      setEditingCharacter(null);
-      
-      // Refresh the character list
-    if (managingCharacters) {
-        const updatedCharacters = managingCharacters.characters.map((c: any) => 
-          (c.id === character.id || c._id === character._id) ? character : c
-        );
-        setManagingCharacters({
-          ...managingCharacters,
-          characters: updatedCharacters
-        });
-      }
+      await saveCharactersMutation({ 
+        animeId: managingCharacters.anime._id, 
+        characters 
+      });
+      toast.success("Characters saved successfully!");
+      setManagingCharacters(null);
     } catch (error) {
-      toast.error("Failed to save character");
-    } finally {
-      setIsSaving(false);
+      toast.error("Failed to save characters");
     }
   };
 
-  const handleCancelCharacterEdit = () => {
-    setEditingCharacter(null);
-  };
-
-  const handleEnrichCharacter = async (index: number) => {
-      setIsEnrichingCharacter(true);
-      try {
-      // TODO: Implement character enrichment
-      toast.success("Character enrichment started!");
-      } catch (error) {
-      toast.error("Failed to enrich character");
-      } finally {
-        setIsEnrichingCharacter(false);
-      }
+  const handleSaveAnime = async (animeId: Id<"anime">, updates: any) => {
+    setSavingAnime(animeId);
+    try {
+      await saveAnimeMutation({ animeId, updates });
+      toast.success("Anime updated successfully!");
+      setSelectedAnime(null);
+    } catch (error: any) {
+      console.error("Failed to update anime:", error);
+      toast.error(error?.message || "Failed to update anime");
+    } finally {
+      setSavingAnime(null);
+    }
   };
 
   const handleAddCharacter = () => {
-    // Create a new empty character
+    if (!managingCharacters) return;
+    
     const newCharacter = {
-      id: Date.now(), // Temporary ID
-      name: "",
+      id: Date.now(), // Temporary ID for new character
+      name: "New Character",
       role: "Supporting",
       description: "",
       status: "Alive",
       gender: "",
       age: "",
       imageUrl: "",
-      enrichmentStatus: "pending" as const
+      enrichmentStatus: "pending"
     };
     
-    setEditingCharacter({
-      character: newCharacter,
-      animeId: managingCharacters._id,
-      characterIndex: -1 // New character
+    setSelectedAnime({
+      ...managingCharacters.anime,
+      characters: [...managingCharacters.characters, newCharacter]
     });
   };
 
   const handleDeleteCharacter = (index: number) => {
-    if (confirm("Are you sure you want to delete this character?")) {
-      const updatedCharacters = managingCharacters.characters.filter((_: any, i: number) => i !== index);
-      setManagingCharacters({
-        ...managingCharacters,
-        characters: updatedCharacters
-      });
-      toast.success("Character deleted successfully!");
+    if (!managingCharacters) return;
+    
+    const updatedCharacters = managingCharacters.characters.filter((_, i) => i !== index);
+    setManagingCharacters({
+      ...managingCharacters,
+      characters: updatedCharacters
+    });
+  };
+
+  const confirmDeleteAnime = async () => {
+    if (confirmDelete) {
+      try {
+        await deleteAnimeMutation({ animeId: confirmDelete.animeId });
+        toast.success("Anime deleted successfully!");
+        setConfirmDelete(null);
+      } catch (error) {
+        console.error("Failed to delete anime:", error);
+        toast.error("Failed to delete anime");
+      }
     }
   };
 
-  const confirmDelete = () => {
-    if (showDeleteConfirm) {
-      // TODO: Implement delete anime mutation
-      console.log("Deleting anime:", showDeleteConfirm);
-      setShowDeleteConfirm(null);
-    }
+  const handleEditCharacter = (character: any, index: number) => {
+    if (!managingCharacters) return;
+    
+    // For now, just show a toast since character editing is done through the anime form
+    toast.info("Character editing is available through the main anime edit form");
   };
 
-  const handleSaveAnime = async (animeId: Id<"anime">, updates: any) => {
-    setIsSaving(true);
-    try {
-      await saveAnimeMutation({ animeId, updates });
-      toast.success("Anime updated successfully!");
-      setEditingAnime(null);
-    } catch (error: any) {
-      console.error("Failed to update anime:", error);
-      toast.error(error?.message || "Failed to update anime");
-    } finally {
-      setIsSaving(false);
-    }
+  const handleEnrichCharacter = async (index: number) => {
+    if (!managingCharacters) return;
+    
+    toast.info("Character enrichment feature coming soon!");
+    // TODO: Implement character enrichment
   };
-
-  // Debug character editing
-  useEffect(() => {
-    if (editingCharacter) {
-      console.log('Character editing state changed:', editingCharacter);
-    }
-  }, [editingCharacter]);
 
   if (isLoadingList && status === "LoadingFirstPage" && (!animeList || animeList.length === 0)) {
     return <BrutalistLoading />;
@@ -1058,20 +997,16 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
           
           <div className="flex items-center gap-6">
             <button
-              onClick={() => setShowGlobalChangeHistory(true)}
+              onClick={() => setShowCreateForm(true)}
               className="bg-purple-500 text-white hover:bg-purple-600 border-4 border-purple-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
             >
-              VIEW ALL CHANGES
+              + CREATE ANIME
             </button>
             <button
-              className="bg-black text-white hover:bg-gray-800 border-4 border-black px-8 py-4 font-black uppercase tracking-wide transition-colors"
+              onClick={() => setShowBatchImport(true)}
+              className="bg-blue-500 text-white hover:bg-blue-600 border-4 border-blue-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
             >
-              EXPORT DATA
-            </button>
-            <button
-              className="bg-green-500 text-white hover:bg-green-600 border-4 border-green-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
-            >
-              ADD ANIME
+              📦 BATCH IMPORT
             </button>
           </div>
         </div>
@@ -1108,37 +1043,15 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
           />
           
           <select
-            value={filterGenre}
-            onChange={(e) => setFilterGenre(e.target.value)}
+            value={filterByGenre}
+            onChange={(e) => setFilterByGenre(e.target.value)}
             className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
           >
-            <option value="all">ALL TYPES</option>
+            <option value="">ALL TYPES</option>
             <option value="TV">TV SERIES</option>
             <option value="Movie">MOVIES</option>
             <option value="OVA">OVA</option>
             <option value="Special">SPECIAL</option>
-          </select>
-          
-          <select
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-            className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
-          >
-            <option value="all">ALL YEARS</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-          </select>
-          
-          <select
-            value={filterRating}
-            onChange={(e) => setFilterRating(e.target.value)}
-            className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
-          >
-            <option value="all">ALL RATINGS</option>
-            <option value="PG-13">PG-13</option>
-            <option value="R">R</option>
-            <option value="PG">PG</option>
           </select>
           
           <div className="flex items-center justify-center">
@@ -1158,20 +1071,20 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
             onEdit={handleEditAnime}
             onDelete={handleDeleteAnime}
             onManageCharacters={handleManageCharacters}
-            onViewHistory={() => setShowChangeHistory(anime._id)}
+            onViewHistory={() => setViewingHistory(anime._id as Id<"anime">)}
           />
         ))}
       </div>
 
       {/* BRUTALIST Load More Button */}
-      {status === "CanLoadMore" && (
+      {animeListStatus === "CanLoadMore" && filteredAnimes.length > 0 && (
         <div className="text-center">
           <button
-            onClick={() => loadMore(12)}
-            disabled={isLoadingList && status === "LoadingMore"}
+            onClick={() => loadMoreAnimeList(12)}
+            disabled={isLoadingList}
             className="bg-blue-500 text-white border-4 border-blue-500 px-12 py-6 font-black uppercase tracking-wide hover:bg-blue-600 transition-colors disabled:opacity-50 text-xl"
           >
-            {isLoadingList && status === "LoadingMore" ? "LOADING..." : "LOAD MORE ANIME"}
+            LOAD MORE ANIME
           </button>
         </div>
       )}
@@ -1190,17 +1103,17 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
       )}
 
       {/* BRUTALIST Edit Anime Modal */}
-      {editingAnime && (
+      {selectedAnime && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-white border-4 border-black p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-3xl font-black text-black mb-6 uppercase tracking-wider border-b-4 border-black pb-4">
-              EDIT ANIME: {editingAnime.title}
+              EDIT ANIME: {selectedAnime.title}
             </h3>
             <EditAnimeForm 
-          anime={editingAnime}
+              anime={selectedAnime}
               onSave={handleSaveAnime} 
-              onCancel={() => setEditingAnime(null)} 
-              isSaving={isSaving} 
+              onCancel={() => setSelectedAnime(null)} 
+              isSaving={savingAnime === selectedAnime._id} 
             />
           </div>
         </div>
@@ -1211,7 +1124,7 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-white border-4 border-black p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-3xl font-black text-black mb-6 uppercase tracking-wider border-b-4 border-black pb-4">
-              MANAGE CHARACTERS: {managingCharacters.title}
+              MANAGE CHARACTERS: {managingCharacters.anime.title}
             </h3>
             
             {/* Character Stats */}
@@ -1284,7 +1197,7 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
                     {/* Action Buttons */}
                     <div className="flex gap-1">
                       <button
-                        onClick={() => handleEditCharacter(character)}
+                        onClick={() => handleEditCharacter(character, index)}
                         className="flex-1 bg-blue-500 text-white border-2 border-blue-500 px-1 py-1 font-black uppercase tracking-wide hover:bg-blue-600 transition-colors text-xs"
                       >
                         EDIT
@@ -1336,44 +1249,26 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
         </div>
       )}
 
-      {/* BRUTALIST Character Editor Modal */}
-      {editingCharacter && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border-4 border-black p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <CharacterEditor
-              character={editingCharacter.character}
-              characterIndex={editingCharacter.characterIndex}
-              animeId={editingCharacter.animeId}
-              onSave={handleSaveCharacter}
-              onCancel={handleCancelCharacterEdit}
-          onEnrich={handleEnrichCharacter}
-              isSaving={isSaving}
-          isEnriching={isEnrichingCharacter}
-        />
-          </div>
-        </div>
-      )}
-
       {/* BRUTALIST Delete Confirmation */}
-      {showDeleteConfirm && (
+      {confirmDelete && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-white border-4 border-black p-8 w-full max-w-md">
             <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-wider border-b-4 border-black pb-4">
               CONFIRM DELETE
             </h3>
             <p className="text-black text-lg mb-8 uppercase tracking-wide">
-              ARE YOU SURE YOU WANT TO DELETE THIS ANIME? THIS ACTION CANNOT BE UNDONE.
+              ARE YOU SURE YOU WANT TO DELETE "{confirmDelete.title}"? THIS ACTION CANNOT BE UNDONE.
             </p>
             
             <div className="flex gap-4">
               <button
-                onClick={() => setShowDeleteConfirm(null)}
+                onClick={() => setConfirmDelete(null)}
                 className="flex-1 bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide hover:bg-gray-100 transition-colors"
               >
                 CANCEL
               </button>
               <button
-                onClick={confirmDelete}
+                onClick={confirmDeleteAnime}
                 className="flex-1 bg-red-500 text-white border-4 border-red-500 px-6 py-4 font-black uppercase tracking-wide hover:bg-red-600 transition-colors"
               >
                 DELETE ANIME
@@ -1384,10 +1279,10 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
       )}
 
       {/* Change History Panel */}
-      {showChangeHistory && (
+      {viewingHistory && (
         <ChangeHistoryPanel
-          animeId={showChangeHistory}
-          onClose={() => setShowChangeHistory(null)}
+          animeId={viewingHistory}
+          onClose={() => setViewingHistory(null)}
         />
       )}
 
@@ -1396,6 +1291,26 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
         <ChangeHistoryPanel
           onClose={() => setShowGlobalChangeHistory(false)}
         />
+      )}
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="mb-8">
+          <CreateAnimeForm
+            onSuccess={() => setShowCreateForm(false)}
+            onCancel={() => setShowCreateForm(false)}
+          />
+        </div>
+      )}
+
+      {/* Batch Import Form */}
+      {showBatchImport && (
+        <div className="mb-8">
+          <BatchImportAnime
+            onSuccess={() => setShowBatchImport(false)}
+            onCancel={() => setShowBatchImport(false)}
+          />
+        </div>
       )}
     </div>
   );

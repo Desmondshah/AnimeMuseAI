@@ -1,6 +1,6 @@
 // BRUTALIST CREATE ANIME FORM - CreateAnimeForm.tsx
 import React, { useState, FormEvent, memo } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
@@ -104,7 +104,13 @@ const BrutalistAutoResizeTextarea: React.FC<{
 
 const CreateAnimeFormComponent: React.FC<CreateAnimeFormProps> = ({ onSuccess, onCancel }) => {
   const createAnimeMutation = useMutation(api.admin.adminCreateAnime);
+  const smartAutoFill = useAction(api.externalApis.smartAutoFillByExternalId);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autoFillIds, setAutoFillIds] = useState({
+    anilistId: "",
+    myAnimeListId: ""
+  });
   const [formData, setFormData] = useState<CreateAnimeFormData>({
     title: "",
     description: "",
@@ -141,6 +147,61 @@ const CreateAnimeFormComponent: React.FC<CreateAnimeFormProps> = ({ onSuccess, o
     fieldName: Extract<keyof CreateAnimeFormData, "year" | "rating" | "anilistId" | "myAnimeListId" | "totalEpisodes" | "episodeDuration">
   ) => {
     setFormData(prev => ({ ...prev, [fieldName]: e.target.value === "" ? "" : parseFloat(e.target.value) }));
+  };
+
+  const handleAutoFill = async () => {
+    const anilistId = autoFillIds.anilistId ? parseInt(autoFillIds.anilistId) : undefined;
+    const malId = autoFillIds.myAnimeListId ? parseInt(autoFillIds.myAnimeListId) : undefined;
+    
+    if (!anilistId && !malId) {
+      toast.error("Please enter an AniList ID or MyAnimeList ID");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    const toastId = "auto-fill";
+    toast.loading("Fetching anime data...", { id: toastId });
+
+    try {
+      const result = await smartAutoFill({
+        anilistId,
+        myAnimeListId: malId
+      });
+
+      if (result.success && result.data) {
+        // Update form data with fetched values
+        setFormData({
+          title: result.data.title || formData.title,
+          description: result.data.description || formData.description,
+          posterUrl: result.data.posterUrl || formData.posterUrl,
+          genres: result.data.genres?.length ? result.data.genres : formData.genres,
+          year: result.data.year || formData.year,
+          rating: result.data.rating || formData.rating,
+          emotionalTags: result.data.emotionalTags?.length ? result.data.emotionalTags : formData.emotionalTags,
+          trailerUrl: result.data.trailerUrl || formData.trailerUrl,
+          studios: result.data.studios?.length ? result.data.studios : formData.studios,
+          themes: result.data.themes?.length ? result.data.themes : formData.themes,
+          anilistId: result.data.anilistId || formData.anilistId,
+          myAnimeListId: result.data.myAnimeListId || formData.myAnimeListId,
+          totalEpisodes: result.data.totalEpisodes || formData.totalEpisodes,
+          episodeDuration: result.data.episodeDuration || formData.episodeDuration,
+          airingStatus: result.data.airingStatus || formData.airingStatus,
+        });
+
+        toast.success(result.message, { id: toastId });
+        
+        // Also save character data if available (you may want to handle this separately)
+        if (result.data.characters?.length) {
+          toast.info(`Also fetched ${result.data.characters.length} characters`, { duration: 4000 });
+        }
+      } else {
+        toast.error(result.message || "Failed to fetch anime data", { id: toastId });
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to auto-fill", { id: toastId });
+    } finally {
+      setIsAutoFilling(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -184,6 +245,77 @@ const CreateAnimeFormComponent: React.FC<CreateAnimeFormProps> = ({ onSuccess, o
 
   return (
     <div className="bg-black border-4 border-white p-6 max-w-6xl mx-auto">
+      {/* BRUTALIST Smart Auto-Fill Section */}
+      <div className="bg-white border-4 border-black p-6 mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 bg-black text-white flex items-center justify-center border-4 border-white font-black text-3xl">
+            🤖
+          </div>
+          <div>
+            <h3 className="font-black text-black uppercase tracking-wider text-2xl">
+              SMART AUTO-FILL
+            </h3>
+            <p className="text-black/70 uppercase tracking-wide text-sm font-bold">
+              Enter an ID to instantly populate all fields
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-black font-black uppercase tracking-wide mb-2 text-sm">
+              ANILIST ID
+            </label>
+            <input
+              type="number"
+              value={autoFillIds.anilistId}
+              onChange={(e) => setAutoFillIds({ ...autoFillIds, anilistId: e.target.value })}
+              placeholder="E.G. 21"
+              className="w-full bg-white text-black border-4 border-black px-4 py-3 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+              disabled={isAutoFilling}
+            />
+          </div>
+
+          <div>
+            <label className="block text-black font-black uppercase tracking-wide mb-2 text-sm">
+              MYANIMELIST ID
+            </label>
+            <input
+              type="number"
+              value={autoFillIds.myAnimeListId}
+              onChange={(e) => setAutoFillIds({ ...autoFillIds, myAnimeListId: e.target.value })}
+              placeholder="E.G. 1"
+              className="w-full bg-white text-black border-4 border-black px-4 py-3 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+              disabled={isAutoFilling}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <StyledButton
+              onClick={handleAutoFill}
+              disabled={isAutoFilling || (!autoFillIds.anilistId && !autoFillIds.myAnimeListId)}
+              variant="primary"
+              className="w-full !bg-black !text-white hover:!bg-gray-800"
+            >
+              {isAutoFilling ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">⚙️</span>
+                  FETCHING...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  ⚡ AUTO-FILL
+                </span>
+              )}
+            </StyledButton>
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-black/60 font-bold uppercase tracking-wide">
+          💡 TIP: Find IDs on AniList.co or MyAnimeList.net anime pages
+        </div>
+      </div>
+
       {/* BRUTALIST Header with Poster Preview */}
       <div className="bg-white border-4 border-black p-6 mb-8">
         <div className="flex flex-col lg:flex-row gap-6 items-start">

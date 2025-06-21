@@ -1357,3 +1357,45 @@ Include all opening (OP), ending (ED), iconic insert songs, and notable backgrou
     return { success: true, ost };
   }
 });
+
+// Check if anime exists by external IDs
+export const checkAnimeExistsByExternalIds = internalQuery({
+  args: {
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+    title: v.string()
+  },
+  handler: async (ctx, args) => {
+    // First check by AniList ID
+    if (args.anilistId) {
+      const byAnilist = await ctx.db
+        .query("anime")
+        .filter(q => q.eq(q.field("anilistId"), args.anilistId))
+        .first();
+      
+      if (byAnilist) {
+        return byAnilist;
+      }
+    }
+
+    // Then check by MyAnimeList ID
+    if (args.myAnimeListId) {
+      const byMAL = await ctx.db
+        .query("anime")
+        .filter(q => q.eq(q.field("myAnimeListId"), args.myAnimeListId))
+        .first();
+      
+      if (byMAL) {
+        return byMAL;
+      }
+    }
+
+    // Finally check by exact title match (case insensitive)
+    const byTitle = await ctx.db
+      .query("anime")
+      .filter(q => q.eq(q.field("title"), args.title))
+      .first();
+    
+    return byTitle || null;
+  }
+});

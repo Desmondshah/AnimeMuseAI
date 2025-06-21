@@ -5,6 +5,8 @@ import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
 import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
 import AutoRefreshProtectionManager from "./AutoRefreshProtectionManager";
+import { useAction } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 // Form data shape (what the local state holds)
 interface FormDataShape {
@@ -18,6 +20,8 @@ interface FormDataShape {
   trailerUrl: string;
   studios: string[];
   themes: string[];
+  anilistId: number | "";
+  myAnimeListId: number | "";
 }
 
 // Shape of the updates object sent to the backend
@@ -32,6 +36,8 @@ interface AnimeBackendUpdates {
   trailerUrl?: string;
   studios?: string[];
   themes?: string[];
+  anilistId?: number;
+  myAnimeListId?: number;
 }
 
 interface AnimeProp {
@@ -51,6 +57,8 @@ interface AnimeProp {
     timestamp: number;
     fieldsEdited: string[];
   } | null;
+  anilistId?: string | null;
+  myAnimeListId?: string | null;
 }
 
 interface EditAnimeFormProps {
@@ -311,21 +319,27 @@ const BrutalistAutoResizeTextarea: React.FC<{
 const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, onCancel, isSaving }) => {
   const { shouldReduceAnimations, isMobile, iPad, isLandscape } = useMobileOptimizations();
   const { getGridClasses } = useAdminLayoutOptimization();
-  
+  const smartAutoFill = useAction(api.externalApis.smartAutoFillByExternalId);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [autoFillIds, setAutoFillIds] = useState({
+    anilistId: "",
+    myAnimeListId: ""
+  });
   const [formData, setFormData] = useState<FormDataShape>({
     title: anime.title || "",
     description: anime.description || "",
     posterUrl: anime.posterUrl || "",
     genres: anime.genres || [],
-    year: anime.year ?? "",
-    rating: anime.rating ?? "",
+    year: anime.year || "",
+    rating: anime.rating || "",
     emotionalTags: anime.emotionalTags || [],
     trailerUrl: anime.trailerUrl || "",
     studios: anime.studios || [],
     themes: anime.themes || [],
+    anilistId: (anime.anilistId && parseInt(anime.anilistId)) || "",
+    myAnimeListId: (anime.myAnimeListId && parseInt(anime.myAnimeListId)) || "",
   });
-
-  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     setFormData({
@@ -333,12 +347,14 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
       description: anime.description || "",
       posterUrl: anime.posterUrl || "",
       genres: anime.genres || [],
-      year: anime.year ?? "",
-      rating: anime.rating ?? "",
+      year: anime.year || "",
+      rating: anime.rating || "",
       emotionalTags: anime.emotionalTags || [],
       trailerUrl: anime.trailerUrl || "",
       studios: anime.studios || [],
       themes: anime.themes || [],
+      anilistId: (anime.anilistId && parseInt(anime.anilistId)) || "",
+      myAnimeListId: (anime.myAnimeListId && parseInt(anime.myAnimeListId)) || "",
     });
   }, [anime]);
 
@@ -359,7 +375,7 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
             changesDetected = true;
             break;
           }
-        } else if (key === "year" || key === "rating") {
+        } else if (key === "year" || key === "rating" || key === "anilistId" || key === "myAnimeListId") {
           const currentNumVal = formValue === "" || formValue === undefined ? undefined : Number(formValue);
           const originalNumVal = originalValue === null || originalValue === undefined ? undefined : Number(originalValue);
           if (currentNumVal !== originalNumVal) {
@@ -389,7 +405,7 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
 
   const handleNumberChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: Extract<keyof FormDataShape, "year" | "rating">
+    fieldName: Extract<keyof FormDataShape, "year" | "rating" | "anilistId" | "myAnimeListId">
   ) => {
     setFormData(prev => ({ ...prev, [fieldName]: e.target.value === "" ? "" : parseFloat(e.target.value) }));
   };
@@ -412,7 +428,7 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           updates[key] = currentVal;
           changesFound = true;
         }
-      } else if (key === "year" || key === "rating") {
+      } else if (key === "year" || key === "rating" || key === "anilistId" || key === "myAnimeListId") {
         const currentNumVal = formValue === "" || formValue === undefined ? undefined : Number(formValue);
         const originalNumVal = originalValue === null || originalValue === undefined ? undefined : Number(originalValue);
         if (currentNumVal !== originalNumVal) {
@@ -435,6 +451,113 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
       return;
     }
     await onSave(anime._id, updates);
+  };
+
+  // Smart Auto Refresh - uses existing external IDs
+  const handleAutoRefresh = async () => {
+    const anilistId = anime.anilistId;
+    const malId = anime.myAnimeListId;
+    
+    if (!anilistId && !malId) {
+      toast.error("This anime doesn't have an AniList ID or MyAnimeList ID to fetch data");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    const toastId = "auto-refresh";
+    toast.loading("Refreshing latest anime data...", { id: toastId });
+
+    try {
+      const result = await smartAutoFill({
+        anilistId,
+        myAnimeListId: malId
+      });
+
+      if (result.success && result.data) {
+        // Update form data with fetched values, but allow user to review changes
+        setFormData({
+          title: result.data.title || formData.title,
+          description: result.data.description || formData.description,
+          posterUrl: result.data.posterUrl || formData.posterUrl,
+          genres: result.data.genres?.length ? result.data.genres : formData.genres,
+          year: result.data.year || formData.year,
+          rating: result.data.rating || formData.rating,
+          emotionalTags: result.data.emotionalTags?.length ? result.data.emotionalTags : formData.emotionalTags,
+          trailerUrl: result.data.trailerUrl || formData.trailerUrl,
+          studios: result.data.studios?.length ? result.data.studios : formData.studios,
+          themes: result.data.themes?.length ? result.data.themes : formData.themes,
+          anilistId: result.data.anilistId || formData.anilistId,
+          myAnimeListId: result.data.myAnimeListId || formData.myAnimeListId,
+        });
+
+        setHasChanges(true);
+        toast.success(`${result.message}. Review changes before saving.`, { id: toastId, duration: 5000 });
+        
+        if (result.data.characters?.length) {
+          toast.info(`Also fetched ${result.data.characters.length} characters`, { duration: 4000 });
+        }
+      } else {
+        toast.error(result.message || "Failed to fetch anime data", { id: toastId });
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to auto-refresh", { id: toastId });
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
+  // Smart Auto Fill - uses new external IDs entered by user
+  const handleAutoFill = async () => {
+    const anilistId = autoFillIds.anilistId ? parseInt(autoFillIds.anilistId) : undefined;
+    const malId = autoFillIds.myAnimeListId ? parseInt(autoFillIds.myAnimeListId) : undefined;
+    
+    if (!anilistId && !malId) {
+      toast.error("Please enter an AniList ID or MyAnimeList ID");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    const toastId = "auto-fill";
+    toast.loading("Fetching anime data...", { id: toastId });
+
+    try {
+      const result = await smartAutoFill({
+        anilistId,
+        myAnimeListId: malId
+      });
+
+      if (result.success && result.data) {
+        // Update form data with fetched values
+        setFormData({
+          title: result.data.title || formData.title,
+          description: result.data.description || formData.description,
+          posterUrl: result.data.posterUrl || formData.posterUrl,
+          genres: result.data.genres?.length ? result.data.genres : formData.genres,
+          year: result.data.year || formData.year,
+          rating: result.data.rating || formData.rating,
+          emotionalTags: result.data.emotionalTags?.length ? result.data.emotionalTags : formData.emotionalTags,
+          trailerUrl: result.data.trailerUrl || formData.trailerUrl,
+          studios: result.data.studios?.length ? result.data.studios : formData.studios,
+          themes: result.data.themes?.length ? result.data.themes : formData.themes,
+          anilistId: result.data.anilistId || formData.anilistId,
+          myAnimeListId: result.data.myAnimeListId || formData.myAnimeListId,
+        });
+
+        setHasChanges(true);
+        toast.success(result.message, { id: toastId });
+        
+        // Also save character data if available (you may want to handle this separately)
+        if (result.data.characters?.length) {
+          toast.info(`Also fetched ${result.data.characters.length} characters`, { duration: 4000 });
+        }
+      } else {
+        toast.error(result.message || "Failed to fetch anime data", { id: toastId });
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to auto-fill", { id: toastId });
+    } finally {
+      setIsAutoFilling(false);
+    }
   };
 
   return (
@@ -519,6 +642,148 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           lastManualEdit: anime.lastManualEdit || undefined
         }}
       />
+
+      {/* BRUTALIST Smart Auto-Fill Section */}
+      <div className={`bg-white border-4 border-black ${
+        iPad.isIPadMini ? 'p-4 mb-4' : 
+        iPad.isIPadPro12 ? 'p-8 mb-8' : 
+        'p-6 mb-6'
+      }`}>
+        <div className={`flex items-center mb-6 ${
+          iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-4 md:gap-6'
+        }`}>
+          <div className={`bg-black text-white flex items-center justify-center border-4 border-white font-black ${
+            iPad.isIPadMini ? 'w-12 h-12 text-2xl' : 
+            iPad.isIPadPro12 ? 'w-20 h-20 text-4xl' : 
+            'w-14 h-14 md:w-16 md:h-16 text-2xl md:text-3xl'
+          }`}>
+            🤖
+          </div>
+          <div>
+            <h3 className={`font-black text-black uppercase tracking-wider ${
+              iPad.isIPadMini ? 'text-xl' : 
+              iPad.isIPadPro12 ? 'text-3xl md:text-4xl' : 
+              'text-2xl md:text-3xl'
+            }`}>
+              SMART AUTO-FILL
+            </h3>
+            <p className={`text-black/70 uppercase tracking-wide font-bold ${
+              iPad.isIPadMini ? 'text-xs' : 'text-sm'
+            }`}>
+              Enter new IDs to fetch data or refresh existing data
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-black font-black uppercase tracking-wide mb-2 text-sm">
+              ANILIST ID
+            </label>
+            <input
+              type="number"
+              value={autoFillIds.anilistId}
+              onChange={(e) => setAutoFillIds({ ...autoFillIds, anilistId: e.target.value })}
+              placeholder="E.G. 21"
+              className="w-full bg-white text-black border-4 border-black px-4 py-3 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+              disabled={isAutoFilling}
+            />
+          </div>
+
+          <div>
+            <label className="block text-black font-black uppercase tracking-wide mb-2 text-sm">
+              MYANIMELIST ID
+            </label>
+            <input
+              type="number"
+              value={autoFillIds.myAnimeListId}
+              onChange={(e) => setAutoFillIds({ ...autoFillIds, myAnimeListId: e.target.value })}
+              placeholder="E.G. 1"
+              className="w-full bg-white text-black border-4 border-black px-4 py-3 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+              disabled={isAutoFilling}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <StyledButton
+              type="button"
+              onClick={handleAutoFill}
+              disabled={isAutoFilling || (!autoFillIds.anilistId && !autoFillIds.myAnimeListId)}
+              variant="primary"
+              className="w-full !bg-black !text-white hover:!bg-gray-800"
+            >
+              {isAutoFilling ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">⚙️</span>
+                  FETCHING...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  ⚡ AUTO-FILL
+                </span>
+              )}
+            </StyledButton>
+          </div>
+        </div>
+
+        {/* Smart Auto Refresh for existing IDs */}
+        {(anime.anilistId || anime.myAnimeListId) && (
+          <div className="border-t-4 border-black pt-4">
+            <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between ${
+              iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-6' : 'gap-4'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className={`bg-black text-white flex items-center justify-center border-4 border-black font-black ${
+                  iPad.isIPadMini ? 'w-8 h-8 text-lg' : 
+                  iPad.isIPadPro12 ? 'w-12 h-12 text-2xl' : 
+                  'w-10 h-10 text-xl'
+                }`}>
+                  🔄
+                </div>
+                <div>
+                  <h4 className={`font-black text-black uppercase tracking-wider ${
+                    iPad.isIPadMini ? 'text-sm' : 
+                    iPad.isIPadPro12 ? 'text-lg' : 
+                    'text-base'
+                  }`}>
+                    SMART REFRESH
+                  </h4>
+                  <p className={`text-black/70 uppercase tracking-wide font-bold ${
+                    iPad.isIPadMini ? 'text-xs' : 'text-sm'
+                  }`}>
+                    {anime.anilistId && `ANILIST: ${anime.anilistId}`}
+                    {anime.anilistId && anime.myAnimeListId && " • "}
+                    {anime.myAnimeListId && `MAL: ${anime.myAnimeListId}`}
+                  </p>
+                </div>
+              </div>
+
+              <StyledButton
+                type="button"
+                onClick={handleAutoRefresh}
+                disabled={isAutoFilling || isSaving}
+                variant="ghost"
+                className="!bg-black !text-white hover:!bg-gray-800"
+              >
+                {isAutoFilling ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⚙️</span>
+                    REFRESHING...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    🔄 REFRESH DATA
+                  </span>
+                )}
+              </StyledButton>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 text-xs text-black/60 font-bold uppercase tracking-wide">
+          💡 TIP: Find IDs on AniList.co or MyAnimeList.net anime pages
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className={`${
         iPad.isIPadMini ? 'space-y-4' : iPad.isIPadPro12 ? 'space-y-8' : 'space-y-6'
@@ -672,6 +937,60 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
               placeholder="FRIENDSHIP, LOVE, WAR, REDEMPTION"
               icon="🎯"
             />
+          </div>
+        </BrutalistFormSection>
+
+        {/* External IDs Section */}
+        <BrutalistFormSection
+          title="EXTERNAL IDS"
+          icon="🔗"
+        >
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
+            <BrutalistInput
+              label="ANILIST ID"
+              name="anilistId"
+              type="number"
+              value={formData.anilistId}
+              onChange={(e) => {
+                const value = e.target.value === "" ? "" : parseFloat(e.target.value);
+                setFormData(prev => ({ ...prev, anilistId: value }));
+              }}
+              placeholder="21"
+            />
+            
+            <BrutalistInput
+              label="MYANIMELIST ID"
+              name="myAnimeListId"
+              type="number"
+              value={formData.myAnimeListId}
+              onChange={(e) => {
+                const value = e.target.value === "" ? "" : parseFloat(e.target.value);
+                setFormData(prev => ({ ...prev, myAnimeListId: value }));
+              }}
+              placeholder="1"
+            />
+          </div>
+          
+          <div className={`bg-white border-4 border-black ${
+            iPad.isIPadMini ? 'p-3' : iPad.isIPadPro12 ? 'p-6' : 'p-4'
+          } mt-4`}>
+            <div className={`font-black text-black uppercase tracking-wide mb-2 ${
+              iPad.isIPadMini ? 'text-base' : 
+              iPad.isIPadPro12 ? 'text-xl' : 
+              'text-lg'
+            }`}>
+              CURRENT EXTERNAL IDS
+            </div>
+            <div className={`text-black ${
+              iPad.isIPadMini ? 'text-xs' : iPad.isIPadPro12 ? 'text-base' : 'text-sm'
+            }`}>
+              {anime.anilistId && `AniList: ${anime.anilistId}`}
+              {anime.anilistId && anime.myAnimeListId && " • "}
+              {anime.myAnimeListId && `MAL: ${anime.myAnimeListId}`}
+              {!anime.anilistId && !anime.myAnimeListId && "No external IDs set"}
+            </div>
           </div>
         </BrutalistFormSection>
 

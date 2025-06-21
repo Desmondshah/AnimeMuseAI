@@ -2422,3 +2422,379 @@ export const fetchPopularAnime = action({
     return await fetchAniListSimple('POPULARITY_DESC', args.limit ?? 10, 'Popular on AniList');
   }
   });
+
+// Smart Auto-Fill System - Fetch anime data by AniList or MyAnimeList ID
+export const smartAutoFillByExternalId = action({
+  args: {
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    data?: {
+      title: string;
+      description: string;
+      posterUrl: string;
+      genres: string[];
+      year?: number;
+      rating?: number;
+      emotionalTags: string[];
+      trailerUrl?: string;
+      studios: string[];
+      themes: string[];
+      anilistId?: number;
+      myAnimeListId?: number;
+      totalEpisodes?: number;
+      episodeDuration?: number;
+      airingStatus?: string;
+      characters?: any[];
+      streamingEpisodes?: any[];
+    };
+    message: string;
+    source?: string;
+  }> => {
+    if (!args.anilistId && !args.myAnimeListId) {
+      return { 
+        success: false, 
+        message: "Please provide either an AniList ID or MyAnimeList ID" 
+      };
+    }
+
+    try {
+      let apiData: any = null;
+      let source: string = "";
+
+      // Try AniList first if ID provided
+      if (args.anilistId) {
+        console.log(`[Smart Auto-Fill] Fetching from AniList with ID: ${args.anilistId}`);
+        apiData = await fetchFromAnilist("", args.anilistId);
+        if (apiData) {
+          source = "anilist";
+        }
+      }
+
+      // Try MyAnimeList if no AniList data or if MAL ID provided
+      if (!apiData && args.myAnimeListId) {
+        console.log(`[Smart Auto-Fill] Fetching from MyAnimeList with ID: ${args.myAnimeListId}`);
+        
+        const jikanUrl = `https://api.jikan.moe/v4/anime/${args.myAnimeListId}/full`;
+        
+        try {
+          const response = await fetchWithTimeout(jikanUrl, { 
+            headers: { 'Accept': 'application/json' },
+            timeout: 10000 
+          });
+          
+          if (response.ok) {
+            const jikanResponse = await response.json();
+            apiData = jikanResponse?.data;
+            if (apiData) {
+              source = "myanimelist";
+              
+              // Also fetch characters for MAL
+              try {
+                const charUrl = `https://api.jikan.moe/v4/anime/${args.myAnimeListId}/characters`;
+                const charResponse = await fetchWithTimeout(charUrl, { timeout: 5000 });
+                if (charResponse.ok) {
+                  const charData = await charResponse.json();
+                  apiData.characters = charData?.data;
+                }
+              } catch (err) {
+                console.log(`[Smart Auto-Fill] Failed to fetch MAL characters: ${err}`);
+              }
+            }
+          }
+        } catch (error: any) {
+          console.error(`[Smart Auto-Fill] MyAnimeList fetch error:`, error.message);
+        }
+      }
+
+      if (!apiData) {
+        return { 
+          success: false, 
+          message: "Could not fetch data from external APIs. Please check the ID and try again." 
+        };
+      }
+
+      // Map the data based on source
+      let mappedData: any = {};
+
+      if (source === "anilist") {
+        const title = apiData.title?.english || apiData.title?.romaji || apiData.title?.native || "";
+        
+        mappedData = {
+          title: title,
+          description: apiData.description || "",
+          posterUrl: selectBestImageUrl(apiData.coverImage, 'anilist') || "",
+          genres: apiData.genres || [],
+          year: apiData.startDate?.year || apiData.seasonYear,
+          rating: apiData.averageScore ? parseFloat((apiData.averageScore / 10).toFixed(1)) : undefined,
+          emotionalTags: [],
+          trailerUrl: apiData.trailer?.site === "youtube" && apiData.trailer?.id 
+            ? `https://www.youtube.com/watch?v=${apiData.trailer.id}` 
+            : undefined,
+          studios: [],
+          themes: [],
+          anilistId: apiData.id,
+          totalEpisodes: apiData.episodes,
+          episodeDuration: apiData.duration,
+          airingStatus: apiData.status,
+        };
+
+        // Extract studios
+        if (apiData.studios?.edges?.length) {
+          const mainStudios = apiData.studios.edges
+            .filter((e: any) => e.isMain)
+            .map((e: any) => e.node.name)
+            .filter(Boolean);
+          
+          if (mainStudios.length === 0 && apiData.studios.edges.length > 0) {
+            mappedData.studios = apiData.studios.edges
+              .map((e: any) => e.node.name)
+              .filter(Boolean);
+          } else {
+            mappedData.studios = mainStudios;
+          }
+        }
+
+        // Extract themes and emotional tags from AniList tags
+        if (apiData.tags?.length) {
+          const themeTags = apiData.tags
+            .filter((t: any) => t.category?.toLowerCase().includes('theme') || t.rank > 60)
+            .map((t: any) => t.name)
+            .filter(Boolean);
+          
+          const emotionalTags = apiData.tags
+            .filter((t: any) => !t.category?.toLowerCase().includes('theme') && t.rank > 50)
+            .map((t: any) => t.name)
+            .filter(Boolean);
+          
+          mappedData.themes = themeTags;
+          mappedData.emotionalTags = emotionalTags;
+        }
+
+        // Map characters if available
+        if (apiData.characters?.edges?.length) {
+          mappedData.characters = mapCharacterData(apiData.characters.edges);
+        }
+
+        // Map streaming episodes if available
+        if (apiData.streamingEpisodes?.length) {
+          mappedData.streamingEpisodes = mapEpisodeData(apiData.streamingEpisodes);
+        }
+
+      } else if (source === "myanimelist") {
+        mappedData = {
+          title: apiData.title || apiData.title_english || apiData.title_japanese || "",
+          description: apiData.synopsis || "",
+          posterUrl: selectBestImageUrl(apiData.images, 'jikan') || "",
+          genres: getStringArray(apiData, 'genres', 'name') || [],
+          year: apiData.year || (apiData.aired?.from ? new Date(apiData.aired.from).getFullYear() : undefined),
+          rating: apiData.score,
+          emotionalTags: [],
+          trailerUrl: apiData.trailer?.url,
+          studios: getStringArray(apiData, 'studios', 'name') || [],
+          themes: getStringArray(apiData, 'themes', 'name') || [],
+          myAnimeListId: apiData.mal_id,
+          totalEpisodes: apiData.episodes,
+          episodeDuration: parseInt(apiData.duration) || undefined, // Parse "24 min" format
+          airingStatus: apiData.status,
+        };
+
+        // Combine themes and demographics for emotional tags
+        const themes = getStringArray(apiData, 'themes', 'name') || [];
+        const demographics = getStringArray(apiData, 'demographics', 'name') || [];
+        mappedData.emotionalTags = [...themes, ...demographics];
+
+        // Map characters if fetched
+        if (apiData.characters?.length) {
+          mappedData.characters = apiData.characters
+            .filter((item: any) => item.character)
+            .map((item: any) => ({
+              id: item.character.mal_id,
+              name: item.character.name,
+              imageUrl: item.character.images?.jpg?.image_url,
+              role: item.role || "SUPPORTING",
+              // MAL has limited character data compared to AniList
+            }))
+            .slice(0, 25);
+        }
+      }
+
+      console.log(`[Smart Auto-Fill] Successfully fetched data from ${source}`);
+      
+      return {
+        success: true,
+        data: mappedData,
+        message: `Successfully fetched anime data from ${source === 'anilist' ? 'AniList' : 'MyAnimeList'}`,
+        source: source
+      };
+
+    } catch (error: any) {
+      console.error(`[Smart Auto-Fill] Error:`, error);
+      return {
+        success: false,
+        message: `Failed to fetch data: ${error.message}`
+      };
+    }
+  }
+});
+
+// Batch Smart Auto-Fill - Process multiple anime IDs at once
+export const batchSmartAutoFill = action({
+  args: {
+    ids: v.array(v.object({
+      anilistId: v.optional(v.number()),
+      myAnimeListId: v.optional(v.number()),
+    })),
+    createNew: v.boolean(), // Whether to create new anime or just return data
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    message: string;
+    results: Array<{
+      success: boolean;
+      data?: any;
+      error?: string;
+      anilistId?: number;
+      myAnimeListId?: number;
+    }>;
+    summary: {
+      total: number;
+      successful: number;
+      failed: number;
+      created: number;
+    };
+  }> => {
+    if (!args.ids || args.ids.length === 0) {
+      return {
+        success: false,
+        message: "No IDs provided",
+        results: [],
+        summary: { total: 0, successful: 0, failed: 0, created: 0 }
+      };
+    }
+
+    const results: Array<{
+      success: boolean;
+      data?: any;
+      error?: string;
+      anilistId?: number;
+      myAnimeListId?: number;
+    }> = [];
+
+    let created = 0;
+    const batchSize = 3; // Process 3 at a time to avoid rate limits
+
+    console.log(`[Batch Smart Auto-Fill] Processing ${args.ids.length} anime IDs...`);
+
+    // Process in batches
+    for (let i = 0; i < args.ids.length; i += batchSize) {
+      const batch = args.ids.slice(i, i + batchSize);
+      
+      // Process batch in parallel
+      const batchPromises = batch.map(async (idPair) => {
+        try {
+          // Use the existing smartAutoFillByExternalId action
+          const result = await ctx.runAction(api.externalApis.smartAutoFillByExternalId, idPair);
+          
+          if (result.success && result.data && args.createNew) {
+            // Check if anime already exists
+            const existingAnime = await ctx.runQuery(internal.anime.checkAnimeExistsByExternalIds, {
+              anilistId: result.data.anilistId,
+              myAnimeListId: result.data.myAnimeListId,
+              title: result.data.title
+            });
+
+            if (!existingAnime) {
+              // Create the anime
+              await ctx.runMutation(api.admin.adminCreateAnime, {
+                animeData: {
+                  title: result.data.title,
+                  description: result.data.description,
+                  posterUrl: result.data.posterUrl,
+                  genres: result.data.genres,
+                  year: result.data.year,
+                  rating: result.data.rating,
+                  emotionalTags: result.data.emotionalTags,
+                  trailerUrl: result.data.trailerUrl,
+                  studios: result.data.studios,
+                  themes: result.data.themes,
+                  anilistId: result.data.anilistId,
+                  myAnimeListId: result.data.myAnimeListId,
+                  totalEpisodes: result.data.totalEpisodes,
+                  episodeDuration: result.data.episodeDuration,
+                  airingStatus: result.data.airingStatus,
+                }
+              });
+              created++;
+              
+              return {
+                success: true,
+                data: result.data,
+                anilistId: idPair.anilistId,
+                myAnimeListId: idPair.myAnimeListId
+              };
+            } else {
+              return {
+                success: false,
+                error: "Anime already exists in database",
+                data: result.data,
+                anilistId: idPair.anilistId,
+                myAnimeListId: idPair.myAnimeListId
+              };
+            }
+          }
+
+          return {
+            success: result.success,
+            data: result.data,
+            error: result.success ? undefined : result.message,
+            anilistId: idPair.anilistId,
+            myAnimeListId: idPair.myAnimeListId
+          };
+          
+        } catch (error: any) {
+          console.error(`[Batch Smart Auto-Fill] Error processing ID:`, idPair, error);
+          return {
+            success: false,
+            error: error.message || "Unknown error",
+            anilistId: idPair.anilistId,
+            myAnimeListId: idPair.myAnimeListId
+          };
+        }
+      });
+
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+
+      // Rate limit between batches
+      if (i + batchSize < args.ids.length) {
+        console.log(`[Batch Smart Auto-Fill] Processed ${i + batchSize}/${args.ids.length}, waiting before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      }
+    }
+
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+
+    const message = args.createNew 
+      ? `Processed ${args.ids.length} IDs: ${successful} successful, ${failed} failed, ${created} created`
+      : `Fetched data for ${successful}/${args.ids.length} anime`;
+
+    console.log(`[Batch Smart Auto-Fill] ${message}`);
+
+    return {
+      success: true,
+      message,
+      results,
+      summary: {
+        total: args.ids.length,
+        successful,
+        failed,
+        created
+      }
+    };
+  }
+});
