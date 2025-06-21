@@ -1,11 +1,11 @@
+/* Swiper CSS imports must come first */
+@import 'swiper/css';
+@import 'swiper/css/pagination';
+@import 'swiper/css/navigation';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import 'swiper/css';
-@import 'swiper/css/effect-coverflow';
-@import 'swiper/css/pagination';
-@import 'swiper/css/navigation';
 
 :root {
   --vh: 1vh;
@@ -6487,4 +6487,40 @@ body {
   .neon-border {
     border: 2px solid #FF6B35;
   }
+}
+
+/* Line clamp utilities for text truncation */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.line-clamp-4 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.line-clamp-5 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
 }

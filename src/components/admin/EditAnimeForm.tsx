@@ -1,4 +1,4 @@
-// Enhanced EditAnimeForm.tsx with dramatic visual upgrades
+// BRUTALIST EDIT ANIME FORM - EditAnimeForm.tsx
 import React, { useState, useEffect, FormEvent, memo } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "../animuse/shared/StyledButton";
@@ -54,30 +54,27 @@ interface EditAnimeFormProps {
   isSaving: boolean;
 }
 
-// Enhanced Form Section Component with larger layout
-const FormSection: React.FC<{
+// BRUTALIST Form Section Component
+const BrutalistFormSection: React.FC<{
   title: string;
   icon: string;
   children: React.ReactNode;
-  gradient: string;
-}> = memo(({ title, icon, children, gradient }) => (
-  <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-1.5 group`}>
-    <div className="bg-black/70 backdrop-blur-xl rounded-2xl p-8 border border-white/15">
-      <div className="flex items-center gap-4 mb-8">
-        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-2xl shadow-xl`}>
-          {icon}
-        </div>
-        <h3 className="text-2xl font-heading bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-          {title}
-        </h3>
+}> = memo(({ title, icon, children }) => (
+  <div className="bg-black border-4 border-white p-8 mb-8">
+    <div className="flex items-center gap-6 mb-8">
+      <div className="w-16 h-16 bg-white text-black flex items-center justify-center border-4 border-black font-black text-3xl">
+        {icon}
       </div>
-      {children}
+      <h3 className="text-3xl font-black text-white uppercase tracking-wider">
+        {title}
+      </h3>
     </div>
+    {children}
   </div>
 ));
 
-// Enhanced Input Component with larger size and better accessibility
-const FuturisticInput: React.FC<{
+// BRUTALIST Input Component
+const BrutalistInput: React.FC<{
   label: string;
   name: string;
   type?: string;
@@ -91,76 +88,43 @@ const FuturisticInput: React.FC<{
   rows?: number;
   className?: string;
 }> = memo(({ label, name, type = "text", value, onChange, placeholder, required, min, max, step, rows, className = "" }) => {
-  const [isFocused, setIsFocused] = useState(false);
-  
   return (
-    <div className="space-y-3">
-      <label className="flex items-center gap-3 text-base font-semibold text-white/95">
+    <div className="mb-6">
+      <label className="block text-lg font-black text-white uppercase tracking-wide mb-3">
         {label}
-        {required && <span className="text-red-400 text-lg">*</span>}
+        {required && <span className="text-red-500 ml-2">*</span>}
       </label>
       
-      <div className="relative">
-        {rows ? (
-          <textarea
-            name={name}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            required={required}
-            rows={rows}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            className={`
-              w-full bg-black/40 backdrop-blur-sm border-2 transition-all duration-300
-              ${isFocused 
-                ? 'border-blue-500 shadow-xl shadow-blue-500/30 bg-black/50' 
-                : 'border-white/25 hover:border-white/50'
-              }
-              rounded-2xl px-6 py-4 text-white placeholder-white/60 text-base
-              focus:outline-none focus:ring-0 resize-none
-              ${className}
-            `}
-          />
-        ) : (
-          <input
-            name={name}
-            type={type}
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            required={required}
-            min={min}
-            max={max}
-            step={step}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            className={`
-              w-full bg-black/40 backdrop-blur-sm border-2 transition-all duration-300
-              ${isFocused 
-                ? 'border-blue-500 shadow-xl shadow-blue-500/30 bg-black/50' 
-                : 'border-white/25 hover:border-white/50'
-              }
-              rounded-2xl px-6 py-4 text-white placeholder-white/60 text-base
-              focus:outline-none focus:ring-0
-              ${className}
-            `}
-          />
-        )}
-        
-        {/* Enhanced animated border effect */}
-        {isFocused && (
-          <div className="absolute inset-0 rounded-2xl pointer-events-none">
-            <div className="absolute inset-0 rounded-2xl border-2 border-blue-400 animate-pulse opacity-60"></div>
-          </div>
-        )}
-      </div>
+      {rows ? (
+        <textarea
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          rows={rows}
+          className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none"
+        />
+      ) : (
+        <input
+          name={name}
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          min={min}
+          max={max}
+          step={step}
+          className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+        />
+      )}
     </div>
   );
 });
 
-// Enhanced Array Input Component with larger size and better visual feedback
-const ArrayInput: React.FC<{
+// BRUTALIST Array Input Component
+const BrutalistArrayInput: React.FC<{
   label: string;
   value: string[];
   onChange: (value: string[]) => void;
@@ -168,7 +132,6 @@ const ArrayInput: React.FC<{
   icon: string;
 }> = memo(({ label, value, onChange, placeholder, icon }) => {
   const [inputValue, setInputValue] = useState(value.join(', '));
-  const [isFocused, setIsFocused] = useState(false);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -178,49 +141,102 @@ const ArrayInput: React.FC<{
   };
 
   return (
-    <div className="space-y-3">
-      <label className="flex items-center gap-3 text-base font-semibold text-white/95">
-        <span className="text-2xl">{icon}</span>
+    <div className="mb-6">
+      <label className="flex items-center gap-4 text-lg font-black text-white uppercase tracking-wide mb-3">
+        <span className="text-3xl">{icon}</span>
         {label}
       </label>
       
-      <div className="relative">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className={`
-            w-full bg-black/40 backdrop-blur-sm border-2 transition-all duration-300
-            ${isFocused 
-              ? 'border-purple-500 shadow-xl shadow-purple-500/30 bg-black/50' 
-              : 'border-white/25 hover:border-white/50'
-            }
-            rounded-2xl px-6 py-4 text-white placeholder-white/60 text-base
-            focus:outline-none focus:ring-0
-          `}
-        />
-        
-        {/* Enhanced tag preview with larger size */}
-        {value.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {value.slice(0, 5).map((item, index) => (
-              <span
-                key={index}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600/30 to-blue-600/30 text-white/90 rounded-xl text-sm border border-white/25 backdrop-blur-sm"
-              >
-                {item}
-              </span>
-            ))}
-            {value.length > 5 && (
-              <span className="px-4 py-2 bg-white/15 text-white/70 rounded-xl text-sm backdrop-blur-sm">
-                +{value.length - 5} more
-              </span>
-            )}
-          </div>
-        )}
+      <input
+        type="text"
+        value={inputValue}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+      />
+      
+      {value.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {value.map((item, index) => (
+            <span key={index} className="bg-white text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+              {item}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// BRUTALIST Auto-Resizing Textarea Component
+const BrutalistAutoResizeTextarea: React.FC<{
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  required?: boolean;
+  minRows?: number;
+  maxRows?: number;
+  className?: string;
+}> = memo(({ label, name, value, onChange, placeholder, required, minRows = 3, maxRows = 10, className = "" }) => {
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = React.useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate new height based on content
+    const scrollHeight = textarea.scrollHeight;
+    const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+    const minHeight = lineHeight * minRows;
+    const maxHeight = lineHeight * maxRows;
+    
+    // Set height within bounds
+    const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${newHeight}px`;
+    
+    // Show scrollbar if content exceeds max height
+    textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [minRows, maxRows]);
+
+  // Adjust height on value change
+  React.useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
+
+  // Adjust height on mount
+  React.useEffect(() => {
+    adjustHeight();
+  }, [adjustHeight]);
+
+  return (
+    <div className={`mb-6 ${className}`}>
+      <label className="block text-lg font-black text-white uppercase tracking-wide mb-3">
+        {label}
+        {required && <span className="text-red-500 ml-2">*</span>}
+      </label>
+      
+      <textarea
+        ref={textareaRef}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        rows={minRows}
+        className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none overflow-hidden"
+        style={{ minHeight: `${minRows * 1.5}rem` }}
+      />
+      
+      {/* Character count indicator */}
+      <div className="mt-2 text-right">
+        <span className="text-sm font-black text-white uppercase tracking-wide">
+          {value.length} CHARACTERS
+        </span>
       </div>
     </div>
   );
@@ -355,80 +371,69 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto p-6">
-      {/* Enhanced Header */}
-      <div className="text-center mb-10">
-        <h2 className="text-4xl font-heading bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent mb-3">
-          Edit Anime
-        </h2>
-        <p className="text-white/80 text-lg">Update anime information and metadata</p>
-        
-        {/* Enhanced changes indicator */}
-        {hasChanges && (
-          <div className="mt-6 inline-flex items-center gap-3 bg-yellow-500/25 text-yellow-300 px-6 py-3 rounded-2xl border border-yellow-500/40 backdrop-blur-sm">
-            <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
-            <span className="font-medium">Unsaved changes detected</span>
+    <div className="bg-black border-4 border-white p-6 max-w-6xl mx-auto">
+      {/* BRUTALIST Header with Poster Preview */}
+      <div className="bg-white border-4 border-black p-6 mb-8">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Poster Preview */}
+          <div className="flex-shrink-0">
+            <div className="w-48 h-64 bg-white border-4 border-black overflow-hidden">
+              {formData.posterUrl ? (
+                <img
+                  src={formData.posterUrl}
+                  alt="Anime Poster Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full flex items-center justify-center text-6xl ${formData.posterUrl ? 'hidden' : ''}`}>
+                🎬
+              </div>
+            </div>
           </div>
-        )}
+          
+          {/* Header Content */}
+          <div className="flex-1">
+            <h2 className="text-4xl font-black text-black mb-4 uppercase tracking-wider">
+              EDIT ANIME: {anime.title || 'UNTITLED'}
+            </h2>
+            <p className="text-black text-xl uppercase tracking-wide mb-4">
+              UPDATE ANIME INFORMATION AND METADATA
+            </p>
+            
+            {/* Changes Indicator */}
+            {hasChanges && (
+              <div className="inline-flex items-center gap-3 bg-yellow-500 text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+                <span className="w-3 h-3 bg-black"></span>
+                <span>UNSAVED CHANGES DETECTED</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information Section */}
-        <FormSection
-          title="Basic Information"
+        <BrutalistFormSection
+          title="BASIC INFORMATION"
           icon="📝"
-          gradient="from-blue-600 to-cyan-600"
         >
-          <div className="space-y-6">
-            <FuturisticInput
-              label="Title"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BrutalistInput
+              label="TITLE"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="Enter anime title..."
+              placeholder="ENTER ANIME TITLE..."
               required
             />
             
-            <FuturisticInput
-              label="Description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Enter anime description..."
-              rows={5}
-            />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FuturisticInput
-                label="Poster URL"
-                name="posterUrl"
-                type="url"
-                value={formData.posterUrl}
-                onChange={handleChange}
-                placeholder="https://example.com/poster.jpg"
-              />
-              
-              <FuturisticInput
-                label="Trailer URL"
-                name="trailerUrl"
-                type="url"
-                value={formData.trailerUrl}
-                onChange={handleChange}
-                placeholder="https://youtube.com/watch?v=..."
-              />
-            </div>
-          </div>
-        </FormSection>
-
-        {/* Details Section */}
-        <FormSection
-          title="Details & Ratings"
-          icon="⭐"
-          gradient="from-yellow-600 to-orange-600"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <FuturisticInput
-              label="Release Year"
+            <BrutalistInput
+              label="RELEASE YEAR"
               name="year"
               type="number"
               value={formData.year}
@@ -440,9 +445,46 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
               min="1900"
               max="2030"
             />
+          </div>
+          
+          <BrutalistAutoResizeTextarea
+            label="DESCRIPTION"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="ENTER ANIME DESCRIPTION..."
+            required
+          />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BrutalistInput
+              label="POSTER URL"
+              name="posterUrl"
+              type="url"
+              value={formData.posterUrl}
+              onChange={handleChange}
+              placeholder="HTTPS://EXAMPLE.COM/POSTER.JPG"
+            />
             
-            <FuturisticInput
-              label="Rating"
+            <BrutalistInput
+              label="TRAILER URL"
+              name="trailerUrl"
+              type="url"
+              value={formData.trailerUrl}
+              onChange={handleChange}
+              placeholder="HTTPS://YOUTUBE.COM/WATCH?V=..."
+            />
+          </div>
+        </BrutalistFormSection>
+
+        {/* Details Section */}
+        <BrutalistFormSection
+          title="DETAILS & RATINGS"
+          icon="⭐"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BrutalistInput
+              label="RATING"
               name="rating"
               type="number"
               value={formData.rating}
@@ -455,80 +497,75 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
               max="10"
               step="0.1"
             />
+            
+            <div className="bg-white border-4 border-black p-4">
+              <div className="text-lg font-black text-black uppercase tracking-wide mb-2">
+                CURRENT RATING: {anime.rating || 'N/A'}
+              </div>
+              <div className="text-sm text-black">
+                {anime.year ? `Released: ${anime.year}` : 'Year: Unknown'}
+              </div>
+            </div>
           </div>
-        </FormSection>
+        </BrutalistFormSection>
 
         {/* Categories Section */}
-        <FormSection
-          title="Categories & Tags"
+        <BrutalistFormSection
+          title="CATEGORIES & TAGS"
           icon="🏷️"
-          gradient="from-purple-600 to-pink-600"
         >
-          <div className="space-y-6">
-            <ArrayInput
-              label="Genres"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BrutalistArrayInput
+              label="GENRES"
               value={formData.genres}
               onChange={(value) => setFormData(prev => ({ ...prev, genres: value }))}
-              placeholder="Action, Adventure, Fantasy, Drama..."
+              placeholder="ACTION, ADVENTURE, COMEDY (COMMA-SEPARATED)"
               icon="🎭"
             />
             
-            <ArrayInput
-              label="Studios"
-              value={formData.studios}
-              onChange={(value) => setFormData(prev => ({ ...prev, studios: value }))}
-              placeholder="Studio Ghibli, MAPPA, Toei Animation..."
-              icon="🏢"
-            />
-            
-            <ArrayInput
-              label="Themes"
-              value={formData.themes}
-              onChange={(value) => setFormData(prev => ({ ...prev, themes: value }))}
-              placeholder="Friendship, Coming of Age, War, Love..."
-              icon="🎨"
-            />
-            
-            <ArrayInput
-              label="Emotional Tags"
+            <BrutalistArrayInput
+              label="EMOTIONAL TAGS"
               value={formData.emotionalTags}
               onChange={(value) => setFormData(prev => ({ ...prev, emotionalTags: value }))}
-              placeholder="Heartwarming, Intense, Thought-provoking..."
-              icon="💫"
+              placeholder="INSPIRING, THOUGHT-PROVOKING, EXCITING"
+              icon="💭"
             />
           </div>
-        </FormSection>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BrutalistArrayInput
+              label="STUDIOS"
+              value={formData.studios}
+              onChange={(value) => setFormData(prev => ({ ...prev, studios: value }))}
+              placeholder="STUDIO GHIBLI, MADHOUSE, BONES"
+              icon="🎬"
+            />
+            
+            <BrutalistArrayInput
+              label="THEMES"
+              value={formData.themes}
+              onChange={(value) => setFormData(prev => ({ ...prev, themes: value }))}
+              placeholder="FRIENDSHIP, LOVE, WAR, REDEMPTION"
+              icon="🎯"
+            />
+          </div>
+        </BrutalistFormSection>
 
-        {/* Enhanced Action Buttons */}
-        <div className="flex flex-col lg:flex-row gap-6 pt-8">
+        {/* Action Buttons */}
+        <div className="flex gap-6 pt-6">
           <button
             type="button"
             onClick={onCancel}
-            disabled={isSaving}
-            className="flex-1 bg-black/40 backdrop-blur-sm border-2 border-white/25 text-white py-4 px-8 rounded-2xl hover:bg-black/50 hover:border-white/40 transition-all duration-300 disabled:opacity-50 text-lg font-medium"
+            className="flex-1 bg-white text-black border-4 border-black px-8 py-4 font-black uppercase tracking-wide hover:bg-gray-100 transition-colors"
           >
-            Cancel
+            CANCEL
           </button>
-          
           <button
             type="submit"
             disabled={isSaving || !hasChanges}
-            className={`flex-1 py-4 px-8 rounded-2xl font-semibold transition-all duration-300 border-2 text-lg
-              ${hasChanges && !isSaving
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-blue-500/40 shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40'
-                : 'bg-gray-600/50 text-gray-400 border-gray-600/40 cursor-not-allowed'
-              }`}
+            className="flex-1 bg-green-500 text-white border-4 border-green-500 px-8 py-4 font-black uppercase tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50"
           >
-            {isSaving ? (
-              <span className="flex items-center justify-center gap-3">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Saving...
-              </span>
-            ) : hasChanges ? (
-              "Save Changes"
-            ) : (
-              "No Changes"
-            )}
+            {isSaving ? "SAVING..." : "SAVE CHANGES"}
           </button>
         </div>
       </form>

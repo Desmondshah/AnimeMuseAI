@@ -75,9 +75,95 @@ export const getAllReviewsForAdmin = query({
   },
 });
 
+// Query to get change history for an anime
+export const getAnimeChangeHistory = query({
+  args: { 
+    animeId: v.id("anime"),
+    paginationOpts: v.any() // Add paginationOpts to work with usePaginatedQuery
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    
+    const changes = await ctx.db
+      .query("changeTracking")
+      .withIndex("by_entityType_entityId", (q) => 
+        q.eq("entityType", "anime").eq("entityId", args.animeId)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+    
+    return changes;
+  },
+});
+
+// Query to get all change history (paginated)
+export const getAllChangeHistory = query({
+  args: { paginationOpts: v.any() },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    
+    return await ctx.db
+      .query("changeTracking")
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+// Query to get change history by admin user
+export const getChangeHistoryByAdmin = query({
+  args: { adminUserId: v.id("users"), paginationOpts: v.any() },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    
+    return await ctx.db
+      .query("changeTracking")
+      .withIndex("by_adminUserId_timestamp", (q) => 
+        q.eq("adminUserId", args.adminUserId)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
 // --- Admin Mutations ---
 
-// Enhanced anime editing with full character support
+// Utility function to track changes
+const trackChange = async (
+  ctx: any,
+  adminUserId: Id<"users">,
+  adminUserName: string,
+  entityType: "anime" | "character" | "user",
+  entityId: Id<"anime">,
+  entityTitle: string,
+  changeType: "create" | "update" | "delete" | "enrich" | "bulk_update",
+  changes: Array<{
+    field: string;
+    oldValue?: any;
+    newValue?: any;
+    changeDescription: string;
+  }>,
+  additionalData?: {
+    characterIndex?: number;
+    characterName?: string;
+    batchId?: string;
+  }
+) => {
+  await ctx.db.insert("changeTracking", {
+    adminUserId,
+    adminUserName,
+    entityType,
+    entityId,
+    entityTitle,
+    changeType,
+    changes,
+    characterIndex: additionalData?.characterIndex,
+    characterName: additionalData?.characterName,
+    batchId: additionalData?.batchId,
+    timestamp: Date.now(),
+  });
+};
+
+// Enhanced anime editing with change tracking
 export const adminEditAnime = mutation({
   args: {
     animeId: v.id("anime"),
@@ -132,20 +218,69 @@ export const adminEditAnime = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    const adminUserId = await assertAdmin(ctx);
     const { animeId, updates } = args;
+    
+    // Get the current anime data for comparison
+    const currentAnime = await ctx.db.get(animeId);
+    if (!currentAnime) {
+      throw new Error("Anime not found.");
+    }
+    
+    // Get admin user info
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+    
+    // Track changes
+    const changes: Array<{
+      field: string;
+      oldValue?: any;
+      newValue?: any;
+      changeDescription: string;
+    }> = [];
     
     const definedUpdates: Partial<Doc<"anime">> = {};
     for (const key in updates) {
         const typedKey = key as keyof typeof updates;
         if (updates[typedKey] !== undefined) {
-            (definedUpdates as any)[typedKey] = updates[typedKey];
+            const oldValue = (currentAnime as any)[typedKey];
+            const newValue = updates[typedKey];
+            
+            // Only track if there's an actual change
+            if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+              changes.push({
+                field: typedKey,
+                oldValue,
+                newValue,
+                changeDescription: `Updated ${typedKey} from "${oldValue}" to "${newValue}"`
+              });
+            }
+            
+            (definedUpdates as any)[typedKey] = newValue;
         }
     }
+    
     if (Object.keys(definedUpdates).length === 0) {
         throw new Error("No updates provided.");
     }
+    
+    // Apply the updates
     await ctx.db.patch(animeId, definedUpdates);
+    
+    // Log the changes if any were made
+    if (changes.length > 0) {
+      await trackChange(
+        ctx,
+        adminUserId,
+        adminUserName,
+        "anime",
+        animeId,
+        currentAnime.title || "Unknown Anime",
+        "update",
+        changes
+      );
+    }
+    
     return animeId;
   },
 });
@@ -218,10 +353,58 @@ export const adminUpdateAnimeCharacters = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    const adminUserId = await assertAdmin(ctx);
     const { animeId, characters } = args;
     
+    // Get the current anime data for comparison
+    const currentAnime = await ctx.db.get(animeId);
+    if (!currentAnime) {
+      throw new Error("Anime not found.");
+    }
+    
+    // Get admin user info
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+    
+    // Track character changes
+    const changes: Array<{
+      field: string;
+      oldValue?: any;
+      newValue?: any;
+      changeDescription: string;
+    }> = [];
+    
+    const oldCharacters = currentAnime.characters || [];
+    const newCharacters = characters;
+    
+    // Compare character arrays
+    if (JSON.stringify(oldCharacters) !== JSON.stringify(newCharacters)) {
+      changes.push({
+        field: "characters",
+        oldValue: oldCharacters.length,
+        newValue: newCharacters.length,
+        changeDescription: `Updated character list from ${oldCharacters.length} to ${newCharacters.length} characters`
+      });
+    }
+    
+    // Apply the updates
     await ctx.db.patch(animeId, { characters });
+    
+    // Log the changes
+    if (changes.length > 0) {
+      await trackChange(
+        ctx,
+        adminUserId,
+        adminUserName,
+        "anime",
+        animeId,
+        currentAnime.title || "Unknown Anime",
+        "update",
+        changes,
+        { batchId: `characters_${Date.now()}` }
+      );
+    }
+    
     return animeId;
   },
 });
@@ -230,10 +413,10 @@ export const adminUpdateAnimeCharacters = mutation({
 export const adminEnrichCharacter = mutation({
   args: {
     animeId: v.id("anime"),
-    characterIndex: v.number(), // Index of character in the characters array
+    characterIndex: v.number(),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    const adminUserId = await assertAdmin(ctx);
     const { animeId, characterIndex } = args;
     
     const anime = await ctx.db.get(animeId);
@@ -246,6 +429,10 @@ export const adminEnrichCharacter = mutation({
       throw new Error("Character not found at specified index.");
     }
     
+    // Get admin user info
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+    
     // Update character enrichment status to pending
     const updatedCharacters = [...anime.characters];
     updatedCharacters[characterIndex] = {
@@ -256,6 +443,27 @@ export const adminEnrichCharacter = mutation({
     };
     
     await ctx.db.patch(animeId, { characters: updatedCharacters });
+    
+    // Track the enrichment attempt
+    await trackChange(
+      ctx,
+      adminUserId,
+      adminUserName,
+      "character",
+      animeId,
+      anime.title || "Unknown Anime",
+      "enrich",
+      [{
+        field: "enrichmentStatus",
+        oldValue: character.enrichmentStatus || "none",
+        newValue: "pending",
+        changeDescription: `Triggered AI enrichment for character "${character.name}"`
+      }],
+      {
+        characterIndex,
+        characterName: character.name
+      }
+    );
     
     // Trigger the enrichment process
     await ctx.scheduler.runAfter(0, internal.characterEnrichment.enrichCharacter, {

@@ -1,10 +1,10 @@
-// DRAMATIC Visual Transformation - AdminDashboardPage.tsx
+// BRUTALIST ADMIN DASHBOARD - AdminDashboardPage.tsx
 import React, { useState, memo } from "react";
 import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
 import EnhancedAnimeManagementPage from "./EnhancedAnimeManagementPage";
 import ReviewModerationPage from "./ReviewModerationPage";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations"; // Adjust path
+import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 
 interface AdminDashboardPageProps {
   onNavigateBack: () => void;
@@ -12,30 +12,26 @@ interface AdminDashboardPageProps {
 
 type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation";
 
-// Completely redesigned loading component
-const FuturisticLoading: React.FC<{ sectionTitle: string }> = memo(({ sectionTitle }) => {
+// BRUTALIST loading component
+const BrutalistLoading: React.FC<{ sectionTitle: string }> = memo(({ sectionTitle }) => {
   const { shouldReduceAnimations } = useMobileOptimizations();
   
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
-      {/* Multi-ring loader */}
-      <div className="relative w-24 h-24 mb-8">
-        <div className="absolute inset-0 rounded-full border-4 border-brand-primary-action/20"></div>
-        <div className={`absolute inset-2 rounded-full border-4 border-brand-accent-gold/40 ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '3s' }}></div>
-        <div className={`absolute inset-4 rounded-full border-4 border-brand-primary-action ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
-        <div className="absolute inset-8 w-8 h-8 bg-gradient-to-br from-brand-primary-action to-brand-accent-gold rounded-full opacity-80"></div>
+    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-black border-4 border-white">
+      <div className="relative w-24 h-24 mb-8 border-4 border-white">
+        <div className={`absolute inset-0 border-4 border-white ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1s' }}></div>
+        <div className="absolute inset-4 w-16 h-16 bg-white"></div>
       </div>
       
-      <h3 className="text-2xl font-heading bg-gradient-to-r from-brand-primary-action to-brand-accent-gold bg-clip-text text-transparent mb-4">
+      <h3 className="text-4xl font-black text-white mb-6 uppercase tracking-wider">
         {sectionTitle}
       </h3>
       
-      {/* Animated dots */}
-      <div className="flex gap-2">
+      <div className="flex gap-4">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className={`w-3 h-3 bg-brand-primary-action rounded-full ${shouldReduceAnimations ? 'opacity-50' : 'animate-bounce'}`}
+            className={`w-4 h-4 bg-white ${shouldReduceAnimations ? 'opacity-100' : 'animate-pulse'}`}
             style={{ animationDelay: `${i * 0.2}s` }}
           />
         ))}
@@ -58,84 +54,102 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
   } = useMobileOptimizations();
 
   const navigationItems = [
-    { view: "overview" as AdminView, icon: "📊", label: "Dashboard", color: "from-blue-500 to-purple-600" },
-    { view: "user_management" as AdminView, icon: "👥", label: "Users", color: "from-green-500 to-emerald-600" },
-    { view: "anime_management" as AdminView, icon: "🎬", label: "Anime", color: "from-orange-500 to-red-600" },
-    { view: "review_moderation" as AdminView, icon: "📝", label: "Reviews", color: "from-purple-500 to-pink-600" },
+    { 
+      view: "overview" as AdminView, 
+      icon: "⚡", 
+      label: "DASHBOARD", 
+      color: "bg-white text-black",
+      description: "SYSTEM OVERVIEW"
+    },
+    { 
+      view: "user_management" as AdminView, 
+      icon: "👥", 
+      label: "USERS", 
+      color: "bg-white text-black",
+      description: "MANAGE ACCOUNTS"
+    },
+    { 
+      view: "anime_management" as AdminView, 
+      icon: "🎬", 
+      label: "ANIME", 
+      color: "bg-white text-black",
+      description: "EDIT DATA"
+    },
+    { 
+      view: "review_moderation" as AdminView, 
+      icon: "📝", 
+      label: "REVIEWS", 
+      color: "bg-white text-black",
+      description: "MODERATE CONTENT"
+    },
   ];
 
   const renderOverview = () => (
     <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="text-center py-12 px-6 bg-gradient-to-br from-brand-primary-action/10 via-brand-accent-gold/5 to-transparent rounded-2xl border border-brand-primary-action/20">
-        <div className="mb-6">
-          <h1 className="text-4xl md:text-6xl font-heading bg-gradient-to-r from-white via-brand-accent-gold to-brand-primary-action bg-clip-text text-transparent mb-4">
-            Admin Command Center
+      {/* BRUTALIST HERO SECTION */}
+      <div className="bg-black border-4 border-white p-12">
+        <div className="text-center">
+          <h1 className="text-6xl md:text-8xl font-black text-white mb-6 uppercase tracking-wider">
+            ADMIN CONSOLE
           </h1>
-          <p className="text-lg text-white/70 max-w-2xl mx-auto">
-            Advanced dashboard for managing your anime universe with real-time insights and powerful tools.
+          <p className="text-2xl text-white font-bold max-w-4xl mx-auto mb-8 uppercase tracking-wide">
+            BRUTALIST COMMAND CENTER FOR ANIME UNIVERSE MANAGEMENT
           </p>
-        </div>
-        
-        {/* Performance Status */}
-        <div className="flex justify-center gap-4 text-sm">
-          <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full">
-            <div className={`w-2 h-2 rounded-full ${performanceMetrics.fps > 50 ? 'bg-green-400' : performanceMetrics.fps > 30 ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
-            <span className="text-white/80">{performanceMetrics.fps} FPS</span>
-          </div>
-          <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <span className="text-white/80">{isMobile ? 'Mobile' : 'Desktop'}</span>
+          
+          {/* BRUTALIST PERFORMANCE STATUS */}
+          <div className="flex justify-center gap-6 text-lg">
+            <div className="flex items-center gap-3 bg-white text-black px-6 py-3 border-4 border-black">
+              <div className={`w-4 h-4 ${performanceMetrics.fps > 50 ? 'bg-green-500' : performanceMetrics.fps > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+              <span className="font-black">{performanceMetrics.fps} FPS</span>
+            </div>
+            <div className="flex items-center gap-3 bg-white text-black px-6 py-3 border-4 border-black">
+              <div className="w-4 h-4 bg-blue-500"></div>
+              <span className="font-black">{isMobile ? 'MOBILE' : 'DESKTOP'}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Action Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* BRUTALIST ACTION CARDS GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
         {navigationItems.slice(1).map((item, index) => (
           <div
             key={item.view}
             onClick={() => setCurrentAdminView(item.view)}
-            className={`group relative overflow-hidden bg-gradient-to-br ${item.color} p-1 rounded-2xl cursor-pointer
-              ${shouldReduceAnimations ? 'hover:scale-105' : 'hover:scale-110 hover:rotate-1'} 
-              transition-all duration-300 shadow-lg hover:shadow-2xl`}
+            className="group cursor-pointer border-4 border-white bg-black hover:bg-white hover:text-black transition-all duration-200 p-8"
           >
-            {/* Inner card */}
-            <div className="bg-black/40 backdrop-blur-xl rounded-xl p-6 h-full border border-white/10">
-              <div className="text-4xl mb-4">{item.icon}</div>
-              <h3 className="text-xl font-heading text-white mb-2">{item.label}</h3>
-              <p className="text-sm text-white/70 mb-4">
-                {item.view === 'user_management' && 'Manage accounts & permissions'}
-                {item.view === 'anime_management' && 'Edit anime & character data'}
-                {item.view === 'review_moderation' && 'Moderate content & reviews'}
-              </p>
-              
-              {/* Action arrow */}
-              <div className="flex justify-end">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <span className="text-white text-sm">→</span>
-                </div>
+            <div className="text-6xl mb-6">{item.icon}</div>
+            <h3 className="text-3xl font-black text-white group-hover:text-black mb-4 uppercase tracking-wider">{item.label}</h3>
+            <p className="text-lg text-white group-hover:text-black font-bold uppercase tracking-wide mb-6">
+              {item.description}
+            </p>
+            
+            <div className="flex justify-end">
+              <div className="w-12 h-12 bg-white text-black flex items-center justify-center group-hover:bg-black group-hover:text-white border-4 border-black transition-all duration-200">
+                <span className="text-2xl font-black">→</span>
               </div>
             </div>
-            
-            {/* Glow effect */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl`}></div>
           </div>
         ))}
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* BRUTALIST STATS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Anime', value: '1,247', change: '+12%' },
-          { label: 'Active Users', value: '8,439', change: '+5.2%' },
-          { label: 'Reviews Today', value: '156', change: '+8.1%' },
-          { label: 'System Health', value: '98.5%', change: '+0.3%' },
+          { label: 'TOTAL ANIME', value: '1,247', change: '+12%', icon: '🎬' },
+          { label: 'ACTIVE USERS', value: '8,439', change: '+5.2%', icon: '👥' },
+          { label: 'REVIEWS TODAY', value: '156', change: '+8.1%', icon: '📝' },
+          { label: 'SYSTEM HEALTH', value: '98.5%', change: '+0.3%', icon: '⚡' },
         ].map((stat, index) => (
-          <div key={index} className="bg-black/20 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <div className="text-2xl font-bold text-white">{stat.value}</div>
-            <div className="text-sm text-white/70">{stat.label}</div>
-            <div className="text-xs text-green-400">{stat.change}</div>
+          <div key={index} className="bg-black border-4 border-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-4xl">{stat.icon}</div>
+              <div className="text-sm bg-green-500 text-black px-3 py-1 font-black uppercase">
+                {stat.change}
+              </div>
+            </div>
+            <div className="text-4xl font-black text-white mb-2">{stat.value}</div>
+            <div className="text-lg text-white font-bold uppercase tracking-wide">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -157,84 +171,88 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Animated background */}
+    <div className="min-h-screen bg-black relative">
+      {/* BRUTALIST BACKGROUND PATTERN */}
       {!shouldUseSimpleBackgrounds && (
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-          <div className="absolute top-40 left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        <div className="absolute inset-0 overflow-hidden opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 10px,
+              white 10px,
+              white 20px
+            )`
+          }}></div>
         </div>
       )}
       
       {/* Main Container */}
       <div className="relative z-10 min-h-screen">
-        {/* Top Navigation Bar */}
-        <nav className={`bg-black/20 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 
-          ${hasNotch ? 'pt-safe-area-inset-top' : ''}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
+        {/* BRUTALIST TOP NAVIGATION BAR */}
+        <nav className="bg-white border-b-4 border-black sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex justify-between items-center h-20">
               {/* Left side */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 {isMobile && (
                   <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                    style={{ minHeight: '44px', minWidth: '44px' }}
+                    className="p-3 bg-black text-white hover:bg-gray-800 transition-colors border-2 border-black"
                   >
-                    <span className="text-white text-lg">☰</span>
+                    <span className="text-2xl font-black">☰</span>
                   </button>
                 )}
                 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-brand-primary-action to-brand-accent-gold rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">A</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-black text-white flex items-center justify-center border-4 border-black">
+                    <span className="text-2xl font-black">A</span>
                   </div>
-                  <h1 className="text-xl font-heading text-white">Admin Console</h1>
+                  <div>
+                    <h1 className="text-3xl font-black text-black uppercase tracking-wider">ADMIN CONSOLE</h1>
+                    <p className="text-sm text-black font-bold uppercase tracking-wide">COMMAND CENTER</p>
+                  </div>
                 </div>
               </div>
 
               {/* Right side */}
-              <div className="flex items-center gap-4">
-                {/* Performance indicator */}
-                <div className="hidden sm:flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full">
-                  <div className={`w-2 h-2 rounded-full ${performanceMetrics.fps > 50 ? 'bg-green-400' : performanceMetrics.fps > 30 ? 'bg-yellow-400' : 'bg-red-400'}`}></div>
-                  <span className="text-white/80 text-sm">{performanceMetrics.fps} FPS</span>
+              <div className="flex items-center gap-6">
+                <div className="hidden lg:flex items-center gap-3 bg-black text-white px-4 py-2 border-2 border-black">
+                  <div className={`w-3 h-3 ${performanceMetrics.fps > 50 ? 'bg-green-500' : performanceMetrics.fps > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                  <span className="font-black">{performanceMetrics.fps} FPS</span>
                 </div>
                 
-                <StyledButton 
+                <button 
                   onClick={onNavigateBack} 
-                  variant="secondary_small"
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  className="bg-black text-white hover:bg-gray-800 border-4 border-black px-6 py-3 font-black uppercase tracking-wide transition-colors"
                 >
-                  ← Back to App
-                </StyledButton>
+                  ← BACK TO APP
+                </button>
               </div>
             </div>
           </div>
         </nav>
 
         <div className="flex">
-          {/* Sidebar */}
-          <aside className={`${isMobile ? 'fixed inset-y-0 left-0 z-40 w-64' : 'w-64'} 
+          {/* BRUTALIST SIDEBAR */}
+          <aside className={`${isMobile ? 'fixed inset-y-0 left-0 z-40 w-80' : 'w-80'} 
             ${isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-            bg-black/20 backdrop-blur-xl border-r border-white/10 transition-transform duration-300`}>
+            bg-white border-r-4 border-black transition-transform duration-300`}>
             
-            <div className="p-6">
+            <div className="p-8">
               {isMobile && (
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-heading text-white">Navigation</h2>
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-2xl font-black text-black uppercase tracking-wider">NAVIGATION</h2>
                   <button
                     onClick={() => setSidebarOpen(false)}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20"
-                    style={{ minHeight: '44px', minWidth: '44px' }}
+                    className="p-3 bg-black text-white hover:bg-gray-800 border-2 border-black"
                   >
-                    <span className="text-white">✕</span>
+                    <span className="text-xl font-black">✕</span>
                   </button>
                 </div>
               )}
               
-              <nav className="space-y-2">
+              <nav className="space-y-4">
                 {navigationItems.map((item) => (
                   <button
                     key={item.view}
@@ -242,17 +260,19 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
                       setCurrentAdminView(item.view);
                       if (isMobile) setSidebarOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200
+                    className={`w-full flex items-center gap-4 p-4 transition-all duration-200 border-4
                       ${currentAdminView === item.view 
-                        ? `bg-gradient-to-r ${item.color} text-white shadow-lg` 
-                        : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                        ? 'bg-black text-white border-black' 
+                        : 'bg-white text-black border-black hover:bg-gray-100'
                       }`}
-                    style={{ minHeight: isMobile ? '44px' : 'auto' }}
                   >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="font-medium">{item.label}</span>
+                    <span className="text-3xl">{item.icon}</span>
+                    <div className="flex-1 text-left">
+                      <div className="font-black text-lg uppercase tracking-wider">{item.label}</div>
+                      <div className="text-sm font-bold uppercase tracking-wide opacity-70">{item.description}</div>
+                    </div>
                     {currentAdminView === item.view && (
-                      <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                      <div className="w-4 h-4 bg-white"></div>
                     )}
                   </button>
                 ))}
@@ -263,19 +283,19 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
           {/* Mobile overlay */}
           {isMobile && sidebarOpen && (
             <div 
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+              className="fixed inset-0 bg-black/50 z-30"
               onClick={() => setSidebarOpen(false)}
             />
           )}
 
           {/* Main content */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-8">
             <div className="max-w-7xl mx-auto">
               {currentAdminView === 'overview' ? (
                 renderOverview()
               ) : (
-                <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
-                  <div className="p-6">
+                <div className="bg-black border-4 border-white overflow-hidden">
+                  <div className="p-8">
                     {renderMainContent()}
                   </div>
                 </div>

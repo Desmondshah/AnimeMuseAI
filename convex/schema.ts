@@ -324,6 +324,57 @@ const applicationTables = {
     expiresAt: v.optional(v.number()),
   })
     .index("by_cacheKey", ["cacheKey"]),
+
+  // Change tracking for admin operations
+  changeTracking: defineTable({
+    // Who made the change
+    adminUserId: v.id("users"),
+    adminUserName: v.string(),
+    
+    // What was changed
+    entityType: v.union(v.literal("anime"), v.literal("character"), v.literal("user")),
+    entityId: v.id("anime"), // For anime changes, this is the anime ID
+    entityTitle: v.string(), // Human-readable title (anime title, character name, etc.)
+    
+    // Change details
+    changeType: v.union(
+      v.literal("create"),
+      v.literal("update"),
+      v.literal("delete"),
+      v.literal("enrich"),
+      v.literal("bulk_update")
+    ),
+    
+    // Detailed change information
+    changes: v.array(v.object({
+      field: v.string(), // Field name that was changed
+      oldValue: v.optional(v.any()), // Previous value
+      newValue: v.optional(v.any()), // New value
+      changeDescription: v.string(), // Human-readable description
+    })),
+    
+    // Additional context
+    characterIndex: v.optional(v.number()), // For character-specific changes
+    characterName: v.optional(v.string()), // For character-specific changes
+    batchId: v.optional(v.string()), // For bulk operations
+    
+    // Metadata
+    timestamp: v.number(),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    
+    // Status tracking
+    isReverted: v.optional(v.boolean()),
+    revertedAt: v.optional(v.number()),
+    revertedBy: v.optional(v.id("users")),
+    revertedByUserName: v.optional(v.string()),
+  })
+    .index("by_entityType_entityId", ["entityType", "entityId"])
+    .index("by_adminUserId_timestamp", ["adminUserId", "timestamp"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_changeType", ["changeType"])
+    .index("by_batchId", ["batchId"])
+    .index("by_entityType_timestamp", ["entityType", "timestamp"]),
 };
 
 export default defineSchema({

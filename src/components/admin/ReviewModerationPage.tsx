@@ -1,4 +1,4 @@
-// Enhanced ReviewModerationPage.tsx with dramatic visual upgrades
+// BRUTALIST REVIEW MODERATION - ReviewModerationPage.tsx
 import React, { memo, useState } from "react";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -8,49 +8,58 @@ import { toast } from "sonner";
 import { format } from 'date-fns';
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 
-// Enhanced Loading Component
-const FuturisticLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => {
+// BRUTALIST Loading Component
+const BrutalistLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => {
   const { shouldReduceAnimations } = useMobileOptimizations();
   
   return (
-    <div className="flex flex-col justify-center items-center h-64 py-10">
-      <div className="relative w-16 h-16 mb-6">
-        <div className="absolute inset-0 rounded-full border-4 border-amber-500/20"></div>
-        <div className={`absolute inset-1 rounded-full border-4 border-orange-500/40 ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '3s' }}></div>
-        <div className={`absolute inset-2 rounded-full border-4 border-red-500 ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
-        <div className="absolute inset-4 w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-full"></div>
+    <div className="flex flex-col justify-center items-center h-64 py-10 bg-black border-4 border-white">
+      <div className="relative w-24 h-24 mb-8">
+        <div className="absolute inset-0 border-4 border-white"></div>
+        <div className={`absolute inset-2 border-4 border-white ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1s' }}></div>
+        <div className="absolute inset-4 w-16 h-16 bg-white"></div>
       </div>
       
-      <h3 className="text-xl font-heading bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
-        {message || "Loading Review Database..."}
+      <h3 className="text-4xl font-black text-white mb-6 uppercase tracking-wider">
+        {message || "LOADING REVIEW DATABASE"}
       </h3>
+      
+      <div className="flex gap-4">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`w-4 h-4 bg-white ${shouldReduceAnimations ? 'opacity-100' : 'animate-pulse'}`}
+            style={{ animationDelay: `${i * 0.2}s` }}
+          />
+        ))}
+      </div>
     </div>
   );
 });
 
-// Enhanced Star Rating Component
-const EnhancedStarRating: React.FC<{ rating: number; maxStars?: number }> = memo(({ rating, maxStars = 5 }) => (
-  <div className="flex items-center gap-1">
+// BRUTALIST Star Rating Component
+const BrutalistStarRating: React.FC<{ rating: number; maxStars?: number }> = memo(({ rating, maxStars = 5 }) => (
+  <div className="flex items-center gap-2">
     {[...Array(maxStars)].map((_, i) => (
       <span 
         key={i} 
-        className={`text-lg transition-all duration-200 ${
+        className={`text-2xl font-black transition-all duration-200 ${
           i < Math.floor(rating) 
-            ? "text-yellow-400 drop-shadow-lg" 
-            : "text-gray-600"
+            ? "text-yellow-500" 
+            : "text-white"
         }`}
       >
         ★
       </span>
     ))}
-    <span className="ml-2 text-sm font-medium bg-black/20 px-2 py-1 rounded-full text-white/80">
+    <span className="ml-4 text-lg font-black bg-white text-black px-4 py-2 border-4 border-black uppercase tracking-wide">
       {rating.toFixed(1)}/{maxStars}
     </span>
   </div>
 ));
 
-// Enhanced Review Card Component
-const ReviewCard: React.FC<{
+// BRUTALIST Review Card Component
+const BrutalistReviewCard: React.FC<{
   review: any;
   onDelete: () => void;
 }> = memo(({ review, onDelete }) => {
@@ -58,9 +67,9 @@ const ReviewCard: React.FC<{
   const [isExpanded, setIsExpanded] = useState(false);
   
   const getSentimentColor = (rating: number) => {
-    if (rating >= 4) return "from-green-600 to-emerald-600";
-    if (rating >= 3) return "from-yellow-600 to-orange-600";
-    return "from-red-600 to-pink-600";
+    if (rating >= 4) return "bg-green-500";
+    if (rating >= 3) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   const getSentimentEmoji = (rating: number) => {
@@ -72,132 +81,121 @@ const ReviewCard: React.FC<{
   };
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${getSentimentColor(review.rating)} p-1
-      ${shouldReduceAnimations ? 'hover:scale-105' : 'hover:scale-110'} transition-all duration-300 shadow-lg hover:shadow-2xl`}>
-      
-      {/* Glow effect */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${getSentimentColor(review.rating)} opacity-0 group-hover:opacity-30 transition-opacity duration-300 rounded-2xl`}></div>
-      
-      {/* Inner card */}
-      <div className="relative bg-black/60 backdrop-blur-xl rounded-xl p-6 border border-white/10">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {/* User Avatar */}
-            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getSentimentColor(review.rating)} flex items-center justify-center text-white font-bold shadow-lg`}>
-              {review.userId.charAt(0).toUpperCase()}
-            </div>
-            
-            <div>
-              <p className="text-sm text-white/80 font-mono">
-                User: {review.userId.substring(0, 8)}...
-              </p>
-              <p className="text-xs text-white/60">
-                {format(new Date(review.createdAt), "MMM d, yyyy • HH:mm")}
-              </p>
-            </div>
+    <div className="bg-black border-4 border-white p-6 hover:bg-white hover:text-black transition-all duration-200">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
+          {/* User Avatar */}
+          <div className={`w-16 h-16 ${getSentimentColor(review.rating)} text-white flex items-center justify-center border-4 border-black font-black text-2xl`}>
+            {review.userId.charAt(0).toUpperCase()}
           </div>
           
-          {/* Sentiment emoji */}
-          <div className="text-2xl">
-            {getSentimentEmoji(review.rating)}
+          <div>
+            <p className="text-lg text-white font-black uppercase tracking-wide">
+              USER: {review.userId.substring(0, 8)}...
+            </p>
+            <p className="text-sm text-white font-bold uppercase tracking-wide">
+              {format(new Date(review.createdAt), "MMM D, YYYY • HH:MM")}
+            </p>
           </div>
         </div>
-
-        {/* Rating */}
-        <div className="mb-4">
-          <EnhancedStarRating rating={review.rating} />
+        
+        {/* Sentiment emoji */}
+        <div className="text-4xl">
+          {getSentimentEmoji(review.rating)}
         </div>
+      </div>
 
-        {/* Anime Reference */}
-        <div className="mb-4 p-3 bg-black/20 rounded-lg border border-white/10">
-          <p className="text-xs text-white/60 mb-1">Anime ID:</p>
-          <p className="text-sm text-white/80 font-mono">{review.animeId}</p>
-        </div>
+      {/* Rating */}
+      <div className="mb-6">
+        <BrutalistStarRating rating={review.rating} />
+      </div>
 
-        {/* Review Text */}
-        <div className="mb-4">
-          <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-            {review.reviewText ? (
-              <div>
-                <p className={`text-white/90 leading-relaxed ${!isExpanded && review.reviewText.length > 150 ? 'line-clamp-3' : ''}`}>
-                  {review.reviewText}
-                </p>
-                {review.reviewText.length > 150 && (
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-brand-accent-gold text-sm mt-2 hover:text-brand-primary-action transition-colors"
-                  >
-                    {isExpanded ? "Show less" : "Show more"}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="text-white/50 italic">No review text provided</p>
-            )}
-          </div>
-        </div>
+      {/* Anime Reference */}
+      <div className="mb-6 p-4 bg-white text-black border-4 border-black">
+        <p className="text-sm font-black uppercase tracking-wide mb-2">ANIME ID:</p>
+        <p className="text-lg font-black uppercase tracking-wide">{review.animeId}</p>
+      </div>
 
-        {/* Metadata */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full border border-white/20">
-            📅 {format(new Date(review.createdAt), "MMM d")}
-          </span>
-          <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full border border-white/20">
-            🆔 Review #{review._id.substring(0, 6)}
-          </span>
-          {review.reviewText && (
-            <span className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded-full border border-white/20">
-              📝 {review.reviewText.length} chars
-            </span>
+      {/* Review Text */}
+      <div className="mb-6">
+        <div className="bg-white text-black p-4 border-4 border-black">
+          {review.reviewText ? (
+            <div>
+              <p className={`font-black uppercase tracking-wide leading-relaxed ${!isExpanded && review.reviewText.length > 150 ? 'line-clamp-3' : ''}`}>
+                {review.reviewText}
+              </p>
+              {review.reviewText.length > 150 && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-black font-black uppercase tracking-wide mt-4 hover:bg-black hover:text-white px-4 py-2 border-4 border-black transition-colors"
+                >
+                  {isExpanded ? "SHOW LESS" : "SHOW MORE"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="font-black uppercase tracking-wide italic">NO REVIEW TEXT PROVIDED</p>
           )}
         </div>
+      </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            onClick={onDelete}
-            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white py-2 px-4 rounded-xl hover:from-red-500 hover:to-pink-500 transition-all duration-200 border border-red-500/30 font-medium"
-          >
-            🗑️ Delete Review
-          </button>
-          <button
-            className="px-4 py-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors border border-white/20"
-            title="View anime details"
-          >
-            👁️
-          </button>
-        </div>
+      {/* Metadata */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <span className="text-sm bg-white text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+          📅 {format(new Date(review.createdAt), "MMM D")}
+        </span>
+        <span className="text-sm bg-white text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+          🆔 REVIEW #{review._id.substring(0, 6)}
+        </span>
+        {review.reviewText && (
+          <span className="text-sm bg-white text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+            📝 {review.reviewText.length} CHARS
+          </span>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={onDelete}
+          className="flex-1 bg-red-500 text-white hover:bg-red-600 border-4 border-red-500 px-6 py-3 font-black uppercase tracking-wide transition-colors"
+        >
+          🗑️ DELETE REVIEW
+        </button>
+        <button
+          className="bg-white text-black hover:bg-gray-100 border-4 border-black px-6 py-3 font-black uppercase tracking-wide transition-colors"
+          title="View anime details"
+        >
+          👁️ VIEW
+        </button>
       </div>
     </div>
   );
 });
 
-// Stats Card Component
-const StatsCard: React.FC<{ 
+// BRUTALIST Stats Card Component
+const BrutalistStatsCard: React.FC<{ 
   title: string; 
   value: string | number; 
   icon: string;
-  gradient: string;
+  color: string;
   change?: string;
-}> = memo(({ title, value, icon, gradient, change }) => {
+}> = memo(({ title, value, icon, color, change }) => {
   const { shouldReduceAnimations } = useMobileOptimizations();
   
   return (
-    <div className={`relative group overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-1
-      ${shouldReduceAnimations ? 'hover:scale-105' : 'hover:scale-110'} transition-all duration-300`}>
-      <div className="bg-black/40 backdrop-blur-xl rounded-xl p-4 h-full border border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-2xl">{icon}</div>
-          {change && (
-            <div className="text-xs text-green-400 bg-green-400/20 px-2 py-1 rounded-full">
-              {change}
-            </div>
-          )}
-        </div>
-        <div className="text-2xl font-bold text-white mb-1">{value}</div>
-        <div className="text-sm text-white/70">{title}</div>
+    <div className="bg-black border-4 border-white p-6 hover:bg-white hover:text-black transition-all duration-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-4xl">{icon}</div>
+        {change && (
+          <div className="text-sm bg-green-500 text-black px-3 py-1 font-black uppercase tracking-wide">
+            {change}
+          </div>
+        )}
       </div>
+      <div className="text-4xl font-black text-white mb-2">{value}</div>
+      <div className="text-lg text-white font-bold uppercase tracking-wide">{title}</div>
     </div>
   );
 });
@@ -236,7 +234,7 @@ const ReviewModerationPageComponent: React.FC = () => {
   };
 
   if (isLoading && status === "LoadingFirstPage" && (!reviews || reviews.length === 0)) {
-    return <FuturisticLoadingSpinner message="Loading review database..." />;
+    return <BrutalistLoadingSpinner message="Loading review database..." />;
   }
 
   if (reviews === null) {
@@ -307,38 +305,38 @@ const ReviewModerationPageComponent: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatsCard
+        <BrutalistStatsCard
           title="Total Reviews"
           value={totalReviews}
           icon="📝"
-          gradient="from-blue-600 to-cyan-600"
+          color="from-blue-600 to-cyan-600"
           change="+8.1%"
         />
-        <StatsCard
+        <BrutalistStatsCard
           title="Avg Rating"
           value={averageRating}
           icon="⭐"
-          gradient="from-yellow-600 to-orange-600"
+          color="from-yellow-600 to-orange-600"
         />
-        <StatsCard
+        <BrutalistStatsCard
           title="Positive"
           value={positiveReviews}
           icon="😊"
-          gradient="from-green-600 to-emerald-600"
+          color="from-green-600 to-emerald-600"
           change={`${Math.round((positiveReviews/totalReviews)*100)}%`}
         />
-        <StatsCard
+        <BrutalistStatsCard
           title="Negative"
           value={negativeReviews}
           icon="😞"
-          gradient="from-red-600 to-pink-600"
+          color="from-red-600 to-pink-600"
           change={`${Math.round((negativeReviews/totalReviews)*100)}%`}
         />
-        <StatsCard
+        <BrutalistStatsCard
           title="Today"
           value={todayReviews}
           icon="📅"
-          gradient="from-purple-600 to-indigo-600"
+          color="from-purple-600 to-indigo-600"
         />
       </div>
 
@@ -395,7 +393,7 @@ const ReviewModerationPageComponent: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredReviews.map((review) => (
-            <ReviewCard
+            <BrutalistReviewCard
               key={review._id}
               review={review}
               onDelete={() => handleDeleteReview(review._id, review.userId)}

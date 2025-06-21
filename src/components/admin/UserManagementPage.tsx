@@ -1,376 +1,313 @@
-// Enhanced UserManagementPage.tsx with dramatic visual upgrades
-import React, { memo, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+// BRUTALIST USER MANAGEMENT - UserManagementPage.tsx
+import React, { useState, memo, useMemo } from "react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
-import StyledButton from "../animuse/shared/StyledButton";
-import { toast } from "sonner";
+import { Doc } from "../../../convex/_generated/dataModel";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import StyledButton from "../animuse/shared/StyledButton";
 
-// Type definitions
-interface UserProfile {
-  _id: Id<"userProfiles">;
-  userId: Id<"users">;
-  name?: string;
-  phoneNumber?: string;
-  phoneNumberVerified?: boolean;
-  onboardingCompleted?: boolean;
-  isAdmin?: boolean;
-}
-
-// Enhanced Loading Component
-const FuturisticLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => {
+// BRUTALIST loading component
+const BrutalistLoading: React.FC = memo(() => {
   const { shouldReduceAnimations } = useMobileOptimizations();
   
   return (
-    <div className="flex flex-col justify-center items-center h-64 py-10">
-      <div className="relative w-16 h-16 mb-6">
-        <div className="absolute inset-0 rounded-full border-4 border-green-500/20"></div>
-        <div className={`absolute inset-1 rounded-full border-4 border-blue-500/40 ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '3s' }}></div>
-        <div className={`absolute inset-2 rounded-full border-4 border-emerald-500 ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
-        <div className="absolute inset-4 w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full"></div>
+    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-black border-4 border-white">
+      <div className="relative w-24 h-24 mb-8 border-4 border-white">
+        <div className={`absolute inset-0 border-4 border-white ${shouldReduceAnimations ? '' : 'animate-spin'}`} style={{ animationDuration: '1s' }}></div>
+        <div className="absolute inset-4 w-16 h-16 bg-white"></div>
       </div>
       
-      <h3 className="text-xl font-heading bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-        {message || "Loading User Profiles..."}
+      <h3 className="text-4xl font-black text-white mb-6 uppercase tracking-wider">
+        LOADING USERS
       </h3>
-    </div>
-  );
-});
-
-// Enhanced User Card Component
-const UserCard: React.FC<{
-  profile: UserProfile;
-  onToggleAdmin: () => void;
-  isCurrentUser: boolean;
-  isLastAdmin: boolean;
-}> = memo(({ profile, onToggleAdmin, isCurrentUser, isLastAdmin }) => {
-  const { shouldReduceAnimations } = useMobileOptimizations();
-
-  const getStatusBadge = (status: boolean | undefined, type: 'verified' | 'onboarded' | 'admin' = 'verified') => {
-    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full border";
-    
-    if (status) {
-      switch (type) {
-        case 'verified':
-          return `${baseClasses} bg-green-500/20 text-green-300 border-green-500/30`;
-        case 'onboarded':
-          return `${baseClasses} bg-blue-500/20 text-blue-300 border-blue-500/30`;
-        case 'admin':
-          return `${baseClasses} bg-purple-500/20 text-purple-300 border-purple-500/30`;
-        default:
-          return `${baseClasses} bg-green-500/20 text-green-300 border-green-500/30`;
-      }
-    } else {
-      return `${baseClasses} bg-red-500/20 text-red-300 border-red-500/30`;
-    }
-  };
-
-  const getRoleGradient = (isAdmin: boolean) => {
-    return isAdmin 
-      ? "from-purple-600 to-pink-600" 
-      : "from-blue-600 to-cyan-600";
-  };
-
-  return (
-    <div className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${getRoleGradient(!!profile.isAdmin)} p-1
-      ${shouldReduceAnimations ? 'hover:scale-105' : 'hover:scale-110'} transition-all duration-300 shadow-lg hover:shadow-2xl`}>
       
-      {/* Glow effect */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${getRoleGradient(!!profile.isAdmin)} opacity-0 group-hover:opacity-30 transition-opacity duration-300 rounded-2xl`}></div>
-      
-      {/* Inner card */}
-      <div className="relative bg-black/60 backdrop-blur-xl rounded-xl p-6 border border-white/10">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getRoleGradient(!!profile.isAdmin)} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
-              {profile.name ? profile.name.charAt(0).toUpperCase() : profile.userId.charAt(0).toUpperCase()}
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold text-white group-hover:text-brand-accent-gold transition-colors">
-                {profile.name || "Unnamed User"}
-              </h3>
-              <p className="text-xs text-white/60 font-mono">
-                ID: {profile.userId.substring(0, 8)}...
-              </p>
-            </div>
-          </div>
-          
-          {/* Role badge */}
-          <div className={getStatusBadge(profile.isAdmin, 'admin')}>
-            {profile.isAdmin ? '👑 Admin' : '👤 User'}
-          </div>
-        </div>
-
-        {/* Details */}
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-white/70">Phone:</span>
-            <span className="text-sm text-white font-medium">
-              {profile.phoneNumber || "Not provided"}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-white/70">Verified:</span>
-            <span className={getStatusBadge(profile.phoneNumberVerified, 'verified')}>
-              {profile.phoneNumberVerified ? '✅ Yes' : '❌ No'}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-white/70">Onboarded:</span>
-            <span className={getStatusBadge(profile.onboardingCompleted, 'onboarded')}>
-              {profile.onboardingCompleted ? '✅ Yes' : '❌ No'}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <button
-          onClick={onToggleAdmin}
-          disabled={isCurrentUser && !!profile.isAdmin && isLastAdmin}
-          className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 border
-            ${profile.isAdmin 
-              ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white border-red-500/30' 
-              : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white border-green-500/30'
-            }
-            disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {profile.isAdmin ? '🔻 Revoke Admin' : '🔺 Make Admin'}
-        </button>
-        
-        {isCurrentUser && !!profile.isAdmin && isLastAdmin && (
-          <p className="text-xs text-yellow-400 mt-2 text-center">
-            ⚠️ Cannot remove last admin
-          </p>
-        )}
+      <div className="flex gap-4">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`w-4 h-4 bg-white ${shouldReduceAnimations ? 'opacity-100' : 'animate-pulse'}`}
+            style={{ animationDelay: `${i * 0.2}s` }}
+          />
+        ))}
       </div>
     </div>
   );
 });
 
-// Stats Card Component
-const StatsCard: React.FC<{ 
-  title: string; 
-  value: string | number; 
-  icon: string;
-  gradient: string;
-  percentage?: string;
-}> = memo(({ title, value, icon, gradient, percentage }) => {
-  const { shouldReduceAnimations } = useMobileOptimizations();
+// BRUTALIST user card component
+const BrutalistUserCard: React.FC<{
+  user: Doc<"userProfiles">;
+  onEdit: (user: Doc<"userProfiles">) => void;
+  onDelete: (userId: string) => void;
+}> = memo(({ user, onEdit, onDelete }) => {
+  const [isHovered, setIsHovered] = useState(false);
   
   return (
-    <div className={`relative group overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-1
-      ${shouldReduceAnimations ? 'hover:scale-105' : 'hover:scale-110'} transition-all duration-300`}>
-      <div className="bg-black/40 backdrop-blur-xl rounded-xl p-4 h-full border border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-2xl">{icon}</div>
-          {percentage && (
-            <div className="text-xs text-green-400 bg-green-400/20 px-2 py-1 rounded-full">
-              {percentage}
-            </div>
-          )}
+    <div
+      className="bg-black border-4 border-white p-6 hover:bg-white hover:text-black transition-all duration-200"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center gap-6 mb-6">
+        <div className="w-16 h-16 bg-white text-black flex items-center justify-center border-4 border-black font-black text-2xl">
+          {user.name?.charAt(0)?.toUpperCase() || 'U'}
         </div>
-        <div className="text-2xl font-bold text-white mb-1">{value}</div>
-        <div className="text-sm text-white/70">{title}</div>
+        
+        <div className="flex-1">
+          <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wider">
+            {user.name || 'UNKNOWN USER'}
+          </h3>
+          <p className="text-lg text-white font-bold uppercase tracking-wide">
+            {user.phoneNumber || 'NO PHONE'}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className={`w-4 h-4 ${user.isAdmin ? 'bg-purple-500' : 'bg-green-500'}`}></div>
+          <span className="text-lg font-black text-white uppercase tracking-wide">
+            {user.isAdmin ? 'ADMIN' : 'USER'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6 mb-6 text-lg">
+        <div>
+          <div className="text-white font-bold uppercase tracking-wide mb-2">JOINED</div>
+          <div className="text-white font-black">
+            {user._creationTime ? new Date(user._creationTime).toLocaleDateString() : 'UNKNOWN'}
+          </div>
+        </div>
+        <div>
+          <div className="text-white font-bold uppercase tracking-wide mb-2">STATUS</div>
+          <div className="text-white font-black">
+            {user.phoneNumberVerified ? 'VERIFIED' : 'UNVERIFIED'}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex gap-4">
+        <button
+          onClick={() => onEdit(user)}
+          className="flex-1 bg-white text-black hover:bg-gray-100 border-4 border-black px-4 py-3 font-black uppercase tracking-wide transition-colors"
+        >
+          EDIT
+        </button>
+        <button
+          onClick={() => onDelete(user._id)}
+          className="bg-red-500 text-white hover:bg-red-600 border-4 border-red-500 px-4 py-3 font-black uppercase tracking-wide transition-colors"
+        >
+          DELETE
+        </button>
       </div>
     </div>
   );
 });
+
+// BRUTALIST filter component
+const BrutalistFilter: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}> = memo(({ value, onChange, placeholder }) => (
+  <div className="relative">
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full bg-white text-black border-4 border-black px-6 py-4 text-lg font-black uppercase tracking-wide placeholder-black/50 focus:outline-none focus:border-gray-500 transition-colors"
+    />
+    <div className="absolute right-6 top-1/2 transform -translate-y-1/2 text-black text-2xl">
+      🔍
+    </div>
+  </div>
+));
 
 const UserManagementPageComponent: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState("all");
+  const [editingUser, setEditingUser] = useState<Doc<"userProfiles"> | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  
   const { isMobile, shouldReduceAnimations } = useMobileOptimizations();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified'>('all');
+  
+  const users = useQuery(api.admin.getAllUserProfilesForAdmin) || [];
+  
+  const filteredUsers = useMemo(() => {
+    return users.filter((user: Doc<"userProfiles">) => {
+      const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.phoneNumber?.includes(searchTerm);
+      const matchesRole = filterRole === "all" || 
+                         (filterRole === "admin" && user.isAdmin) ||
+                         (filterRole === "user" && !user.isAdmin);
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchTerm, filterRole]);
 
-  const userProfiles = useQuery(api.admin.getAllUserProfilesForAdmin);
-  const setUserAdminStatus = useMutation(api.admin.adminSetUserAdminStatus);
-  const loggedInUser = useQuery(api.auth.loggedInUser);
+  const stats = useMemo(() => {
+    const total = users.length;
+    const admins = users.filter((u: Doc<"userProfiles">) => u.isAdmin).length;
+    const verified = users.filter((u: Doc<"userProfiles">) => u.phoneNumberVerified).length;
+    const recent = users.filter((u: Doc<"userProfiles">) => {
+      const creationTime = new Date(u._creationTime);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return creationTime > weekAgo;
+    }).length;
+    
+    return { total, admins, verified, recent };
+  }, [users]);
 
-  const handleSetAdminStatus = async (targetUserId: Id<"users">, currentIsAdmin: boolean | undefined, targetUserName: string | undefined) => {
-    const newIsAdmin = !currentIsAdmin;
-    const actionText = newIsAdmin ? "promote to admin" : "revoke admin status from";
+  const handleEditUser = (user: Doc<"userProfiles">) => {
+    setEditingUser(user);
+  };
 
-    if (loggedInUser?._id === targetUserId && !newIsAdmin) {
-      const adminUsers = userProfiles?.filter((p: UserProfile) => p.isAdmin);
-      if (adminUsers?.length === 1) {
-        toast.error("Cannot remove admin status from the only remaining admin.");
-        return;
-      }
-    }
+  const handleDeleteUser = (userId: string) => {
+    setShowDeleteConfirm(userId);
+  };
 
-    if (window.confirm(`Are you sure you want to ${actionText} ${targetUserName || 'this user'}?`)) {
-      try {
-        toast.loading(`${newIsAdmin ? "Promoting" : "Revoking"}...`, {id: `admin-status-${targetUserId}`});
-        await setUserAdminStatus({ targetUserId, isAdmin: newIsAdmin });
-        toast.success(`User ${targetUserName || targetUserId} admin status updated successfully!`, {id: `admin-status-${targetUserId}`});
-      } catch (error: any) {
-        toast.error(error.data?.message || error.message || "Failed to update admin status.", {id: `admin-status-${targetUserId}`});
-        console.error("Failed to set admin status:", error);
-      }
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      // TODO: Implement delete user mutation
+      console.log("Deleting user:", showDeleteConfirm);
+      setShowDeleteConfirm(null);
     }
   };
 
-  if (userProfiles === undefined) {
-    return <FuturisticLoadingSpinner message="Loading user profiles..." />;
+  if (!users) {
+    return <BrutalistLoading />;
   }
-
-  if (userProfiles === null) {
-    return (
-      <div className="text-center p-8">
-        <div className="text-6xl mb-4">🚫</div>
-        <h3 className="text-xl text-red-400 mb-2">Access Denied</h3>
-        <p className="text-white/70">Could not load user profiles. Ensure you are an administrator.</p>
-      </div>
-    );
-  }
-
-  // Calculate stats
-  const totalUsers = userProfiles.length;
-  const adminUsers = userProfiles.filter((p: UserProfile) => p.isAdmin).length;
-  const verifiedUsers = userProfiles.filter((p: UserProfile) => p.phoneNumberVerified).length;
-  const onboardedUsers = userProfiles.filter((p: UserProfile) => p.onboardingCompleted).length;
-
-  // Filter users
-  const filteredUsers = userProfiles.filter((profile: UserProfile) => {
-    const matchesSearch = !searchTerm || 
-      profile.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      profile.phoneNumber?.includes(searchTerm) ||
-      profile.userId.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRole = filterRole === 'all' || 
-      (filterRole === 'admin' && profile.isAdmin) ||
-      (filterRole === 'user' && !profile.isAdmin);
-    
-    const matchesStatus = filterStatus === 'all' ||
-      (filterStatus === 'verified' && profile.phoneNumberVerified) ||
-      (filterStatus === 'unverified' && !profile.phoneNumberVerified);
-    
-    return matchesSearch && matchesRole && matchesStatus;
-  });
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/50 via-teal-900/50 to-cyan-900/50 p-6 border border-white/10">
-        <div className="relative z-10">
-          <h2 className="text-3xl font-heading bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent mb-4">
-            👥 User Management Center
-          </h2>
-          <p className="text-white/70 mb-4">Manage user accounts, permissions, and monitor platform activity.</p>
-        </div>
-        
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatsCard
-          title="Total Users"
-          value={totalUsers}
-          icon="👥"
-          gradient="from-blue-600 to-cyan-600"
-          percentage="+5.2%"
-        />
-        <StatsCard
-          title="Administrators"
-          value={adminUsers}
-          icon="👑"
-          gradient="from-purple-600 to-pink-600"
-        />
-        <StatsCard
-          title="Verified"
-          value={verifiedUsers}
-          icon="✅"
-          gradient="from-green-600 to-emerald-600"
-          percentage={`${Math.round((verifiedUsers / totalUsers) * 100)}%`}
-        />
-        <StatsCard
-          title="Onboarded"
-          value={onboardedUsers}
-          icon="🎯"
-          gradient="from-orange-600 to-red-600"
-          percentage={`${Math.round((onboardedUsers / totalUsers) * 100)}%`}
-        />
-      </div>
-
-      {/* Filters Section */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search Bar */}
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="text-white/40">🔍</span>
+    <div className="space-y-8">
+      {/* BRUTALIST HEADER */}
+      <div className="bg-white border-4 border-black p-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <h1 className="text-5xl font-black text-black mb-4 uppercase tracking-wider">
+              USER MANAGEMENT
+            </h1>
+            <p className="text-2xl text-black font-bold uppercase tracking-wide">
+              MANAGE USER ACCOUNTS, PERMISSIONS, AND SYSTEM ACCESS
+            </p>
           </div>
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl py-3 pl-10 pr-4 text-white placeholder-white/50 focus:border-emerald-500 focus:outline-none transition-colors"
-          />
+          
+          <div className="flex items-center gap-6">
+            <button
+              className="bg-black text-white hover:bg-gray-800 border-4 border-black px-8 py-4 font-black uppercase tracking-wide transition-colors"
+            >
+              EXPORT DATA
+            </button>
+            <button
+              className="bg-green-500 text-white hover:bg-green-600 border-4 border-green-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
+            >
+              ADD USER
+            </button>
+          </div>
         </div>
-
-        {/* Role Filter */}
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value as any)}
-          className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl py-3 px-4 text-white focus:border-emerald-500 focus:outline-none transition-colors"
-        >
-          <option value="all">All Roles</option>
-          <option value="admin">Admins Only</option>
-          <option value="user">Users Only</option>
-        </select>
-
-        {/* Status Filter */}
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as any)}
-          className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl py-3 px-4 text-white focus:border-emerald-500 focus:outline-none transition-colors"
-        >
-          <option value="all">All Status</option>
-          <option value="verified">Verified</option>
-          <option value="unverified">Unverified</option>
-        </select>
       </div>
 
-      {/* Users Grid */}
-      {filteredUsers.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">👤</div>
-          <h3 className="text-xl text-white/70 mb-2">No users found</h3>
-          <p className="text-white/50">Try adjusting your search or filter criteria.</p>
+      {/* BRUTALIST STATS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'TOTAL USERS', value: stats.total.toString(), color: 'bg-blue-500' },
+          { label: 'ADMINS', value: stats.admins.toString(), color: 'bg-purple-500' },
+          { label: 'VERIFIED', value: stats.verified.toString(), color: 'bg-green-500' },
+          { label: 'NEW THIS WEEK', value: stats.recent.toString(), color: 'bg-orange-500' },
+        ].map((stat, index) => (
+          <div key={index} className="bg-black border-4 border-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-6 h-6 ${stat.color}`}></div>
+            </div>
+            <div className="text-4xl font-black text-white mb-2">{stat.value}</div>
+            <div className="text-lg text-white font-bold uppercase tracking-wide">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* BRUTALIST FILTERS */}
+      <div className="bg-white border-4 border-black p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BrutalistFilter
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="SEARCH USERS..."
+          />
+          
+          <div className="flex gap-4">
+            {[
+              { value: "all", label: "ALL" },
+              { value: "admin", label: "ADMINS" },
+              { value: "user", label: "USERS" },
+            ].map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setFilterRole(filter.value)}
+                className={`px-6 py-4 font-black uppercase tracking-wide border-4 transition-colors
+                  ${filterRole === filter.value 
+                    ? 'bg-black text-white border-black' 
+                    : 'bg-white text-black border-black hover:bg-gray-100'
+                  }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredUsers.map((profile: UserProfile) => (
-            <UserCard
-              key={profile._id}
-              profile={profile}
-              onToggleAdmin={() => handleSetAdminStatus(profile.userId, profile.isAdmin, profile.name)}
-              isCurrentUser={loggedInUser?._id === profile.userId}
-              isLastAdmin={!!profile.isAdmin && userProfiles.filter((p: UserProfile) => p.isAdmin).length === 1}
-            />
-          ))}
+      </div>
+
+      {/* BRUTALIST USER GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredUsers.map((user: Doc<"userProfiles">) => (
+          <BrutalistUserCard
+            key={user._id}
+            user={user}
+            onEdit={handleEditUser}
+            onDelete={handleDeleteUser}
+          />
+        ))}
+      </div>
+
+      {/* BRUTALIST EMPTY STATE */}
+      {filteredUsers.length === 0 && (
+        <div className="bg-black border-4 border-white p-12 text-center">
+          <div className="text-6xl mb-6">👥</div>
+          <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-wider">
+            NO USERS FOUND
+          </h3>
+          <p className="text-xl text-white font-bold uppercase tracking-wide">
+            TRY ADJUSTING YOUR SEARCH OR FILTER CRITERIA
+          </p>
         </div>
       )}
 
-      {/* Summary Footer */}
-      <div className="bg-black/20 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-white/70">
-          <span>Showing {filteredUsers.length} of {totalUsers} users</span>
-          <div className="flex gap-4">
-            <span>🔐 {adminUsers} admins</span>
-            <span>✅ {verifiedUsers} verified</span>
-            <span>🎯 {onboardedUsers} onboarded</span>
+      {/* BRUTALIST DELETE CONFIRMATION */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
+          <div className="bg-white border-4 border-black p-8 max-w-md w-full">
+            <h3 className="text-3xl font-black text-black mb-6 uppercase tracking-wider">
+              CONFIRM DELETE
+            </h3>
+            <p className="text-lg text-black font-bold mb-8 uppercase tracking-wide">
+              ARE YOU SURE YOU WANT TO DELETE THIS USER? THIS ACTION CANNOT BE UNDONE.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 bg-white text-black border-4 border-black px-6 py-3 font-black uppercase tracking-wide hover:bg-gray-100 transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 bg-red-500 text-white border-4 border-red-500 px-6 py-3 font-black uppercase tracking-wide hover:bg-red-600 transition-colors"
+              >
+                DELETE
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
