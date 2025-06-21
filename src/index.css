@@ -4607,3 +4607,2022 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0.2;
   }
 }
+
+/* ===== IPAD RESPONSIVE ADMIN CONSOLE STYLES ===== */
+/* Add these styles to your src/index.css file */
+
+/* iPad Pro (12.9-inch) - 1024x1366 */
+/* iPad Pro (11-inch) - 834x1194 */
+/* iPad Air - 820x1180 */
+/* iPad (10.2-inch) - 810x1080 */
+/* iPad Mini - 768x1024 */
+
+/* ===== CORE IPAD BREAKPOINTS ===== */
+
+/* iPad Mini and up */
+@media (min-width: 768px) and (max-width: 834px) {
+  .admin-dashboard-container {
+    padding: 1rem;
+  }
+
+  /* Sidebar adjustments for iPad Mini */
+  .admin-sidebar {
+    width: 240px !important;
+  }
+
+  .admin-main-content {
+    margin-left: 240px;
+    padding: 1.5rem;
+  }
+
+  /* Header scaling */
+  .admin-header h1 {
+    font-size: 2.5rem !important;
+  }
+
+  .admin-header p {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* iPad Air and iPad Pro (11-inch) */
+@media (min-width: 835px) and (max-width: 1024px) {
+  .admin-dashboard-container {
+    padding: 1.5rem;
+  }
+
+  .admin-sidebar {
+    width: 280px !important;
+  }
+
+  .admin-main-content {
+    margin-left: 280px;
+    padding: 2rem;
+  }
+
+  /* Enhanced brutalist headers for larger iPads */
+  .admin-header h1 {
+    font-size: 3rem !important;
+    line-height: 1.1;
+  }
+
+  .admin-header p {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* iPad Pro (12.9-inch) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .admin-dashboard-container {
+    padding: 2rem;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .admin-sidebar {
+    width: 320px !important;
+  }
+
+  .admin-main-content {
+    margin-left: 320px;
+    padding: 2.5rem;
+  }
+
+  /* Maximum brutalist impact for largest iPads */
+  .admin-header h1 {
+    font-size: 3.5rem !important;
+    line-height: 1.1;
+  }
+
+  .admin-header p {
+    font-size: 1.375rem !important;
+  }
+}
+
+/* ===== LANDSCAPE ORIENTATION OPTIMIZATIONS ===== */
+
+/* iPad in landscape mode */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1366px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+
+  .admin-filters-section {
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  /* Optimize anime grid for landscape */
+  .admin-anime-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Character management grid */
+  .admin-character-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  /* Review cards in landscape */
+  .admin-review-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* Portrait orientation adjustments */
+@media (orientation: portrait) and (min-width: 768px) and (max-width: 1024px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+
+  .admin-anime-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .admin-character-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .admin-review-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* ===== ADMIN DASHBOARD SPECIFIC COMPONENTS ===== */
+
+/* Enhanced Brutalist Header for iPad */
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-header {
+    background: white !important;
+    border: 6px solid black !important;
+    padding: 2rem 2.5rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .admin-header-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 1.5rem !important;
+  }
+
+  .admin-header-text {
+    flex: 1 !important;
+    min-width: 300px !important;
+  }
+
+  .admin-header-actions {
+    display: flex !important;
+    gap: 1rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .admin-header-button {
+    background: black !important;
+    color: white !important;
+    border: 4px solid black !important;
+    padding: 1rem 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    transition: all 0.2s ease !important;
+    font-size: 0.875rem !important;
+    min-width: 140px !important;
+  }
+
+  .admin-header-button:hover {
+    background: white !important;
+    color: black !important;
+    transform: translateY(-2px) !important;
+  }
+
+  .admin-header-button.primary {
+    background: #22c55e !important;
+    border-color: #22c55e !important;
+  }
+
+  .admin-header-button.primary:hover {
+    background: white !important;
+    color: #22c55e !important;
+    border-color: #22c55e !important;
+  }
+}
+
+/* ===== STATISTICS CARDS FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 1.5rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .admin-stat-card {
+    background: black !important;
+    border: 4px solid white !important;
+    padding: 2rem !important;
+    color: white !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .admin-stat-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .admin-stat-card::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent) !important;
+    transition: left 0.5s ease !important;
+  }
+
+  .admin-stat-card:hover::before {
+    left: 100% !important;
+  }
+
+  .admin-stat-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .admin-stat-icon {
+    font-size: 2.5rem !important;
+    opacity: 0.8 !important;
+  }
+
+  .admin-stat-change {
+    background: #22c55e !important;
+    color: black !important;
+    padding: 0.25rem 0.75rem !important;
+    font-weight: 900 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  .admin-stat-value {
+    font-size: 2.5rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .admin-stat-label {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    opacity: 0.9 !important;
+  }
+}
+
+/* ===== FILTERS SECTION FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-filters-container {
+    background: white !important;
+    border: 4px solid black !important;
+    padding: 2rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .admin-filters-title {
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: black !important;
+    margin-bottom: 1.5rem !important;
+    padding-bottom: 1rem !important;
+    border-bottom: 4px solid black !important;
+  }
+
+  .admin-filters-grid {
+    display: grid !important;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr !important;
+    gap: 1.5rem !important;
+    align-items: end !important;
+  }
+
+  .admin-filter-input {
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    border: 4px solid black !important;
+    padding: 1rem 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 1rem !important;
+  }
+
+  .admin-filter-input::placeholder {
+    color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .admin-filter-input:focus {
+    outline: none !important;
+    border-color: #6b7280 !important;
+  }
+
+  .admin-filter-select {
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    border: 4px solid black !important;
+    padding: 1rem 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 1rem !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 1rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1rem !important;
+    padding-right: 3rem !important;
+  }
+
+  .admin-filter-counter {
+    grid-column: 1 / -1 !important;
+    text-align: center !important;
+    background: black !important;
+    color: white !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    margin-top: 1rem !important;
+  }
+}
+
+/* ===== ANIME MANAGEMENT GRID FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-anime-container {
+    display: grid !important;
+    gap: 1.5rem !important;
+  }
+
+  .admin-anime-card {
+    background: black !important;
+    border: 4px solid white !important;
+    color: white !important;
+    aspect-ratio: 3/4 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden !important;
+  }
+
+  .admin-anime-card:hover {
+    background: white !important;
+    color: black !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .admin-anime-poster {
+    flex-shrink: 0 !important;
+    height: 8rem !important;
+    background: white !important;
+    border-bottom: 4px solid white !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .admin-anime-poster img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .admin-anime-poster .placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 3rem !important;
+    color: black !important;
+  }
+
+  .admin-anime-content {
+    flex: 1 !important;
+    padding: 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .admin-anime-title {
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0.75rem !important;
+    /* Clamp to 2 lines */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 2.4rem !important;
+  }
+
+  .admin-anime-meta {
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    margin-bottom: 0.75rem !important;
+    opacity: 0.8 !important;
+  }
+
+  .admin-anime-description {
+    font-size: 0.75rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 1rem !important;
+    flex: 1 !important;
+    /* Clamp to 2 lines */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .admin-anime-stats {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.25rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .admin-anime-stat {
+    background: white !important;
+    color: black !important;
+    padding: 0.375rem 0.5rem !important;
+    border: 2px solid black !important;
+    text-align: center !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-stat {
+    background: black !important;
+    color: white !important;
+  }
+
+  .admin-anime-stat-label {
+    font-size: 0.625rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  .admin-anime-stat-value {
+    font-size: 0.875rem !important;
+    font-weight: 900 !important;
+  }
+
+  .admin-anime-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.25rem !important;
+  }
+
+  .admin-anime-action-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.25rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .admin-anime-action-row:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .admin-anime-button {
+    padding: 0.5rem !important;
+    border: 2px solid !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.625rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+  }
+
+  .admin-anime-button.edit {
+    background: #22c55e !important;
+    color: white !important;
+    border-color: #22c55e !important;
+  }
+
+  .admin-anime-button.characters {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .admin-anime-button.history {
+    background: #8b5cf6 !important;
+    color: white !important;
+    border-color: #8b5cf6 !important;
+  }
+
+  .admin-anime-button.delete {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444 !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-button {
+    background: white !important;
+    color: black !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-button.edit {
+    color: #22c55e !important;
+    border-color: #22c55e !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-button.characters {
+    color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-button.history {
+    color: #8b5cf6 !important;
+    border-color: #8b5cf6 !important;
+  }
+
+  .admin-anime-card:hover .admin-anime-button.delete {
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+  }
+}
+
+/* ===== SIDEBAR OPTIMIZATIONS FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-sidebar {
+    background: white !important;
+    border-right: 4px solid black !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    overflow-y: auto !important;
+  }
+
+  .admin-sidebar-header {
+    padding: 2rem !important;
+    border-bottom: 4px solid black !important;
+  }
+
+  .admin-sidebar-logo {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+  }
+
+  .admin-sidebar-logo-icon {
+    width: 3rem !important;
+    height: 3rem !important;
+    background: black !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 4px solid black !important;
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+  }
+
+  .admin-sidebar-title {
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: black !important;
+  }
+
+  .admin-sidebar-subtitle {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: black !important;
+    opacity: 0.7 !important;
+  }
+
+  .admin-sidebar-nav {
+    padding: 2rem 0 !important;
+  }
+
+  .admin-sidebar-nav-item {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    padding: 1rem 2rem !important;
+    color: black !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    background: none !important;
+    cursor: pointer !important;
+  }
+
+  .admin-sidebar-nav-item:hover {
+    background: black !important;
+    color: white !important;
+  }
+
+  .admin-sidebar-nav-item.active {
+    background: black !important;
+    color: white !important;
+    border-right: 4px solid white !important;
+  }
+
+  .admin-sidebar-nav-icon {
+    font-size: 1.5rem !important;
+    width: 2rem !important;
+    text-align: center !important;
+  }
+
+  .admin-sidebar-nav-content {
+    flex: 1 !important;
+  }
+
+  .admin-sidebar-nav-label {
+    font-size: 1rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .admin-sidebar-nav-desc {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    opacity: 0.7 !important;
+  }
+
+  .admin-sidebar-nav-indicator {
+    width: 1rem !important;
+    height: 1rem !important;
+    background: white !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s ease !important;
+  }
+
+  .admin-sidebar-nav-item.active .admin-sidebar-nav-indicator {
+    opacity: 1 !important;
+  }
+}
+
+/* ===== MOBILE TOGGLE FOR SIDEBAR ===== */
+
+@media (min-width: 768px) and (max-width: 834px) {
+  .admin-mobile-toggle {
+    display: block !important;
+    position: fixed !important;
+    top: 1rem !important;
+    left: 1rem !important;
+    z-index: 1100 !important;
+    background: black !important;
+    color: white !important;
+    border: 4px solid black !important;
+    padding: 0.75rem !important;
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+  }
+
+  .admin-sidebar.hidden {
+    transform: translateX(-100%) !important;
+  }
+
+  .admin-main-content {
+    margin-left: 0 !important;
+    padding-left: 5rem !important;
+  }
+
+  .admin-sidebar-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .admin-sidebar-overlay.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* ===== LOAD MORE AND PAGINATION ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-load-more-container {
+    text-align: center !important;
+    margin: 3rem 0 !important;
+  }
+
+  .admin-load-more-button {
+    background: #3b82f6 !important;
+    color: white !important;
+    border: 4px solid #3b82f6 !important;
+    padding: 1.5rem 3rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    font-size: 1.25rem !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+  }
+
+  .admin-load-more-button:hover {
+    background: white !important;
+    color: #3b82f6 !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2) !important;
+  }
+
+  .admin-load-more-button:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ===== EMPTY STATES ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-empty-state {
+    text-align: center !important;
+    padding: 4rem 2rem !important;
+    background: white !important;
+    border: 4px solid black !important;
+  }
+
+  .admin-empty-icon {
+    font-size: 6rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  .admin-empty-title {
+    font-size: 2rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: black !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .admin-empty-description {
+    font-size: 1.25rem !important;
+    color: black !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  /* Optimize animations and transitions for better iPad performance */
+  .admin-anime-card,
+  .admin-stat-card,
+  .admin-sidebar-nav-item {
+    will-change: transform !important;
+  }
+
+  /* Reduce backdrop blur on older iPads if needed */
+  @supports not (backdrop-filter: blur(20px)) {
+    .admin-filters-container {
+      background: rgba(255, 255, 255, 0.95) !important;
+    }
+  }
+
+  /* Optimize scroll performance */
+  .admin-sidebar,
+  .admin-main-content {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-scrolling: touch !important;
+  }
+}
+
+/* ===== TOUCH OPTIMIZATIONS ===== */
+
+@media (hover: none) and (pointer: coarse) and (min-width: 768px) {
+  .admin-anime-button,
+  .admin-sidebar-nav-item,
+  .admin-filter-input,
+  .admin-filter-select {
+    min-height: 44px !important;
+  }
+
+  .admin-anime-card:hover,
+  .admin-stat-card:hover {
+    transform: none !important;
+  }
+
+  .admin-anime-card:active {
+    background: white !important;
+    color: black !important;
+    transform: scale(0.98) !important;
+  }
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS FOR IPAD ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .admin-anime-button:focus,
+  .admin-sidebar-nav-item:focus,
+  .admin-filter-input:focus,
+  .admin-filter-select:focus {
+    outline: 4px solid #3b82f6 !important;
+    outline-offset: 2px !important;
+  }
+
+  .admin-anime-title,
+  .admin-anime-description {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
+
+/* ===== HIGH CONTRAST MODE SUPPORT ===== */
+
+@media (prefers-contrast: high) and (min-width: 768px) {
+  .admin-anime-card,
+  .admin-stat-card {
+    border-width: 6px !important;
+  }
+
+  .admin-anime-button {
+    border-width: 3px !important;
+  }
+}
+
+/* ===== DARK MODE ADJUSTMENTS FOR IPAD ===== */
+
+@media (prefers-color-scheme: dark) and (min-width: 768px) {
+  .admin-filters-container {
+    background: #1a1a1a !important;
+    border-color: white !important;
+  }
+
+  .admin-filter-input,
+  .admin-filter-select {
+    background: #1a1a1a !important;
+    color: white !important;
+    border-color: white !important;
+  }
+
+  .admin-filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+}
+
+/* ===== IPAD UTILITIES AND RESPONSIVE HELPERS ===== */
+/* Add these utility classes to your src/index.css file */
+
+/* ===== RESPONSIVE UTILITY CLASSES ===== */
+
+/* Show/Hide based on iPad detection */
+.ipad-only { display: none; }
+.ipad-hidden { display: block; }
+
+@media (min-width: 768px) and (max-width: 1366px) and (pointer: coarse) {
+  .ipad-only { display: block; }
+  .ipad-hidden { display: none; }
+}
+
+/* Orientation-specific utilities */
+.landscape-only { display: none; }
+.portrait-only { display: block; }
+
+@media (orientation: landscape) and (min-width: 768px) {
+  .landscape-only { display: block; }
+  .portrait-only { display: none; }
+}
+
+/* iPad size-specific utilities */
+.ipad-mini-up { display: none; }
+.ipad-air-up { display: none; }
+.ipad-pro-up { display: none; }
+
+@media (min-width: 768px) {
+  .ipad-mini-up { display: block; }
+}
+
+@media (min-width: 835px) {
+  .ipad-air-up { display: block; }
+}
+
+@media (min-width: 1025px) {
+  .ipad-pro-up { display: block; }
+}
+
+/* ===== DYNAMIC GRID CLASSES FOR IPAD ===== */
+
+/* Base grid classes that adapt to iPad screen sizes */
+.admin-grid-responsive {
+  display: grid;
+  gap: 1rem;
+}
+
+/* iPad Mini (768px - 834px) */
+@media (min-width: 768px) and (max-width: 834px) {
+  .admin-grid-responsive.anime { grid-template-columns: repeat(2, 1fr); }
+  .admin-grid-responsive.characters { grid-template-columns: repeat(3, 1fr); }
+  .admin-grid-responsive.reviews { grid-template-columns: repeat(2, 1fr); }
+  .admin-grid-responsive.users { grid-template-columns: repeat(2, 1fr); }
+  .admin-grid-responsive.stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* iPad Air (835px - 1024px) */
+@media (min-width: 835px) and (max-width: 1024px) {
+  .admin-grid-responsive.anime { grid-template-columns: repeat(3, 1fr); }
+  .admin-grid-responsive.characters { grid-template-columns: repeat(4, 1fr); }
+  .admin-grid-responsive.reviews { grid-template-columns: repeat(2, 1fr); }
+  .admin-grid-responsive.users { grid-template-columns: repeat(3, 1fr); }
+  .admin-grid-responsive.stats { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* iPad Pro 12.9" (1025px - 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .admin-grid-responsive.anime { grid-template-columns: repeat(4, 1fr); }
+  .admin-grid-responsive.characters { grid-template-columns: repeat(5, 1fr); }
+  .admin-grid-responsive.reviews { grid-template-columns: repeat(3, 1fr); }
+  .admin-grid-responsive.users { grid-template-columns: repeat(3, 1fr); }
+  .admin-grid-responsive.stats { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Landscape orientation overrides */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1366px) {
+  .admin-grid-responsive.anime { grid-template-columns: repeat(5, 1fr) !important; }
+  .admin-grid-responsive.characters { grid-template-columns: repeat(6, 1fr) !important; }
+  .admin-grid-responsive.reviews { grid-template-columns: repeat(3, 1fr) !important; }
+  .admin-grid-responsive.users { grid-template-columns: repeat(4, 1fr) !important; }
+  .admin-grid-responsive.stats { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* ===== TYPOGRAPHY SCALES FOR IPAD ===== */
+
+/* Dynamic font sizing based on iPad screen size */
+.text-admin-hero {
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .text-admin-hero {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .text-admin-hero {
+    font-size: 3.5rem;
+  }
+}
+
+.text-admin-title {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .text-admin-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .text-admin-title {
+    font-size: 2rem;
+  }
+}
+
+.text-admin-body {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .text-admin-body {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .text-admin-body {
+    font-size: 1.125rem;
+  }
+}
+
+/* ===== SPACING SCALES FOR IPAD ===== */
+
+/* Dynamic spacing that adapts to iPad screen size */
+.spacing-admin-xs { gap: 0.5rem; }
+.spacing-admin-sm { gap: 1rem; }
+.spacing-admin-md { gap: 1.5rem; }
+.spacing-admin-lg { gap: 2rem; }
+.spacing-admin-xl { gap: 3rem; }
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .spacing-admin-xs { gap: 0.75rem; }
+  .spacing-admin-sm { gap: 1.25rem; }
+  .spacing-admin-md { gap: 2rem; }
+  .spacing-admin-lg { gap: 2.5rem; }
+  .spacing-admin-xl { gap: 3.5rem; }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .spacing-admin-xs { gap: 1rem; }
+  .spacing-admin-sm { gap: 1.5rem; }
+  .spacing-admin-md { gap: 2.5rem; }
+  .spacing-admin-lg { gap: 3rem; }
+  .spacing-admin-xl { gap: 4rem; }
+}
+
+/* ===== BRUTALIST COMPONENT UTILITIES ===== */
+
+/* Enhanced brutalist borders for iPad */
+.border-brutalist {
+  border: 4px solid black;
+}
+
+.border-brutalist-thick {
+  border: 6px solid black;
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .border-brutalist-thick {
+    border: 8px solid black;
+  }
+}
+
+/* Enhanced brutalist shadows for iPad */
+.shadow-brutalist {
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 1);
+}
+
+.shadow-brutalist-lg {
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 1);
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .shadow-brutalist-lg {
+    box-shadow: 16px 16px 0 rgba(0, 0, 0, 1);
+  }
+}
+
+/* ===== TOUCH TARGET OPTIMIZATION ===== */
+
+/* Ensure adequate touch targets on iPad */
+.touch-target-ipad {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .touch-target-ipad {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 1rem 1.25rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .touch-target-ipad {
+    min-height: 52px;
+    min-width: 52px;
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATION CLASSES ===== */
+
+/* GPU acceleration for smooth scrolling and animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optimize rendering for large grids */
+.contain-layout {
+  contain: layout style paint;
+}
+
+/* Reduce complexity on lower-end iPads */
+.ipad-performance-mode .admin-anime-card::before,
+.ipad-performance-mode .admin-stat-card::before {
+  display: none !important;
+}
+
+.ipad-performance-mode .admin-anime-card:hover,
+.ipad-performance-mode .admin-stat-card:hover {
+  transform: none !important;
+  box-shadow: inherit !important;
+}
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Enhanced focus indicators for iPad */
+.focus-brutalist:focus-visible {
+  outline: 4px solid #3b82f6;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .focus-brutalist:focus-visible {
+    outline: 6px solid #3b82f6;
+    outline-offset: 6px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .admin-anime-card,
+  .admin-stat-card,
+  .admin-filter-input,
+  .admin-filter-select {
+    border-width: 6px !important;
+    border-color: rgba(0, 0, 0, 1) !important;
+  }
+
+  .admin-anime-button {
+    border-width: 4px !important;
+    font-weight: 900 !important;
+  }
+}
+
+/* ===== ANIMATION PERFORMANCE CLASSES ===== */
+
+/* Reduced motion for better performance */
+.reduce-motion * {
+  animation-duration: 0.15s !important;
+  transition-duration: 0.15s !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* Disable expensive effects on older iPads */
+.simplify-effects .admin-anime-card::before,
+.simplify-effects .admin-stat-card::before,
+.simplify-effects .admin-sidebar-nav-item::before {
+  display: none !important;
+}
+
+.simplify-effects .admin-anime-card:hover,
+.simplify-effects .admin-stat-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== LANDSCAPE ORIENTATION OPTIMIZATIONS ===== */
+
+/* Optimize layout for landscape mode */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1366px) {
+  .admin-sidebar {
+    width: 200px !important;
+  }
+
+  .admin-main-content {
+    margin-left: 200px !important;
+    padding: 1.5rem !important;
+  }
+
+  .admin-anime-card {
+    aspect-ratio: 1 / 1 !important;
+  }
+
+  .admin-filters-grid {
+    grid-template-columns: 2fr repeat(4, 1fr) !important;
+  }
+
+  /* Compact headers in landscape */
+  .admin-header {
+    padding: 1.5rem 2rem !important;
+  }
+
+  .admin-header h1 {
+    font-size: 2.5rem !important;
+  }
+
+  .admin-header p {
+    font-size: 1rem !important;
+  }
+}
+
+/* ===== PORTRAIT ORIENTATION OPTIMIZATIONS ===== */
+
+@media (orientation: portrait) and (min-width: 768px) and (max-width: 1024px) {
+  .admin-filters-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .admin-header-content {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1.5rem !important;
+  }
+
+  .admin-header-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+}
+
+/* ===== MEMORY AND PERFORMANCE UTILITIES ===== */
+
+/* Lazy loading optimization */
+.lazy-render {
+  content-visibility: auto;
+  contain-intrinsic-size: 300px;
+}
+
+/* Intersection observer optimization */
+.fade-in-view {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-in-view.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Virtual scrolling optimization */
+.virtual-scroll-container {
+  overflow: auto;
+  contain: strict;
+  height: 100%;
+}
+
+.virtual-scroll-item {
+  contain: layout style paint;
+}
+
+/* ===== RESPONSIVE IMAGE UTILITIES ===== */
+
+/* Optimized image loading for iPad */
+.admin-image-responsive {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  loading: lazy;
+  decoding: async;
+}
+
+/* Image placeholder for loading states */
+.admin-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, 
+    rgba(0, 0, 0, 0.1) 25%, 
+    transparent 25%, 
+    transparent 75%, 
+    rgba(0, 0, 0, 0.1) 75%);
+  background-size: 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+/* ===== SCROLLBAR CUSTOMIZATION FOR IPAD ===== */
+
+/* Custom scrollbars for admin interface */
+.admin-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .admin-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* ===== PRINT STYLES FOR IPAD ===== */
+
+@media print {
+  .admin-sidebar,
+  .admin-header-actions,
+  .admin-mobile-toggle {
+    display: none !important;
+  }
+
+  .admin-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .admin-anime-card,
+  .admin-stat-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 2px solid black !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .admin-anime-button {
+    display: none !important;
+  }
+}
+
+/* ===== DEVELOPMENT HELPERS ===== */
+
+/* Debug grid overlay (remove in production) */
+.debug-grid {
+  position: relative;
+}
+
+.debug-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Device detection indicator (remove in production) */
+.device-indicator {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.device-indicator::after {
+  content: 'Desktop';
+}
+
+@media (min-width: 768px) and (max-width: 834px) {
+  .device-indicator::after {
+    content: 'iPad Mini';
+  }
+}
+
+@media (min-width: 835px) and (max-width: 1024px) {
+  .device-indicator::after {
+    content: 'iPad Air';
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .device-indicator::after {
+    content: 'iPad Pro';
+  }
+}
+
+/* Add these iPad-specific CSS fixes to your index.css */
+
+/* ===== CRITICAL IPAD ADMIN FIXES ===== */
+
+/* Fix viewport and container overflow issues */
+@media (min-width: 768px) and (max-width: 1366px) {
+  
+  /* Ensure proper viewport handling */
+  .ios-character-page {
+    width: 100vw;
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* Fix main admin container */
+  .admin-dashboard-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    position: relative;
+  }
+  
+  /* Ensure sidebar doesn't cause overflow */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    z-index: 1000 !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Fix main content area for iPad */
+  .admin-main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    min-height: 100vh !important;
+  }
+  
+  /* Ensure all child containers respect boundaries */
+  .admin-main-content > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* ===== IPAD MINI SPECIFIC FIXES ===== */
+@media (min-width: 768px) and (max-width: 834px) {
+  
+  .admin-sidebar {
+    width: 240px !important;
+  }
+  
+  .admin-main-content {
+    margin-left: 240px !important;
+    padding: 1rem !important;
+    width: calc(100vw - 240px) !important;
+    max-width: calc(100vw - 240px) !important;
+  }
+  
+  /* Fix header scaling for iPad Mini */
+  .admin-header h1 {
+    font-size: 2.5rem !important;
+    line-height: 1.1 !important;
+  }
+  
+  .admin-header p {
+    font-size: 1.125rem !important;
+  }
+  
+  /* Ensure grids don't overflow */
+  .admin-grid-responsive {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .admin-grid-responsive.anime { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+  }
+  
+  .admin-grid-responsive.stats { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+  }
+}
+
+/* ===== IPAD AIR / IPAD PRO 11" FIXES ===== */
+@media (min-width: 835px) and (max-width: 1024px) {
+  
+  .admin-sidebar {
+    width: 280px !important;
+  }
+  
+  .admin-main-content {
+    margin-left: 280px !important;
+    padding: 1.5rem !important;
+    width: calc(100vw - 280px) !important;
+    max-width: calc(100vw - 280px) !important;
+  }
+  
+  /* Enhanced brutalist headers for larger iPads */
+  .admin-header h1 {
+    font-size: 3rem !important;
+    line-height: 1.1 !important;
+  }
+  
+  .admin-header p {
+    font-size: 1.25rem !important;
+  }
+  
+  .admin-grid-responsive.anime { 
+    grid-template-columns: repeat(3, 1fr) !important; 
+  }
+  
+  .admin-grid-responsive.stats { 
+    grid-template-columns: repeat(3, 1fr) !important; 
+  }
+}
+
+/* ===== IPAD PRO 12.9" FIXES ===== */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  
+  .admin-sidebar {
+    width: 320px !important;
+  }
+  
+  .admin-main-content {
+    margin-left: 320px !important;
+    padding: 2rem !important;
+    width: calc(100vw - 320px) !important;
+    max-width: calc(100vw - 320px) !important;
+  }
+  
+  /* Maximum brutalist impact for largest iPads */
+  .admin-header h1 {
+    font-size: 3.5rem !important;
+    line-height: 1.1 !important;
+  }
+  
+  .admin-header p {
+    font-size: 1.375rem !important;
+  }
+  
+  .admin-grid-responsive.anime { 
+    grid-template-columns: repeat(4, 1fr) !important; 
+  }
+  
+  .admin-grid-responsive.stats { 
+    grid-template-columns: repeat(4, 1fr) !important; 
+  }
+}
+
+/* ===== LANDSCAPE ORIENTATION FIXES FOR IPAD ===== */
+@media (orientation: landscape) and (min-width: 768px) and (max-width: 1366px) {
+  
+  /* Optimize sidebar for landscape */
+  .admin-sidebar {
+    width: 200px !important;
+  }
+  
+  .admin-main-content {
+    margin-left: 200px !important;
+    padding: 1rem !important;
+    width: calc(100vw - 200px) !important;
+    max-width: calc(100vw - 200px) !important;
+  }
+  
+  /* Compact headers in landscape */
+  .admin-header {
+    padding: 1.5rem !important;
+  }
+  
+  .admin-header h1 {
+    font-size: 2.5rem !important;
+  }
+  
+  .admin-header p {
+    font-size: 1rem !important;
+  }
+  
+  /* Force better grid layouts in landscape */
+  .admin-grid-responsive.anime { 
+    grid-template-columns: repeat(5, 1fr) !important; 
+  }
+  
+  .admin-grid-responsive.stats { 
+    grid-template-columns: repeat(4, 1fr) !important; 
+  }
+}
+
+/* ===== FORCE CONTENT TO STAY WITHIN BOUNDS ===== */
+@media (min-width: 768px) and (max-width: 1366px) {
+  
+  /* Prevent any horizontal overflow */
+  * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Specific fixes for admin components */
+  .admin-anime-card,
+  .admin-stat-card,
+  .admin-filter-input,
+  .admin-filter-select,
+  .admin-anime-container,
+  .admin-filters-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Fix any tables or wide content */
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+  
+  /* Ensure forms don't overflow */
+  form {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  input, select, textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* ===== MOBILE TOGGLE FOR SMALLER IPADS ===== */
+@media (min-width: 768px) and (max-width: 834px) {
+  
+  .admin-mobile-toggle {
+    display: block !important;
+    position: fixed !important;
+    top: 1rem !important;
+    left: 1rem !important;
+    z-index: 1100 !important;
+    background: black !important;
+    color: white !important;
+    border: 4px solid black !important;
+    padding: 0.75rem !important;
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+  }
+  
+  .admin-sidebar.hidden {
+    transform: translateX(-100%) !important;
+  }
+  
+  .admin-main-content.sidebar-hidden {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding-left: 5rem !important;
+  }
+  
+  .admin-sidebar-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .admin-sidebar-overlay.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* ===== IPAD ADMIN OPTIMIZATIONS ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .iPad-admin-layout {
+    padding: 1.5rem 1rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .iPad-admin-layout .bg-black {
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .touch-target-ipad {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  .iPad-admin-layout {
+    padding: 1rem 2rem !important;
+    max-width: 100% !important;
+  }
+
+  .iPad-admin-layout .grid {
+    gap: 2rem !important;
+  }
+
+  .iPad-admin-layout .bg-black {
+    padding: 2rem !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Enhanced iPad Pro 12.9" optimizations */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .iPad-admin-layout .grid-cols-2 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .iPad-admin-layout .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .iPad-admin-layout h1 {
+    margin-bottom: 2rem !important;
+  }
+
+  .iPad-admin-layout p {
+    margin-bottom: 2.5rem !important;
+    line-height: 1.7 !important;
+  }
+}
+
+/* iPad Mini specific optimizations */
+@media (min-width: 768px) and (max-width: 834px) {
+  .iPad-admin-layout .grid {
+    gap: 1rem !important;
+  }
+
+  .iPad-admin-layout .bg-black {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .iPad-admin-layout h1 {
+    margin-bottom: 1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .iPad-admin-layout p {
+    margin-bottom: 1.5rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* ===== IPAD USER MANAGEMENT OPTIMIZATIONS ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .iPad-user-management {
+    padding: 1rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .iPad-user-management .bg-black,
+  .iPad-user-management .bg-white {
+    border-radius: 8px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .iPad-user-management .touch-target-ipad {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  .iPad-user-management .grid {
+    gap: 1.5rem !important;
+  }
+
+  /* Landscape optimizations */
+  @media (orientation: landscape) {
+    .iPad-user-management {
+      padding: 0.75rem 1.5rem !important;
+    }
+
+    .iPad-user-management .grid {
+      gap: 2rem !important;
+    }
+  }
+
+  /* Portrait optimizations */
+  @media (orientation: portrait) {
+    .iPad-user-management .grid {
+      gap: 1rem !important;
+    }
+  }
+}
+
+/* iPad Pro 12.9" specific optimizations */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .iPad-user-management {
+    padding: 1.5rem 2rem !important;
+  }
+
+  .iPad-user-management .bg-black,
+  .iPad-user-management .bg-white {
+    border-radius: 12px !important;
+    border-width: 6px !important;
+  }
+
+  .iPad-user-management .grid {
+    gap: 2.5rem !important;
+  }
+}
+
+/* ===== IPAD EDIT FORM OPTIMIZATIONS ===== */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  .iPad-edit-form {
+    padding: 1rem !important;
+    max-width: calc(100vw - 2rem) !important;
+    overflow-x: hidden !important;
+    margin: 0 auto !important;
+  }
+
+  .iPad-edit-form .bg-black,
+  .iPad-edit-form .bg-white {
+    border-radius: 8px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .iPad-edit-form .touch-target-ipad {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  .iPad-edit-form input,
+  .iPad-edit-form textarea {
+    -webkit-appearance: none !important;
+    border-radius: 4px !important;
+  }
+
+  .iPad-edit-form .grid {
+    gap: 1.5rem !important;
+  }
+
+  /* Form sections */
+  .iPad-edit-form form > div {
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Landscape optimizations */
+  @media (orientation: landscape) {
+    .iPad-edit-form {
+      padding: 0.75rem 1.5rem !important;
+    }
+
+    .iPad-edit-form .grid {
+      gap: 2rem !important;
+    }
+  }
+
+  /* Portrait optimizations */
+  @media (orientation: portrait) {
+    .iPad-edit-form .grid {
+      gap: 1rem !important;
+    }
+
+    .iPad-edit-form form > div {
+      margin-bottom: 1rem !important;
+    }
+  }
+}
+
+/* iPad Pro 12.9" specific optimizations */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .iPad-edit-form {
+    padding: 1.5rem 2rem !important;
+  }
+
+  .iPad-edit-form .bg-black,
+  .iPad-edit-form .bg-white {
+    border-radius: 12px !important;
+    border-width: 6px !important;
+  }
+
+  .iPad-edit-form .grid {
+    gap: 2.5rem !important;
+  }
+
+  .iPad-edit-form form > div {
+    margin-bottom: 2rem !important;
+  }
+}
+
+/* ===== CRITICAL OVERFLOW PREVENTION ===== */
+@media (min-width: 768px) and (max-width: 1366px) {
+  
+  /* Global overflow prevention */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Prevent any element from extending beyond viewport */
+  .admin-dashboard-container,
+  .admin-dashboard-container *,
+  .admin-main-content,
+  .admin-main-content * {
+    max-width: 100% !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  /* Fix any absolute or fixed positioned elements */
+  .admin-sidebar,
+  .admin-header,
+  .admin-mobile-toggle {
+    max-width: 100vw !important;
+  }
+  
+  /* Ensure text doesn't cause overflow */
+  h1, h2, h3, h4, h5, h6, p, span, div {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+}
+
+/* ===== SAFE AREA SUPPORT ===== */
+@supports (padding: env(safe-area-inset-top)) {
+  @media (min-width: 768px) and (max-width: 1366px) {
+    
+    .ios-character-page {
+      padding-top: env(safe-area-inset-top) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      padding-left: env(safe-area-inset-left) !important;
+      padding-right: env(safe-area-inset-right) !important;
+    }
+    
+    .admin-header {
+      padding-top: calc(1rem + env(safe-area-inset-top)) !important;
+    }
+    
+    .admin-sidebar {
+      top: env(safe-area-inset-top) !important;
+      height: calc(100vh - env(safe-area-inset-top)) !important;
+    }
+  }
+}
+
+/* ===== DEBUG MODE (Remove in production) ===== */
+.admin-debug-mode * {
+  outline: 1px solid red !important;
+}
+
+.admin-debug-mode .admin-main-content {
+  background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.admin-debug-mode .admin-sidebar {
+  background: rgba(0, 255, 0, 0.1) !important;
+}

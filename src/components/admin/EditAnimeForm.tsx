@@ -3,7 +3,7 @@ import React, { useState, useEffect, FormEvent, memo } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
 
 // Form data shape (what the local state holds)
 interface FormDataShape {
@@ -54,26 +54,44 @@ interface EditAnimeFormProps {
   isSaving: boolean;
 }
 
-// BRUTALIST Form Section Component
+// BRUTALIST Form Section Component - iPad Optimized
 const BrutalistFormSection: React.FC<{
   title: string;
   icon: string;
   children: React.ReactNode;
-}> = memo(({ title, icon, children }) => (
-  <div className="bg-black border-4 border-white p-8 mb-8">
-    <div className="flex items-center gap-6 mb-8">
-      <div className="w-16 h-16 bg-white text-black flex items-center justify-center border-4 border-black font-black text-3xl">
-        {icon}
+}> = memo(({ title, icon, children }) => {
+  const { iPad } = useMobileOptimizations();
+  
+  return (
+    <div className={`bg-black border-4 border-white ${
+      iPad.isIPadMini ? 'p-4 mb-6' : 
+      iPad.isIPadPro12 ? 'p-10 mb-10' : 
+      'p-6 md:p-8 mb-6 md:mb-8'
+    }`}>
+      <div className={`flex items-center mb-6 md:mb-8 ${
+        iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-4 md:gap-6'
+      }`}>
+        <div className={`bg-white text-black flex items-center justify-center border-4 border-black font-black ${
+          iPad.isIPadMini ? 'w-12 h-12 text-2xl' : 
+          iPad.isIPadPro12 ? 'w-20 h-20 text-4xl' : 
+          'w-14 h-14 md:w-16 md:h-16 text-2xl md:text-3xl'
+        }`}>
+          {icon}
+        </div>
+        <h3 className={`font-black text-white uppercase tracking-wider leading-tight ${
+          iPad.isIPadMini ? 'text-xl' : 
+          iPad.isIPadPro12 ? 'text-3xl md:text-4xl' : 
+          'text-2xl md:text-3xl'
+        }`}>
+          {title}
+        </h3>
       </div>
-      <h3 className="text-3xl font-black text-white uppercase tracking-wider">
-        {title}
-      </h3>
+      {children}
     </div>
-    {children}
-  </div>
-));
+  );
+});
 
-// BRUTALIST Input Component
+// BRUTALIST Input Component - iPad Optimized
 const BrutalistInput: React.FC<{
   label: string;
   name: string;
@@ -88,9 +106,15 @@ const BrutalistInput: React.FC<{
   rows?: number;
   className?: string;
 }> = memo(({ label, name, type = "text", value, onChange, placeholder, required, min, max, step, rows, className = "" }) => {
+  const { iPad } = useMobileOptimizations();
+  
   return (
-    <div className="mb-6">
-      <label className="block text-lg font-black text-white uppercase tracking-wide mb-3">
+    <div className={`${iPad.isIPadMini ? 'mb-4' : iPad.isIPadPro12 ? 'mb-8' : 'mb-6'}`}>
+      <label className={`block font-black text-white uppercase tracking-wide ${
+        iPad.isIPadMini ? 'text-base mb-2' : 
+        iPad.isIPadPro12 ? 'text-xl mb-4' : 
+        'text-lg mb-3'
+      }`}>
         {label}
         {required && <span className="text-red-500 ml-2">*</span>}
       </label>
@@ -103,7 +127,11 @@ const BrutalistInput: React.FC<{
           placeholder={placeholder}
           required={required}
           rows={rows}
-          className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none"
+          className={`w-full bg-white text-black border-4 border-black font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none touch-target-ipad ${
+            iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+            iPad.isIPadPro12 ? 'px-8 py-6 text-lg' : 
+            'px-6 py-4 text-base'
+          }`}
         />
       ) : (
         <input
@@ -116,14 +144,18 @@ const BrutalistInput: React.FC<{
           min={min}
           max={max}
           step={step}
-          className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+          className={`w-full bg-white text-black border-4 border-black font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors touch-target-ipad ${
+            iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+            iPad.isIPadPro12 ? 'px-8 py-6 text-lg' : 
+            'px-6 py-4 text-base'
+          }`}
         />
       )}
     </div>
   );
 });
 
-// BRUTALIST Array Input Component
+// BRUTALIST Array Input Component - iPad Optimized
 const BrutalistArrayInput: React.FC<{
   label: string;
   value: string[];
@@ -131,6 +163,7 @@ const BrutalistArrayInput: React.FC<{
   placeholder: string;
   icon: string;
 }> = memo(({ label, value, onChange, placeholder, icon }) => {
+  const { iPad } = useMobileOptimizations();
   const [inputValue, setInputValue] = useState(value.join(', '));
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,9 +174,15 @@ const BrutalistArrayInput: React.FC<{
   };
 
   return (
-    <div className="mb-6">
-      <label className="flex items-center gap-4 text-lg font-black text-white uppercase tracking-wide mb-3">
-        <span className="text-3xl">{icon}</span>
+    <div className={`${iPad.isIPadMini ? 'mb-4' : iPad.isIPadPro12 ? 'mb-8' : 'mb-6'}`}>
+      <label className={`flex items-center font-black text-white uppercase tracking-wide ${
+        iPad.isIPadMini ? 'gap-2 text-base mb-2' : 
+        iPad.isIPadPro12 ? 'gap-6 text-xl mb-4' : 
+        'gap-4 text-lg mb-3'
+      }`}>
+        <span className={`${
+          iPad.isIPadMini ? 'text-2xl' : iPad.isIPadPro12 ? 'text-4xl' : 'text-3xl'
+        }`}>{icon}</span>
         {label}
       </label>
       
@@ -152,13 +191,23 @@ const BrutalistArrayInput: React.FC<{
         value={inputValue}
         onChange={handleChange}
         placeholder={placeholder}
-        className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors"
+        className={`w-full bg-white text-black border-4 border-black font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors touch-target-ipad ${
+          iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+          iPad.isIPadPro12 ? 'px-8 py-6 text-lg' : 
+          'px-6 py-4 text-base'
+        }`}
       />
       
       {value.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className={`flex flex-wrap ${
+          iPad.isIPadMini ? 'mt-3 gap-2' : iPad.isIPadPro12 ? 'mt-6 gap-4' : 'mt-4 gap-2'
+        }`}>
           {value.map((item, index) => (
-            <span key={index} className="bg-white text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
+            <span key={index} className={`bg-white text-black border-4 border-black font-black uppercase tracking-wide ${
+              iPad.isIPadMini ? 'px-3 py-1 text-xs' : 
+              iPad.isIPadPro12 ? 'px-6 py-3 text-base' : 
+              'px-4 py-2 text-sm'
+            }`}>
               {item}
             </span>
           ))}
@@ -168,7 +217,7 @@ const BrutalistArrayInput: React.FC<{
   );
 });
 
-// BRUTALIST Auto-Resizing Textarea Component
+// BRUTALIST Auto-Resizing Textarea Component - iPad Optimized
 const BrutalistAutoResizeTextarea: React.FC<{
   label: string;
   name: string;
@@ -180,6 +229,7 @@ const BrutalistAutoResizeTextarea: React.FC<{
   maxRows?: number;
   className?: string;
 }> = memo(({ label, name, value, onChange, placeholder, required, minRows = 3, maxRows = 10, className = "" }) => {
+  const { iPad } = useMobileOptimizations();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = React.useCallback(() => {
@@ -214,8 +264,12 @@ const BrutalistAutoResizeTextarea: React.FC<{
   }, [adjustHeight]);
 
   return (
-    <div className={`mb-6 ${className}`}>
-      <label className="block text-lg font-black text-white uppercase tracking-wide mb-3">
+    <div className={`${iPad.isIPadMini ? 'mb-4' : iPad.isIPadPro12 ? 'mb-8' : 'mb-6'} ${className}`}>
+      <label className={`block font-black text-white uppercase tracking-wide ${
+        iPad.isIPadMini ? 'text-base mb-2' : 
+        iPad.isIPadPro12 ? 'text-xl mb-4' : 
+        'text-lg mb-3'
+      }`}>
         {label}
         {required && <span className="text-red-500 ml-2">*</span>}
       </label>
@@ -228,13 +282,19 @@ const BrutalistAutoResizeTextarea: React.FC<{
         placeholder={placeholder}
         required={required}
         rows={minRows}
-        className="w-full bg-white text-black border-4 border-black px-6 py-4 font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none overflow-hidden"
+        className={`w-full bg-white text-black border-4 border-black font-black uppercase tracking-wide focus:outline-none focus:border-gray-500 transition-colors resize-none overflow-hidden touch-target-ipad ${
+          iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+          iPad.isIPadPro12 ? 'px-8 py-6 text-lg' : 
+          'px-6 py-4 text-base'
+        }`}
         style={{ minHeight: `${minRows * 1.5}rem` }}
       />
       
       {/* Character count indicator */}
       <div className="mt-2 text-right">
-        <span className="text-sm font-black text-white uppercase tracking-wide">
+        <span className={`font-black text-white uppercase tracking-wide ${
+          iPad.isIPadMini ? 'text-xs' : iPad.isIPadPro12 ? 'text-base' : 'text-sm'
+        }`}>
           {value.length} CHARACTERS
         </span>
       </div>
@@ -243,7 +303,8 @@ const BrutalistAutoResizeTextarea: React.FC<{
 });
 
 const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, onCancel, isSaving }) => {
-  const { shouldReduceAnimations, isMobile } = useMobileOptimizations();
+  const { shouldReduceAnimations, isMobile, iPad, isLandscape } = useMobileOptimizations();
+  const { getGridClasses } = useAdminLayoutOptimization();
   
   const [formData, setFormData] = useState<FormDataShape>({
     title: anime.title || "",
@@ -371,13 +432,25 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
   };
 
   return (
-    <div className="bg-black border-4 border-white p-6 max-w-6xl mx-auto">
-      {/* BRUTALIST Header with Poster Preview */}
-      <div className="bg-white border-4 border-black p-6 mb-8">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
+    <div className={`bg-black border-4 border-white mx-auto ${
+      iPad.isIPad ? 'iPad-edit-form max-w-none' : 'max-w-6xl'
+    } ${
+      iPad.isIPadMini ? 'p-4' : iPad.isIPadPro12 ? 'p-8' : 'p-6'
+    }`}>
+      {/* BRUTALIST Header with Poster Preview - iPad Optimized */}
+      <div className={`bg-white border-4 border-black ${
+        iPad.isIPadMini ? 'p-4 mb-6' : iPad.isIPadPro12 ? 'p-8 mb-10' : 'p-6 mb-8'
+      }`}>
+        <div className={`flex flex-col lg:flex-row items-start ${
+          iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+        }`}>
           {/* Poster Preview */}
           <div className="flex-shrink-0">
-            <div className="w-48 h-64 bg-white border-4 border-black overflow-hidden">
+            <div className={`bg-white border-4 border-black overflow-hidden ${
+              iPad.isIPadMini ? 'w-32 h-44' : 
+              iPad.isIPadPro12 ? 'w-60 h-80' : 
+              'w-48 h-64'
+            }`}>
               {formData.posterUrl ? (
                 <img
                   src={formData.posterUrl}
@@ -390,25 +463,41 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
                   }}
                 />
               ) : null}
-              <div className={`w-full h-full flex items-center justify-center text-6xl ${formData.posterUrl ? 'hidden' : ''}`}>
+              <div className={`w-full h-full flex items-center justify-center ${formData.posterUrl ? 'hidden' : ''} ${
+                iPad.isIPadMini ? 'text-4xl' : iPad.isIPadPro12 ? 'text-8xl' : 'text-6xl'
+              }`}>
                 🎬
               </div>
             </div>
           </div>
           
           {/* Header Content */}
-          <div className="flex-1">
-            <h2 className="text-4xl font-black text-black mb-4 uppercase tracking-wider">
+          <div className="flex-1 min-w-0">
+            <h2 className={`font-black text-black mb-4 uppercase tracking-wider leading-tight truncate ${
+              iPad.isIPadMini ? 'text-2xl' : 
+              iPad.isIPadPro12 ? 'text-4xl md:text-5xl' : 
+              'text-3xl md:text-4xl'
+            }`}>
               EDIT ANIME: {anime.title || 'UNTITLED'}
             </h2>
-            <p className="text-black text-xl uppercase tracking-wide mb-4">
+            <p className={`text-black uppercase tracking-wide mb-4 ${
+              iPad.isIPadMini ? 'text-sm' : 
+              iPad.isIPadPro12 ? 'text-lg md:text-xl' : 
+              'text-base md:text-lg'
+            }`}>
               UPDATE ANIME INFORMATION AND METADATA
             </p>
             
             {/* Changes Indicator */}
             {hasChanges && (
-              <div className="inline-flex items-center gap-3 bg-yellow-500 text-black px-4 py-2 border-4 border-black font-black uppercase tracking-wide">
-                <span className="w-3 h-3 bg-black"></span>
+              <div className={`inline-flex items-center bg-yellow-500 text-black border-4 border-black font-black uppercase tracking-wide ${
+                iPad.isIPadMini ? 'gap-2 px-3 py-1 text-xs' : 
+                iPad.isIPadPro12 ? 'gap-4 px-6 py-3 text-base' : 
+                'gap-3 px-4 py-2 text-sm'
+              }`}>
+                <span className={`bg-black ${
+                  iPad.isIPadMini ? 'w-2 h-2' : 'w-3 h-3'
+                }`}></span>
                 <span>UNSAVED CHANGES DETECTED</span>
               </div>
             )}
@@ -416,13 +505,17 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className={`${
+        iPad.isIPadMini ? 'space-y-4' : iPad.isIPadPro12 ? 'space-y-8' : 'space-y-6'
+      }`}>
         {/* Basic Information Section */}
         <BrutalistFormSection
           title="BASIC INFORMATION"
           icon="📝"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
             <BrutalistInput
               label="TITLE"
               name="title"
@@ -456,7 +549,9 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
             required
           />
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
             <BrutalistInput
               label="POSTER URL"
               name="posterUrl"
@@ -482,7 +577,9 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           title="DETAILS & RATINGS"
           icon="⭐"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
             <BrutalistInput
               label="RATING"
               name="rating"
@@ -498,11 +595,19 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
               step="0.1"
             />
             
-            <div className="bg-white border-4 border-black p-4">
-              <div className="text-lg font-black text-black uppercase tracking-wide mb-2">
+            <div className={`bg-white border-4 border-black ${
+              iPad.isIPadMini ? 'p-3' : iPad.isIPadPro12 ? 'p-6' : 'p-4'
+            }`}>
+              <div className={`font-black text-black uppercase tracking-wide mb-2 ${
+                iPad.isIPadMini ? 'text-base' : 
+                iPad.isIPadPro12 ? 'text-xl' : 
+                'text-lg'
+              }`}>
                 CURRENT RATING: {anime.rating || 'N/A'}
               </div>
-              <div className="text-sm text-black">
+              <div className={`text-black ${
+                iPad.isIPadMini ? 'text-xs' : iPad.isIPadPro12 ? 'text-base' : 'text-sm'
+              }`}>
                 {anime.year ? `Released: ${anime.year}` : 'Year: Unknown'}
               </div>
             </div>
@@ -514,7 +619,9 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           title="CATEGORIES & TAGS"
           icon="🏷️"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
             <BrutalistArrayInput
               label="GENRES"
               value={formData.genres}
@@ -532,7 +639,9 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
             />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`${getGridClasses('form')} ${
+            iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+          }`}>
             <BrutalistArrayInput
               label="STUDIOS"
               value={formData.studios}
@@ -551,19 +660,29 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
           </div>
         </BrutalistFormSection>
 
-        {/* Action Buttons */}
-        <div className="flex gap-6 pt-6">
+        {/* Action Buttons - iPad Optimized */}
+        <div className={`flex pt-6 ${
+          iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+        }`}>
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 bg-white text-black border-4 border-black px-8 py-4 font-black uppercase tracking-wide hover:bg-gray-100 transition-colors"
+            className={`flex-1 bg-white text-black border-4 border-black font-black uppercase tracking-wide hover:bg-gray-100 transition-colors touch-target-ipad ${
+              iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+              iPad.isIPadPro12 ? 'px-10 py-6 text-lg' : 
+              'px-8 py-4 text-base'
+            }`}
           >
             CANCEL
           </button>
           <button
             type="submit"
             disabled={isSaving || !hasChanges}
-            className="flex-1 bg-green-500 text-white border-4 border-green-500 px-8 py-4 font-black uppercase tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50"
+            className={`flex-1 bg-green-500 text-white border-4 border-green-500 font-black uppercase tracking-wide hover:bg-green-600 transition-colors disabled:opacity-50 touch-target-ipad ${
+              iPad.isIPadMini ? 'px-4 py-3 text-sm' : 
+              iPad.isIPadPro12 ? 'px-10 py-6 text-lg' : 
+              'px-8 py-4 text-base'
+            }`}
           >
             {isSaving ? "SAVING..." : "SAVE CHANGES"}
           </button>

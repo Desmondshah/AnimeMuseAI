@@ -10,6 +10,7 @@ const MainApp = lazy(() => import("./components/animuse/MainApp"));
 const PhoneVerificationPrompt = lazy(() => import("./components/animuse/onboarding/PhoneVerificationPrompt"));
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./components/animuse/shared/PageTransition";
+import { useMobileOptimizations } from "../convex/useMobileOptimizations";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 const NotificationsPanel = lazy(() => import("./components/animuse/onboarding/NotificationsPanel"));
@@ -18,6 +19,9 @@ export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
   // Key to help React differentiate states if PhoneVerificationPrompt needs a full reset
   const [verificationFlowKey, setVerificationFlowKey] = useState(0);
+
+  // Get iPad detection for conditional header styling
+  const { iPad } = useMobileOptimizations();
 
   const toggleNotificationsPanel = () => {
     setIsNotificationsPanelOpen(prev => !prev);
@@ -30,9 +34,46 @@ export default function App() {
     setVerificationFlowKey(prev => prev + 1);
   };
 
+  // Check if we're on an iPad using multiple detection methods
+  const isIPadDevice = iPad.isIPad || 
+    (typeof window !== 'undefined' && (
+      /iPad/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (window.innerWidth >= 768 && window.innerWidth <= 1366 && 'ontouchstart' in window)
+    ));
+
+  // Dynamic header classes and styles based on device type
+  const getHeaderStyles = () => {
+    const baseClasses = "z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30";
+    
+    if (isIPadDevice) {
+      return {
+        className: `${baseClasses}`,
+        style: {
+          position: 'fixed' as const,
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          width: '100%'
+        }
+      };
+    } else {
+      return {
+        className: `sticky top-0 ${baseClasses}`,
+        style: {}
+      };
+    }
+  };
+
+  const headerConfig = getHeaderStyles();
+
   return (
     <div className="min-h-screen flex flex-col text-white">
-      <header className="sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30">
+      <header 
+        className={headerConfig.className}
+        style={headerConfig.style}
+      >
         <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
         <div className="flex items-center gap-4">
           <Authenticated>
@@ -49,7 +90,7 @@ export default function App() {
           <SignOutButton />
         </div>
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center w-full">
+      <main className={`flex-1 flex flex-col items-center justify-center w-full ${isIPadDevice ? 'pt-20' : ''}`}>
         <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
           <AnimatePresence mode="sync">
             <PageTransition key={verificationFlowKey}>

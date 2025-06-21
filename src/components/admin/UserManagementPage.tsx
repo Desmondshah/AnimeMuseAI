@@ -3,7 +3,7 @@ import React, { useState, memo, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc } from "../../../convex/_generated/dataModel";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
 import StyledButton from "../animuse/shared/StyledButton";
 
 // BRUTALIST loading component
@@ -34,43 +34,70 @@ const BrutalistLoading: React.FC = memo(() => {
   );
 });
 
-// BRUTALIST user card component
+// BRUTALIST user card component - iPad Optimized
 const BrutalistUserCard: React.FC<{
   user: Doc<"userProfiles">;
   onEdit: (user: Doc<"userProfiles">) => void;
   onDelete: (userId: string) => void;
 }> = memo(({ user, onEdit, onDelete }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { iPad } = useMobileOptimizations();
   
   return (
     <div
-      className="bg-black border-4 border-white p-6 hover:bg-white hover:text-black transition-all duration-200"
+      className={`bg-black border-4 border-white hover:bg-white hover:text-black transition-all duration-200 touch-target-ipad ${
+        iPad.isIPadMini ? 'p-4' : iPad.isIPadPro12 ? 'p-8' : 'p-6'
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-center gap-6 mb-6">
-        <div className="w-16 h-16 bg-white text-black flex items-center justify-center border-4 border-black font-black text-2xl">
+      <div className={`flex items-center mb-4 md:mb-6 ${
+        iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+      }`}>
+        <div className={`bg-white text-black flex items-center justify-center border-4 border-black font-black ${
+          iPad.isIPadMini ? 'w-12 h-12 text-lg' : 
+          iPad.isIPadPro12 ? 'w-20 h-20 text-3xl' : 
+          'w-16 h-16 text-2xl'
+        }`}>
           {user.name?.charAt(0)?.toUpperCase() || 'U'}
         </div>
         
-        <div className="flex-1">
-          <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wider">
+        <div className="flex-1 min-w-0">
+          <h3 className={`font-black text-white mb-2 uppercase tracking-wider leading-tight truncate ${
+            iPad.isIPadMini ? 'text-lg' : 
+            iPad.isIPadPro12 ? 'text-2xl md:text-3xl' : 
+            'text-xl md:text-2xl'
+          }`}>
             {user.name || 'UNKNOWN USER'}
           </h3>
-          <p className="text-lg text-white font-bold uppercase tracking-wide">
+          <p className={`text-white font-bold uppercase tracking-wide truncate ${
+            iPad.isIPadMini ? 'text-sm' : 
+            iPad.isIPadPro12 ? 'text-lg md:text-xl' : 
+            'text-base md:text-lg'
+          }`}>
             {user.phoneNumber || 'NO PHONE'}
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className={`w-4 h-4 ${user.isAdmin ? 'bg-purple-500' : 'bg-green-500'}`}></div>
-          <span className="text-lg font-black text-white uppercase tracking-wide">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          <div className={`${
+            iPad.isIPadMini ? 'w-3 h-3' : 'w-4 h-4'
+          } ${user.isAdmin ? 'bg-purple-500' : 'bg-green-500'}`}></div>
+          <span className={`font-black text-white uppercase tracking-wide ${
+            iPad.isIPadMini ? 'text-sm' : 
+            iPad.isIPadPro12 ? 'text-lg' : 
+            'text-base md:text-lg'
+          }`}>
             {user.isAdmin ? 'ADMIN' : 'USER'}
           </span>
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-6 mb-6 text-lg">
+      <div className={`grid grid-cols-2 mb-4 md:mb-6 ${
+        iPad.isIPadMini ? 'gap-3 text-sm' : 
+        iPad.isIPadPro12 ? 'gap-8 text-lg md:text-xl' : 
+        'gap-6 text-base md:text-lg'
+      }`}>
         <div>
           <div className="text-white font-bold uppercase tracking-wide mb-2">JOINED</div>
           <div className="text-white font-black">
@@ -85,16 +112,24 @@ const BrutalistUserCard: React.FC<{
         </div>
       </div>
       
-      <div className="flex gap-4">
+      <div className={`flex ${iPad.isIPadMini ? 'gap-2' : iPad.isIPadPro12 ? 'gap-6' : 'gap-4'}`}>
         <button
           onClick={() => onEdit(user)}
-          className="flex-1 bg-white text-black hover:bg-gray-100 border-4 border-black px-4 py-3 font-black uppercase tracking-wide transition-colors"
+          className={`flex-1 bg-white text-black hover:bg-gray-100 border-4 border-black font-black uppercase tracking-wide transition-colors touch-target-ipad ${
+            iPad.isIPadMini ? 'px-3 py-2 text-sm' : 
+            iPad.isIPadPro12 ? 'px-6 py-4 text-lg' : 
+            'px-4 py-3 text-base'
+          }`}
         >
           EDIT
         </button>
         <button
           onClick={() => onDelete(user._id)}
-          className="bg-red-500 text-white hover:bg-red-600 border-4 border-red-500 px-4 py-3 font-black uppercase tracking-wide transition-colors"
+          className={`bg-red-500 text-white hover:bg-red-600 border-4 border-red-500 font-black uppercase tracking-wide transition-colors touch-target-ipad ${
+            iPad.isIPadMini ? 'px-3 py-2 text-sm' : 
+            iPad.isIPadPro12 ? 'px-6 py-4 text-lg' : 
+            'px-4 py-3 text-base'
+          }`}
         >
           DELETE
         </button>
@@ -129,7 +164,8 @@ const UserManagementPageComponent: React.FC = () => {
   const [editingUser, setEditingUser] = useState<Doc<"userProfiles"> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   
-  const { isMobile, shouldReduceAnimations } = useMobileOptimizations();
+  const { isMobile, shouldReduceAnimations, iPad, isLandscape } = useMobileOptimizations();
+  const { getGridClasses } = useAdminLayoutOptimization();
   
   const users = useQuery(api.admin.getAllUserProfilesForAdmin) || [];
   
@@ -179,27 +215,49 @@ const UserManagementPageComponent: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* BRUTALIST HEADER */}
-      <div className="bg-white border-4 border-black p-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div>
-            <h1 className="text-5xl font-black text-black mb-4 uppercase tracking-wider">
+    <div className={`space-y-6 md:space-y-8 ${iPad.isIPad ? 'iPad-user-management' : ''}`}>
+      {/* BRUTALIST HEADER - iPad Optimized */}
+      <div className={`bg-white border-4 border-black ${
+        iPad.isIPadMini ? 'p-4 md:p-6' : 
+        iPad.isIPadPro12 ? 'p-8 md:p-12' : 
+        'p-6 md:p-8'
+      }`}>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-black text-black mb-3 md:mb-4 uppercase tracking-wider leading-tight ${
+              iPad.isIPadMini ? 'text-2xl md:text-3xl' : 
+              iPad.isIPadPro12 ? 'text-4xl md:text-5xl lg:text-6xl' : 
+              'text-3xl md:text-4xl lg:text-5xl'
+            }`}>
               USER MANAGEMENT
             </h1>
-            <p className="text-2xl text-black font-bold uppercase tracking-wide">
+            <p className={`text-black font-bold uppercase tracking-wide leading-relaxed ${
+              iPad.isIPadMini ? 'text-sm md:text-base' : 
+              iPad.isIPadPro12 ? 'text-lg md:text-xl lg:text-2xl' : 
+              'text-base md:text-lg lg:text-xl'
+            }`}>
               MANAGE USER ACCOUNTS, PERMISSIONS, AND SYSTEM ACCESS
             </p>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className={`flex items-center flex-wrap ${
+            iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-6' : 'gap-4 md:gap-6'
+          }`}>
             <button
-              className="bg-black text-white hover:bg-gray-800 border-4 border-black px-8 py-4 font-black uppercase tracking-wide transition-colors"
+              className={`bg-black text-white hover:bg-gray-800 border-4 border-black font-black uppercase tracking-wide transition-colors touch-target-ipad ${
+                iPad.isIPadMini ? 'px-4 py-2 text-sm' : 
+                iPad.isIPadPro12 ? 'px-8 py-4 text-lg' : 
+                'px-6 py-3 text-base md:text-lg'
+              }`}
             >
               EXPORT DATA
             </button>
             <button
-              className="bg-green-500 text-white hover:bg-green-600 border-4 border-green-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
+              className={`bg-green-500 text-white hover:bg-green-600 border-4 border-green-500 font-black uppercase tracking-wide transition-colors touch-target-ipad ${
+                iPad.isIPadMini ? 'px-4 py-2 text-sm' : 
+                iPad.isIPadPro12 ? 'px-8 py-4 text-lg' : 
+                'px-6 py-3 text-base md:text-lg'
+              }`}
             >
               ADD USER
             </button>
@@ -207,34 +265,56 @@ const UserManagementPageComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* BRUTALIST STATS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* BRUTALIST STATS - iPad Optimized */}
+      <div className={`${getGridClasses('stats')} ${
+        iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-4 md:gap-6'
+      }`}>
         {[
           { label: 'TOTAL USERS', value: stats.total.toString(), color: 'bg-blue-500' },
           { label: 'ADMINS', value: stats.admins.toString(), color: 'bg-purple-500' },
           { label: 'VERIFIED', value: stats.verified.toString(), color: 'bg-green-500' },
           { label: 'NEW THIS WEEK', value: stats.recent.toString(), color: 'bg-orange-500' },
         ].map((stat, index) => (
-          <div key={index} className="bg-black border-4 border-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-6 h-6 ${stat.color}`}></div>
+          <div key={index} className={`bg-black border-4 border-white ${
+            iPad.isIPadMini ? 'p-4' : iPad.isIPadPro12 ? 'p-8' : 'p-6'
+          }`}>
+            <div className={`flex items-center justify-between ${
+              iPad.isIPadMini ? 'mb-3' : 'mb-4'
+            }`}>
+              <div className={`${stat.color} ${
+                iPad.isIPadMini ? 'w-4 h-4' : iPad.isIPadPro12 ? 'w-8 h-8' : 'w-6 h-6'
+              }`}></div>
             </div>
-            <div className="text-4xl font-black text-white mb-2">{stat.value}</div>
-            <div className="text-lg text-white font-bold uppercase tracking-wide">{stat.label}</div>
+            <div className={`font-black text-white mb-2 ${
+              iPad.isIPadMini ? 'text-2xl' : 
+              iPad.isIPadPro12 ? 'text-4xl md:text-5xl' : 
+              'text-3xl md:text-4xl'
+            }`}>{stat.value}</div>
+            <div className={`text-white font-bold uppercase tracking-wide leading-tight ${
+              iPad.isIPadMini ? 'text-sm' : 
+              iPad.isIPadPro12 ? 'text-lg md:text-xl' : 
+              'text-base md:text-lg'
+            }`}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* BRUTALIST FILTERS */}
-      <div className="bg-white border-4 border-black p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* BRUTALIST FILTERS - iPad Optimized */}
+      <div className={`bg-white border-4 border-black ${
+        iPad.isIPadMini ? 'p-4' : iPad.isIPadPro12 ? 'p-8' : 'p-6'
+      }`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-2 ${
+          iPad.isIPadMini ? 'gap-4' : iPad.isIPadPro12 ? 'gap-8' : 'gap-6'
+        }`}>
           <BrutalistFilter
             value={searchTerm}
             onChange={setSearchTerm}
             placeholder="SEARCH USERS..."
           />
           
-          <div className="flex gap-4">
+          <div className={`flex flex-wrap ${
+            iPad.isIPadMini ? 'gap-2' : iPad.isIPadPro12 ? 'gap-6' : 'gap-4'
+          }`}>
             {[
               { value: "all", label: "ALL" },
               { value: "admin", label: "ADMINS" },
@@ -243,8 +323,11 @@ const UserManagementPageComponent: React.FC = () => {
               <button
                 key={filter.value}
                 onClick={() => setFilterRole(filter.value)}
-                className={`px-6 py-4 font-black uppercase tracking-wide border-4 transition-colors
-                  ${filterRole === filter.value 
+                className={`border-4 transition-colors touch-target-ipad font-black uppercase tracking-wide ${
+                  iPad.isIPadMini ? 'px-3 py-2 text-sm' : 
+                  iPad.isIPadPro12 ? 'px-8 py-4 text-lg' : 
+                  'px-6 py-4 text-base'
+                } ${filterRole === filter.value 
                     ? 'bg-black text-white border-black' 
                     : 'bg-white text-black border-black hover:bg-gray-100'
                   }`}
@@ -256,8 +339,10 @@ const UserManagementPageComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* BRUTALIST USER GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* BRUTALIST USER GRID - iPad Optimized */}
+      <div className={`${getGridClasses('cards')} ${
+        iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-4 md:gap-6'
+      }`}>
         {filteredUsers.map((user: Doc<"userProfiles">) => (
           <BrutalistUserCard
             key={user._id}
@@ -268,39 +353,71 @@ const UserManagementPageComponent: React.FC = () => {
         ))}
       </div>
 
-      {/* BRUTALIST EMPTY STATE */}
+      {/* BRUTALIST EMPTY STATE - iPad Optimized */}
       {filteredUsers.length === 0 && (
-        <div className="bg-black border-4 border-white p-12 text-center">
-          <div className="text-6xl mb-6">👥</div>
-          <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-wider">
+        <div className={`bg-black border-4 border-white text-center ${
+          iPad.isIPadMini ? 'p-8' : iPad.isIPadPro12 ? 'p-16' : 'p-12'
+        }`}>
+          <div className={`mb-6 ${
+            iPad.isIPadMini ? 'text-4xl' : iPad.isIPadPro12 ? 'text-8xl' : 'text-6xl'
+          }`}>👥</div>
+          <h3 className={`font-black text-white mb-4 uppercase tracking-wider ${
+            iPad.isIPadMini ? 'text-xl' : 
+            iPad.isIPadPro12 ? 'text-4xl md:text-5xl' : 
+            'text-2xl md:text-3xl'
+          }`}>
             NO USERS FOUND
           </h3>
-          <p className="text-xl text-white font-bold uppercase tracking-wide">
+          <p className={`text-white font-bold uppercase tracking-wide ${
+            iPad.isIPadMini ? 'text-sm' : 
+            iPad.isIPadPro12 ? 'text-lg md:text-xl' : 
+            'text-base md:text-lg'
+          }`}>
             TRY ADJUSTING YOUR SEARCH OR FILTER CRITERIA
           </p>
         </div>
       )}
 
-      {/* BRUTALIST DELETE CONFIRMATION */}
+      {/* BRUTALIST DELETE CONFIRMATION - iPad Optimized */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
-          <div className="bg-white border-4 border-black p-8 max-w-md w-full">
-            <h3 className="text-3xl font-black text-black mb-6 uppercase tracking-wider">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 md:p-6">
+          <div className={`bg-white border-4 border-black w-full ${
+            iPad.isIPadMini ? 'p-6 max-w-sm' : 
+            iPad.isIPadPro12 ? 'p-12 max-w-2xl' : 
+            'p-8 max-w-md'
+          }`}>
+            <h3 className={`font-black text-black mb-6 uppercase tracking-wider ${
+              iPad.isIPadMini ? 'text-xl' : 
+              iPad.isIPadPro12 ? 'text-4xl' : 
+              'text-2xl md:text-3xl'
+            }`}>
               CONFIRM DELETE
             </h3>
-            <p className="text-lg text-black font-bold mb-8 uppercase tracking-wide">
+            <p className={`text-black font-bold mb-8 uppercase tracking-wide leading-relaxed ${
+              iPad.isIPadMini ? 'text-sm' : 
+              iPad.isIPadPro12 ? 'text-lg md:text-xl' : 
+              'text-base md:text-lg'
+            }`}>
               ARE YOU SURE YOU WANT TO DELETE THIS USER? THIS ACTION CANNOT BE UNDONE.
             </p>
-            <div className="flex gap-4">
+            <div className={`flex ${iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-6' : 'gap-4'}`}>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 bg-white text-black border-4 border-black px-6 py-3 font-black uppercase tracking-wide hover:bg-gray-100 transition-colors"
+                className={`flex-1 bg-white text-black border-4 border-black font-black uppercase tracking-wide hover:bg-gray-100 transition-colors touch-target-ipad ${
+                  iPad.isIPadMini ? 'px-4 py-2 text-sm' : 
+                  iPad.isIPadPro12 ? 'px-8 py-4 text-lg' : 
+                  'px-6 py-3 text-base'
+                }`}
               >
                 CANCEL
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 bg-red-500 text-white border-4 border-red-500 px-6 py-3 font-black uppercase tracking-wide hover:bg-red-600 transition-colors"
+                className={`flex-1 bg-red-500 text-white border-4 border-red-500 font-black uppercase tracking-wide hover:bg-red-600 transition-colors touch-target-ipad ${
+                  iPad.isIPadMini ? 'px-4 py-2 text-sm' : 
+                  iPad.isIPadPro12 ? 'px-8 py-4 text-lg' : 
+                  'px-6 py-3 text-base'
+                }`}
               >
                 DELETE
               </button>

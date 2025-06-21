@@ -16,7 +16,6 @@ import AdminDashboardPage from "../admin/AdminDashboardPage";
 import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
 import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
-import SideNavigationBar from "./SideNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1558,8 +1557,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 
   return (
     <>
-      <SideNavigationBar currentView={currentView} onTabChange={handleTabChange} />
-      <div className="w-full md:pl-20 pb-20">
+      <div className="w-full pb-20">
         <AnimatePresence mode="sync" onExitComplete={handleTransitionEnd}>
           <PageTransition key={currentView} className="pt-0">
             {renderContent()}
