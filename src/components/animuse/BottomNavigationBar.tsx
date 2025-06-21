@@ -34,26 +34,25 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
   const handleScroll = useCallback(() => {
     const currentY = window.pageYOffset || document.documentElement.scrollTop;
     const delta = currentY - lastScrollY.current;
-    
-    // Debug logging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 BottomNav Scroll:', {
-        currentY,
-        delta,
-        lastY: lastScrollY.current,
-        isHidden
-      });
-    }
-
-    // Hide on scroll down, show on scroll up or at top
-    if (delta > 10 && currentY > 50) {
-      setIsHidden(true);
-    } else if (delta < -10 || currentY < 20) {
-      setIsHidden(false);
-    }
-
     lastScrollY.current = currentY;
-  }, [isHidden]);
+
+    setIsHidden(prevIsHidden => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 BottomNav Scroll:', {
+          currentY,
+          delta,
+          prevIsHidden,
+        });
+      }
+
+      if (delta > 10 && currentY > 50) {
+        return true;
+      } else if (delta < -10 || currentY < 20) {
+        return false;
+      }
+      return prevIsHidden;
+    });
+  }, []); // No dependencies for a stable event handler
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true });

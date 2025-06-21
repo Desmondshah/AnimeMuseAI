@@ -29,26 +29,25 @@ export default function App() {
   const handleScroll = useCallback(() => {
     const currentY = window.pageYOffset || document.documentElement.scrollTop;
     const delta = currentY - lastScrollY.current;
-    
-    // Debug logging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Header Scroll:', {
-        currentY,
-        delta,
-        lastY: lastScrollY.current,
-        isHeaderHidden
-      });
-    }
-
-    // Hide on scroll down, show on scroll up or at top
-    if (delta > 10 && currentY > 50) {
-      setIsHeaderHidden(true);
-    } else if (delta < -10 || currentY < 20) {
-      setIsHeaderHidden(false);
-    }
-
     lastScrollY.current = currentY;
-  }, [isHeaderHidden]);
+
+    setIsHeaderHidden(prevIsHeaderHidden => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Header Scroll:', {
+          currentY,
+          delta,
+          prevIsHeaderHidden,
+        });
+      }
+
+      if (delta > 10 && currentY > 50) {
+        return true;
+      } else if (delta < -10 || currentY < 20) {
+        return false;
+      }
+      return prevIsHeaderHidden;
+    });
+  }, []); // No dependencies for a stable event handler
 
   useEffect(() => {
     if (!isMobile) return;
