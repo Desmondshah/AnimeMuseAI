@@ -56,6 +56,15 @@ export const getAllAnimeForAdmin = query({
   },
 });
 
+// Get a single anime with full details (admin only)
+export const getAnimeForAdmin = query({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    return await ctx.db.get(args.animeId);
+  },
+});
+
 // Get all reviews (admin only, paginated)
 export const getAllReviewsForAdmin = query({
   args: { paginationOpts: v.any() }, 
@@ -66,10 +75,9 @@ export const getAllReviewsForAdmin = query({
   },
 });
 
-
 // --- Admin Mutations ---
 
-// Edit an anime entry (admin only)
+// Enhanced anime editing with full character support
 export const adminEditAnime = mutation({
   args: {
     animeId: v.id("anime"),
@@ -84,6 +92,43 @@ export const adminEditAnime = mutation({
       trailerUrl: v.optional(v.string()),
       studios: v.optional(v.array(v.string())),
       themes: v.optional(v.array(v.string())),
+      averageUserRating: v.optional(v.number()),
+      reviewCount: v.optional(v.number()),
+      anilistId: v.optional(v.number()),
+      myAnimeListId: v.optional(v.number()),
+      totalEpisodes: v.optional(v.number()),
+      episodeDuration: v.optional(v.number()),
+      airingStatus: v.optional(v.string()),
+      nextAiringEpisode: v.optional(v.object({
+        airingAt: v.optional(v.number()),
+        episode: v.optional(v.number()),
+        timeUntilAiring: v.optional(v.number()),
+      })),
+      streamingEpisodes: v.optional(v.array(v.object({
+        title: v.optional(v.string()),
+        thumbnail: v.optional(v.string()),
+        url: v.optional(v.string()),
+        site: v.optional(v.string()),
+        previewUrl: v.optional(v.string()),
+      }))),
+      episodes: v.optional(v.array(v.object({
+        episodeNumber: v.number(),
+        title: v.string(),
+        airDate: v.optional(v.string()),
+        duration: v.optional(v.number()),
+        thumbnailUrl: v.optional(v.string()),
+        previewUrl: v.optional(v.string()),
+      }))),
+      ost: v.optional(v.array(v.object({
+        title: v.string(),
+        type: v.union(v.literal("OP"), v.literal("ED"), v.literal("insert"), v.literal("bgm")),
+        artist: v.optional(v.string()),
+        composer: v.optional(v.string()),
+        links: v.optional(v.array(v.object({
+          type: v.string(),
+          url: v.string(),
+        })))
+      }))),
     }),
   },
   handler: async (ctx, args) => {
@@ -101,7 +146,153 @@ export const adminEditAnime = mutation({
         throw new Error("No updates provided.");
     }
     await ctx.db.patch(animeId, definedUpdates);
-    // Consider if average rating needs recalculation if user-facing fields change (unlikely for these fields)
+    return animeId;
+  },
+});
+
+// Update characters for an anime
+export const adminUpdateAnimeCharacters = mutation({
+  args: {
+    animeId: v.id("anime"),
+    characters: v.array(v.object({
+      id: v.optional(v.number()),
+      name: v.string(),
+      imageUrl: v.optional(v.string()),
+      role: v.string(),
+      description: v.optional(v.string()),
+      status: v.optional(v.string()),
+      gender: v.optional(v.string()),
+      age: v.optional(v.string()),
+      dateOfBirth: v.optional(v.object({ 
+        year: v.optional(v.number()), 
+        month: v.optional(v.number()), 
+        day: v.optional(v.number()) 
+      })),
+      bloodType: v.optional(v.string()),
+      height: v.optional(v.string()),
+      weight: v.optional(v.string()),
+      species: v.optional(v.string()),
+      powersAbilities: v.optional(v.array(v.string())),
+      weapons: v.optional(v.array(v.string())),
+      nativeName: v.optional(v.string()),
+      siteUrl: v.optional(v.string()),
+      voiceActors: v.optional(v.array(v.object({ 
+        id: v.optional(v.number()),
+        name: v.string(), 
+        language: v.string(),
+        imageUrl: v.optional(v.string()) 
+      }))),
+      relationships: v.optional(v.array(v.object({
+        relatedCharacterId: v.optional(v.number()),
+        relationType: v.string()
+      }))),
+      enrichmentStatus: v.optional(v.union(
+        v.literal("pending"),
+        v.literal("success"),
+        v.literal("failed"),
+        v.literal("skipped")
+      )),
+      enrichmentAttempts: v.optional(v.number()),
+      lastAttemptTimestamp: v.optional(v.number()),
+      lastErrorMessage: v.optional(v.string()),
+      enrichmentTimestamp: v.optional(v.number()),
+      personalityAnalysis: v.optional(v.string()),
+      keyRelationships: v.optional(v.array(v.object({
+        relatedCharacterName: v.string(),
+        relationshipDescription: v.string(),
+        relationType: v.string(),
+      }))),
+      detailedAbilities: v.optional(v.array(v.object({
+        abilityName: v.string(),
+        abilityDescription: v.string(),
+        powerLevel: v.optional(v.string()),
+      }))),
+      majorCharacterArcs: v.optional(v.array(v.string())),
+      trivia: v.optional(v.array(v.string())),
+      backstoryDetails: v.optional(v.string()),
+      characterDevelopment: v.optional(v.string()),
+      notableQuotes: v.optional(v.array(v.string())),
+      symbolism: v.optional(v.string()),
+      fanReception: v.optional(v.string()),
+      culturalSignificance: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    const { animeId, characters } = args;
+    
+    await ctx.db.patch(animeId, { characters });
+    return animeId;
+  },
+});
+
+// Manually trigger character enrichment for a specific character
+export const adminEnrichCharacter = mutation({
+  args: {
+    animeId: v.id("anime"),
+    characterIndex: v.number(), // Index of character in the characters array
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    const { animeId, characterIndex } = args;
+    
+    const anime = await ctx.db.get(animeId);
+    if (!anime || !anime.characters || characterIndex >= anime.characters.length) {
+      throw new Error("Anime or character not found.");
+    }
+    
+    const character = anime.characters[characterIndex];
+    if (!character) {
+      throw new Error("Character not found at specified index.");
+    }
+    
+    // Update character enrichment status to pending
+    const updatedCharacters = [...anime.characters];
+    updatedCharacters[characterIndex] = {
+      ...character,
+      enrichmentStatus: "pending",
+      enrichmentAttempts: (character.enrichmentAttempts || 0) + 1,
+      lastAttemptTimestamp: Date.now(),
+    };
+    
+    await ctx.db.patch(animeId, { characters: updatedCharacters });
+    
+    // Trigger the enrichment process
+    await ctx.scheduler.runAfter(0, internal.characterEnrichment.enrichCharacter, {
+      animeId,
+      characterIndex,
+    });
+    
+    return { success: true, message: "Character enrichment triggered." };
+  },
+});
+
+// Create a new anime entry
+export const adminCreateAnime = mutation({
+  args: {
+    animeData: v.object({
+      title: v.string(),
+      description: v.string(),
+      posterUrl: v.string(),
+      genres: v.array(v.string()),
+      year: v.optional(v.number()),
+      rating: v.optional(v.number()),
+      emotionalTags: v.optional(v.array(v.string())),
+      trailerUrl: v.optional(v.string()),
+      studios: v.optional(v.array(v.string())),
+      themes: v.optional(v.array(v.string())),
+      anilistId: v.optional(v.number()),
+      myAnimeListId: v.optional(v.number()),
+      totalEpisodes: v.optional(v.number()),
+      episodeDuration: v.optional(v.number()),
+      airingStatus: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    const { animeData } = args;
+    
+    const animeId = await ctx.db.insert("anime", animeData);
     return animeId;
   },
 });

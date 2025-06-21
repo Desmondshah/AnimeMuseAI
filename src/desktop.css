@@ -1,0 +1,793 @@
+/* Desktop Responsive Styles for AnimeMuseAI */
+/* Optimized for 13.3-inch MacBook (2560 x 1660) */
+
+/* ============================================================================
+   DESKTOP BREAKPOINTS & VARIABLES
+   ============================================================================ */
+
+:root {
+  /* Desktop-specific variables */
+  --desktop-content-max-width: 1920px;
+  --desktop-card-min-width: 320px;
+  --desktop-grid-gap: 24px;
+  --desktop-border-radius: 16px;
+  --desktop-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --desktop-hover-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  
+  /* Typography scale for desktop */
+  --desktop-text-base: 1.125rem;
+  --desktop-text-lg: 1.25rem;
+  --desktop-text-xl: 1.5rem;
+  --desktop-text-2xl: 1.875rem;
+  
+  /* Spacing scale for desktop */
+  --desktop-space-sm: 1rem;
+  --desktop-space-md: 1.5rem;
+  --desktop-space-lg: 2rem;
+  --desktop-space-xl: 3rem;
+}
+
+/* ============================================================================
+   DESKTOP LAYOUT CONTAINERS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-main {
+    padding: var(--desktop-space-xl);
+    overflow-y: auto;
+    background: linear-gradient(135deg, rgba(15,15,15,0.8) 0%, rgba(25,25,25,0.9) 100%);
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* Desktop Navigation Bar */
+  .desktop-navbar {
+    background: linear-gradient(90deg, rgba(30,30,30,0.95) 0%, rgba(20,20,20,0.98) 100%);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(176,137,104,0.2);
+    padding: 0 var(--desktop-space-xl);
+    height: 80px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .desktop-navbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: var(--desktop-content-max-width);
+    margin: 0 auto;
+  }
+
+  .desktop-navbar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .desktop-navbar-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #E76F51;
+    margin: 0;
+    line-height: 1;
+  }
+
+  .desktop-navbar-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.7);
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .desktop-navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: var(--desktop-space-md);
+  }
+
+  .desktop-navbar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--desktop-border-radius);
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    font-size: var(--desktop-text-base);
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .desktop-navbar-item:hover {
+    background: rgba(231,111,81,0.1);
+    color: rgba(255,255,255,0.9);
+    transform: translateY(-1px);
+  }
+
+  .desktop-navbar-item.active {
+    background: linear-gradient(135deg, rgba(231,111,81,0.2) 0%, rgba(176,137,104,0.2) 100%);
+    color: #E76F51;
+    box-shadow: var(--desktop-shadow);
+  }
+
+  .desktop-navbar-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .desktop-navbar-label {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+  }
+
+  .desktop-content {
+    max-width: var(--desktop-content-max-width);
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+  }
+
+  .desktop-grid {
+    display: grid;
+    gap: var(--desktop-grid-gap);
+    grid-template-columns: repeat(auto-fit, minmax(var(--desktop-card-min-width), 1fr));
+  }
+
+  .desktop-card {
+    background: linear-gradient(135deg, rgba(40,40,40,0.8) 0%, rgba(30,30,30,0.9) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(176,137,104,0.2);
+    border-radius: var(--desktop-border-radius);
+    padding: var(--desktop-space-lg);
+    box-shadow: var(--desktop-shadow);
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    min-width: var(--desktop-card-min-width);
+  }
+
+  .desktop-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--desktop-hover-shadow);
+    border-color: rgba(176,137,104,0.4);
+  }
+}
+
+/* ============================================================================
+   DESKTOP GRIDS & LAYOUTS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .desktop-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .desktop-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .desktop-grid-5 {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .desktop-grid-6 {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .desktop-flex {
+    display: flex;
+    gap: var(--desktop-space-md);
+  }
+
+  .desktop-flex-col {
+    flex-direction: column;
+  }
+
+  .desktop-flex-row {
+    flex-direction: row;
+  }
+
+  .desktop-flex-wrap {
+    flex-wrap: wrap;
+  }
+
+  .desktop-flex-1 {
+    flex: 1;
+  }
+
+  .desktop-flex-auto {
+    flex: auto;
+  }
+}
+
+/* ============================================================================
+   DESKTOP ANIME CARDS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-anime-card {
+    background: linear-gradient(135deg, rgba(40,40,40,0.9) 0%, rgba(30,30,30,0.95) 100%);
+    border: 1px solid rgba(176,137,104,0.2);
+    border-radius: var(--desktop-border-radius);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    cursor: pointer;
+    position: relative;
+  }
+
+  .desktop-anime-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--desktop-hover-shadow);
+    border-color: rgba(176,137,104,0.4);
+  }
+
+  .desktop-anime-image {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .desktop-anime-card:hover .desktop-anime-image {
+    transform: scale(1.05);
+  }
+
+  .desktop-anime-content {
+    padding: var(--desktop-space-lg);
+  }
+
+  .desktop-anime-title {
+    font-size: var(--desktop-text-lg);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: var(--desktop-space-sm);
+    line-height: 1.3;
+  }
+
+  .desktop-anime-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: var(--desktop-space-md);
+  }
+
+  .desktop-anime-genre {
+    background: rgba(231,111,81,0.2);
+    color: #E76F51;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .desktop-anime-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255,255,255,0.8);
+    font-size: 1rem;
+  }
+
+  .desktop-anime-stars {
+    color: #FFD700;
+  }
+}
+
+/* ============================================================================
+   DESKTOP DASHBOARD SECTIONS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-section {
+    margin-bottom: var(--desktop-space-2xl);
+  }
+
+  .desktop-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--desktop-space-lg);
+  }
+
+  .desktop-section-title {
+    font-size: var(--desktop-text-2xl);
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0;
+  }
+
+  .desktop-section-subtitle {
+    font-size: var(--desktop-text-base);
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: var(--desktop-space-xs);
+  }
+
+  .desktop-section-actions {
+    display: flex;
+    gap: var(--desktop-space-sm);
+  }
+
+  .desktop-carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--desktop-border-radius);
+  }
+
+  .desktop-carousel-container {
+    display: flex;
+    gap: var(--desktop-space-md);
+    transition: transform 0.3s ease;
+  }
+
+  .desktop-carousel-item {
+    flex: 0 0 auto;
+    width: calc(25% - var(--desktop-space-md));
+    min-width: 280px;
+  }
+
+  .desktop-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+
+  .desktop-carousel-nav:hover {
+    background: rgba(231, 111, 81, 0.8);
+  }
+
+  .desktop-carousel-prev {
+    left: var(--desktop-space-md);
+  }
+
+  .desktop-carousel-next {
+    right: var(--desktop-space-md);
+  }
+}
+
+/* ============================================================================
+   DESKTOP FORMS & INPUTS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-form {
+    background: linear-gradient(135deg, 
+      rgba(40, 40, 40, 0.8) 0%, 
+      rgba(30, 30, 30, 0.9) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(176, 137, 104, 0.2);
+    border-radius: var(--desktop-border-radius);
+    padding: var(--desktop-space-xl);
+    box-shadow: var(--desktop-shadow);
+  }
+
+  .desktop-form-group {
+    margin-bottom: var(--desktop-space-lg);
+  }
+
+  .desktop-form-label {
+    display: block;
+    font-size: var(--desktop-text-base);
+    font-weight: 600;
+    color: #FFFFFF;
+    margin-bottom: var(--desktop-space-sm);
+  }
+
+  .desktop-form-input {
+    width: 100%;
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(176, 137, 104, 0.3);
+    border-radius: var(--desktop-border-radius);
+    padding: var(--desktop-space-md);
+    font-size: var(--desktop-text-base);
+    color: #FFFFFF;
+    transition: all 0.3s ease;
+  }
+
+  .desktop-form-input:focus {
+    outline: none;
+    border-color: #E76F51;
+    box-shadow: 0 0 0 3px rgba(231, 111, 81, 0.1);
+  }
+
+  .desktop-form-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .desktop-form-textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .desktop-form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23E76F51' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 48px;
+  }
+}
+
+/* ============================================================================
+   DESKTOP MODALS & OVERLAYS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: var(--desktop-space-xl);
+  }
+
+  .desktop-modal {
+    background: linear-gradient(135deg, 
+      rgba(40, 40, 40, 0.95) 0%, 
+      rgba(30, 30, 30, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(176, 137, 104, 0.3);
+    border-radius: var(--desktop-border-radius);
+    box-shadow: var(--desktop-hover-shadow);
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .desktop-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--desktop-space-lg) var(--desktop-space-xl);
+    border-bottom: 1px solid rgba(176, 137, 104, 0.2);
+  }
+
+  .desktop-modal-title {
+    font-size: var(--desktop-text-xl);
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0;
+  }
+
+  .desktop-modal-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 24px;
+    cursor: pointer;
+    padding: var(--desktop-space-xs);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .desktop-modal-close:hover {
+    background: rgba(231, 111, 81, 0.2);
+    color: #E76F51;
+  }
+
+  .desktop-modal-content {
+    padding: var(--desktop-space-xl);
+  }
+
+  .desktop-modal-actions {
+    display: flex;
+    gap: var(--desktop-space-md);
+    justify-content: flex-end;
+    padding: var(--desktop-space-lg) var(--desktop-space-xl);
+    border-top: 1px solid rgba(176, 137, 104, 0.2);
+  }
+}
+
+/* ============================================================================
+   DESKTOP UTILITIES
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-text-center { text-align: center; }
+  .desktop-text-left { text-align: left; }
+  .desktop-text-right { text-align: right; }
+
+  .desktop-hidden { display: none; }
+  .desktop-block { display: block; }
+  .desktop-inline { display: inline; }
+  .desktop-inline-block { display: inline-block; }
+  .desktop-flex { display: flex; }
+  .desktop-grid { display: grid; }
+
+  .desktop-w-full { width: 100%; }
+  .desktop-h-full { height: 100%; }
+  .desktop-min-h-screen { min-height: 100vh; }
+
+  .desktop-p-0 { padding: 0; }
+  .desktop-p-4 { padding: var(--desktop-space-sm); }
+  .desktop-p-6 { padding: var(--desktop-space-md); }
+  .desktop-p-8 { padding: var(--desktop-space-lg); }
+  .desktop-p-12 { padding: var(--desktop-space-xl); }
+
+  .desktop-m-0 { margin: 0; }
+  .desktop-m-4 { margin: var(--desktop-space-sm); }
+  .desktop-m-6 { margin: var(--desktop-space-md); }
+  .desktop-m-8 { margin: var(--desktop-space-lg); }
+  .desktop-m-12 { margin: var(--desktop-space-xl); }
+
+  .desktop-rounded { border-radius: var(--desktop-border-radius); }
+  .desktop-shadow { box-shadow: var(--desktop-shadow); }
+  .desktop-shadow-lg { box-shadow: var(--desktop-hover-shadow); }
+
+  .desktop-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .desktop-transform { transform: translateY(-4px); }
+  .desktop-scale { transform: scale(1.02); }
+}
+
+/* ============================================================================
+   DESKTOP RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  .desktop-grid-6 {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .desktop-grid-7 {
+    grid-template-columns: repeat(7, 1fr);
+  }
+
+  .desktop-grid-8 {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+/* Extra Large Desktop (1920px+) */
+@media (min-width: 1920px) {
+  :root {
+    --desktop-content-max-width: 2560px;
+    --desktop-card-min-width: 400px;
+  }
+
+  .desktop-grid-8 {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .desktop-grid-9 {
+    grid-template-columns: repeat(9, 1fr);
+  }
+
+  .desktop-grid-10 {
+    grid-template-columns: repeat(10, 1fr);
+  }
+}
+
+/* Ultra Wide Desktop (2560px+) - MacBook 13.3" */
+@media (min-width: 2560px) {
+  :root {
+    --desktop-content-max-width: 3200px;
+    --desktop-card-min-width: 450px;
+    --desktop-grid-gap: 32px;
+  }
+
+  .desktop-grid-10 {
+    grid-template-columns: repeat(10, 1fr);
+  }
+
+  .desktop-grid-12 {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .desktop-main {
+    padding: var(--desktop-space-xl);
+  }
+
+  .desktop-card {
+    padding: var(--desktop-space-xl);
+  }
+}
+
+/* ============================================================================
+   DESKTOP PERFORMANCE OPTIMIZATIONS
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .desktop-reduce-motion {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .desktop-low-performance {
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .desktop-low-performance .desktop-card {
+    background: rgba(40, 40, 40, 0.95);
+  }
+}
+
+/* ============================================================================
+   DESKTOP ACCESSIBILITY
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  .desktop-focus-visible:focus-visible {
+    outline: 2px solid #E76F51;
+    outline-offset: 2px;
+  }
+
+  .desktop-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .desktop-high-contrast {
+    --desktop-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+    --desktop-hover-shadow: 0 12px 48px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* ============================================================================
+   DESKTOP PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .desktop-sidebar,
+  .desktop-header,
+  .desktop-modal-overlay {
+    display: none !important;
+  }
+
+  .desktop-main {
+    grid-area: 1 / 1 / -1 / -1;
+    padding: 0;
+    background: white;
+  }
+
+  .desktop-card {
+    background: white;
+    color: black;
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+}
+
+/* ============================================================================
+   DESKTOP OVERRIDES - CRITICAL FOR LAYOUT
+   ============================================================================ */
+
+@media (min-width: 1024px) {
+  /* Override any mobile layout conflicts */
+  .desktop-main {
+    display: block !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: var(--desktop-space-xl) !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Ensure content flows horizontally on desktop */
+  .desktop-content {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: var(--desktop-content-max-width) !important;
+  }
+
+  /* Override any mobile grid conflicts */
+  .desktop-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(var(--desktop-card-min-width), 1fr)) !important;
+    gap: var(--desktop-grid-gap) !important;
+  }
+
+  /* Force horizontal layout for any flex containers */
+  .desktop-flex-row {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+
+  /* Override any mobile-specific width constraints */
+  .desktop-w-full {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Ensure body and html take full screen */
+  body, html {
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #root {
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* Desktop Navigation Bar Overrides */
+  .desktop-navbar {
+    display: flex !important;
+    background: linear-gradient(90deg, rgba(30,30,30,0.95) 0%, rgba(20,20,20,0.98) 100%) !important;
+    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(176,137,104,0.2) !important;
+    height: 80px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
+
+  .desktop-navbar-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    max-width: var(--desktop-content-max-width) !important;
+    margin: 0 auto !important;
+  }
+
+  .desktop-navbar-menu {
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--desktop-space-md) !important;
+  }
+
+  .desktop-navbar-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: var(--desktop-border-radius) !important;
+    color: rgba(255,255,255,0.8) !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+  }
+
+  .desktop-navbar-item.active {
+    background: linear-gradient(135deg, rgba(231,111,81,0.2) 0%, rgba(176,137,104,0.2) 100%) !important;
+    color: #E76F51 !important;
+    box-shadow: var(--desktop-shadow) !important;
+  }
+} 

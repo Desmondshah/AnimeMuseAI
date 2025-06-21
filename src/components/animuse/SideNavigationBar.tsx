@@ -24,18 +24,26 @@ const SideNavigationBar: React.FC<SideNavigationBarProps> = ({ currentView, onTa
   ];
 
   return (
-    <nav className="hidden md:fixed md:flex md:flex-col md:w-20 md:top-0 md:left-0 md:bottom-0 md:bg-brand-surface/80 md:backdrop-blur-xl md:border-r md:border-brand-accent-gold/30 md:shadow-lg md:z-50">
+    <div className="desktop-sidebar">
+      {/* Logo/Title Section */}
+      <div className="desktop-sidebar-header">
+        <h1 className="desktop-sidebar-title">AniMuse</h1>
+        <p className="desktop-sidebar-subtitle">AI-Powered Anime Discovery</p>
+      </div>
+      
+      {/* Navigation */}
+      <nav className="desktop-nav">
       {tabs.map(tab => {
         const isActive = currentView === tab.view;
         return (
           <button
             key={tab.view}
             onClick={() => onTabChange(tab.view)}
-            className={`flex flex-col items-center justify-center py-4 space-y-1 w-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary-action/50 ${isActive ? 'text-brand-primary-action' : 'text-white/70 hover:text-brand-accent-gold'}`}
+              className={`desktop-nav-item ${isActive ? 'active' : ''}`}
             aria-current={isActive ? 'page' : undefined}
           >
             <svg
-              className="w-6 h-6"
+                className="desktop-nav-icon"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -43,11 +51,12 @@ const SideNavigationBar: React.FC<SideNavigationBarProps> = ({ currentView, onTa
             >
               <path strokeLinecap="round" strokeLinejoin="round" d={iconPaths[tab.icon]} />
             </svg>
-            <span className="text-xs leading-tight">{tab.label}</span>
+              <span className="desktop-nav-label">{tab.label}</span>
           </button>
         );
       })}
     </nav>
+    </div>
   );
 };
 
