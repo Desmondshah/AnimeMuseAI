@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState, lazy, Suspense, useRef, useCallback, useEffect } from "react";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api"; // Adjust path if needed
 import { SignInForm } from "./SignInForm"; // Adjust path if needed
@@ -15,10 +15,59 @@ import PageTransition from "./components/animuse/shared/PageTransition";
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 const NotificationsPanel = lazy(() => import("./components/animuse/onboarding/NotificationsPanel"));
 
+import { useMobileOptimizations } from "../convex/useMobileOptimizations";
+
 export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
   // Key to help React differentiate states if PhoneVerificationPrompt needs a full reset
   const [verificationFlowKey, setVerificationFlowKey] = useState(0);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const lastScrollY = useRef(0);
+  const { isMobile, isIOS } = useMobileOptimizations();
+
+  // Simple scroll detection for header
+  const handleScroll = useCallback(() => {
+    const currentY = window.pageYOffset || document.documentElement.scrollTop;
+    const delta = currentY - lastScrollY.current;
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Header Scroll:', {
+        currentY,
+        delta,
+        lastY: lastScrollY.current,
+        isHeaderHidden
+      });
+    }
+
+    // Hide on scroll down, show on scroll up or at top
+    if (delta > 10 && currentY > 50) {
+      setIsHeaderHidden(true);
+    } else if (delta < -10 || currentY < 20) {
+      setIsHeaderHidden(false);
+    }
+
+    lastScrollY.current = currentY;
+  }, [isHeaderHidden]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    if (isIOS) {
+      document.addEventListener('touchstart', handleScroll, { passive: true });
+      document.addEventListener('touchmove', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (isIOS) {
+        document.removeEventListener('touchstart', handleScroll);
+        document.removeEventListener('touchmove', handleScroll);
+      }
+    };
+  }, [handleScroll, isIOS, isMobile]);
 
   const toggleNotificationsPanel = () => {
     setIsNotificationsPanelOpen(prev => !prev);
@@ -34,7 +83,26 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col text-white">
       {/* Mobile Header - Hidden on Desktop */}
-      <header className="md:hidden sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30">
+      <motion.header 
+        className="md:hidden sticky top-0 z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30"
+        style={{
+          paddingTop: 'max(16px, env(safe-area-inset-top))',
+          paddingLeft: 'max(16px, env(safe-area-inset-left))',
+          paddingRight: 'max(16px, env(safe-area-inset-right))',
+          willChange: 'transform',
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
+        }}
+        initial={{ transform: "translateY(-100%)" }}
+        animate={{
+          transform: isHeaderHidden ? "translateY(-100%)" : "translateY(0%)",
+        }}
+        transition={{
+          type: 'tween',
+          duration: isMobile ? 0.2 : 0.3,
+          ease: 'easeInOut'
+        }}
+      >
         <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
         <div className="flex items-center gap-4">
           <Authenticated>
@@ -50,16 +118,23 @@ export default function App() {
           </Authenticated>
           <SignOutButton />
         </div>
-      </header>
+      </motion.header>
       
       {/* Mobile Main Content - Hidden on Desktop */}
-      <main className="md:hidden flex-1 flex flex-col items-center justify-center w-full">
-        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
+      <main 
+        className="md:hidden flex-1 flex flex-col items-center justify-center w-full mobile-scroll-container scrollable"
+        style={{
+          paddingBottom: 'max(80px, env(safe-area-inset-bottom))',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
+        }}
+      >
+        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto content-with-navigation">
           <AnimatePresence mode="sync">
             <PageTransition key={verificationFlowKey}>
               <Content
                 key={verificationFlowKey}
-                onPhoneVerified={handleVerified}
+                onVerified={handleVerified}
               />
             </PageTransition>
           </AnimatePresence>
@@ -72,7 +147,7 @@ export default function App() {
           <PageTransition key={verificationFlowKey}>
             <Content
               key={verificationFlowKey}
-              onPhoneVerified={handleVerified}
+              onVerified={handleVerified}
             />
           </PageTransition>
         </AnimatePresence>
@@ -84,10 +159,10 @@ export default function App() {
 }
 
 interface ContentProps {
-  onPhoneVerified: () => void;
+  onVerified: () => void;
 }
 
-function Content({ onPhoneVerified }: ContentProps) {
+function Content({ onVerified }: ContentProps) {
   const loggedInUser = useQuery(api.auth.loggedInUser);
   const userProfile = useQuery(api.users.getMyUserProfile);
   // verificationStatus now reflects phone verification and handles anonymous users
@@ -166,7 +241,7 @@ function Content({ onPhoneVerified }: ContentProps) {
             return (
               <Suspense fallback={<div className="p-6 text-white">Verifying...</div>}>
                 <PhoneVerificationPrompt
-                  onVerified={onPhoneVerified}
+                  onVerified={onVerified}
                   userIdForLog={loggedInUser?._id.toString()}
                 />
               </Suspense>

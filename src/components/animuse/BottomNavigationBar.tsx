@@ -1,7 +1,8 @@
 // src/components/animuse/BottomNavigationBar.tsx
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { ValidViewName } from "./MainApp";
+import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 
 interface BottomNavigationBarProps {
   currentView: ValidViewName; 
@@ -27,15 +28,49 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   const [isHidden, setIsHidden] = useState(false);
   const lastScrollY = useRef(0);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const { isMobile, isIOS } = useMobileOptimizations();
+
+  // Simple scroll detection
+  const handleScroll = useCallback(() => {
+    const currentY = window.pageYOffset || document.documentElement.scrollTop;
+    const delta = currentY - lastScrollY.current;
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 BottomNav Scroll:', {
+        currentY,
+        delta,
+        lastY: lastScrollY.current,
+        isHidden
+      });
+    }
+
+    // Hide on scroll down, show on scroll up or at top
+    if (delta > 10 && currentY > 50) {
+      setIsHidden(true);
+    } else if (delta < -10 || currentY < 20) {
+      setIsHidden(false);
+    }
+
+    lastScrollY.current = currentY;
+  }, [isHidden]);
 
   useEffect(() => {
-    scrollContainerRef.current = document.getElementById('root');
-  }, []);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    if (isIOS) {
+      document.addEventListener('touchstart', handleScroll, { passive: true });
+      document.addEventListener('touchmove', handleScroll, { passive: true });
+    }
 
-  const { scrollY } = useScroll({
-    container: scrollContainerRef
-  });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (isIOS) {
+        document.removeEventListener('touchstart', handleScroll);
+        document.removeEventListener('touchmove', handleScroll);
+      }
+    };
+  }, [handleScroll, isIOS]);
 
   const handleTabClick = (view: ValidViewName) => {
     if ('vibrate' in navigator) {
@@ -44,24 +79,19 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
     onTabChange(view);
   };
 
-  useMotionValueEvent(scrollY, 'change', (latest) => {
-    const currentY = latest;
-    if (currentY > lastScrollY.current + 5 && currentY > 50) {
-      setIsHidden(true);
-    } else if (currentY < lastScrollY.current - 5 || currentY < 10) {
-      setIsHidden(false);
-    }
-    lastScrollY.current = currentY;
-  });
-
   return (
     <motion.nav
-      className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
+      className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl navigation-bar"
       style={{
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
-        willChange: 'transform'
+        willChange: 'transform',
+        // iOS-specific optimizations
+        ...(isIOS && {
+          WebkitTransform: 'translateZ(0)',
+          transform: 'translateZ(0)',
+        })
       }}
       initial={{ transform: "translateY(100%)" }}
       animate={{
@@ -69,7 +99,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
       }}
       transition={{
         type: 'tween',
-        duration: 0.3,
+        duration: isMobile ? 0.2 : 0.3, // Faster animation on mobile
         ease: 'easeInOut'
       }}
       viewport={{ once: false, margin: "0px" }}
@@ -95,6 +125,12 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
                 WebkitTapHighlightColor: 'transparent',
                 minHeight: '60px',
                 minWidth: '60px',
+                // iOS-specific touch optimizations
+                ...(isIOS && {
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                })
               }}
             >
               <div

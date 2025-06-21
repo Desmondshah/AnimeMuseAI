@@ -1,5 +1,5 @@
 // convex/useMobileOptimizations.ts - Enhanced with Performance Monitoring
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 // Custom event for animation preference changes
 const ANIMATION_PREF_CHANGE_EVENT = 'animuse-animation-preference-changed';
@@ -325,7 +325,127 @@ export const useBackgroundOptimization = () => {
 
 // Utility function to trigger animation preference update
 export const updateAnimationPreference = (enabled: boolean) => {
-  localStorage.setItem('animuse-animations-enabled', String(enabled));
-  // Dispatch custom event for same-window updates
+  localStorage.setItem('animuse-animations-enabled', enabled.toString());
   window.dispatchEvent(new CustomEvent(ANIMATION_PREF_CHANGE_EVENT));
+};
+
+// Mobile scroll detection utility
+export const useMobileScrollDetection = () => {
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const lastScrollY = useRef(0);
+  const { isMobile, isIOS } = useMobileOptimizations();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.pageYOffset || document.documentElement.scrollTop;
+      const delta = currentY - lastScrollY.current;
+      
+      // Only update direction if there's significant movement
+      if (Math.abs(delta) > 5) {
+        const newDirection = delta > 0 ? 'down' : 'up';
+        setScrollDirection(newDirection);
+        
+        // Debug logging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📱 Scroll:', {
+            currentY,
+            delta,
+            direction: newDirection,
+            lastY: lastScrollY.current
+          });
+        }
+      }
+      
+      setScrollY(currentY);
+      lastScrollY.current = currentY;
+    };
+
+    // Use passive listeners for better performance
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // iOS-specific touch handling
+    if (isIOS) {
+      document.addEventListener('touchstart', handleScroll, { passive: true });
+      document.addEventListener('touchmove', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (isIOS) {
+        document.removeEventListener('touchstart', handleScroll);
+        document.removeEventListener('touchmove', handleScroll);
+      }
+    };
+  }, [isIOS]);
+
+  return {
+    scrollDirection,
+    scrollY,
+    isScrollingDown: scrollDirection === 'down',
+    isScrollingUp: scrollDirection === 'up',
+    isAtTop: scrollY < 20,
+  };
+};
+
+// Mobile navigation visibility utility
+export const useMobileNavigationVisibility = () => {
+  const [isNavigationVisible, setIsNavigationVisible] = useState(true);
+  const { scrollDirection, scrollY, isAtTop } = useMobileScrollDetection();
+  const { isMobile } = useMobileOptimizations();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!isMobile) return;
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🧭 Navigation State:', {
+        scrollDirection,
+        scrollY,
+        isAtTop,
+        isMobile,
+        currentVisibility: isNavigationVisible
+      });
+    }
+
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Always show navigation when at top
+    if (isAtTop) {
+      setIsNavigationVisible(true);
+      return;
+    }
+
+    // Show navigation when scrolling up
+    if (scrollDirection === 'up') {
+      setIsNavigationVisible(true);
+    } 
+    // Hide navigation when scrolling down (but not at top)
+    else if (scrollDirection === 'down' && scrollY > 50) {
+      setIsNavigationVisible(false);
+    }
+
+    // Auto-show navigation after scroll stops (only if we're not at top)
+    if (!isAtTop && scrollY > 50) {
+      timeoutRef.current = setTimeout(() => {
+        setIsNavigationVisible(true);
+      }, 1500);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [scrollDirection, scrollY, isAtTop, isMobile]);
+
+  return {
+    isNavigationVisible,
+    showNavigation: () => setIsNavigationVisible(true),
+    hideNavigation: () => setIsNavigationVisible(false),
+  };
 };

@@ -169,6 +169,14 @@ body {
   overscroll-behavior-y: none;
   width: 100%;
   height: 100%;
+  /* iOS-specific fixes */
+  -webkit-overflow-scrolling: touch;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
 #root {
@@ -176,6 +184,10 @@ body {
   overflow-y: auto;
   overflow-x: hidden; /* Prevent horizontal scrolling */
   -webkit-overflow-scrolling: touch;
+  /* iOS-specific optimizations */
+  position: relative;
+  height: 100vh;
+  width: 100vw;
 }
 
 /* Mobile-optimized scrollbars */
@@ -187,6 +199,94 @@ body {
   
   .horizontal-carousel::-webkit-scrollbar {
     height: 2px;
+  }
+  
+  /* Improve mobile scrolling performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix sticky header on mobile */
+  .sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Prevent navigation bar from disappearing unexpectedly */
+  .fixed {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Improve touch targets */
+  button, 
+  .touch-target {
+    min-height: 44px; /* iOS recommended minimum */
+    min-width: 44px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Larger tap targets for small buttons */
+  .touch-small {
+    padding: 12px;
+    margin: 4px;
+  }
+  
+  /* Fix for iOS Safari viewport issues */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      /* Prevent iOS Safari from adding its own scroll behavior */
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #root {
+      height: 100vh;
+      height: -webkit-fill-available;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Additional iOS-specific fixes */
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-snap-type: y proximity;
+  }
+  
+  /* Ensure navigation bars stay visible when needed */
+  .navigation-bar {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  /* Prevent content from being hidden behind navigation */
+  .content-with-navigation {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-top: calc(60px + env(safe-area-inset-top));
+  }
+  
+  /* Smooth scrolling for all scrollable elements */
+  .scrollable {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Fix for iOS Safari momentum scrolling */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 }
 
