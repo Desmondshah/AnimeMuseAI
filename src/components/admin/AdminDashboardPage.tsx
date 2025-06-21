@@ -2,6 +2,7 @@
 import React, { useState, memo } from "react";
 import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
+import EnhancedAnimeManagementPage from "./EnhancedAnimeManagementPage";
 import ReviewModerationPage from "./ReviewModerationPage";
 import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
 
@@ -159,6 +160,8 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
     switch (currentAdminView) {
       case "user_management":
         return <UserManagementPage />;
+      case "anime_management":
+        return <EnhancedAnimeManagementPage />;
       case "review_moderation":
         return <ReviewModerationPage />;
       case "overview":
