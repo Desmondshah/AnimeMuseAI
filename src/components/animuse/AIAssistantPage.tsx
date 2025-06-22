@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import { AnimeRecommendation } from "../../../convex/types";
 import AnimeCard from "./AnimeCard";
 import { usePersistentChatHistory } from '../../../convex/usePersistentChatHistory.ts';
+import { useMobileOptimizations } from '../../../convex/useMobileOptimizations.ts';
+
 
 // Enhanced types
 type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
@@ -47,7 +49,7 @@ interface ExpandableTextProps {
   className?: string;
 }
 
-type AIMode = "general" | "character" | "trope" | "art_style" | "compare" | "hidden_gems" | "franchise";
+type AIMode = "general" | "character" | "trope" | "art_style" | "compare" | "hidden_gems" | "franchise" | "what_if";
 
 interface EnhancedAIAssistantPageProps {
   navigateToDetail: (animeId: Id<"anime">) => void;
@@ -198,6 +200,27 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   isLoaded: chatHistoryLoaded 
 } = usePersistentChatHistory();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Mobile optimization hook for iPhone support
+  const { isMobile, isIOS, hasNotch } = useMobileOptimizations();
+
+  // Keyboard shortcut for fullscreen (F11 or Cmd/Ctrl + Shift + F)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F11' || (e.key === 'f' && (e.metaKey || e.ctrlKey) && e.shiftKey)) {
+        e.preventDefault();
+        setIsFullscreen(prev => !prev);
+      }
+      // ESC to exit fullscreen
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   const [animeA, setAnimeA] = useState("");
   const [animeB, setAnimeB] = useState("");
@@ -212,6 +235,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const getComparativeAnalysisAction = useAction(api.ai.getComparativeAnalysis);
   const getHiddenGemRecommendationsAction = useAction(api.ai.getHiddenGemRecommendations);
   const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
+  const getWhatIfRecommendationsAction = useAction(api.ai.getWhatIfRecommendations);
 
   const userProfileQuery = useQuery(api.users.getMyUserProfile);
   const storeAiFeedback = useMutation(api.ai.storeAiFeedback);
@@ -231,6 +255,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     { id: "compare", label: "Compare", desc: "Analyze two anime", icon: "⚖️", gradient: "from-red-500/50 to-pink-400/50" },
     { id: "hidden_gems", label: "Hidden Gems", desc: "Surprise discoveries", icon: "💎", gradient: "from-indigo-500/50 to-purple-400/50" },
     { id: "franchise", label: "Franchise", desc: "Series watch guides", icon: "📚", gradient: "from-teal-500/50 to-blue-400/50" },
+    { id: "what_if", label: "What If", desc: "Hypothetical scenarios", icon: "🤔", gradient: "from-violet-500/50 to-fuchsia-400/50" },
   ];
 
   const getModeExamples = useCallback(() => {
@@ -277,6 +302,12 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         "Ghost in the Shell franchise roadmap",
         "Gundam series - where should I start?"
       ],
+      what_if: [
+        "What if Light Yagami never found the Death Note?",
+        "What if Goku was raised by villains instead of Grandpa Gohan?",
+        "What if the Titans never existed in Attack on Titan?",
+        "What if Edward Elric succeeded in bringing his mother back?"
+      ],
     };
     return examples[aiMode] || examples.general;
   }, [aiMode]);
@@ -289,33 +320,98 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
   const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+  
   const executeAIAction = useCallback(async (currentPrompt: string, aiMessageId: string): Promise<AIActionResult> => {
     const profileDataForAI = userProfileQuery ? {
-      name: userProfileQuery.name, moods: userProfileQuery.moods, genres: userProfileQuery.genres,
-      favoriteAnimes: userProfileQuery.favoriteAnimes, experienceLevel: userProfileQuery.experienceLevel,
-      dislikedGenres: userProfileQuery.dislikedGenres, dislikedTags: userProfileQuery.dislikedTags,
-      characterArchetypes: userProfileQuery.characterArchetypes, tropes: userProfileQuery.tropes,
-      artStyles: userProfileQuery.artStyles, narrativePacing: userProfileQuery.narrativePacing,
+      name: userProfileQuery.name, 
+      moods: userProfileQuery.moods, 
+      genres: userProfileQuery.genres,
+      favoriteAnimes: userProfileQuery.favoriteAnimes, 
+      experienceLevel: userProfileQuery.experienceLevel,
+      dislikedGenres: userProfileQuery.dislikedGenres, 
+      dislikedTags: userProfileQuery.dislikedTags,
+      characterArchetypes: userProfileQuery.characterArchetypes, 
+      tropes: userProfileQuery.tropes,
+      artStyles: userProfileQuery.artStyles, 
+      narrativePacing: userProfileQuery.narrativePacing,
     } : undefined;
-
+  
     switch (aiMode) {
       case "character":
-        return await getCharacterBasedRecommendationsAction({ characterDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+        return await getCharacterBasedRecommendationsAction({ 
+          characterDescription: currentPrompt, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
+        
       case "trope":
-        return await getTropeBasedRecommendationsAction({ plotDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+        return await getTropeBasedRecommendationsAction({ 
+          plotDescription: currentPrompt, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
+        
       case "art_style":
-        return await getArtStyleRecommendationsAction({ artStyleDescription: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+        return await getArtStyleRecommendationsAction({ 
+          artStyleDescription: currentPrompt, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
+        
       case "compare":
         if (!animeA || !animeB) throw new Error("Please enter both anime titles to compare");
-        return await getComparativeAnalysisAction({ animeA, animeB, messageId: aiMessageId });
+        return await getComparativeAnalysisAction({ 
+          animeA, 
+          animeB, 
+          messageId: aiMessageId 
+        });
+        
       case "hidden_gems":
-        return await getHiddenGemRecommendationsAction({ surpriseLevel, avoidPopular, userProfile: profileDataForAI, messageId: aiMessageId });
+        return await getHiddenGemRecommendationsAction({ 
+          surpriseLevel, 
+          avoidPopular, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
+        
       case "franchise":
-        return await getFranchiseGuideAction({ franchiseName: currentPrompt, userExperience: userProfileQuery?.experienceLevel, messageId: aiMessageId });
+        return await getFranchiseGuideAction({ 
+          franchiseName: currentPrompt, 
+          userExperience: userProfileQuery?.experienceLevel, 
+          messageId: aiMessageId 
+        });
+        
+      // FIXED: This was the problem - what_if mode should call getWhatIfRecommendationsAction
+      case "what_if":
+        return await getWhatIfRecommendationsAction({ 
+          whatIfScenario: currentPrompt, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
+        
       default:
-        return await getAnimeRecommendationAction({ prompt: currentPrompt, userProfile: profileDataForAI, messageId: aiMessageId });
+        return await getAnimeRecommendationAction({ 
+          prompt: currentPrompt, 
+          userProfile: profileDataForAI, 
+          messageId: aiMessageId 
+        });
     }
-  }, [aiMode, userProfileQuery, animeA, animeB, surpriseLevel, avoidPopular, getCharacterBasedRecommendationsAction, getTropeBasedRecommendationsAction, getArtStyleRecommendationsAction, getComparativeAnalysisAction, getHiddenGemRecommendationsAction, getFranchiseGuideAction, getAnimeRecommendationAction]);
+  }, [
+    aiMode, 
+    userProfileQuery, 
+    animeA, 
+    animeB, 
+    surpriseLevel, 
+    avoidPopular, 
+    getCharacterBasedRecommendationsAction, 
+    getTropeBasedRecommendationsAction, 
+    getArtStyleRecommendationsAction, 
+    getComparativeAnalysisAction, 
+    getHiddenGemRecommendationsAction, 
+    getFranchiseGuideAction, 
+    getWhatIfRecommendationsAction, // Make sure this is in dependencies
+    getAnimeRecommendationAction
+  ]);
 
   const handleSubmit = useCallback(async (e: FormEvent | string) => {
   if (e instanceof Object && typeof e.preventDefault === 'function') e.preventDefault();
@@ -394,7 +490,8 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         art_style: "visual suggestions", 
         compare: "comparisons", 
         hidden_gems: "hidden gems", 
-        franchise: "franchise guides" 
+        franchise: "franchise guides",
+        what_if: "what if scenarios"
       };
       aiResponseMessage = { 
         id: aiMessageId, 
@@ -597,7 +694,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 </h2>
 
                 {/* Updated grid with CSS classes for mobile layout */}
-                <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
                   {modeConfigs.map((mode, index) => (
                     <ModeCard
                       key={mode.id}
@@ -693,28 +790,91 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 </div>
               </div>
             )}
+
+            {aiMode === "what_if" && (
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 to-fuchsia-400/20 rounded-2xl blur-lg"></div>
+                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                  <h3 className="text-lg font-heading text-white mb-4 text-center">
+                    🤔 What If Scenarios
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/90 mb-2">
+                        Scenario Type:
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {(["Character Choice", "World Rules", "Historical Event", "Power/Ability"] as const).map(
+                          (type) => (
+                            <button
+                              key={type}
+                              onClick={() => setPrompt(`What if ${type.toLowerCase()} changed? `)}
+                              className="px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-white/10 text-white/80 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/30"
+                            >
+                              {type}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-white/70 leading-relaxed">
+                        Explore hypothetical anime scenarios! Ask "What if..." questions about characters, worlds, or events to discover anime that explore similar concepts.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Chat Interface */}
-        <div className="flex-1 px-4 pb-32">
-          <div className="max-w-4xl mx-auto">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>
-              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
-                {/* Add Start New Chat button when there ARE chat messages */}
-                {chatHistory.length > 0 && chatHistoryLoaded && (
-                  <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
-                    <span className="text-sm text-white/70">Chat History</span>
-                    <StyledButton
-                      onClick={clearChatHistory}
-                      variant="ghost"
-                      className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
-                    >
-                      🗑️ Start New Chat
-                    </StyledButton>
+        <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-brand-surface p-4' : `flex-1 ${isMobile ? 'px-2 pb-24' : 'px-4 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
+          <div className={`${isFullscreen ? 'h-full flex flex-col' : `${isMobile ? 'max-w-full' : 'max-w-4xl'} mx-auto`}`}>
+            <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
+              {!isMobile && !isFullscreen && <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>}
+              <div className={`relative bg-black/30 backdrop-blur-xl border border-white/10 ${isFullscreen ? 'rounded-xl flex-1 flex flex-col min-h-0' : isMobile ? 'rounded-2xl' : 'rounded-3xl'} overflow-hidden`}>
+                {/* Chat Header with controls */}
+                <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
+                  <div className="flex items-center gap-3">
+                    {chatHistory.length > 0 && chatHistoryLoaded ? (
+                      <span className="text-sm text-white/70">Chat History</span>
+                    ) : (
+                      <span className="text-sm text-white/70">AniMuse Chat</span>
+                    )}
                   </div>
-                )}
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Fullscreen toggle button */}
+                    <button
+                      onClick={() => setIsFullscreen(!isFullscreen)}
+                      className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 touch-manipulation"
+                      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    >
+                      {isFullscreen ? (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zM17 4a1 1 0 00-1-1h-4a1 1 0 000 2h1.586l-2.293 2.293a1 1 0 001.414 1.414L15 6.414V8a1 1 0 002 0V4zM17 16a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 13.586V12a1 1 0 012 0v4zM3 16a1 1 0 001 1h4a1 1 0 000-2H6.414l2.293-2.293a1 1 0 00-1.414-1.414L5 13.586V12a1 1 0 00-2 0v4z"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zM16 4a1 1 0 00-1-1h-4a1 1 0 000 2h1.586l-2.293 2.293a1 1 0 001.414 1.414L15 6.414V8a1 1 0 002 0V4zM4 16a1 1 0 001-1v-4a1 1 0 00-2 0v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L2.586 14H1a1 1 0 000 2h4zM16 12a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 15.586V13a1 1 0 011-1z"/>
+                        </svg>
+                      )}
+                    </button>
+                    
+                    {/* Clear chat button */}
+                    {chatHistory.length > 0 && chatHistoryLoaded && (
+                      <StyledButton
+                        onClick={clearChatHistory}
+                        variant="ghost"
+                        className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
+                      >
+                        🗑️ {isFullscreen ? "Clear" : "Start New Chat"}
+                      </StyledButton>
+                    )}
+                  </div>
+                </div>
 
                 {!chatHistoryLoaded && (
                   <div className="text-center py-8">
@@ -754,8 +914,12 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
                 <motion.div
                   ref={chatContainerRef}
-                  className="h-96 overflow-y-auto p-6 space-y-6 custom-scrollbar"
-                  style={{ scrollbarWidth: "thin" }}
+                  className={`${isFullscreen ? 'flex-1 min-h-0' : isMobile ? 'h-80' : 'h-96'} overflow-y-auto ${isMobile ? 'p-3 space-y-4' : 'p-6 space-y-6'} custom-scrollbar`}
+                  style={{ 
+                    scrollbarWidth: "thin",
+                    // Ensure proper scrolling on iOS
+                    WebkitOverflowScrolling: "touch"
+                  }}
                   variants={listVariants}
                   initial="hidden"
                   animate="visible"
@@ -774,21 +938,21 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                       variants={itemVariants}
                     >
                       <div
-                        className={`max-w-[85%] ${
+                        className={`${isMobile ? 'max-w-[92%]' : 'max-w-[85%]'} ${
                           msg.type === "user" ? "order-2" : "order-1"
                         }`}
                       >
                         <div
-                          className={`relative p-4 rounded-2xl shadow-lg ${
+                          className={`relative ${isMobile ? 'p-3' : 'p-4'} ${isMobile ? 'rounded-xl' : 'rounded-2xl'} shadow-lg ${
                             msg.type === "user"
-                              ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white rounded-br-none ml-4"
+                              ? `bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white ${isMobile ? 'rounded-br-md ml-2' : 'rounded-br-none ml-4'}`
                               : msg.type === "error"
-                                ? "bg-red-900/20 text-red-400 border border-red-500/20 rounded-bl-none mr-4 backdrop-blur-sm"
-                                : "bg-black/40 backdrop-blur-sm text-white border border-white/10 rounded-bl-none mr-4"
+                                ? `bg-red-900/20 text-red-400 border border-red-500/20 ${isMobile ? 'rounded-bl-md mr-2' : 'rounded-bl-none mr-4'} backdrop-blur-sm`
+                                : `bg-black/40 backdrop-blur-sm text-white border border-white/10 ${isMobile ? 'rounded-bl-md mr-2' : 'rounded-bl-none mr-4'}`
                           }`}
                         >
                           {/* Message content */}
-                          <p className="whitespace-pre-wrap leading-relaxed text-sm">
+                          <p className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-sm' : 'text-sm'}`}>
                             {msg.content}
                           </p>
 
@@ -809,40 +973,38 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                     variants={itemVariants}
                                   >
                                     <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                    <div className="relative bg-black/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                                      <div className="flex flex-col sm:flex-row gap-4">
-                                        {/* FIXED: Smaller poster container with fixed dimensions */}
-                                        <div className="w-20 h-28 sm:w-16 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                                    <div className={`relative bg-black/60 backdrop-blur-sm rounded-xl ${isMobile ? 'p-2' : 'p-3 sm:p-4'} border border-white/10 group-hover:border-white/30 transition-all duration-300`}>
+                                      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-col sm:flex-row gap-4'}`}>
+                                        {/* Optimized poster container for mobile */}
+                                        <div className={`${isMobile ? 'w-16 h-20 mx-auto' : 'w-20 h-28 sm:w-16 sm:h-24'} flex-shrink-0 rounded-lg overflow-hidden`}>
                                           <AnimeCard
                                             anime={animeRec}
                                             onViewDetails={navigateToDetail}
-                                            isRecommendation={true} // Make sure this is set to true
+                                            isRecommendation={true}
                                             className="w-full h-full"
                                           />
                                         </div>
-                                        <div className="flex-1 space-y-2 min-w-0">
-                                          {" "}
-                                          {/* Added min-w-0 to prevent overflow */}
-                                          <h4 className="font-heading text-lg text-brand-primary-action font-semibold truncate">
+                                        <div className={`flex-1 ${isMobile ? 'space-y-1' : 'space-y-2'} min-w-0`}>
+                                          <h4 className={`font-heading ${isMobile ? 'text-base' : 'text-lg'} text-brand-primary-action font-semibold truncate ${isMobile ? 'text-center' : ''}`}>
                                             {animeRec.title}
                                           </h4>
                                           {animeRec.year && (
-                                            <p className="text-xs text-white/70">
+                                            <p className={`text-xs text-white/70 ${isMobile ? 'text-center' : ''}`}>
                                               {animeRec.year}
                                             </p>
                                           )}
                                           {animeRec.description && (
                                             <ExpandableText
                                               text={animeRec.description}
-                                              maxLength={200}
-                                              className="text-sm text-white/85 leading-relaxed"
+                                              maxLength={isMobile ? 100 : 200}
+                                              className={`${isMobile ? 'text-xs' : 'text-sm'} text-white/85 leading-relaxed ${isMobile ? 'text-center' : ''}`}
                                             />
                                           )}
                                           {animeRec.reasoning && (
                                             <ExpandableText
                                               text={`💡 ${animeRec.reasoning}`}
-                                              maxLength={150}
-                                              className="text-sm italic text-brand-accent-gold leading-relaxed"
+                                              maxLength={isMobile ? 80 : 150}
+                                              className={`${isMobile ? 'text-xs' : 'text-sm'} italic text-brand-accent-gold leading-relaxed ${isMobile ? 'text-center' : ''}`}
                                             />
                                           )}
                                           {animeRec.genres &&
@@ -860,7 +1022,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                                   ))}
                                               </div>
                                             )}
-                                          <div className="flex flex-wrap gap-2 pt-2">
+                                          <div className={`flex ${isMobile ? 'flex-col gap-1' : 'flex-wrap gap-2'} pt-2`}>
                                             <StyledButton
                                               onClick={() =>
                                                 handleAiRecommendationAddToWatchlist(
@@ -872,8 +1034,9 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                               disabled={
                                                 !isAuthenticated || isLoading
                                               }
+                                              className={isMobile ? '!text-xs !py-1 !px-2' : ''}
                                             >
-                                              📚 Add to Watchlist
+                                              📚 {isMobile ? 'Add' : 'Add to Watchlist'}
                                             </StyledButton>
                                             {animeRec.trailerUrl && (
                                               <a
@@ -881,7 +1044,10 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                               >
-                                                <StyledButton variant="secondary_small">
+                                                <StyledButton 
+                                                  variant="secondary_small"
+                                                  className={isMobile ? '!text-xs !py-1 !px-2' : ''}
+                                                >
                                                   🎥 Trailer
                                                 </StyledButton>
                                               </a>
@@ -1148,14 +1314,41 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 </motion.div>
 
                 {/* Input Area */}
-                <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm p-4 pb-safe-bottom">
+                <div className={`${isFullscreen ? 'flex-shrink-0' : ''} border-t border-white/10 bg-black/20 backdrop-blur-sm ${isMobile ? 'p-2' : 'p-4'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-6' : 'pb-4'}`}>
                   <form
                     onSubmit={handleSubmit}
-                    className="flex gap-3 items-end"
+                    className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-end`}
                   >
                     {aiMode === "compare" || aiMode === "hidden_gems" ? (
-                      <div className="flex-1 text-center text-sm text-white/60 italic py-3">
-                        Use controls above and hit Send ✨
+                      <div className="flex-1 relative">
+                        <div className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-14 text-center text-sm text-white/60 italic">
+                          Use controls above and hit Send ✨
+                        </div>
+                        {/* Send button for special modes */}
+                        <button
+                          type="submit"
+                          className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 text-brand-primary-action hover:text-brand-accent-gold transition-all duration-300 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed group`}
+                          disabled={
+                            isLoading ||
+                            authIsLoading ||
+                            !isAuthenticated ||
+                            (aiMode === "compare"
+                              ? !animeA.trim() || !animeB.trim()
+                              : false)
+                          }
+                        >
+                          {isLoading ? (
+                            <ArtisticLoadingSpinner size="h-5 w-5" message="" />
+                          ) : (
+                            <svg 
+                              className="w-6 h-6 transform group-hover:translate-x-0.5 transition-transform duration-200" 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     ) : (
                       <div className="flex-1 relative">
@@ -1165,51 +1358,45 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           onChange={(e) => setPrompt(e.target.value)}
                           placeholder={
                             aiMode === "franchise"
-                              ? "Enter franchise name..."
-                              : "Ask AniMuse anything..."
+                              ? (isMobile ? "Franchise name..." : "Enter franchise name...")
+                              : (isMobile ? "Ask AniMuse..." : "Ask AniMuse anything...")
                           }
-                          className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300
-            text-base" // Prevent zoom on iOS
+                          className={`w-full bg-black/40 backdrop-blur-sm border border-white/20 ${isMobile ? 'rounded-lg px-3 py-2' : 'rounded-xl px-4 py-3'} ${isMobile ? 'pr-12' : 'pr-14'} text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 text-base touch-manipulation`}
                           disabled={
                             isLoading || authIsLoading || !isAuthenticated
                           }
                           style={{
                             fontSize: "16px", // Prevent iOS zoom
+                            minHeight: isMobile ? "44px" : "auto", // iOS minimum touch target
                           }}
                         />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
-                          ✨
-                        </div>
+                        {/* Send button inside input */}
+                        <button
+                          type="submit"
+                          className={`absolute ${isMobile ? 'right-2' : 'right-3'} top-1/2 -translate-y-1/2 p-2 text-brand-primary-action hover:text-brand-accent-gold transition-all duration-300 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed group`}
+                          disabled={
+                            isLoading ||
+                            authIsLoading ||
+                            !isAuthenticated ||
+                            !prompt.trim()
+                          }
+                        >
+                          {isLoading ? (
+                            <ArtisticLoadingSpinner size={isMobile ? "h-4 w-4" : "h-5 w-5"} message="" />
+                          ) : (
+                            <svg 
+                              className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} transform group-hover:translate-x-0.5 transition-transform duration-200`} 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     )}
 
-                    <div className="relative group">
-                      <StyledButton
-                        type="submit"
-                        variant="primary"
-                        className="relative !px-4 !py-3 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500
-          touch-manipulation min-h-[44px] min-w-[44px]" // iOS minimum touch target
-                        disabled={
-                          isLoading ||
-                          authIsLoading ||
-                          !isAuthenticated ||
-                          (aiMode === "compare"
-                            ? !animeA.trim() || !animeB.trim()
-                            : aiMode === "hidden_gems"
-                              ? false
-                              : !prompt.trim())
-                        }
-                      >
-                        {isLoading ? (
-                          <ArtisticLoadingSpinner size="h-5 w-5" message="" />
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <span>Send</span>
-                            <span className="text-lg">🚀</span>
-                          </span>
-                        )}
-                      </StyledButton>
-                    </div>
+                    {/* Remove the separate send button */}
                   </form>
 
                   {!isAuthenticated && !authIsLoading && (
@@ -1224,7 +1411,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         </div>
       </div>
 
-      {/* Custom CSS for animations */}
+      {/* Custom CSS for animations and iPhone optimizations */}
       <style jsx>{`
         @keyframes float {
           0%,
@@ -1245,6 +1432,91 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        /* iPhone specific optimizations */
+        @media (max-width: 414px) {
+          .custom-scrollbar {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 2px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 107, 53, 0.5);
+            border-radius: 4px;
+          }
+        }
+
+        /* Enhanced scrollbar for all devices */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 107, 53, 0.5) rgba(255, 255, 255, 0.1);
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 107, 53, 0.5);
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 107, 53, 0.7);
+        }
+
+        /* iPhone safe areas */
+        .pt-safe-top {
+          padding-top: env(safe-area-inset-top);
+        }
+        
+        .pb-safe-bottom {
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Touch improvements for iPhone */
+        .touch-manipulation {
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Fullscreen chat animations */
+        .chat-fullscreen-enter {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        
+        .chat-fullscreen-enter-active {
+          transform: scale(1);
+          opacity: 1;
+          transition: all 0.2s ease-out;
+        }
+        
+        .chat-fullscreen-exit {
+          transform: scale(1);
+          opacity: 1;
+        }
+        
+        .chat-fullscreen-exit-active {
+          transform: scale(0.95);
+          opacity: 0;
+          transition: all 0.2s ease-in;
         }
       `}</style>
     </div>

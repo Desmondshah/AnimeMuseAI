@@ -1466,6 +1466,137 @@ Each recommendation: title, description, reasoning (why this is a perfect surpri
   },
 });
 
+export const getWhatIfRecommendations = action({
+  args: {
+    whatIfScenario: v.string(),
+    baseAnime: v.optional(v.string()),
+    userProfile: v.optional(enhancedUserProfileValidator),
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { recommendations: [], error: "OpenAI API key not configured." };
+    }
+
+    console.log(`[What If AI] Processing scenario: "${args.whatIfScenario}"`);
+
+    let systemPrompt = `You are AniMuse AI, expert in hypothetical anime scenarios and creative "what if" explorations.
+
+USER SCENARIO: "${args.whatIfScenario}"`;
+
+    if (args.baseAnime) {
+      systemPrompt += `\nBase anime for comparison: "${args.baseAnime}"`;
+    }
+
+    systemPrompt += formatUserProfile(args.userProfile);
+
+    systemPrompt += `\n\nAnalyze this "what if" scenario and recommend anime that:
+1. Explore similar hypothetical situations or alternate realities
+2. Feature characters in similar circumstances or dilemmas
+3. Present comparable thought experiments or philosophical questions
+4. Show how different choices or events could change outcomes
+5. Demonstrate similar cause-and-effect relationships
+
+Focus on creative scenarios like:
+- "What if X character made different choices?"
+- "What if this world had different rules?"
+- "What if these characters met under different circumstances?"
+- "What if this technology/power existed in real life?"
+- "What if historical events went differently?"
+
+IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
+If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+
+Output JSON: {"recommendations": [...]}
+Each recommendation MUST include:
+- title (string, REQUIRED): Exact anime title
+- description (string): Brief synopsis focusing on the "what if" elements
+- reasoning (string, REQUIRED): Detailed explanation of how it explores the "what if" concept
+- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
+- genres (array of strings): Key genres
+- year (number): Release year if known
+- rating (number 0-10): External rating if known
+- emotionalTags (array of strings): Emotional descriptors
+- studios (array of strings): Animation studios
+- themes (array of strings): Major themes
+- whatIfElements (array of strings): Specific hypothetical aspects
+- scenarioComplexity (number 1-5): Complexity scale of the scenario
+- moodMatchScore (number 1-10, REQUIRED): How well it matches the scenario`;
+
+    let recommendations: any[] = [];
+    let errorResult: string | undefined = undefined;
+
+    try {
+      console.log(`[What If AI] Calling OpenAI API...`);
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: args.whatIfScenario }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8, // Higher creativity for "what if" scenarios
+      });
+
+      console.log(`[What If AI] OpenAI response received, parsing...`);
+      const parsed = tryParseAIResponse(completion.choices[0].message.content, "getWhatIfRecommendations");
+      
+      if (parsed) {
+        const rawRecommendations = parsed.slice(0, 4);
+        console.log(`[What If AI] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, hasReasoning: !!r.reasoning })));
+        
+        // Enhance with database-first approach
+        console.log(`[What If AI] Enhancing ${rawRecommendations.length} recommendations...`);
+        const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
+        
+        // Ensure all recommendations have required fields for "what if" mode
+        recommendations = enhancedRecommendations.map((rec: any) => ({
+          ...rec,
+          // Ensure required fields are present
+          moodMatchScore: rec.moodMatchScore || rec.scenarioComplexity || 7,
+          whatIfElements: rec.whatIfElements || ["hypothetical scenario"],
+          scenarioComplexity: rec.scenarioComplexity || 3,
+          reasoning: rec.reasoning || `Explores similar "what if" concepts to: ${args.whatIfScenario}`,
+          // Mark as what-if recommendation
+          isWhatIfRecommendation: true,
+          whatIfScenario: args.whatIfScenario
+        }));
+        
+        console.log(`[What If AI] Successfully processed ${recommendations.length} what-if recommendations`);
+      } else {
+        errorResult = "AI response format error or no what-if recommendations found.";
+        console.error(`[What If AI] Parse error: ${errorResult}`);
+      }
+    } catch (err: any) {
+      console.error("[What If AI] Error:", err);
+      errorResult = `What If AI Error: ${err.message || "Unknown"}`;
+    } finally {
+      if (args.messageId) {
+        try {
+          await ctx.runMutation(api.ai.storeAiFeedback, {
+            prompt: args.whatIfScenario,
+            aiAction: "getWhatIfRecommendations",
+            aiResponseRecommendations: recommendations.length ? recommendations : undefined,
+            aiResponseText: recommendations.length === 0 ? errorResult : undefined,
+            feedbackType: "none",
+            messageId: args.messageId,
+          });
+        } catch (feedbackError) {
+          console.warn("[What If AI] Failed to store feedback:", feedbackError);
+        }
+      }
+    }
+
+    console.log(`[What If AI] Returning result:`, { 
+      recommendationsCount: recommendations.length, 
+      hasError: !!errorResult 
+    });
+
+    return { recommendations, error: errorResult };
+  },
+});
+
 export const getFranchiseGuide = action({
   args: {
     franchiseName: v.string(),
