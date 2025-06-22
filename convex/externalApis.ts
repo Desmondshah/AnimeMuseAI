@@ -2798,3 +2798,1978 @@ export const batchSmartAutoFill = action({
     };
   }
 });
+
+export const fetchBingeableAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    // Query for anime that are specifically good for binge-watching:
+    // - Focus on longer series (24+ episodes) or multiple seasons
+    // - Prioritize by popularity and episode count rather than just score
+    // - Include ongoing series that have substantial content
+    // - Target genres that are typically more binge-worthy
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [POPULARITY_DESC, EPISODES_DESC],
+          episodes_greater: 23,
+          averageScore_greater: 60,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+          episodes
+          duration
+          status
+          format
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit * 2 } }) // Fetch more to filter
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      // Filter for series that are particularly good for binge-watching
+      const bingeableMedia = media.filter((item: any) => {
+        const episodes = item.episodes || 0;
+        const genres = item.genres || [];
+        const format = item.format || '';
+        
+        // Prioritize series with substantial episode counts
+        if (episodes < 24) return false;
+        
+        // Focus on TV series format (not movies or OVAs)
+        if (format !== 'TV') return false;
+        
+        // Prefer genres that are typically more binge-worthy
+        const bingeableGenres = [
+          'Action', 'Adventure', 'Drama', 'Fantasy', 'Mystery', 
+          'Psychological', 'Romance', 'Sci-Fi', 'Supernatural', 
+          'Thriller', 'Sports', 'Slice of Life'
+        ];
+        
+        const hasBingeableGenre = genres.some((genre: string) => 
+          bingeableGenres.includes(genre)
+        );
+        
+        return hasBingeableGenre;
+      }).slice(0, limit);
+      
+      const animes = bingeableMedia.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Great for binge-watching (${item.episodes} episodes)`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+export const fetchRetroClassicAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    // Query for classic/retro anime:
+    // - Focus on anime from 1980s to early 2000s
+    // - High ratings to ensure they're true classics
+    // - Sort by score to get the best classic anime
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [SCORE_DESC, FAVOURITES_DESC],
+          startDate_greater: 19800101,
+          startDate_lesser: 20050101,
+          averageScore_greater: 70,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+          episodes
+          duration
+          status
+          format
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      const animes = media.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Classic anime from ${item.startDate?.year || 'the golden era'}`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+export const fetchHorrorAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    // Query for horror anime:
+    // - Focus on Horror genre and related dark/scary genres
+    // - Sort by score and popularity to get quality horror anime
+    // - Include Psychological, Supernatural, Thriller for broader horror content
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [SCORE_DESC, POPULARITY_DESC],
+          genre_in: ["Horror", "Supernatural", "Psychological", "Thriller"],
+          averageScore_greater: 60,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+          episodes
+          duration
+          status
+          format
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit * 2 } }) // Fetch more to filter
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      // Filter to prioritize true horror content
+      const horrorMedia = media.filter((item: any) => {
+        const genres = item.genres || [];
+        
+        // Prioritize anime with explicit Horror genre
+        if (genres.includes('Horror')) return true;
+        
+        // Include dark supernatural/psychological content
+        const darkGenres = ['Supernatural', 'Psychological', 'Thriller'];
+        const hasDarkGenre = genres.some((genre: string) => darkGenres.includes(genre));
+        
+        // Also check for horror-related terms in description
+        const description = (item.description || '').toLowerCase();
+        const horrorKeywords = ['horror', 'scary', 'ghost', 'demon', 'monster', 'nightmare', 'terror', 'dark', 'creepy'];
+        const hasHorrorKeywords = horrorKeywords.some(keyword => description.includes(keyword));
+        
+        return hasDarkGenre && (hasHorrorKeywords || genres.includes('Psychological'));
+      }).slice(0, limit);
+      
+      const animes = horrorMedia.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Spine-chilling horror anime`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+export const fetchTrueCrimeAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    // Query for true crime anime:
+    // - Focus on Crime, Mystery, Detective, and Psychological genres
+    // - Target realistic crime stories rather than fantasy
+    // - Sort by score to get quality crime anime
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [SCORE_DESC, POPULARITY_DESC],
+          genre_in: ["Mystery", "Psychological", "Thriller"],
+          averageScore_greater: 65,
+          genre_not_in: ["Hentai", "Supernatural", "Magic"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+          episodes
+          duration
+          status
+          format
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit * 3 } }) // Fetch more to filter
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      // Filter to prioritize realistic crime/detective content
+      const crimeMedia = media.filter((item: any) => {
+        const genres = item.genres || [];
+        const description = (item.description || '').toLowerCase();
+        
+        // Look for crime/detective keywords in description
+        const crimeKeywords = [
+          'detective', 'police', 'investigation', 'murder', 'crime', 'criminal', 
+          'case', 'solve', 'mystery', 'killer', 'serial', 'forensic', 'law enforcement',
+          'prosecutor', 'court', 'justice', 'evidence', 'suspect', 'victim'
+        ];
+        
+        const hasCrimeKeywords = crimeKeywords.some(keyword => description.includes(keyword));
+        
+        // Exclude fantasy/supernatural elements
+        const fantasyKeywords = ['magic', 'demon', 'ghost', 'supernatural', 'fantasy', 'powers', 'abilities'];
+        const hasFantasyElements = fantasyKeywords.some(keyword => description.includes(keyword)) || 
+                                  genres.some((genre: string) => ['Fantasy', 'Supernatural', 'Magic'].includes(genre));
+        
+        // Must have crime elements and not be fantasy
+        return hasCrimeKeywords && !hasFantasyElements && 
+               (genres.includes('Mystery') || genres.includes('Psychological') || genres.includes('Thriller'));
+      }).slice(0, limit);
+      
+      const animes = crimeMedia.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Gripping crime investigation anime`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+// Internal function for cron job to refresh Studio Ghibli cache
+export const refreshStudioGhibliCache = internalAction({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    animeCount: v.number()
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; animeCount: number }> => {
+    try {
+      console.log('[Studio Ghibli Cache] Starting scheduled refresh...');
+      
+      const result = await ctx.runAction(api.externalApis.fetchStudioGhibliAnime, { limit: 100 });
+      
+      if (result.error) {
+        console.error('[Studio Ghibli Cache] Refresh failed:', result.error);
+        return {
+          success: false,
+          message: `Cache refresh failed: ${result.error}`,
+          animeCount: 0
+        };
+      }
+      
+      const animeCount = result.animes?.length || 0;
+      console.log(`[Studio Ghibli Cache] Successfully refreshed cache with ${animeCount} anime`);
+      
+      return {
+        success: true,
+        message: `Successfully refreshed Studio Ghibli cache with ${animeCount} anime`,
+        animeCount
+      };
+      
+    } catch (error: any) {
+      console.error('[Studio Ghibli Cache] Unexpected error:', error);
+      return {
+        success: false,
+        message: `Cache refresh error: ${error.message}`,
+        animeCount: 0
+      };
+    }
+  }
+});
+
+// Internal function for cron job to refresh Madhouse cache
+export const refreshMadhouseCache = internalAction({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    animeCount: v.number()
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; animeCount: number }> => {
+    try {
+      console.log('[Madhouse Cache] Starting scheduled refresh...');
+      
+      const result = await ctx.runAction(api.externalApis.fetchMadhouseAnime, { limit: 100 });
+      
+      if (result.error) {
+        console.error('[Madhouse Cache] Refresh failed:', result.error);
+        return {
+          success: false,
+          message: `Cache refresh failed: ${result.error}`,
+          animeCount: 0
+        };
+      }
+      
+      const animeCount = result.animes?.length || 0;
+      console.log(`[Madhouse Cache] Successfully refreshed cache with ${animeCount} anime`);
+      
+      return {
+        success: true,
+        message: `Successfully refreshed Madhouse cache with ${animeCount} anime`,
+        animeCount
+      };
+      
+    } catch (error: any) {
+      console.error('[Madhouse Cache] Unexpected error:', error);
+      return {
+        success: false,
+        message: `Cache refresh error: ${error.message}`,
+        animeCount: 0
+      };
+    }
+  }
+});
+
+export const fetchMadhouseAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 100;
+    
+    console.log(`[Madhouse] Starting comprehensive fetch with limit: ${limit}`);
+    
+    let allMadhouseAnime: AnimeRecommendation[] = [];
+    const seenTitles = new Set<string>();
+    
+    // Helper function to add unique anime
+    const addUniqueAnime = (animes: AnimeRecommendation[]) => {
+      animes.forEach(anime => {
+        const normalizedTitle = anime.title.toLowerCase().trim();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          allMadhouseAnime.push(anime);
+        }
+      });
+    };
+    
+        // 1. AniList - Search for famous Madhouse titles
+    try {
+      console.log(`[Madhouse] Fetching from AniList...`);
+      
+      const famousTitles = [
+        "Death Note", "One Punch Man", "Hunter x Hunter", "Monster", "Parasyte", 
+        "Overlord", "No Game No Life", "Trigun", "Black Lagoon", "Perfect Blue"
+      ];
+
+      for (const title of famousTitles) {
+        try {
+          const titleQuery = `query ($search: String) { 
+            Page(page: 1, perPage: 3) { 
+              media(type: ANIME, search: $search, sort: [SCORE_DESC]) { 
+                id title { romaji english native } description(asHtml:false) 
+                startDate{ year month day } coverImage{ extraLarge large medium } 
+                averageScore genres episodes duration status format
+                studios { edges { node { name } isMain } }
+                trailer { id site }
+              } 
+            } 
+          }`;
+
+          const titleRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: titleQuery, variables: { search: title } }),
+            timeout: DEFAULT_TIMEOUT_MS
+          });
+
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            const titleMedia = titleData?.data?.Page?.media || [];
+            
+            // Filter for Madhouse productions
+            const madhouseMedia = titleMedia.filter((item: any) => {
+              const studios = item.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+              return studios.some((studio: string) => studio.includes('madhouse'));
+            });
+
+            const titleAnimes = madhouseMedia.map((item: any) => ({
+              title: item.title?.english || item.title?.romaji || item.title?.native || 'Unknown',
+              description: item.description || '',
+              posterUrl: item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || '',
+              genres: item.genres || [],
+              year: item.startDate?.year || undefined,
+              rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+              emotionalTags: [],
+              trailerUrl: item.trailer?.site === "youtube" && item.trailer?.id 
+                ? `https://www.youtube.com/watch?v=${item.trailer.id}` : '',
+              studios: item.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['Madhouse'],
+              themes: [],
+              reasoning: `High-quality Madhouse production`,
+              moodMatchScore: item.averageScore ? item.averageScore / 10 : 8.0,
+              _id: undefined,
+              foundInDatabase: false,
+              anilistId: item.id
+            })) as AnimeRecommendation[];
+
+            addUniqueAnime(titleAnimes);
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+          console.error(`[Madhouse] Error fetching ${title}:`, e);
+        }
+      }
+
+      console.log(`[Madhouse] AniList search found ${allMadhouseAnime.length} works after individual searches`);
+      
+    } catch (e: any) {
+      console.error(`[Madhouse] AniList error:`, e.message);
+    }
+    
+    // 2. Jikan (MyAnimeList) API - Multiple Madhouse searches
+    try {
+      console.log(`[Madhouse] Fetching from Jikan...`);
+      
+      // Search 1: Producer ID for Madhouse
+      const jikanUrl1 = `https://api.jikan.moe/v4/anime?producers=11&order_by=score&sort=desc&limit=25`;
+      const jikanRes1 = await fetchWithTimeout(jikanUrl1, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes1.ok) {
+        const jikanData1 = await jikanRes1.json();
+        const animeList1 = jikanData1?.data || [];
+        
+        const animes1 = animeList1.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Madhouse'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Madhouse production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[Madhouse] Jikan producer search found ${animes1.length} works`);
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Search 2: Text search for "Madhouse"
+      const jikanUrl2 = `https://api.jikan.moe/v4/anime?q=madhouse&order_by=score&sort=desc&limit=25`;
+      const jikanRes2 = await fetchWithTimeout(jikanUrl2, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes2.ok) {
+        const jikanData2 = await jikanRes2.json();
+        const animeList2 = jikanData2?.data || [];
+        
+        // Filter for actual Madhouse productions
+        const madhouseAnimes = animeList2.filter((item: any) => {
+          const studios = getStringArray(item, 'studios', 'name') || [];
+          return studios.some((studio: string) => studio.toLowerCase().includes('madhouse'));
+        });
+        
+        const animes2 = madhouseAnimes.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Madhouse'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Madhouse production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes2);
+        console.log(`[Madhouse] Jikan query search found ${animes2.length} works`);
+      }
+      
+    } catch (e: any) {
+      console.error(`[Madhouse] Jikan error:`, e.message);
+    }
+    
+    // 3. Hardcoded list of famous Madhouse anime
+    try {
+      console.log(`[Madhouse] Adding famous Madhouse works...`);
+      
+      const famousMadhouseList = [
+        // Iconic Series
+        { title: "Death Note", year: 2006, rating: 9.0, genres: ["Supernatural", "Thriller", "Psychological"], description: "A high school student discovers a supernatural notebook that allows him to kill anyone by writing their name in it." },
+        { title: "One Punch Man", year: 2015, rating: 8.7, genres: ["Action", "Comedy", "Superhero"], description: "A superhero who can defeat any enemy with a single punch struggles with the mundane problems that come with his overwhelming power." },
+        { title: "Hunter x Hunter (2011)", year: 2011, rating: 9.0, genres: ["Adventure", "Fantasy", "Action"], description: "A young boy named Gon discovers that his father, who left him at a young age, is actually a world-renowned Hunter." },
+        { title: "Parasyte -the maxim-", year: 2014, rating: 8.3, genres: ["Horror", "Sci-Fi", "Psychological"], description: "A teenager must coexist with a parasitic alien that failed to take over his brain." },
+        { title: "Monster", year: 2004, rating: 9.0, genres: ["Drama", "Mystery", "Psychological"], description: "A Japanese surgeon living in Germany finds his life destroyed after saving the life of a young boy." },
+        { title: "Overlord", year: 2015, rating: 7.9, genres: ["Fantasy", "Adventure", "Isekai"], description: "A powerful wizard is trapped in a virtual reality game and decides to conquer this new world." },
+        { title: "No Game No Life", year: 2014, rating: 8.1, genres: ["Comedy", "Fantasy", "Isekai"], description: "Two shut-in siblings are transported to a world where everything is decided by games." },
+        { title: "Trigun", year: 1998, rating: 8.2, genres: ["Action", "Adventure", "Sci-Fi"], description: "A gunman with a $$60 billion bounty on his head tries to live peacefully in a desert world." },
+        { title: "Chihayafuru", year: 2011, rating: 8.2, genres: ["Drama", "Sports", "Josei"], description: "A high school girl becomes passionate about the competitive card game karuta." },
+        { title: "Hellsing Ultimate", year: 2006, rating: 8.2, genres: ["Action", "Horror", "Supernatural"], description: "The Hellsing Organization fights supernatural threats to England using their own supernatural agents." },
+        
+        // Classic Works
+        { title: "Perfect Blue", year: 1997, rating: 8.0, genres: ["Psychological", "Thriller"], description: "A pop singer's reality becomes increasingly distorted as she transitions to acting." },
+        { title: "Paprika", year: 2006, rating: 7.7, genres: ["Sci-Fi", "Thriller", "Fantasy"], description: "A device that allows therapists to enter patients' dreams is stolen and used for sinister purposes." },
+        { title: "Tokyo Godfathers", year: 2003, rating: 7.8, genres: ["Adventure", "Comedy", "Drama"], description: "Three homeless people find an abandoned baby on Christmas Eve and search for its parents." },
+        { title: "Millennium Actress", year: 2001, rating: 7.8, genres: ["Drama", "Romance"], description: "A documentary filmmaker interviews a reclusive actress about her career and life." },
+        { title: "Black Lagoon", year: 2006, rating: 8.0, genres: ["Action", "Crime"], description: "A Japanese businessman joins a group of modern-day pirates in Southeast Asia." },
+        { title: "Claymore", year: 2007, rating: 7.6, genres: ["Action", "Fantasy", "Supernatural"], description: "Half-human, half-demon warriors called Claymores fight against demons called Yoma." },
+        { title: "Hajime no Ippo", year: 2000, rating: 8.7, genres: ["Sports", "Boxing", "Drama"], description: "A shy high school student discovers boxing and begins training to become a professional boxer." },
+        { title: "Card Captor Sakura", year: 1998, rating: 8.0, genres: ["Adventure", "Comedy", "Fantasy"], description: "A young girl must capture magical cards that have escaped from a mysterious book." },
+        { title: "Vampire Knight", year: 2008, rating: 6.8, genres: ["Romance", "Supernatural", "Vampire"], description: "A girl attends a boarding school where vampires and humans coexist." },
+        { title: "NANA", year: 2006, rating: 8.4, genres: ["Drama", "Romance", "Music"], description: "Two young women with the same name become roommates and navigate love and friendship in Tokyo." },
+        
+        // Recent Works
+        { title: "Sonny Boy", year: 2021, rating: 7.6, genres: ["Supernatural", "Drama", "School"], description: "Students and their school are transported to a dimension with supernatural powers." },
+        { title: "Frieren: Beyond Journey's End", year: 2023, rating: 9.3, genres: ["Adventure", "Drama", "Fantasy"], description: "An elf mage reflects on her adventures and relationships after her hero companion's death." },
+        { title: "Pluto", year: 2023, rating: 8.9, genres: ["Drama", "Mystery", "Sci-Fi"], description: "A detective investigates a series of murders involving both humans and robots." },
+        { title: "Takt Op. Destiny", year: 2021, rating: 7.0, genres: ["Action", "Music", "Supernatural"], description: "Humans fight alien invaders using the power of classical music." },
+        { title: "High School of the Dead", year: 2010, rating: 7.1, genres: ["Action", "Horror", "Ecchi"], description: "High school students fight for survival during a zombie apocalypse." }
+      ];
+      
+      const hardcodedAnimes = famousMadhouseList.map((item) => ({
+        title: item.title,
+        description: item.description,
+        posterUrl: '', // Will be enhanced with real posters via external API
+        genres: item.genres,
+        year: item.year,
+        rating: item.rating,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: ['Madhouse'],
+        themes: [],
+        reasoning: `High-quality Madhouse production`,
+        moodMatchScore: item.rating,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+
+      // Enhance hardcoded entries with real posters from external APIs
+      for (const anime of hardcodedAnimes) {
+        try {
+          const posterUrl = await fetchPosterWithFallbacks(anime.title, undefined, true);
+          if (posterUrl) {
+            anime.posterUrl = posterUrl;
+          } else {
+            // Fallback to placeholder only if no real poster found
+            anime.posterUrl = `https://placehold.co/600x900/ff6b6b/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+          }
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (e) {
+          console.error(`[Madhouse] Error fetching poster for ${anime.title}:`, e);
+          anime.posterUrl = `https://placehold.co/600x900/ff6b6b/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+        }
+      }
+      
+      addUniqueAnime(hardcodedAnimes);
+      console.log(`[Madhouse] Added ${hardcodedAnimes.length} hardcoded works`);
+      
+    } catch (e: any) {
+      console.error(`[Madhouse] Hardcoded list error:`, e.message);
+    }
+    
+    // Sort by rating and year
+    allMadhouseAnime.sort((a, b) => {
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      if (ratingA !== ratingB) return ratingB - ratingA;
+      return (b.year || 0) - (a.year || 0);
+    });
+    
+    const finalAnimes = allMadhouseAnime.slice(0, limit);
+    
+    console.log(`[Madhouse] ✅ Final collection: ${finalAnimes.length} unique Madhouse works`);
+    
+    if (finalAnimes.length === 0) {
+      return { 
+        animes: [], 
+        error: "Unable to fetch Madhouse anime from any source. Please try again later." 
+      };
+    }
+    
+    return { animes: finalAnimes };
+  }
+});
+
+// Internal function for cron job to refresh MAPPA cache
+export const refreshMappaCache = internalAction({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    animeCount: v.number()
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; animeCount: number }> => {
+    try {
+      console.log('[MAPPA Cache] Starting scheduled refresh...');
+      
+      const result = await ctx.runAction(api.externalApis.fetchMappaAnime, { limit: 100 });
+      
+      if (result.error) {
+        console.error('[MAPPA Cache] Refresh failed:', result.error);
+        return {
+          success: false,
+          message: `Cache refresh failed: ${result.error}`,
+          animeCount: 0
+        };
+      }
+      
+      const animeCount = result.animes?.length || 0;
+      console.log(`[MAPPA Cache] Successfully refreshed cache with ${animeCount} anime`);
+      
+      return {
+        success: true,
+        message: `Successfully refreshed MAPPA cache with ${animeCount} anime`,
+        animeCount
+      };
+      
+    } catch (error: any) {
+      console.error('[MAPPA Cache] Unexpected error:', error);
+      return {
+        success: false,
+        message: `Cache refresh error: ${error.message}`,
+        animeCount: 0
+      };
+    }
+  }
+});
+
+export const fetchStudioGhibliAnime = action({
+  args: { limit: v.optional(v.number()) },
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 100; // Increased limit for comprehensive collection
+    
+    console.log(`[Studio Ghibli] Starting comprehensive fetch with limit: ${limit}`);
+    
+    let allGhibliAnime: AnimeRecommendation[] = [];
+    const seenTitles = new Set<string>(); // Prevent duplicates
+    
+    // Helper function to add unique anime
+    const addUniqueAnime = (animes: AnimeRecommendation[]) => {
+      animes.forEach(anime => {
+        const normalizedTitle = anime.title.toLowerCase().trim();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          allGhibliAnime.push(anime);
+        }
+      });
+    };
+    
+    // 1. AniList - Multiple search approaches
+    try {
+      console.log(`[Studio Ghibli] Fetching from AniList...`);
+      
+      // 1a. Search by "studio ghibli"
+      const searchQuery1 = `query ($page:Int,$perPage:Int) { 
+        Page(page:$page, perPage:$perPage){ 
+          media(
+            type: ANIME, 
+            sort: [SCORE_DESC, POPULARITY_DESC],
+            search: "studio ghibli",
+            genre_not_in: ["Hentai"]
+          ) { 
+            id title { romaji english native } description(asHtml:false) 
+            startDate{ year month day } coverImage{ extraLarge large medium } 
+            averageScore genres episodes duration status format
+            studios { edges { node { name } isMain } }
+            trailer { id site }
+          } 
+        } 
+      }`;
+      
+      const res1 = await fetchWithTimeout('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery1, variables: { page: 1, perPage: 50 } }),
+        timeout: DEFAULT_TIMEOUT_MS
+      });
+      
+      if (res1.ok) {
+        const data1 = await res1.json();
+        const media1 = data1?.data?.Page?.media || [];
+        const ghibliMedia1 = media1.filter((item: any) => {
+          const studios = item.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+          return studios.some((studio: string) => studio.includes('ghibli'));
+        });
+        
+        const animes1 = ghibliMedia1.map((item: any) => ({
+          title: item.title?.english || item.title?.romaji || item.title?.native || 'Unknown',
+          description: item.description || '',
+          posterUrl: item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || '',
+          genres: item.genres || [],
+          year: item.startDate?.year || undefined,
+          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.site === "youtube" && item.trailer?.id 
+            ? `https://www.youtube.com/watch?v=${item.trailer.id}` : '',
+          studios: item.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['Studio Ghibli'],
+          themes: [],
+          reasoning: `Magical Studio Ghibli masterpiece`,
+          moodMatchScore: item.averageScore ? item.averageScore / 10 : 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          anilistId: item.id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[Studio Ghibli] AniList search 1 found ${animes1.length} works`);
+      }
+      
+      // 1b. Search individual famous titles
+      const famousTitles = [
+        "spirited away", "princess mononoke", "my neighbor totoro", "howl's moving castle",
+        "castle in the sky", "kiki's delivery service", "ponyo", "the wind rises",
+        "grave of the fireflies", "nausicaa", "porco rosso", "whisper of the heart",
+        "the cat returns", "tales from earthsea", "arrietty", "from up on poppy hill",
+        "the tale of princess kaguya", "when marnie was there", "earwig and the witch"
+      ];
+      
+      for (const title of famousTitles.slice(0, 10)) { // Limit to avoid too many requests
+        try {
+          const titleQuery = `query { 
+            Media(search: "${title}", type: ANIME) { 
+              id title { romaji english native } description(asHtml:false) 
+              startDate{ year } coverImage{ extraLarge large medium } 
+              averageScore genres episodes duration status format
+              studios { edges { node { name } isMain } }
+              trailer { id site }
+            } 
+          }`;
+          
+          const titleRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: titleQuery }),
+            timeout: 5000
+          });
+          
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            const media = titleData?.data?.Media;
+            if (media) {
+              const studios = media.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+              if (studios.some((studio: string) => studio.includes('ghibli'))) {
+                const anime = {
+                  title: media.title?.english || media.title?.romaji || media.title?.native || 'Unknown',
+                  description: media.description || '',
+                  posterUrl: media.coverImage?.extraLarge || media.coverImage?.large || media.coverImage?.medium || '',
+                  genres: media.genres || [],
+                  year: media.startDate?.year || undefined,
+                  rating: typeof media.averageScore === 'number' ? media.averageScore / 10 : undefined,
+                  emotionalTags: [],
+                  trailerUrl: media.trailer?.site === "youtube" && media.trailer?.id 
+                    ? `https://www.youtube.com/watch?v=${media.trailer.id}` : '',
+                  studios: media.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['Studio Ghibli'],
+                  themes: [],
+                  reasoning: `Magical Studio Ghibli masterpiece`,
+                  moodMatchScore: media.averageScore ? media.averageScore / 10 : 8.0,
+                  _id: undefined,
+                  foundInDatabase: false,
+                  anilistId: media.id
+                } as AnimeRecommendation;
+                
+                addUniqueAnime([anime]);
+              }
+            }
+          }
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (e) {
+          console.log(`[Studio Ghibli] Failed to fetch ${title}:`, e);
+        }
+      }
+      
+    } catch (e: any) {
+      console.error(`[Studio Ghibli] AniList error:`, e.message);
+    }
+    
+    // 2. Jikan (MyAnimeList) API - Multiple approaches
+    try {
+      console.log(`[Studio Ghibli] Fetching from Jikan...`);
+      
+      // 2a. Search by producer (Studio Ghibli producer ID: 21)
+      const jikanUrl1 = `https://api.jikan.moe/v4/anime?producer=21&order_by=score&sort=desc&limit=25`;
+      const jikanRes1 = await fetchWithTimeout(jikanUrl1, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes1.ok) {
+        const jikanData1 = await jikanRes1.json();
+        const animeList1 = jikanData1?.data || [];
+        
+        const animes1 = animeList1.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: selectBestImageUrl(item.images, 'jikan') || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Studio Ghibli'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `Magical Studio Ghibli masterpiece`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[Studio Ghibli] Jikan producer search found ${animes1.length} works`);
+      }
+      
+      // 2b. Search by query
+      const jikanUrl2 = `https://api.jikan.moe/v4/anime?q=ghibli&order_by=score&sort=desc&limit=25`;
+      const jikanRes2 = await fetchWithTimeout(jikanUrl2, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes2.ok) {
+        const jikanData2 = await jikanRes2.json();
+        const animeList2 = jikanData2?.data || [];
+        
+        // Filter for actual Ghibli works
+        const ghibliList2 = animeList2.filter((item: any) => {
+          const studios = getStringArray(item, 'studios', 'name') || [];
+          return studios.some((studio: string) => studio.toLowerCase().includes('ghibli'));
+        });
+        
+        const animes2 = ghibliList2.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: selectBestImageUrl(item.images, 'jikan') || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Studio Ghibli'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `Magical Studio Ghibli masterpiece`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes2);
+        console.log(`[Studio Ghibli] Jikan query search found ${animes2.length} works`);
+      }
+      
+    } catch (e: any) {
+      console.error(`[Studio Ghibli] Jikan error:`, e.message);
+    }
+    
+    // 3. Comprehensive hardcoded list of ALL Studio Ghibli works
+    try {
+      console.log(`[Studio Ghibli] Adding comprehensive hardcoded list...`);
+      
+      const completeGhibliList = [
+        // Major Films
+        { title: "Spirited Away", year: 2001, rating: 9.3, genres: ["Adventure", "Family", "Drama"], description: "A 10-year-old girl enters a world ruled by gods and witches where humans are changed into beasts." },
+        { title: "Princess Mononoke", year: 1997, rating: 8.4, genres: ["Adventure", "Drama", "Fantasy"], description: "On a journey to find the cure for a Tatarigami's curse, Ashitaka finds himself in the middle of a war between the forest gods and Tatara." },
+        { title: "My Neighbor Totoro", year: 1988, rating: 8.2, genres: ["Adventure", "Family", "Fantasy"], description: "When two girls move to the country to be near their ailing mother, they have adventures with the wondrous forest spirits who live nearby." },
+        { title: "Howl's Moving Castle", year: 2004, rating: 8.2, genres: ["Adventure", "Family", "Fantasy"], description: "When an unconfident young woman is cursed with an old body by a spiteful witch, her only chance of breaking the spell lies with a self-indulgent yet insecure young wizard." },
+        { title: "Castle in the Sky", year: 1986, rating: 8.0, genres: ["Adventure", "Family", "Fantasy"], description: "A young boy and a girl with a magic crystal must race against pirates and foreign agents in a search for a legendary floating castle." },
+        { title: "Kiki's Delivery Service", year: 1989, rating: 7.8, genres: ["Adventure", "Family", "Drama"], description: "A young witch, on her mandatory year of independent life, finds fitting into a new community difficult while she supports herself by running an air courier service." },
+        { title: "Ponyo", year: 2008, rating: 7.7, genres: ["Adventure", "Family", "Fantasy"], description: "A five-year-old boy develops a relationship with Ponyo, a young goldfish princess who longs to become a human after falling in love with him." },
+        { title: "The Wind Rises", year: 2013, rating: 7.8, genres: ["Adventure", "Biography", "Drama"], description: "A look at the life of Jiro Horikoshi, the man who designed Japanese fighter planes during World War II." },
+        { title: "Grave of the Fireflies", year: 1988, rating: 8.5, genres: ["Drama", "War"], description: "A teenage boy and his little sister struggle to survive in Japan during World War II." },
+        { title: "The Tale of Princess Kaguya", year: 2013, rating: 8.0, genres: ["Adventure", "Drama", "Family"], description: "Found inside a shining stalk of bamboo by an old bamboo cutter and his wife, a tiny girl grows rapidly into an exquisite young lady." },
+        
+        // Additional Films
+        { title: "Nausicaä of the Valley of the Wind", year: 1984, rating: 8.0, genres: ["Adventure", "Fantasy", "Sci-Fi"], description: "Warrior and pacifist Princess Nausicaä desperately struggles to prevent two warring nations from destroying themselves and their dying planet." },
+        { title: "Porco Rosso", year: 1992, rating: 7.7, genres: ["Adventure", "Comedy", "Drama"], description: "In 1930s Italy, a veteran World War I pilot is cursed to look like an anthropomorphic pig." },
+        { title: "Whisper of the Heart", year: 1995, rating: 7.8, genres: ["Drama", "Family", "Romance"], description: "A love story between a girl who loves reading books, and a boy who has previously checked out all of the library books she chooses." },
+        { title: "The Cat Returns", year: 2002, rating: 7.1, genres: ["Adventure", "Comedy", "Family"], description: "After helping a cat, a seventeen-year-old girl finds herself involuntarily engaged to a cat Prince in a magical world where her only hope of freedom lies with a dapper cat statuette come to life." },
+        { title: "Tales from Earthsea", year: 2006, rating: 6.4, genres: ["Adventure", "Fantasy"], description: "In a mythical land, a man and a young boy investigate a series of unusual occurrences." },
+        { title: "The Secret World of Arrietty", year: 2010, rating: 7.6, genres: ["Adventure", "Family", "Fantasy"], description: "The Clock family are four-inch-tall people who live anonymously in another family's residence, borrowing simple items to make their home." },
+        { title: "From Up on Poppy Hill", year: 2011, rating: 7.4, genres: ["Drama", "Romance"], description: "A group of Yokohama teens look to save their school's clubhouse from the wrecking ball in preparations for the 1964 Tokyo Olympics." },
+        { title: "When Marnie Was There", year: 2014, rating: 7.7, genres: ["Drama", "Family", "Mystery"], description: "Anna, a shy 12-year-old girl, is sent to spend time with her aunt and uncle who live in the countryside, where she meets Marnie." },
+        { title: "Earwig and the Witch", year: 2020, rating: 4.7, genres: ["Adventure", "Family", "Fantasy"], description: "An orphan girl, Earwig, is adopted by a witch and comes home to a spooky house filled with mystery and magic." },
+        
+        // TV Specials and Shorts
+        { title: "Ocean Waves", year: 1993, rating: 6.7, genres: ["Drama", "Romance"], description: "As a young man returns home after his university studies, memories of his past flirt through his mind." },
+        { title: "The Red Turtle", year: 2016, rating: 7.5, genres: ["Adventure", "Family", "Fantasy"], description: "A man is shipwrecked on a deserted island and encounters a red turtle, which changes his life." },
+        { title: "Lupin III: The Castle of Cagliostro", year: 1979, rating: 7.6, genres: ["Adventure", "Comedy", "Crime"], description: "A dashing thief, his gang of desperadoes and an intrepid policeman struggle to free a princess from an evil count's clutches." },
+        
+        // Lesser Known Works
+        { title: "Only Yesterday", year: 1991, rating: 7.6, genres: ["Drama", "Romance"], description: "A twenty-seven-year-old office worker travels to the countryside while reminiscing about her childhood in Tokyo." },
+        { title: "Pom Poko", year: 1994, rating: 7.3, genres: ["Adventure", "Comedy", "Drama"], description: "A community of magical shape-shifting raccoon dogs struggle to prevent their forest home from being destroyed by urban development." },
+        { title: "My Neighbors the Yamadas", year: 1999, rating: 7.2, genres: ["Comedy", "Family"], description: "The everyday adventures of the Yamada family." }
+      ];
+      
+      const hardcodedAnimes = completeGhibliList.map((item) => ({
+        title: item.title,
+        description: item.description,
+        posterUrl: `https://placehold.co/600x900/4ade80/1f2937/png?text=${encodeURIComponent(item.title.substring(0, 20))}&font=roboto`,
+        genres: item.genres,
+        year: item.year,
+        rating: item.rating,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: ['Studio Ghibli'],
+        themes: [],
+        reasoning: `Magical Studio Ghibli masterpiece`,
+        moodMatchScore: item.rating,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      addUniqueAnime(hardcodedAnimes);
+      console.log(`[Studio Ghibli] Added ${hardcodedAnimes.length} hardcoded works`);
+      
+    } catch (e: any) {
+      console.error(`[Studio Ghibli] Hardcoded list error:`, e.message);
+    }
+    
+    // Sort by rating and year, limit results
+    allGhibliAnime.sort((a, b) => {
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      if (ratingA !== ratingB) return ratingB - ratingA; // Higher rating first
+      return (b.year || 0) - (a.year || 0); // More recent first
+    });
+    
+    const finalAnimes = allGhibliAnime.slice(0, limit);
+    
+    console.log(`[Studio Ghibli] ✅ Final collection: ${finalAnimes.length} unique Studio Ghibli works`);
+    
+    if (finalAnimes.length === 0) {
+      return { 
+        animes: [], 
+        error: "Unable to fetch Studio Ghibli anime from any source. Please try again later." 
+      };
+    }
+    
+    return { animes: finalAnimes };
+  }
+});
+
+export const fetchMappaAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 100;
+    
+    console.log(`[MAPPA] Starting comprehensive fetch with limit: ${limit}`);
+    
+    let allMappaAnime: AnimeRecommendation[] = [];
+    const seenTitles = new Set<string>();
+    
+    // Helper function to add unique anime
+    const addUniqueAnime = (animes: AnimeRecommendation[]) => {
+      animes.forEach(anime => {
+        const normalizedTitle = anime.title.toLowerCase().trim();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          allMappaAnime.push(anime);
+        }
+      });
+    };
+    
+    // 1. AniList - Search for famous MAPPA titles
+    try {
+      console.log(`[MAPPA] Fetching from AniList...`);
+      
+      const famousTitles = [
+        "Attack on Titan", "Jujutsu Kaisen", "Chainsaw Man", "Hell's Paradise", 
+        "Dororo", "Vinland Saga", "Terror in Resonance", "MAPPA", "Yuri on Ice",
+        "The God of High School", "Banana Fish", "Kakegurui", "Rage of Bahamut"
+      ];
+
+      for (const title of famousTitles) {
+        try {
+          const titleQuery = `query ($search: String) { 
+            Page(page: 1, perPage: 3) { 
+              media(type: ANIME, search: $search, sort: [SCORE_DESC]) { 
+                id title { romaji english native } description(asHtml:false) 
+                startDate{ year month day } coverImage{ extraLarge large medium } 
+                averageScore genres episodes duration status format
+                studios { edges { node { name } isMain } }
+                trailer { id site }
+              } 
+            } 
+          }`;
+
+          const titleRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: titleQuery, variables: { search: title } }),
+            timeout: DEFAULT_TIMEOUT_MS
+          });
+
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            const titleMedia = titleData?.data?.Page?.media || [];
+            
+            // Filter for MAPPA productions
+            const mappaMedia = titleMedia.filter((item: any) => {
+              const studios = item.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+              return studios.some((studio: string) => studio.includes('mappa'));
+            });
+
+            const titleAnimes = mappaMedia.map((item: any) => ({
+              title: item.title?.english || item.title?.romaji || item.title?.native || 'Unknown',
+              description: item.description || '',
+              posterUrl: item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || '',
+              genres: item.genres || [],
+              year: item.startDate?.year || undefined,
+              rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+              emotionalTags: [],
+              trailerUrl: item.trailer?.site === "youtube" && item.trailer?.id 
+                ? `https://www.youtube.com/watch?v=${item.trailer.id}` : '',
+              studios: item.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['MAPPA'],
+              themes: [],
+              reasoning: `High-quality MAPPA production`,
+              moodMatchScore: item.averageScore ? item.averageScore / 10 : 8.0,
+              _id: undefined,
+              foundInDatabase: false,
+              anilistId: item.id
+            })) as AnimeRecommendation[];
+
+            addUniqueAnime(titleAnimes);
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+          console.error(`[MAPPA] Error fetching ${title}:`, e);
+        }
+      }
+
+      console.log(`[MAPPA] AniList search found ${allMappaAnime.length} works after individual searches`);
+      
+    } catch (e: any) {
+      console.error(`[MAPPA] AniList error:`, e.message);
+    }
+    
+    // 2. Jikan (MyAnimeList) API - Multiple MAPPA searches
+    try {
+      console.log(`[MAPPA] Fetching from Jikan...`);
+      
+      // Search 1: Producer ID for MAPPA (ID: 569)
+      const jikanUrl1 = `https://api.jikan.moe/v4/anime?producers=569&order_by=score&sort=desc&limit=25`;
+      const jikanRes1 = await fetchWithTimeout(jikanUrl1, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes1.ok) {
+        const jikanData1 = await jikanRes1.json();
+        const animeList1 = jikanData1?.data || [];
+        
+        const animes1 = animeList1.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['MAPPA'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality MAPPA production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[MAPPA] Jikan producer search found ${animes1.length} works`);
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Search 2: Text search for "MAPPA"
+      const jikanUrl2 = `https://api.jikan.moe/v4/anime?q=mappa&order_by=score&sort=desc&limit=25`;
+      const jikanRes2 = await fetchWithTimeout(jikanUrl2, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes2.ok) {
+        const jikanData2 = await jikanRes2.json();
+        const animeList2 = jikanData2?.data || [];
+        
+        // Filter for actual MAPPA productions
+        const mappaAnimes = animeList2.filter((item: any) => {
+          const studios = getStringArray(item, 'studios', 'name') || [];
+          return studios.some((studio: string) => studio.toLowerCase().includes('mappa'));
+        });
+        
+        const animes2 = mappaAnimes.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['MAPPA'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality MAPPA production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes2);
+        console.log(`[MAPPA] Jikan query search found ${animes2.length} works`);
+      }
+      
+    } catch (e: any) {
+      console.error(`[MAPPA] Jikan error:`, e.message);
+    }
+    
+    // 3. Hardcoded list of famous MAPPA anime
+    try {
+      console.log(`[MAPPA] Adding famous MAPPA works...`);
+      
+      const famousMappaList = [
+        // Iconic Recent Series
+        { title: "Attack on Titan", year: 2013, rating: 9.0, genres: ["Action", "Drama", "Fantasy"], description: "Humanity fights for survival against giant humanoid Titans in a walled city." },
+        { title: "Jujutsu Kaisen", year: 2020, rating: 8.5, genres: ["Action", "Supernatural", "School"], description: "A high school student joins a secret organization to fight cursed spirits." },
+        { title: "Chainsaw Man", year: 2022, rating: 8.7, genres: ["Action", "Horror", "Supernatural"], description: "A young man merges with his pet devil to become Chainsaw Man and hunt other devils." },
+        { title: "Hell's Paradise", year: 2023, rating: 8.0, genres: ["Action", "Historical", "Supernatural"], description: "A ninja on death row is sent to a mysterious island to find the elixir of life." },
+        { title: "Vinland Saga", year: 2019, rating: 8.8, genres: ["Action", "Adventure", "Drama"], description: "A young Viking seeks revenge against the man who killed his father." },
+        { title: "Dororo", year: 2019, rating: 8.2, genres: ["Action", "Historical", "Supernatural"], description: "A young man born without limbs, organs, and skin fights demons to reclaim his body." },
+        { title: "Terror in Resonance", year: 2014, rating: 8.1, genres: ["Drama", "Psychological", "Thriller"], description: "Two teenage terrorists try to wake up Japan with their dangerous games." },
+        { title: "Yuri!!! on Ice", year: 2016, rating: 8.0, genres: ["Sports", "Drama", "Romance"], description: "A Japanese figure skater trains with a Russian coach to compete internationally." },
+        { title: "The God of High School", year: 2020, rating: 7.1, genres: ["Action", "Martial Arts", "Supernatural"], description: "High school students compete in a fighting tournament with supernatural powers." },
+        { title: "Banana Fish", year: 2018, rating: 8.3, genres: ["Action", "Drama", "Thriller"], description: "A young gang leader investigates a mysterious drug called Banana Fish." },
+        
+        // Action & Adventure
+        { title: "Kakegurui", year: 2017, rating: 7.2, genres: ["Drama", "Psychological", "School"], description: "Students at an elite academy settle their differences through high-stakes gambling." },
+        { title: "Rage of Bahamut: Genesis", year: 2014, rating: 7.4, genres: ["Action", "Adventure", "Fantasy"], description: "Humans, gods, and demons fight to prevent the resurrection of the ancient dragon Bahamut." },
+        { title: "Kids on the Slope", year: 2012, rating: 8.2, genres: ["Drama", "Music", "Romance"], description: "A shy student discovers jazz music and friendship in 1960s Japan." },
+        { title: "Punch Line", year: 2015, rating: 6.9, genres: ["Comedy", "Ecchi", "Supernatural"], description: "A high school boy's soul is separated from his body after seeing panties." },
+        { title: "Teekyuu", year: 2012, rating: 6.7, genres: ["Comedy", "School", "Sports"], description: "Four high school girls in a tennis club engage in surreal everyday adventures." },
+        { title: "Ushio and Tora", year: 2015, rating: 7.4, genres: ["Action", "Comedy", "Supernatural"], description: "A boy frees an ancient demon to fight other monsters threatening humanity." },
+        { title: "In This Corner of the World", year: 2016, rating: 8.2, genres: ["Drama", "Historical"], description: "A young woman's life in Hiroshima during World War II." },
+        { title: "Listeners", year: 2020, rating: 5.9, genres: ["Mecha", "Music", "Sci-Fi"], description: "A boy and a girl with a guitar-like appendage fight mysterious creatures with music." },
+        { title: "Zombieland Saga", year: 2018, rating: 7.5, genres: ["Comedy", "Music", "Supernatural"], description: "Seven zombie girls form an idol group to save Saga Prefecture." },
+        { title: "The Gymnastics Samurai", year: 2020, rating: 7.2, genres: ["Sports", "Drama"], description: "An aging gymnast faces retirement while caring for his daughter." },
+        
+        // Recent Works
+        { title: "Takt Op. Destiny", year: 2021, rating: 7.0, genres: ["Action", "Music", "Supernatural"], description: "Humans fight alien invaders using the power of classical music." },
+        { title: "Pluto", year: 2023, rating: 8.9, genres: ["Drama", "Mystery", "Sci-Fi"], description: "A detective investigates a series of murders involving both humans and robots." },
+        { title: "Alice & Zoroku", year: 2017, rating: 6.9, genres: ["Supernatural", "Drama"], description: "A girl with psychic powers escapes from a research facility and meets a gruff old man." },
+        { title: "Campfire Cooking in Another World", year: 2023, rating: 6.8, genres: ["Adventure", "Comedy", "Fantasy"], description: "A man summoned to another world uses modern cooking to tame legendary beasts." },
+        { title: "Bucchigiri?!", year: 2024, rating: 6.5, genres: ["Action", "Comedy", "School"], description: "A high school delinquent gains supernatural power and faces gang rivalries." }
+      ];
+      
+      const hardcodedAnimes = famousMappaList.map((item) => ({
+        title: item.title,
+        description: item.description,
+        posterUrl: '', // Will be enhanced with real posters via external API
+        genres: item.genres,
+        year: item.year,
+        rating: item.rating,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: ['MAPPA'],
+        themes: [],
+        reasoning: `High-quality MAPPA production`,
+        moodMatchScore: item.rating,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+
+      // Enhance hardcoded entries with real posters from external APIs
+      for (const anime of hardcodedAnimes) {
+        try {
+          const posterUrl = await fetchPosterWithFallbacks(anime.title, undefined, true);
+          if (posterUrl) {
+            anime.posterUrl = posterUrl;
+          } else {
+            // Fallback to placeholder only if no real poster found
+            anime.posterUrl = `https://placehold.co/600x900/e74c3c/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+          }
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (e) {
+          console.error(`[MAPPA] Error fetching poster for ${anime.title}:`, e);
+          anime.posterUrl = `https://placehold.co/600x900/e74c3c/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+        }
+      }
+      
+      addUniqueAnime(hardcodedAnimes);
+      console.log(`[MAPPA] Added ${hardcodedAnimes.length} hardcoded works`);
+      
+    } catch (e: any) {
+      console.error(`[MAPPA] Hardcoded list error:`, e.message);
+    }
+    
+    // Sort by rating and year
+    allMappaAnime.sort((a, b) => {
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      if (ratingA !== ratingB) return ratingB - ratingA;
+      return (b.year || 0) - (a.year || 0);
+    });
+    
+    const finalAnimes = allMappaAnime.slice(0, limit);
+    
+    console.log(`[MAPPA] ✅ Final collection: ${finalAnimes.length} unique MAPPA works`);
+    
+    if (finalAnimes.length === 0) {
+      return { 
+        animes: [], 
+        error: "Unable to fetch MAPPA anime from any source. Please try again later." 
+      };
+    }
+    
+    return { animes: finalAnimes };
+  }
+});
+
+// Internal function for cron job to refresh Bones cache
+export const refreshBonesCache = internalAction({
+  args: {},
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    animeCount: v.number()
+  }),
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; animeCount: number }> => {
+    try {
+      console.log('[Bones Cache] Starting scheduled refresh...');
+      
+      const result = await ctx.runAction(api.externalApis.fetchBonesAnime, { limit: 100 });
+      
+      if (result.error) {
+        console.error('[Bones Cache] Refresh failed:', result.error);
+        return {
+          success: false,
+          message: `Cache refresh failed: ${result.error}`,
+          animeCount: 0
+        };
+      }
+      
+      const animeCount = result.animes?.length || 0;
+      console.log(`[Bones Cache] Successfully refreshed cache with ${animeCount} anime`);
+      
+      return {
+        success: true,
+        message: `Successfully refreshed Bones cache with ${animeCount} anime`,
+        animeCount
+      };
+      
+    } catch (error: any) {
+      console.error('[Bones Cache] Unexpected error:', error);
+      return {
+        success: false,
+        message: `Cache refresh error: ${error.message}`,
+        animeCount: 0
+      };
+    }
+  }
+});
+
+export const fetchBonesAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx: ActionCtx, args): Promise<{ animes?: any[]; error?: string }> => {
+    const limit = args.limit ?? 100;
+    
+    console.log(`[Bones] Starting comprehensive fetch with limit: ${limit}`);
+    
+    let allBonesAnime: AnimeRecommendation[] = [];
+    const seenTitles = new Set<string>();
+    
+    // Helper function to add unique anime
+    const addUniqueAnime = (animes: AnimeRecommendation[]) => {
+      animes.forEach(anime => {
+        const normalizedTitle = anime.title.toLowerCase().trim();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          allBonesAnime.push(anime);
+        }
+      });
+    };
+    
+    // 1. AniList - Search for famous Bones titles
+    try {
+      console.log(`[Bones] Fetching from AniList...`);
+      
+      const famousTitles = [
+        "Fullmetal Alchemist", "My Hero Academia", "Soul Eater", "Mob Psycho 100", 
+        "Ouran High School Host Club", "Noragami", "Kekkai Sensen", "Darker than Black",
+        "Eureka Seven", "Wolf's Rain", "Scrapped Princess", "Carole & Tuesday",
+        "Space Dandy", "Star Driver", "Concrete Revolutio", "Bungo Stray Dogs"
+      ];
+
+      for (const title of famousTitles) {
+        try {
+          const titleQuery = `query ($search: String) { 
+            Page(page: 1, perPage: 3) { 
+              media(type: ANIME, search: $search, sort: [SCORE_DESC]) { 
+                id title { romaji english native } description(asHtml:false) 
+                startDate{ year month day } coverImage{ extraLarge large medium } 
+                averageScore genres episodes duration status format
+                studios { edges { node { name } isMain } }
+                trailer { id site }
+              } 
+            } 
+          }`;
+
+          const titleRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: titleQuery, variables: { search: title } }),
+            timeout: DEFAULT_TIMEOUT_MS
+          });
+
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            const titleMedia = titleData?.data?.Page?.media || [];
+            
+            // Filter for Bones productions
+            const bonesMedia = titleMedia.filter((item: any) => {
+              const studios = item.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+              return studios.some((studio: string) => studio.includes('bones'));
+            });
+
+            const titleAnimes = bonesMedia.map((item: any) => ({
+              title: item.title?.english || item.title?.romaji || item.title?.native || 'Unknown',
+              description: item.description || '',
+              posterUrl: item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || '',
+              genres: item.genres || [],
+              year: item.startDate?.year || undefined,
+              rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+              emotionalTags: [],
+              trailerUrl: item.trailer?.site === "youtube" && item.trailer?.id 
+                ? `https://www.youtube.com/watch?v=${item.trailer.id}` : '',
+              studios: item.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['Bones'],
+              themes: [],
+              reasoning: `High-quality Bones production`,
+              moodMatchScore: item.averageScore ? item.averageScore / 10 : 8.0,
+              _id: undefined,
+              foundInDatabase: false,
+              anilistId: item.id
+            })) as AnimeRecommendation[];
+
+            addUniqueAnime(titleAnimes);
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+          console.error(`[Bones] Error fetching ${title}:`, e);
+        }
+      }
+
+      console.log(`[Bones] AniList search found ${allBonesAnime.length} works after individual searches`);
+      
+    } catch (e: any) {
+      console.error(`[Bones] AniList error:`, e.message);
+    }
+    
+    // 2. Jikan (MyAnimeList) API - Multiple Bones searches
+    try {
+      console.log(`[Bones] Fetching from Jikan...`);
+      
+      // Search 1: Producer ID for Bones (ID: 4)
+      const jikanUrl1 = `https://api.jikan.moe/v4/anime?producers=4&order_by=score&sort=desc&limit=25`;
+      const jikanRes1 = await fetchWithTimeout(jikanUrl1, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes1.ok) {
+        const jikanData1 = await jikanRes1.json();
+        const animeList1 = jikanData1?.data || [];
+        
+        const animes1 = animeList1.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Bones'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Bones production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[Bones] Jikan producer search found ${animes1.length} works`);
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Search 2: Text search for "Bones"
+      const jikanUrl2 = `https://api.jikan.moe/v4/anime?q=bones&order_by=score&sort=desc&limit=25`;
+      const jikanRes2 = await fetchWithTimeout(jikanUrl2, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes2.ok) {
+        const jikanData2 = await jikanRes2.json();
+        const animeList2 = jikanData2?.data || [];
+        
+        // Filter for actual Bones productions
+        const bonesAnimes = animeList2.filter((item: any) => {
+          const studios = getStringArray(item, 'studios', 'name') || [];
+          return studios.some((studio: string) => studio.toLowerCase().includes('bones'));
+        });
+        
+        const animes2 = bonesAnimes.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Bones'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Bones production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes2);
+        console.log(`[Bones] Jikan query search found ${animes2.length} works`);
+      }
+      
+    } catch (e: any) {
+      console.error(`[Bones] Jikan error:`, e.message);
+    }
+    
+    // 3. Hardcoded list of famous Bones anime
+    try {
+      console.log(`[Bones] Adding famous Bones works...`);
+      
+      const famousBonesList = [
+        // Legendary Series
+        { title: "Fullmetal Alchemist: Brotherhood", year: 2009, rating: 9.1, genres: ["Action", "Adventure", "Drama"], description: "Two brothers use alchemy to search for the Philosopher's Stone after a disastrous attempt to bring their mother back to life." },
+        { title: "My Hero Academia", year: 2016, rating: 7.7, genres: ["Action", "School", "Superhero"], description: "A boy born without superpowers in a superhero society enrolls in a prestigious hero academy." },
+        { title: "Soul Eater", year: 2008, rating: 7.9, genres: ["Action", "Comedy", "Supernatural"], description: "Students at Death Weapon Meister Academy train to become skilled weapon-meister pairs." },
+        { title: "Mob Psycho 100", year: 2016, rating: 8.7, genres: ["Action", "Comedy", "Supernatural"], description: "A powerful psychic middle schooler tries to live a normal life while working for a fake psychic." },
+        { title: "Ouran High School Host Club", year: 2006, rating: 8.2, genres: ["Comedy", "Romance", "School"], description: "A scholarship student accidentally breaks an expensive vase and must work for the school's host club." },
+        { title: "Noragami", year: 2014, rating: 7.9, genres: ["Action", "Comedy", "Supernatural"], description: "A minor god does odd jobs for five yen while trying to build his own shrine." },
+        { title: "Kekkai Sensen", year: 2015, rating: 7.4, genres: ["Action", "Comedy", "Supernatural"], description: "Humans and monsters coexist in a city where reality is constantly in flux." },
+        { title: "Darker than Black", year: 2007, rating: 8.0, genres: ["Action", "Mystery", "Sci-Fi"], description: "Contractors with supernatural abilities emerge after a mysterious phenomenon changes the world." },
+        { title: "Eureka Seven", year: 2005, rating: 8.1, genres: ["Adventure", "Drama", "Mecha"], description: "A boy joins a rebel group and pilots a mecha while falling in love with a mysterious girl." },
+        { title: "Wolf's Rain", year: 2003, rating: 7.8, genres: ["Adventure", "Drama", "Fantasy"], description: "Wolves disguised as humans search for paradise in a post-apocalyptic world." },
+        
+        // Action & Adventure
+        { title: "Scrapped Princess", year: 2003, rating: 7.2, genres: ["Adventure", "Fantasy", "Sci-Fi"], description: "A girl prophesied to destroy the world at age 16 travels with her adoptive siblings." },
+        { title: "Carole & Tuesday", year: 2019, rating: 7.8, genres: ["Drama", "Music", "Sci-Fi"], description: "Two girls from different backgrounds form a music duo on Mars in the future." },
+        { title: "Space Dandy", year: 2014, rating: 8.1, genres: ["Adventure", "Comedy", "Sci-Fi"], description: "A dandy alien hunter searches the galaxy for undiscovered species with his robot and cat-like alien." },
+        { title: "Star Driver", year: 2010, rating: 7.3, genres: ["Action", "Mecha", "School"], description: "A boy transfers to an island school and becomes involved in battles with giant mechs called Cybodies." },
+        { title: "Concrete Revolutio", year: 2015, rating: 6.9, genres: ["Action", "Mystery", "Superhero"], description: "A government agency monitors superhumans in an alternate history Japan." },
+        { title: "Bungo Stray Dogs", year: 2016, rating: 7.8, genres: ["Action", "Mystery", "Supernatural"], description: "A boy with a mysterious power joins a detective agency of individuals with supernatural abilities." },
+        { title: "RahXephon", year: 2002, rating: 7.2, genres: ["Drama", "Mecha", "Mystery"], description: "A boy pilots a giant mech to fight invaders while questioning the nature of reality." },
+        { title: "Un-Go", year: 2011, rating: 7.2, genres: ["Mystery", "Supernatural", "Thriller"], description: "A detective and his supernatural partner solve mysteries in post-war Japan." },
+        { title: "Captain Earth", year: 2014, rating: 6.1, genres: ["Action", "Mecha", "Sci-Fi"], description: "Teenagers pilot giant robots to protect Earth from alien invaders." },
+        { title: "Psalms of Planets Eureka Seven", year: 2005, rating: 8.1, genres: ["Adventure", "Drama", "Mecha"], description: "A boy joins a rebel group and learns to pilot a mecha in a world of sky surfing." },
+        
+        // Comedy & Slice of Life
+        { title: "Ouran High School Host Club", year: 2006, rating: 8.2, genres: ["Comedy", "Romance", "School"], description: "A scholarship student works for a host club after breaking an expensive vase." },
+        { title: "Gosick", year: 2011, rating: 7.9, genres: ["Drama", "Mystery", "Romance"], description: "A Japanese exchange student in 1920s Europe solves mysteries with a brilliant but reclusive girl." },
+        { title: "Zetsuen no Tempest", year: 2012, rating: 7.5, genres: ["Action", "Drama", "Mystery"], description: "Two friends become involved in a battle between two powerful mages that could determine the fate of the world." },
+        { title: "Show By Rock!!", year: 2015, rating: 6.9, genres: ["Comedy", "Music", "Fantasy"], description: "A girl is transported to a world where music battles determine everything." },
+        { title: "Chaika: The Coffin Princess", year: 2014, rating: 7.1, genres: ["Action", "Adventure", "Fantasy"], description: "A mysterious girl with a coffin hires saboteurs to help her collect the remains of a dead emperor." }
+      ];
+      
+      const hardcodedAnimes = famousBonesList.map((item) => ({
+        title: item.title,
+        description: item.description,
+        posterUrl: '', // Will be enhanced with real posters via external API
+        genres: item.genres,
+        year: item.year,
+        rating: item.rating,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: ['Bones'],
+        themes: [],
+        reasoning: `High-quality Bones production`,
+        moodMatchScore: item.rating,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+
+      // Enhance hardcoded entries with real posters from external APIs
+      for (const anime of hardcodedAnimes) {
+        try {
+          const posterUrl = await fetchPosterWithFallbacks(anime.title, undefined, true);
+          if (posterUrl) {
+            anime.posterUrl = posterUrl;
+          } else {
+            // Fallback to placeholder only if no real poster found
+            anime.posterUrl = `https://placehold.co/600x900/3498db/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+          }
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (e) {
+          console.error(`[Bones] Error fetching poster for ${anime.title}:`, e);
+          anime.posterUrl = `https://placehold.co/600x900/3498db/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+        }
+      }
+      
+      addUniqueAnime(hardcodedAnimes);
+      console.log(`[Bones] Added ${hardcodedAnimes.length} hardcoded works`);
+      
+    } catch (e: any) {
+      console.error(`[Bones] Hardcoded list error:`, e.message);
+    }
+    
+    // Sort by rating and year
+    allBonesAnime.sort((a, b) => {
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      if (ratingA !== ratingB) return ratingB - ratingA;
+      return (b.year || 0) - (a.year || 0);
+    });
+    
+    const finalAnimes = allBonesAnime.slice(0, limit);
+    
+    console.log(`[Bones] ✅ Final collection: ${finalAnimes.length} unique Bones works`);
+    
+    if (finalAnimes.length === 0) {
+      return { 
+        animes: [], 
+        error: "Unable to fetch Bones anime from any source. Please try again later." 
+      };
+    }
+    
+    return { animes: finalAnimes };
+  }
+});
+
+export const fetchKyotoAnimationAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx, args) => {
+    const limit = args.limit ?? 100;
+    
+    console.log(`[KyoAni] Starting comprehensive fetch with limit: ${limit}`);
+    
+    let allKyoAniAnime: AnimeRecommendation[] = [];
+    const seenTitles = new Set<string>();
+    
+    // Helper function to add unique anime
+    const addUniqueAnime = (animes: AnimeRecommendation[]) => {
+      animes.forEach(anime => {
+        const normalizedTitle = anime.title.toLowerCase().trim();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          allKyoAniAnime.push(anime);
+        }
+      });
+    };
+    
+    // 1. AniList - Search for famous Kyoto Animation titles
+    try {
+      console.log(`[KyoAni] Fetching from AniList...`);
+      
+      const famousTitles = [
+        "K-On!", "Clannad", "Violet Evergarden", "A Silent Voice", "The Melancholy of Haruhi Suzumiya",
+        "Lucky Star", "Hyouka", "Free!", "Tamako Market", "Beyond the Boundary", "Kyoto Animation",
+        "Dragon Maid", "Nichijou", "Full Metal Panic", "Amagi Brilliant Park", "Phantom World"
+      ];
+
+      for (const title of famousTitles) {
+        try {
+          const titleQuery = `query ($search: String) { 
+            Page(page: 1, perPage: 3) { 
+              media(type: ANIME, search: $search, sort: [SCORE_DESC]) { 
+                id title { romaji english native } description(asHtml:false) 
+                startDate{ year month day } coverImage{ extraLarge large medium } 
+                averageScore genres episodes duration status format
+                studios { edges { node { name } isMain } }
+                trailer { id site }
+              } 
+            } 
+          }`;
+
+          const titleRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: titleQuery, variables: { search: title } }),
+            timeout: DEFAULT_TIMEOUT_MS
+          });
+
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            const titleMedia = titleData?.data?.Page?.media || [];
+            
+            // Filter for Kyoto Animation productions
+            const kyoaniMedia = titleMedia.filter((item: any) => {
+              const studios = item.studios?.edges?.map((edge: any) => edge.node.name.toLowerCase()) || [];
+              return studios.some((studio: string) => 
+                studio.includes('kyoto animation') || studio.includes('kyoani')
+              );
+            });
+
+            const titleAnimes = kyoaniMedia.map((item: any) => ({
+              title: item.title?.english || item.title?.romaji || item.title?.native || 'Unknown',
+              description: item.description || '',
+              posterUrl: item.coverImage?.extraLarge || item.coverImage?.large || item.coverImage?.medium || '',
+              genres: item.genres || [],
+              year: item.startDate?.year || undefined,
+              rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+              emotionalTags: [],
+              trailerUrl: item.trailer?.site === "youtube" && item.trailer?.id 
+                ? `https://www.youtube.com/watch?v=${item.trailer.id}` : '',
+              studios: item.studios?.edges?.map((edge: any) => edge.node.name).filter(Boolean) || ['Kyoto Animation'],
+              themes: [],
+              reasoning: `High-quality Kyoto Animation production`,
+              moodMatchScore: item.averageScore ? item.averageScore / 10 : 8.0,
+              _id: undefined,
+              foundInDatabase: false,
+              anilistId: item.id
+            })) as AnimeRecommendation[];
+
+            addUniqueAnime(titleAnimes);
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (e) {
+          console.error(`[KyoAni] Error fetching ${title}:`, e);
+        }
+      }
+
+      console.log(`[KyoAni] AniList search found ${allKyoAniAnime.length} works after individual searches`);
+      
+    } catch (e: any) {
+      console.error(`[KyoAni] AniList error:`, e.message);
+    }
+    
+    // 2. Jikan (MyAnimeList) API - Multiple Kyoto Animation searches
+    try {
+      console.log(`[KyoAni] Fetching from Jikan...`);
+      
+      // Search 1: Producer ID for Kyoto Animation (ID: 2)
+      const jikanUrl1 = `https://api.jikan.moe/v4/anime?producers=2&order_by=score&sort=desc&limit=25`;
+      const jikanRes1 = await fetchWithTimeout(jikanUrl1, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes1.ok) {
+        const jikanData1 = await jikanRes1.json();
+        const animeList1 = jikanData1?.data || [];
+        
+        const animes1 = animeList1.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Kyoto Animation'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Kyoto Animation production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes1);
+        console.log(`[KyoAni] Jikan producer search found ${animes1.length} works`);
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Search 2: Text search for "Kyoto Animation"
+      const jikanUrl2 = `https://api.jikan.moe/v4/anime?q=kyoto+animation&order_by=score&sort=desc&limit=25`;
+      const jikanRes2 = await fetchWithTimeout(jikanUrl2, { timeout: DEFAULT_TIMEOUT_MS });
+      
+      if (jikanRes2.ok) {
+        const jikanData2 = await jikanRes2.json();
+        const animeList2 = jikanData2?.data || [];
+        
+        // Filter for actual Kyoto Animation productions
+        const kyoaniAnimes = animeList2.filter((item: any) => {
+          const studios = getStringArray(item, 'studios', 'name') || [];
+          return studios.some((studio: string) => 
+            studio.toLowerCase().includes('kyoto animation') || studio.toLowerCase().includes('kyoani')
+          );
+        });
+        
+        const animes2 = kyoaniAnimes.map((item: any) => ({
+          title: item.title || item.title_english || item.title_japanese || 'Unknown',
+          description: item.synopsis || '',
+          posterUrl: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || item.images?.webp?.large_image_url || item.images?.webp?.image_url || '',
+          genres: getStringArray(item, 'genres', 'name') || [],
+          year: item.year || (item.aired?.from ? new Date(item.aired.from).getFullYear() : undefined),
+          rating: item.score || undefined,
+          emotionalTags: [],
+          trailerUrl: item.trailer?.url || '',
+          studios: getStringArray(item, 'studios', 'name') || ['Kyoto Animation'],
+          themes: getStringArray(item, 'themes', 'name') || [],
+          reasoning: `High-quality Kyoto Animation production`,
+          moodMatchScore: item.score || 8.0,
+          _id: undefined,
+          foundInDatabase: false,
+          malId: item.mal_id
+        })) as AnimeRecommendation[];
+        
+        addUniqueAnime(animes2);
+        console.log(`[KyoAni] Jikan query search found ${animes2.length} works`);
+      }
+      
+    } catch (e: any) {
+      console.error(`[KyoAni] Jikan error:`, e.message);
+    }
+    
+    // 3. Hardcoded list of famous Kyoto Animation anime
+    try {
+      console.log(`[KyoAni] Adding famous Kyoto Animation works...`);
+      
+      const famousKyoAniList = [
+        // Legendary Series
+        { title: "Clannad", year: 2007, rating: 8.0, genres: ["Drama", "Romance", "School"], description: "A delinquent student meets a girl who wants to revive the school's drama club." },
+        { title: "Clannad: After Story", year: 2008, rating: 9.0, genres: ["Drama", "Romance", "Slice of Life"], description: "The continuation of Clannad focusing on adult life and family." },
+        { title: "Violet Evergarden", year: 2018, rating: 8.5, genres: ["Drama", "Fantasy", "Slice of Life"], description: "A former soldier works as an Auto Memory Doll, writing letters for others." },
+        { title: "A Silent Voice", year: 2016, rating: 8.9, genres: ["Drama", "Romance", "School"], description: "A former bully seeks redemption by helping the deaf girl he once tormented." },
+        { title: "The Melancholy of Haruhi Suzumiya", year: 2006, rating: 7.8, genres: ["Comedy", "Mystery", "School"], description: "A girl unknowingly has the power to change reality and forms a club to find supernatural phenomena." },
+        { title: "K-On!", year: 2009, rating: 7.2, genres: ["Comedy", "Music", "School"], description: "High school girls form a light music club and learn to play instruments together." },
+        { title: "K-On!!", year: 2010, rating: 8.2, genres: ["Comedy", "Music", "School"], description: "The continuation of K-On! following the girls through their final year of high school." },
+        { title: "Hyouka", year: 2012, rating: 8.1, genres: ["Mystery", "School", "Slice of Life"], description: "A high school student reluctantly joins the Classic Literature Club and solves everyday mysteries." },
+        { title: "Lucky Star", year: 2007, rating: 7.7, genres: ["Comedy", "School", "Slice of Life"], description: "Four high school girls discuss otaku culture and everyday life." },
+        { title: "Free!", year: 2013, rating: 7.3, genres: ["Drama", "School", "Sports"], description: "High school boys reunite to form a swimming club and compete in tournaments." },
+        
+        // Drama & Romance
+        { title: "Tamako Market", year: 2013, rating: 7.2, genres: ["Comedy", "Slice of Life"], description: "A girl helps run her family's mochi shop in a traditional shopping district." },
+        { title: "Tamako Love Story", year: 2014, rating: 7.9, genres: ["Drama", "Romance"], description: "The movie continuation of Tamako Market focusing on a love story." },
+        { title: "Beyond the Boundary", year: 2013, rating: 7.2, genres: ["Action", "Fantasy", "Supernatural"], description: "A half-human, half-youmu boy meets a girl who can manipulate her blood as a weapon." },
+        { title: "Miss Kobayashi's Dragon Maid", year: 2017, rating: 7.9, genres: ["Comedy", "Fantasy", "Slice of Life"], description: "An office worker lives with a dragon who transforms into a maid." },
+        { title: "Nichijou", year: 2011, rating: 8.4, genres: ["Comedy", "School", "Slice of Life"], description: "The daily lives of a group of high school students and their absurd situations." },
+        { title: "Full Metal Panic!", year: 2002, rating: 7.6, genres: ["Action", "Comedy", "Mecha"], description: "A military specialist goes undercover as a high school student to protect a girl." },
+        { title: "Full Metal Panic? Fumoffu", year: 2003, rating: 8.1, genres: ["Action", "Comedy", "School"], description: "The comedic side story of Full Metal Panic focusing on school life." },
+        { title: "Full Metal Panic! The Second Raid", year: 2005, rating: 8.0, genres: ["Action", "Drama", "Mecha"], description: "The serious continuation of Full Metal Panic with more intense military action." },
+        { title: "Amagi Brilliant Park", year: 2014, rating: 7.0, genres: ["Comedy", "Magic"], description: "A narcissistic boy must help save a magical theme park from closing down." },
+        { title: "Phantom World", year: 2016, rating: 6.8, genres: ["Action", "Comedy", "Supernatural"], description: "Students with special abilities fight phantoms that have appeared in the world." },
+        
+        // Movies & Specials
+        { title: "The Disappearance of Haruhi Suzumiya", year: 2010, rating: 8.7, genres: ["Drama", "Mystery", "Supernatural"], description: "Kyon wakes up in a world where Haruhi and the SOS Brigade never existed." },
+        { title: "Liz and the Blue Bird", year: 2018, rating: 7.8, genres: ["Drama", "Music", "School"], description: "Two high school girls in a concert band face their changing friendship." },
+        { title: "Free! Road to the World - The Dream", year: 2019, rating: 7.6, genres: ["Drama", "Sports"], description: "The movie continuation of the Free! series." },
+        { title: "Violet Evergarden: The Movie", year: 2020, rating: 8.6, genres: ["Drama", "Fantasy"], description: "The movie conclusion to the Violet Evergarden series." },
+        { title: "Tsurune", year: 2018, rating: 7.6, genres: ["Drama", "School", "Sports"], description: "High school boys practice Japanese archery and compete in tournaments." }
+      ];
+      
+      const hardcodedAnimes = famousKyoAniList.map((item) => ({
+        title: item.title,
+        description: item.description,
+        posterUrl: '', // Will be enhanced with real posters via external API
+        genres: item.genres,
+        year: item.year,
+        rating: item.rating,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: ['Kyoto Animation'],
+        themes: [],
+        reasoning: `High-quality Kyoto Animation production`,
+        moodMatchScore: item.rating,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+
+      // Enhance hardcoded entries with real posters from external APIs
+      for (const anime of hardcodedAnimes) {
+        try {
+          const posterUrl = await fetchPosterWithFallbacks(anime.title, undefined, true);
+          if (posterUrl) {
+            anime.posterUrl = posterUrl;
+          } else {
+            // Fallback to placeholder only if no real poster found
+            anime.posterUrl = `https://placehold.co/600x900/e74c3c/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+          }
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (e) {
+          console.error(`[KyoAni] Error fetching poster for ${anime.title}:`, e);
+          anime.posterUrl = `https://placehold.co/600x900/e74c3c/ffffff/png?text=${encodeURIComponent(anime.title.substring(0, 20))}&font=roboto`;
+        }
+      }
+      
+      addUniqueAnime(hardcodedAnimes);
+      console.log(`[KyoAni] Added ${hardcodedAnimes.length} hardcoded works`);
+      
+    } catch (e: any) {
+      console.error(`[KyoAni] Hardcoded list error:`, e.message);
+    }
+    
+    // Sort by rating and year
+    allKyoAniAnime.sort((a, b) => {
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+      if (ratingA !== ratingB) return ratingB - ratingA;
+      return (b.year || 0) - (a.year || 0);
+    });
+    
+    const finalAnimes = allKyoAniAnime.slice(0, limit);
+    
+    console.log(`[KyoAni] ✅ Final collection: ${finalAnimes.length} unique Kyoto Animation works`);
+    
+    if (finalAnimes.length === 0) {
+      return { 
+        animes: [], 
+        error: "Unable to fetch Kyoto Animation anime from any source. Please try again later." 
+      };
+    }
+    
+    return { animes: finalAnimes };
+  }
+});
+
+// Refresh Kyoto Animation cache
+export const refreshKyotoAnimationCache = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    try {
+      console.log('[KyoAni Cache] Starting cache refresh...');
+      
+      const result = await ctx.runAction(api.externalApis.fetchKyotoAnimationAnime, { limit: 100 });
+      
+      if (result.error) {
+        console.error('[KyoAni Cache] Cache refresh failed:', result.error);
+        return null;
+      }
+
+      const animes = result.animes || [];
+      console.log(`[KyoAni Cache] ✅ Successfully refreshed cache with ${animes.length} anime`);
+      
+      return null;
+    } catch (error: any) {
+      console.error('[KyoAni Cache] Cache refresh error:', error);
+      return null;
+    }
+  }
+});

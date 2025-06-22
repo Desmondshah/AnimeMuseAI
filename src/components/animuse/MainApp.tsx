@@ -18,6 +18,11 @@ import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
 import CharacterDetailPage from "./onboarding/CharacterDetailPage";
+import StudioGhibliPage from "./StudioGhibliPage";
+import MadhousePage from "./MadhousePage";
+import MappaPage from "./MappaPage";
+import BonesPage from "./BonesPage";
+import KyotoAnimationPage from "./KyotoAnimationPage";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./shared/PageTransition";
 import Carousel from "./shared/Carousel";
@@ -82,7 +87,7 @@ export type ValidViewName =
   | "dashboard" | "ai_assistant" | "anime_detail" | "my_list"
   | "browse" | "admin_dashboard" | "profile_settings"
   | "custom_lists_overview" | "custom_list_detail" | "moodboard_page"
-  | "character_detail"; // NEW: Add character detail view
+  | "character_detail" | "studio_ghibli" | "madhouse" | "mappa" | "bones" | "kyoto_animation"; // NEW: Add character detail view, Studio Ghibli page, Madhouse page, MAPPA page, Bones page, and Kyoto Animation page
 
 export type CurrentView = ValidViewName;
 
@@ -203,6 +208,10 @@ export default function MainApp() {
   const fetchTrendingAnimeAction = useAction(api.externalApis.fetchTrendingAnime);
   const fetchTopRatedAnimeAction = useAction(api.externalApis.fetchTopRatedAnime);
   const fetchPopularAnimeAction = useAction(api.externalApis.fetchPopularAnime);
+  const fetchBingeableAnimeAction = useAction(api.externalApis.fetchBingeableAnime);
+  const fetchRetroClassicAnimeAction = useAction(api.externalApis.fetchRetroClassicAnime);
+  const fetchHorrorAnimeAction = useAction(api.externalApis.fetchHorrorAnime);
+  const fetchTrueCrimeAnimeAction = useAction(api.externalApis.fetchTrueCrimeAnime);
 
 
   const { shouldReduceAnimations } = useMobileOptimizations();
@@ -254,6 +263,10 @@ export default function MainApp() {
   const [trendingAnime, setTrendingAnime] = useState<AnimeRecommendation[]>([]);
   const [topAnime, setTopAnime] = useState<AnimeRecommendation[]>([]);
   const [popularAnime, setPopularAnime] = useState<AnimeRecommendation[]>([]);
+  const [bingeableAnime, setBingeableAnime] = useState<AnimeRecommendation[]>([]);
+  const [retroClassicAnime, setRetroClassicAnime] = useState<AnimeRecommendation[]>([]);
+  const [horrorAnime, setHorrorAnime] = useState<AnimeRecommendation[]>([]);
+  const [trueCrimeAnime, setTrueCrimeAnime] = useState<AnimeRecommendation[]>([]);
   const loopedPopularAnime = useMemo(
     () => popularAnime.length ? [...popularAnime, ...popularAnime, ...popularAnime] : [],
     [popularAnime]
@@ -346,6 +359,11 @@ export default function MainApp() {
     navigateTo("custom_list_detail"); 
     setSelectedCustomListId(listId); 
   }, [navigateTo]);
+  const navigateToStudioGhibli = useCallback(() => navigateTo("studio_ghibli"), [navigateTo]);
+  const navigateToMadhouse = useCallback(() => navigateTo("madhouse"), [navigateTo]);
+  const navigateToMappa = useCallback(() => navigateTo("mappa"), [navigateTo]);
+  const navigateToBones = useCallback(() => navigateTo("bones"), [navigateTo]);
+  const navigateToKyotoAnimation = useCallback(() => navigateTo("kyoto_animation"), [navigateTo]);
 
   const handleTabChange = (view: ValidViewName) => {
     // Character detail should not be accessible via bottom tabs
@@ -554,13 +572,29 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
           const res = await fetchPopularAnimeAction({ limit: 10 });
           setPopularAnime(res.animes || []);
         }
+        if (bingeableAnime.length === 0) {
+          const res = await fetchBingeableAnimeAction({ limit: 10 });
+          setBingeableAnime(res.animes || []);
+        }
+        if (retroClassicAnime.length === 0) {
+          const res = await fetchRetroClassicAnimeAction({ limit: 10 });
+          setRetroClassicAnime(res.animes || []);
+        }
+        if (horrorAnime.length === 0) {
+          const res = await fetchHorrorAnimeAction({ limit: 10 });
+          setHorrorAnime(res.animes || []);
+        }
+        if (trueCrimeAnime.length === 0) {
+          const res = await fetchTrueCrimeAnimeAction({ limit: 10 });
+          setTrueCrimeAnime(res.animes || []);
+        }
       } catch (e) {
         console.error("[MainApp] Failed fetching anime lists", e);
       }
     };
 
     fetchLists();
-  }, [currentView, trendingAnime.length, topAnime.length, popularAnime.length, fetchTrendingAnimeAction, fetchTopRatedAnimeAction, fetchPopularAnimeAction]);
+  }, [currentView, trendingAnime.length, topAnime.length, popularAnime.length, bingeableAnime.length, retroClassicAnime.length, horrorAnime.length, trueCrimeAnime.length, fetchTrendingAnimeAction, fetchTopRatedAnimeAction, fetchPopularAnimeAction, fetchBingeableAnimeAction, fetchRetroClassicAnimeAction, fetchHorrorAnimeAction, fetchTrueCrimeAnimeAction]);
 
 
   // Enhanced useEffect with better duplicate prevention
@@ -963,6 +997,82 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           </motion.div>
         </div>
 
+        {/* Popular Anime Studios */}
+        <div className="flex justify-center mt-8">
+          <div className="max-w-lg">
+            {/* Top row - 3 studios */}
+            <div className="flex justify-center gap-4 mb-4">
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -2 }}
+                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+                onClick={navigateToStudioGhibli}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-400/40 to-emerald-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-green-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-green-400/60 transition-all duration-300 shadow-lg">
+                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🌿 Studio Ghibli</span>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: 1 }}
+                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+                onClick={navigateToMadhouse}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-red-400/40 to-orange-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-red-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-red-400/60 transition-all duration-300 shadow-lg">
+                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🏠 Madhouse</span>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -1 }}
+                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+                onClick={navigateToMappa}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-400/40 to-pink-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-purple-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-purple-400/60 transition-all duration-300 shadow-lg">
+                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">⚡ MAPPA</span>
+                </div>
+              </motion.div>
+            </div>
+            
+            {/* Bottom row - 2 studios */}
+            <div className="flex justify-center gap-4">
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: 2 }}
+                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+                onClick={navigateToBones}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/40 to-cyan-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-blue-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-blue-400/60 transition-all duration-300 shadow-lg">
+                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🦴 Bones</span>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -2 }}
+                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+                onClick={navigateToKyotoAnimation}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-r from-brand-accent-gold/40 to-yellow-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-yellow-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-brand-accent-gold/60 transition-all duration-300 shadow-lg">
+                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🏛️ Kyoto Animation</span>
+                </div>
+              </motion.div>
+            </div>
+            
+            {/* Subtle subtitle */}
+            <div className="text-center mt-4">
+              <span className="text-xs text-white/40 italic">Legendary Animation Studios</span>
+            </div>
+          </div>
+        </div>
+
         {/* Enhanced Personalized Recommendations Section */}
         {userProfile?.onboardingCompleted &&
           forYouCategories.filter(cat => cat.id === "generalPersonalized").map((category) => (
@@ -1234,6 +1344,170 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           </div>
         )}
 
+        {bingeableAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">📺 Bingeable Series</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={20}
+              loop={true}
+              grabCursor={true}
+              speed={300}
+              resistance={false}
+              watchSlidesProgress={false}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                padding: '0 5%',
+                willChange: 'transform',
+                touchAction: 'pan-y pinch-zoom',
+              }}
+            >
+              {bingeableAnime.map((a, i) => (
+                <SwiperSlide
+                  key={`bingeable-${i}`}
+                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
+                  style={{
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
+        {retroClassicAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🎞️ Retro/Classic</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={20}
+              loop={true}
+              grabCursor={true}
+              speed={300}
+              resistance={false}
+              watchSlidesProgress={false}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                padding: '0 5%',
+                willChange: 'transform',
+                touchAction: 'pan-y pinch-zoom',
+              }}
+            >
+              {retroClassicAnime.map((a, i) => (
+                <SwiperSlide
+                  key={`retro-${i}`}
+                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
+                  style={{
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
+        {horrorAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">👻 Horror</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={20}
+              loop={true}
+              grabCursor={true}
+              speed={300}
+              resistance={false}
+              watchSlidesProgress={false}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                padding: '0 5%',
+                willChange: 'transform',
+                touchAction: 'pan-y pinch-zoom',
+              }}
+            >
+              {horrorAnime.map((a, i) => (
+                <SwiperSlide
+                  key={`horror-${i}`}
+                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
+                  style={{
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
+        {trueCrimeAnime.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-left">
+              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🔍 True Crime</h2>
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+            </div>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={20}
+              loop={true}
+              grabCursor={true}
+              speed={300}
+              resistance={false}
+              watchSlidesProgress={false}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                padding: '0 5%',
+                willChange: 'transform',
+                touchAction: 'pan-y pinch-zoom',
+              }}
+            >
+              {trueCrimeAnime.map((a, i) => (
+                <SwiperSlide
+                  key={`truecrime-${i}`}
+                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
+                  style={{
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
         {/* Admin Section */}
         {isUserAdmin && (
           <div className="text-center">
@@ -1478,6 +1752,51 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             onBack={navigateBack}
           />
         ) : <LoadingSpinner className="text-white" />;
+
+      // NEW: STUDIO GHIBLI CASE
+      case "studio_ghibli":
+        return (
+          <StudioGhibliPage 
+            onViewAnimeDetail={navigateToDetail}
+            onBack={navigateBack}
+          />
+        );
+
+      // NEW: MADHOUSE CASE
+      case "madhouse":
+        return (
+          <MadhousePage 
+            onViewAnimeDetail={navigateToDetail}
+            onBack={navigateBack}
+          />
+        );
+
+      // NEW: MAPPA CASE
+      case "mappa":
+        return (
+          <MappaPage 
+            onViewAnimeDetail={navigateToDetail}
+            onBack={navigateBack}
+          />
+        );
+
+      // NEW: BONES CASE
+      case "bones":
+        return (
+          <BonesPage 
+            onViewAnimeDetail={navigateToDetail}
+            onBack={navigateBack}
+          />
+        );
+
+      // NEW: KYOTO ANIMATION CASE
+      case "kyoto_animation":
+        return (
+          <KyotoAnimationPage 
+            onViewAnimeDetail={navigateToDetail}
+            onBack={navigateBack}
+          />
+        );
       
       case "my_list": 
         return (
