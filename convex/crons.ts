@@ -194,45 +194,7 @@ crons.daily(
 );
 
 // ===== STUDIO CACHE REFRESH =====
-
-// Refresh Studio Ghibli cache every 24 hours to keep data fresh
-crons.interval(
-  "refreshStudioGhibliCache",
-  { hours: 24 }, // Every 24 hours
-  internal.externalApis.refreshStudioGhibliCache,
-  {}
-);
-
-// Refresh Madhouse cache every 24 hours to keep data fresh
-crons.interval(
-  "refreshMadhouseCache",
-  { hours: 24 }, // Every 24 hours
-  internal.externalApis.refreshMadhouseCache,
-  {}
-);
-
-// Refresh MAPPA cache every 24 hours to keep data fresh
-crons.interval(
-  "refreshMappaCache",
-  { hours: 24 }, // Every 24 hours
-  internal.externalApis.refreshMappaCache,
-  {}
-);
-
-// Refresh Bones anime cache every 24 hours
-crons.interval(
-  "refreshBonesCache",
-  { hours: 24 }, // Every 24 hours
-  internal.externalApis.refreshBonesCache,
-  {}
-);
-
-// Refresh Kyoto Animation cache every 24 hours
-crons.interval(
-  "refreshKyotoAnimationCache",
-  { hours: 24 }, // Every 24 hours
-  internal.externalApis.refreshKyotoAnimationCache,
-  {}
-);
+// NOTE: Studio pages now use database-only approach - no external API calls needed
+// This eliminates quota issues and provides instant loading from existing data
 
 export default crons;
