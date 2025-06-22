@@ -7,6 +7,98 @@ import AnimeCard from "./AnimeCard";
 import Carousel from "./shared/Carousel";
 import { ArrowLeft } from "lucide-react";
 
+// Hardcoded fallback data for Kyoto Animation - always available instantly
+const FALLBACK_KYOANI_ANIME: AnimeRecommendation[] = [
+  {
+    _id: 'violet-evergarden',
+    title: 'Violet Evergarden',
+    description: 'A former soldier learns to write letters and understand emotions.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1795/95088.jpg',
+    rating: 8.5,
+    year: 2018,
+    genres: ['Drama', 'Fantasy', 'Slice of Life'],
+    reasoning: 'Kyoto Animation emotional masterpiece',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'a-silent-voice',
+    title: 'A Silent Voice',
+    description: 'A former bully seeks redemption with a deaf classmate.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1122/96435.jpg',
+    rating: 8.9,
+    year: 2016,
+    genres: ['Drama', 'Romance', 'School'],
+    reasoning: 'Kyoto Animation heartfelt film',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'clannad-after-story',
+    title: 'Clannad: After Story',
+    description: 'The continuation of Tomoya and Nagisa\'s love story.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1299/110774.jpg',
+    rating: 9.0,
+    year: 2008,
+    genres: ['Drama', 'Romance', 'Slice of Life'],
+    reasoning: 'Kyoto Animation legendary drama',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'k-on',
+    title: 'K-On!',
+    description: 'High school girls form a light music club.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/10/76121.jpg',
+    rating: 7.8,
+    year: 2009,
+    genres: ['Comedy', 'Music', 'School'],
+    reasoning: 'Kyoto Animation slice of life classic',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'haruhi-suzumiya',
+    title: 'The Melancholy of Haruhi Suzumiya',
+    description: 'A high school student unknowingly has reality-altering powers.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/5/75849.jpg',
+    rating: 7.8,
+    year: 2006,
+    genres: ['Comedy', 'Mystery', 'School'],
+    reasoning: 'Kyoto Animation supernatural comedy',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'sound-euphonium',
+    title: 'Sound! Euphonium',
+    description: 'A high school concert band strives for excellence.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1524/111766.jpg',
+    rating: 8.0,
+    year: 2015,
+    genres: ['Drama', 'Music', 'School'],
+    reasoning: 'Kyoto Animation music drama',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'hyouka',
+    title: 'Hyouka',
+    description: 'A curious student gets drawn into solving mysteries.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/13/50521.jpg',
+    rating: 8.1,
+    year: 2012,
+    genres: ['Mystery', 'School', 'Slice of Life'],
+    reasoning: 'Kyoto Animation mystery series',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'dragon-maid',
+    title: 'Miss Kobayashi\'s Dragon Maid',
+    description: 'A programmer lives with a dragon who becomes her maid.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/5/85434.jpg',
+    rating: 7.9,
+    year: 2017,
+    genres: ['Comedy', 'Fantasy', 'Slice of Life'],
+    reasoning: 'Kyoto Animation comedy fantasy',
+    moodMatchScore: 0.80
+  }
+];
+
 interface KyotoAnimationPageProps {
   onViewAnimeDetail: (animeId: Id<"anime">) => void;
   onBack: () => void;
@@ -75,25 +167,34 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
 
       const anime = result.animes || [];
       
-      // Update state
-      setAllKyotoAnimationAnime(anime);
-      organizeAnimeIntoCategories(anime);
-      setError(null);
-      
-      console.log(`[KyoAni] Successfully loaded ${anime.length} anime from database`);
+      // If we got real data from database, use it; otherwise keep fallback
+      if (anime.length > 0) {
+        setAllKyotoAnimationAnime(anime);
+        organizeAnimeIntoCategories(anime);
+        setError(null);
+        console.log(`[KyoAni] Successfully loaded ${anime.length} anime from database`);
+      } else {
+        console.log('[KyoAni] No anime found in database, using fallback data');
+      }
 
     } catch (err: any) {
       console.error('[KyoAni] Fetch error:', err);
-      setError(err.message || 'Failed to load Kyoto Animation anime');
+      setError(err.message || 'Using fallback data due to fetch error');
     }
   }, [fetchKyotoAnimationAnime, organizeAnimeIntoCategories]);
 
-  // Initialize data on component mount
+  // Initialize with fallback data immediately, then fetch from database
   useEffect(() => {
+    // Show fallback data instantly
+    console.log('[KyoAni] Loading page with instant fallback data...');
+    setAllKyotoAnimationAnime(FALLBACK_KYOANI_ANIME);
+    organizeAnimeIntoCategories(FALLBACK_KYOANI_ANIME);
+    
+    // Then fetch real data from database in background
     fetchKyotoAnimationData().catch(err => {
-      console.error('[KyoAni] Initial fetch failed:', err);
+      console.error('[KyoAni] Background fetch failed:', err);
     });
-  }, [fetchKyotoAnimationData]);
+  }, [fetchKyotoAnimationData, organizeAnimeIntoCategories]);
 
 
 

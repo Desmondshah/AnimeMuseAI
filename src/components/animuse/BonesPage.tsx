@@ -7,6 +7,184 @@ import AnimeCard from "./AnimeCard";
 import Carousel from "./shared/Carousel";
 import { ArrowLeft } from "lucide-react";
 
+// Hardcoded fallback data for Studio Bones - covers all categories instantly
+const FALLBACK_BONES_ANIME: AnimeRecommendation[] = [
+  // LEGENDARY MASTERPIECES (High rating 8.5+ or famous titles)
+  {
+    _id: 'fullmetal-alchemist-brotherhood',
+    title: 'Fullmetal Alchemist: Brotherhood',
+    description: 'Two brothers search for the Philosopher\'s Stone to restore their bodies.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1223/96541.jpg',
+    rating: 9.1,
+    year: 2009,
+    genres: ['Action', 'Adventure', 'Drama'],
+    reasoning: 'Studio Bones legendary masterpiece',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'mob-psycho-100',
+    title: 'Mob Psycho 100',
+    description: 'A psychic middle schooler tries to live a normal life.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/8/80356.jpg',
+    rating: 8.7,
+    year: 2016,
+    genres: ['Action', 'Comedy', 'Supernatural'],
+    reasoning: 'Studio Bones supernatural masterpiece',
+    moodMatchScore: 0.90
+  },
+  {
+    _id: 'soul-eater',
+    title: 'Soul Eater',
+    description: 'Students train to become Death Scythes and their wielders.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/3/14037.jpg',
+    rating: 8.5,
+    year: 2008,
+    genres: ['Action', 'Comedy', 'Supernatural'],
+    reasoning: 'Studio Bones action classic',
+    moodMatchScore: 0.85
+  },
+  
+  // RECENT WORKS (2018+)
+  {
+    _id: 'my-hero-academia-s4',
+    title: 'My Hero Academia Season 4',
+    description: 'Heroes face their greatest challenges yet.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1412/108005.jpg',
+    rating: 8.0,
+    year: 2019,
+    genres: ['Action', 'School', 'Superhero'],
+    reasoning: 'Studio Bones recent hit',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'carole-tuesday',
+    title: 'Carole & Tuesday',
+    description: 'Two girls pursue their musical dreams on Mars.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1709/99009.jpg',
+    rating: 7.8,
+    year: 2019,
+    genres: ['Drama', 'Music', 'Sci-Fi'],
+    reasoning: 'Studio Bones musical drama',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'sk8-infinity',
+    title: 'SK8 the Infinity',
+    description: 'High school students compete in underground skateboarding races.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1630/117876.jpg',
+    rating: 8.0,
+    year: 2021,
+    genres: ['Sports', 'School'],
+    reasoning: 'Studio Bones recent sports anime',
+    moodMatchScore: 0.80
+  },
+  
+  // ACTION & ADVENTURE
+  {
+    _id: 'star-driver',
+    title: 'Star Driver',
+    description: 'A student pilots a giant mecha to protect his island.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/9/75195.jpg',
+    rating: 7.3,
+    year: 2010,
+    genres: ['Action', 'Mecha', 'School'],
+    reasoning: 'Studio Bones mecha action',
+    moodMatchScore: 0.75
+  },
+  {
+    _id: 'concrete-revolutio',
+    title: 'Concrete Revolutio',
+    description: 'Superhumans struggle with justice in an alternate Japan.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1820/111986.jpg',
+    rating: 7.2,
+    year: 2015,
+    genres: ['Action', 'Drama', 'Superhero'],
+    reasoning: 'Studio Bones superhero action',
+    moodMatchScore: 0.75
+  },
+  {
+    _id: 'blood-blockade-battlefront',
+    title: 'Blood Blockade Battlefront',
+    description: 'Agents fight supernatural threats in New York.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/7/72809.jpg',
+    rating: 7.7,
+    year: 2015,
+    genres: ['Action', 'Adventure', 'Supernatural'],
+    reasoning: 'Studio Bones supernatural action',
+    moodMatchScore: 0.80
+  },
+  
+  // SUPERNATURAL & FANTASY
+  {
+    _id: 'darker-than-black',
+    title: 'Darker than Black',
+    description: 'Contractors with supernatural abilities work in the shadows.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/7/21757.jpg',
+    rating: 8.1,
+    year: 2007,
+    genres: ['Action', 'Mystery', 'Supernatural'],
+    reasoning: 'Studio Bones dark supernatural thriller',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'noragami',
+    title: 'Noragami',
+    description: 'A minor god seeks to build his own shrine.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1886/119640.jpg',
+    rating: 7.9,
+    year: 2014,
+    genres: ['Action', 'Adventure', 'Supernatural'],
+    reasoning: 'Studio Bones supernatural adventure',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'wolf-rain',
+    title: 'Wolf\'s Rain',
+    description: 'Wolves search for paradise in a post-apocalyptic world.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/6/75193.jpg',
+    rating: 8.0,
+    year: 2003,
+    genres: ['Adventure', 'Drama', 'Fantasy'],
+    reasoning: 'Studio Bones fantasy epic',
+    moodMatchScore: 0.80
+  },
+  
+  // ADDITIONAL CLASSICS
+  {
+    _id: 'ouran-high-school-host-club',
+    title: 'Ouran High School Host Club',
+    description: 'A scholarship student joins a host club at an elite school.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1208/94745.jpg',
+    rating: 8.2,
+    year: 2006,
+    genres: ['Comedy', 'Romance', 'School'],
+    reasoning: 'Studio Bones romantic comedy',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'eureka-seven',
+    title: 'Eureka Seven',
+    description: 'A boy joins a rebel group and pilots a mecha.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1/1116.jpg',
+    rating: 8.1,
+    year: 2005,
+    genres: ['Adventure', 'Drama', 'Mecha'],
+    reasoning: 'Studio Bones mecha epic',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'space-dandy',
+    title: 'Space Dandy',
+    description: 'A pompadoured alien hunter searches the galaxy.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/12/75195.jpg',
+    rating: 7.8,
+    year: 2014,
+    genres: ['Adventure', 'Comedy', 'Sci-Fi'],
+    reasoning: 'Studio Bones space comedy',
+    moodMatchScore: 0.75
+  }
+];
+
 interface BonesPageProps {
   onViewAnimeDetail: (animeId: Id<"anime">) => void;
   onBack: () => void;
@@ -104,22 +282,32 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
       }
 
       const animes = result.animes || [];
-      const organizedCategories = organizeAnimeIntoCategories(animes);
       
-      setCategories(organizedCategories);
-      
-      console.log(`Successfully organized ${animes.length} Bones anime into categories`);
+      // If we got real data from database, use it; otherwise keep fallback
+      if (animes.length > 0) {
+        const organizedCategories = organizeAnimeIntoCategories(animes);
+        setCategories(organizedCategories);
+        console.log(`Successfully organized ${animes.length} Bones anime from database`);
+      } else {
+        console.log('No Bones anime found in database, using fallback data');
+      }
 
     } catch (err) {
       console.error('Error fetching Bones anime:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch Bones anime');
+      setError(err instanceof Error ? err.message : 'Using fallback data due to fetch error');
     }
   }, [fetchBonesAnimeAction, organizeAnimeIntoCategories]);
 
-  // Initialize data on component mount
+  // Initialize with fallback data immediately, then fetch from database
   useEffect(() => {
+    // Show fallback data instantly
+    console.log('Loading Bones page with instant fallback data...');
+    const fallbackCategories = organizeAnimeIntoCategories(FALLBACK_BONES_ANIME);
+    setCategories(fallbackCategories);
+    
+    // Then fetch real data from database in background
     fetchBonesData();
-  }, [fetchBonesData]);
+  }, [fetchBonesData, organizeAnimeIntoCategories]);
 
 
 
