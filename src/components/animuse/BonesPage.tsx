@@ -26,37 +26,11 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
     recent: [],
     supernatural: []
   });
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBonesAnimeAction = useAction(api.externalApis.fetchBonesAnime);
 
-  // Cache management
-  const getCachedData = useCallback(() => {
-    const cached = localStorage.getItem('bones-anime-cache');
-    if (cached) {
-      try {
-        const { data, timestamp } = JSON.parse(cached);
-        return { data, timestamp };
-      } catch (e) {
-        console.error('Error parsing cached Bones data:', e);
-      }
-    }
-    return null;
-  }, []);
 
-  const setCachedData = useCallback((data: AnimeRecommendation[]) => {
-    const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem('bones-anime-cache', JSON.stringify(cacheData));
-  }, []);
-
-  const isDataStale = useCallback((timestamp: number) => {
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-    return Date.now() - timestamp > TWENTY_FOUR_HOURS;
-  }, []);
 
   // Organize anime into categories
   const organizeAnimeIntoCategories = useCallback((animes: AnimeRecommendation[]): BonesCategories => {
@@ -116,23 +90,12 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
     };
   }, []);
 
-  // Fetch Bones data with cache management
+  // Fetch Bones data from database
   const fetchBonesData = useCallback(async () => {
     try {
       setError(null);
 
-      // Check cache first
-      const cached = getCachedData();
-      if (cached && !isDataStale(cached.timestamp)) {
-        console.log('Using cached Bones data');
-        const organizedCategories = organizeAnimeIntoCategories(cached.data);
-        setCategories(organizedCategories);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch fresh data
-      console.log('Fetching fresh Bones anime data...');
+      console.log('Fetching Bones anime from database...');
       
       const result = await fetchBonesAnimeAction({ limit: 100 });
       
@@ -144,78 +107,21 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
       const organizedCategories = organizeAnimeIntoCategories(animes);
       
       setCategories(organizedCategories);
-      setCachedData(animes);
       
       console.log(`Successfully organized ${animes.length} Bones anime into categories`);
 
     } catch (err) {
       console.error('Error fetching Bones anime:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch Bones anime');
-      
-      // Try to use cached data as fallback
-      const cached = getCachedData();
-      if (cached) {
-        console.log('Using cached data as fallback');
-        const organizedCategories = organizeAnimeIntoCategories(cached.data);
-        setCategories(organizedCategories);
-      }
-    } finally {
-      setIsLoading(false);
     }
-  }, [fetchBonesAnimeAction, getCachedData, isDataStale, organizeAnimeIntoCategories, setCachedData]);
+  }, [fetchBonesAnimeAction, organizeAnimeIntoCategories]);
 
   // Initialize data on component mount
   useEffect(() => {
     fetchBonesData();
   }, [fetchBonesData]);
 
-  if (isLoading && !categories.legendary.length) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-800 to-blue-700 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>Back</span>
-            </button>
-          </div>
-          
-          <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <h2 className="text-2xl font-bold text-blue-300 mb-2">Loading Studio Bones Collection</h2>
-            <p className="text-blue-200">Discovering legendary anime masterpieces...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (error && !categories.legendary.length) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-800 to-blue-700 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>Back</span>
-            </button>
-          </div>
-          
-          <div className="text-center py-20">
-            <div className="text-red-400 text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-red-300 mb-2">Failed to Load Bones Collection</h2>
-            <p className="text-red-200 mb-6">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const totalAnime = categories.legendary.length + categories.action.length + 
                    categories.recent.length + categories.supernatural.length;
@@ -338,7 +244,7 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
         </div>
 
         {/* Empty State */}
-        {totalAnime === 0 && !isLoading && (
+        {totalAnime === 0 && (
           <div className="text-center py-20">
             <div className="text-blue-400 text-6xl mb-4">🎬</div>
             <h2 className="text-2xl font-bold text-blue-300 mb-2">No Bones Anime Found</h2>

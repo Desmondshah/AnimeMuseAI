@@ -12,66 +12,15 @@ interface KyotoAnimationPageProps {
   onBack: () => void;
 }
 
-// Cache configuration
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-const CACHE_KEY = 'kyoto_animation_anime_cache';
 
-interface CachedKyotoAnimationData {
-  anime: AnimeRecommendation[];
-  timestamp: number;
-  version: string;
-}
 
 const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [allKyotoAnimationAnime, setAllKyotoAnimationAnime] = useState<AnimeRecommendation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetched, setLastFetched] = useState<number | null>(null);
-  const [hasInitialData, setHasInitialData] = useState(false);
 
   const fetchKyotoAnimationAnime = useAction(api.externalApis.fetchKyotoAnimationAnime);
 
-  // Cache management functions
-  const getCachedData = useCallback((): CachedKyotoAnimationData | null => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (!cached) return null;
-      
-      const data: CachedKyotoAnimationData = JSON.parse(cached);
-      const now = Date.now();
-      
-      // Check if cache is still valid
-      if (now - data.timestamp > CACHE_DURATION) {
-        localStorage.removeItem(CACHE_KEY);
-        return null;
-      }
-      
-      return data;
-    } catch (error) {
-      console.warn('[KyoAni] Cache read error:', error);
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-  }, []);
 
-  const setCachedData = useCallback((anime: AnimeRecommendation[]) => {
-    try {
-      const cacheData: CachedKyotoAnimationData = {
-        anime,
-        timestamp: Date.now(),
-        version: '1.0.0'
-      };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-      setLastFetched(Date.now());
-    } catch (error) {
-      console.warn('[KyoAni] Cache write error:', error);
-    }
-  }, []);
-
-  const isDataStale = useCallback((): boolean => {
-    if (!lastFetched) return true;
-    return (Date.now() - lastFetched) > CACHE_DURATION;
-  }, [lastFetched]);
 
   // Organize anime by categories
   const [categories, setCategories] = useState<{
@@ -112,30 +61,11 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
     });
   }, []);
 
-  const fetchKyotoAnimationData = useCallback(async (forceRefresh: boolean = false) => {
+  const fetchKyotoAnimationData = useCallback(async () => {
     try {
       setError(null);
-
-      // Check cache first (unless forcing refresh)
-      if (!forceRefresh) {
-        const cachedData = getCachedData();
-        if (cachedData && cachedData.anime.length > 0) {
-          console.log('[KyoAni] Loading from cache...');
-          setAllKyotoAnimationAnime(cachedData.anime);
-          setLastFetched(cachedData.timestamp);
-          organizeAnimeIntoCategories(cachedData.anime);
-          setError(null);
-          setHasInitialData(true);
-          return;
-        }
-      }
-
-      // Only show loading if we don't have initial data
-      if (!hasInitialData) {
-        setIsLoading(true);
-      }
       
-      console.log('[KyoAni] Fetching from API...');
+      console.log('[KyoAni] Fetching from database...');
       const result = await fetchKyotoAnimationAnime({ limit: 100 });
       
       if (result.error) {
@@ -145,102 +75,27 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
 
       const anime = result.animes || [];
       
-      if (anime.length === 0) {
-        setError('No Kyoto Animation anime found');
-        return;
-      }
-
-      // Update state and cache
+      // Update state
       setAllKyotoAnimationAnime(anime);
-      setCachedData(anime);
       organizeAnimeIntoCategories(anime);
       setError(null);
-      setHasInitialData(true);
       
-      console.log(`[KyoAni] Successfully fetched ${anime.length} anime`);
+      console.log(`[KyoAni] Successfully loaded ${anime.length} anime from database`);
 
     } catch (err: any) {
       console.error('[KyoAni] Fetch error:', err);
       setError(err.message || 'Failed to load Kyoto Animation anime');
-      
-      // Try to fall back to cache if available
-      const cachedData = getCachedData();
-      if (cachedData && cachedData.anime.length > 0) {
-        console.log('[KyoAni] Falling back to cached data...');
-        setAllKyotoAnimationAnime(cachedData.anime);
-        setLastFetched(cachedData.timestamp);
-        organizeAnimeIntoCategories(cachedData.anime);
-        setError('Using cached data - refresh failed');
-        setHasInitialData(true);
-      }
-    } finally {
-      setIsLoading(false);
     }
-  }, [fetchKyotoAnimationAnime, getCachedData, setCachedData, organizeAnimeIntoCategories, hasInitialData]);
+  }, [fetchKyotoAnimationAnime, organizeAnimeIntoCategories]);
 
-  // Smart initialization with background refresh
+  // Initialize data on component mount
   useEffect(() => {
-    // Check cache first for instant loading
-    const cachedData = getCachedData();
-    if (cachedData && cachedData.anime.length > 0) {
-      console.log('[KyoAni] Loading from cache instantly...');
-      setAllKyotoAnimationAnime(cachedData.anime);
-      setLastFetched(cachedData.timestamp);
-      organizeAnimeIntoCategories(cachedData.anime);
-      setError(null);
-      setHasInitialData(true);
-      // Cache found - no need to fetch, cron jobs handle refreshing
-    } else {
-      // No cache available, fetch immediately
-      console.log('[KyoAni] No cache found, fetching from API...');
-      fetchKyotoAnimationData().catch(err => {
-        console.error('[KyoAni] Initial fetch failed:', err);
-      });
-    }
-  }, [fetchKyotoAnimationData, getCachedData, organizeAnimeIntoCategories, isDataStale]);
+    fetchKyotoAnimationData().catch(err => {
+      console.error('[KyoAni] Initial fetch failed:', err);
+    });
+  }, [fetchKyotoAnimationData]);
 
-  // Loading state
-  if (isLoading && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900/20 via-black to-pink-900/20 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-transparent border-t-purple-400 border-r-pink-600 rounded-full animate-spin"></div>
-            <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-purple-300 border-l-white/50 rounded-full animate-spin animate-reverse"></div>
-            <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-600 rounded-full animate-pulse"></div>
-          </div>
-          <p className="text-xl text-white font-medium animate-pulse mt-4">Loading Kyoto Animation Excellence...</p>
-          <p className="text-sm text-white/60">Gathering heartfelt masterpieces</p>
-        </div>
-      </div>
-    );
-  }
 
-  if (error && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900/20 via-black to-pink-900/20 flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-heading text-white mb-4">Oops!</h2>
-          <p className="text-white/80 mb-6">{error}</p>
-          <div className="space-x-4">
-            <button
-              onClick={() => fetchKyotoAnimationData(true)}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={onBack}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900/20 via-black to-pink-900/20">
@@ -398,14 +253,7 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
             </section>
           )}
 
-          {/* Error Banner */}
-          {error && hasInitialData && (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 text-center">
-              <p className="text-red-300">
-                ⚠️ Some data may be outdated. Using cached results. {error}
-              </p>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
