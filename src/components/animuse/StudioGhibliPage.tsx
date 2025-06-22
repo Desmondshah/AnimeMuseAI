@@ -8,6 +8,98 @@ import Carousel from "./shared/Carousel";
 import AnimeCard from "./AnimeCard";
 import { Id } from "../../../convex/_generated/dataModel";
 
+// Hardcoded fallback data for Studio Ghibli - always available instantly
+const FALLBACK_GHIBLI_ANIME: AnimeRecommendation[] = [
+  {
+    _id: 'spirited-away',
+    title: 'Spirited Away',
+    description: 'A magical adventure of a young girl in a spirit world.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/6/79597.jpg',
+    rating: 9.3,
+    year: 2001,
+    genres: ['Adventure', 'Drama', 'Family'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'princess-mononoke',
+    title: 'Princess Mononoke',
+    description: 'A tale of war between humans and nature.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/7/75919.jpg',
+    rating: 8.7,
+    year: 1997,
+    genres: ['Adventure', 'Drama'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.90
+  },
+  {
+    _id: 'howls-moving-castle',
+    title: "Howl's Moving Castle",
+    description: 'A young woman cursed with old age seeks to break the spell.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/5/75810.jpg',
+    rating: 8.2,
+    year: 2004,
+    genres: ['Adventure', 'Drama', 'Romance'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'my-neighbor-totoro',
+    title: 'My Neighbor Totoro',
+    description: 'Two sisters discover magical creatures in the countryside.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/4/75923.jpg',
+    rating: 8.2,
+    year: 1988,
+    genres: ['Adventure', 'Family'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'kikis-delivery-service',
+    title: "Kiki's Delivery Service",
+    description: 'A young witch starts her own delivery service.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/9/75915.jpg',
+    rating: 7.9,
+    year: 1989,
+    genres: ['Adventure', 'Drama', 'Family'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'castle-in-the-sky',
+    title: 'Castle in the Sky',
+    description: 'A young girl and boy search for a legendary floating castle.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/3/75914.jpg',
+    rating: 8.0,
+    year: 1986,
+    genres: ['Adventure', 'Drama'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.80
+  },
+  {
+    _id: 'nausicaa',
+    title: 'Nausicaä of the Valley of the Wind',
+    description: 'A princess fights to save her world from ecological disaster.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/4/75918.jpg',
+    rating: 8.4,
+    year: 1984,
+    genres: ['Adventure', 'Drama'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'ponyo',
+    title: 'Ponyo',
+    description: 'A magical fish girl befriends a human boy.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/6/75912.jpg',
+    rating: 7.7,
+    year: 2008,
+    genres: ['Adventure', 'Family'],
+    reasoning: 'Studio Ghibli masterpiece',
+    moodMatchScore: 0.75
+  }
+];
+
 interface StudioGhibliPageProps {
   onViewAnimeDetail: (animeId: Id<"anime">) => void;
   onBack: () => void;
@@ -32,7 +124,6 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
 
   const fetchStudioGhibliAnime = useAction(api.externalApis.fetchStudioGhibliAnime);
   const fetchInProgressRef = useRef<boolean>(false);
-  const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache management functions
   const getCachedData = useCallback((): CachedGhibliData | null => {
@@ -183,86 +274,38 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
 
 
 
-  // Smart initialization with background refresh
+  // Always show content immediately - no loading states
   useEffect(() => {
-    if (debouncedFetchRef.current) {
-      clearTimeout(debouncedFetchRef.current);
+    // Check cache first
+    const cachedData = getCachedData();
+    if (cachedData && cachedData.anime.length > 0) {
+      console.log('[Studio Ghibli] Loading from cache instantly...');
+      setAllGhibliAnime(cachedData.anime);
+      setLastFetched(cachedData.timestamp);
+      organizeAnimeIntoCategories(cachedData.anime);
+      setError(null);
+      setHasInitialData(true);
+    } else {
+      // No cache - show fallback data immediately, then fetch in background
+      console.log('[Studio Ghibli] No cache found, showing fallback data...');
+      setAllGhibliAnime(FALLBACK_GHIBLI_ANIME);
+      organizeAnimeIntoCategories(FALLBACK_GHIBLI_ANIME);
+      setError(null);
+      setHasInitialData(true);
+      
+      // Fetch real data in background without showing loading
+      fetchGhibliData(false);
     }
-
-    debouncedFetchRef.current = setTimeout(() => {
-             // Check cache first for instant loading
-       const cachedData = getCachedData();
-       if (cachedData && cachedData.anime.length > 0) {
-         console.log('[Studio Ghibli] Loading from cache instantly...');
-         setAllGhibliAnime(cachedData.anime);
-         setLastFetched(cachedData.timestamp);
-         organizeAnimeIntoCategories(cachedData.anime);
-         setError(null);
-         setHasInitialData(true);
-         // Cache found - no need to fetch, cron jobs handle refreshing
-       } else {
-         // No cache, fetch immediately
-         console.log('[Studio Ghibli] No cache found, fetching from API...');
-         fetchGhibliData(false);
-       }
-    }, 100); // Small debounce
-
-    return () => {
-      if (debouncedFetchRef.current) {
-        clearTimeout(debouncedFetchRef.current);
-      }
-    };
-     }, [fetchGhibliData, getCachedData, organizeAnimeIntoCategories, isDataStale]);
+  }, [getCachedData, organizeAnimeIntoCategories, fetchGhibliData]);
 
 
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (debouncedFetchRef.current) {
-        clearTimeout(debouncedFetchRef.current);
-      }
       fetchInProgressRef.current = false;
     };
   }, []);
-
-
-
-  if (isLoading && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900/20 via-black to-emerald-900/20 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-transparent border-t-green-400 border-r-emerald-600 rounded-full animate-spin"></div>
-            <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-green-300 border-l-white/50 rounded-full animate-spin animate-reverse"></div>
-            <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-600 rounded-full animate-pulse"></div>
-          </div>
-          <p className="text-xl text-white font-medium animate-pulse mt-4">Loading Studio Ghibli Magic...</p>
-          <p className="text-sm text-white/60">Gathering masterpieces</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900/20 via-black to-emerald-900/20 flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-heading text-white mb-4">Oops!</h2>
-          <p className="text-white/80 mb-6">{error}</p>
-          <div className="space-x-4">
-            <StyledButton onClick={() => fetchGhibliData(true)} variant="primary">
-              Try Again
-            </StyledButton>
-            <StyledButton onClick={onBack} variant="secondary">
-              Go Back
-            </StyledButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900/20 via-black to-emerald-900/20">
@@ -324,29 +367,6 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
 
         {/* Content Sections */}
         <div className="max-w-7xl mx-auto space-y-16">
-          
-          {/* Show placeholder sections when loading for the first time */}
-          {isLoading && !hasInitialData && (
-            <div className="space-y-16">
-              {[1, 2, 3, 4].map((section) => (
-                <section key={section}>
-                  <div className="mb-8">
-                    <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse"></div>
-                    <div className="h-0.5 w-24 bg-white/20 mt-2"></div>
-                  </div>
-                  <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                    <div className="flex gap-4 overflow-hidden">
-                      {[1, 2, 3, 4, 5].map((item) => (
-                        <div key={item} className="flex-shrink-0 w-48 sm:w-52">
-                          <div className="aspect-[2/3] bg-white/10 rounded-2xl animate-pulse"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
           
           {/* Iconic Films */}
           {categories.films.length > 0 && (

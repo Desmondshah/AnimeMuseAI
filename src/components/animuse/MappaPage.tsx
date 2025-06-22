@@ -8,6 +8,98 @@ import Carousel from "./shared/Carousel";
 import AnimeCard from "./AnimeCard";
 import { Id } from "../../../convex/_generated/dataModel";
 
+// Hardcoded fallback data for MAPPA - always available instantly
+const FALLBACK_MAPPA_ANIME: AnimeRecommendation[] = [
+  {
+    _id: 'attack-on-titan-s4',
+    title: 'Attack on Titan: The Final Season',
+    description: 'The epic conclusion to the Attack on Titan saga.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1000/110531.jpg',
+    rating: 9.0,
+    year: 2020,
+    genres: ['Action', 'Drama', 'Fantasy'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'jujutsu-kaisen',
+    title: 'Jujutsu Kaisen',
+    description: 'A high school student joins a secret organization of Jujutsu Sorcerers.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1171/109222.jpg',
+    rating: 8.6,
+    year: 2020,
+    genres: ['Action', 'School', 'Supernatural'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.90
+  },
+  {
+    _id: 'chainsaw-man',
+    title: 'Chainsaw Man',
+    description: 'A young man becomes a devil hunter to pay off his debt.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1806/126216.jpg',
+    rating: 8.8,
+    year: 2022,
+    genres: ['Action', 'Supernatural'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.90
+  },
+  {
+    _id: 'hell-paradise',
+    title: 'Hell\'s Paradise',
+    description: 'A ninja seeks the elixir of immortality on a mysterious island.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1630/134701.jpg',
+    rating: 8.2,
+    year: 2023,
+    genres: ['Action', 'Historical', 'Supernatural'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'vinland-saga',
+    title: 'Vinland Saga',
+    description: 'A young Viking warrior seeks revenge in medieval Europe.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1775/103929.jpg',
+    rating: 9.0,
+    year: 2019,
+    genres: ['Action', 'Adventure', 'Drama', 'Historical'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.95
+  },
+  {
+    _id: 'dororo',
+    title: 'Dororo',
+    description: 'A young man reclaims his body parts from demons.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1180/95018.jpg',
+    rating: 8.2,
+    year: 2019,
+    genres: ['Action', 'Adventure', 'Drama', 'Historical'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.85
+  },
+  {
+    _id: 'zombie-land-saga',
+    title: 'Zombie Land Saga',
+    description: 'Zombie girls form an idol group to save Saga Prefecture.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/1198/93893.jpg',
+    rating: 7.5,
+    year: 2018,
+    genres: ['Comedy', 'Music', 'Supernatural'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.75
+  },
+  {
+    _id: 'yuri-on-ice',
+    title: 'Yuri!!! on Ice',
+    description: 'A figure skater aims for the Grand Prix with his idol as coach.',
+    posterUrl: 'https://cdn.myanimelist.net/images/anime/8/81102.jpg',
+    rating: 8.0,
+    year: 2016,
+    genres: ['Drama', 'Sports'],
+    reasoning: 'MAPPA masterpiece',
+    moodMatchScore: 0.80
+  }
+];
+
 interface MappaPageProps {
   onViewAnimeDetail: (animeId: Id<"anime">) => void;
   onBack: () => void;
@@ -32,7 +124,6 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
 
   const fetchMappaAnime = useAction(api.externalApis.fetchMappaAnime);
   const fetchInProgressRef = useRef<boolean>(false);
-  const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cache management functions
   const getCachedData = useCallback((): CachedMappaData | null => {
@@ -91,22 +182,20 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
 
   const organizeAnimeIntoCategories = useCallback((anime: AnimeRecommendation[]) => {
     const legendary = anime.filter((a: AnimeRecommendation) => 
-      a.rating && a.rating >= 8.5 || a.title.toLowerCase().includes('attack on titan') || 
-      a.title.toLowerCase().includes('jujutsu kaisen') || a.title.toLowerCase().includes('chainsaw man') ||
-      a.title.toLowerCase().includes('vinland saga') || a.title.toLowerCase().includes('hell\'s paradise')
+      a.rating && a.rating >= 8.5 || a.title.includes('Attack on Titan') || a.title.includes('Vinland')
     );
     const action = anime.filter((a: AnimeRecommendation) => 
-      a.genres?.some(g => ['Action', 'Adventure', 'Supernatural', 'Martial Arts'].includes(g))
+      a.genres?.includes('Action') || a.genres?.includes('Supernatural')
     );
     const recent = anime.filter((a: AnimeRecommendation) => a.year && a.year >= 2020);
     const mature = anime.filter((a: AnimeRecommendation) => 
-      a.genres?.some(g => ['Drama', 'Psychological', 'Thriller', 'Horror'].includes(g))
+      a.genres?.includes('Drama') || a.title.includes('Chainsaw') || a.title.includes('Hell')
     );
 
     setCategories({
-      legendary: legendary.slice(0, 12),
+      legendary: legendary.slice(0, 8),
       action: action.slice(0, 10),
-      recent: recent.slice(0, 10),
+      recent: recent.slice(0, 8),
       mature: mature.slice(0, 8)
     });
   }, []);
@@ -186,38 +275,36 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
     }
   }, [fetchMappaAnime, getCachedData, setCachedData, organizeAnimeIntoCategories, hasInitialData]);
 
-  // Smart initialization with background refresh
+  // Always show content immediately - no loading states
   useEffect(() => {
-    if (debouncedFetchRef.current) {
-      clearTimeout(debouncedFetchRef.current);
+    // Check cache first
+    const cachedData = getCachedData();
+    if (cachedData && cachedData.anime.length > 0) {
+      console.log('[MAPPA] Loading from cache instantly...');
+      setAllMappaAnime(cachedData.anime);
+      setLastFetched(cachedData.timestamp);
+      organizeAnimeIntoCategories(cachedData.anime);
+      setError(null);
+      setHasInitialData(true);
+    } else {
+      // No cache - show fallback data immediately, then fetch in background
+      console.log('[MAPPA] No cache found, showing fallback data...');
+      setAllMappaAnime(FALLBACK_MAPPA_ANIME);
+      organizeAnimeIntoCategories(FALLBACK_MAPPA_ANIME);
+      setError(null);
+      setHasInitialData(true);
+      
+      // Fetch real data in background without showing loading
+      fetchMappaData(false);
     }
+  }, [getCachedData, organizeAnimeIntoCategories, fetchMappaData]);
 
-    debouncedFetchRef.current = setTimeout(() => {
-      // Check cache first for instant loading
-      const cachedData = getCachedData();
-      if (cachedData && cachedData.anime.length > 0) {
-        console.log('[MAPPA] Loading from cache instantly...');
-        setAllMappaAnime(cachedData.anime);
-        setLastFetched(cachedData.timestamp);
-        organizeAnimeIntoCategories(cachedData.anime);
-        setError(null);
-        setHasInitialData(true);
-        // Cache found - no need to fetch, cron jobs handle refreshing
-      } else {
-        // No cache available, fetch immediately
-        console.log('[MAPPA] No cache found, fetching from API...');
-        fetchMappaData().catch(err => {
-          console.error('[MAPPA] Initial fetch failed:', err);
-        });
-      }
-    }, 50); // Short debounce to avoid rapid calls
-
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      if (debouncedFetchRef.current) {
-        clearTimeout(debouncedFetchRef.current);
-      }
+      fetchInProgressRef.current = false;
     };
-  }, [fetchMappaData, getCachedData, organizeAnimeIntoCategories, isDataStale]);
+  }, []);
 
   const handleRefresh = useCallback(() => {
     fetchMappaData(true);
@@ -231,43 +318,6 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
     if (hours > 0) return `${hours}h ${minutes % 60}m ago`;
     return `${minutes}m ago`;
   }, []);
-
-  // Loading state
-  if (isLoading && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900/20 via-black to-purple-900/20 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-transparent border-t-red-400 border-r-purple-600 rounded-full animate-spin"></div>
-            <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-red-300 border-l-white/50 rounded-full animate-spin animate-reverse"></div>
-            <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-red-400 to-purple-600 rounded-full animate-pulse"></div>
-          </div>
-          <p className="text-xl text-white font-medium animate-pulse mt-4">Loading MAPPA Excellence...</p>
-          <p className="text-sm text-white/60">Gathering modern masterpieces</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !hasInitialData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900/20 via-black to-purple-900/20 flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-heading text-white mb-4">Oops!</h2>
-          <p className="text-white/80 mb-6">{error}</p>
-          <div className="space-x-4">
-            <StyledButton onClick={handleRefresh} variant="primary">
-              Try Again
-            </StyledButton>
-            <StyledButton onClick={onBack} variant="secondary">
-              Go Back
-            </StyledButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900/20 via-black to-purple-900/20">
@@ -322,36 +372,11 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
             <div className="text-sm text-red-400">
               {allMappaAnime.length} modern masterpieces found
             </div>
-            
-
           </div>
         </div>
 
         {/* Content Sections */}
         <div className="max-w-7xl mx-auto space-y-16">
-          
-          {/* Show placeholder sections when loading for the first time */}
-          {isLoading && !hasInitialData && (
-            <div className="space-y-16">
-              {[1, 2, 3, 4].map((section) => (
-                <section key={section}>
-                  <div className="mb-8">
-                    <div className="h-8 w-48 bg-white/10 rounded-lg animate-pulse"></div>
-                    <div className="h-0.5 w-24 bg-white/20 mt-2"></div>
-                  </div>
-                  <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                    <div className="flex gap-4 overflow-hidden">
-                      {[1, 2, 3, 4, 5].map((item) => (
-                        <div key={item} className="flex-shrink-0 w-48 sm:w-52">
-                          <div className="aspect-[2/3] bg-white/10 rounded-2xl animate-pulse"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
           
           {/* Legendary Works */}
           {categories.legendary.length > 0 && (
