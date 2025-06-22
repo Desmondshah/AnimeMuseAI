@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import StreamingOverlay from './StreamingOverlay';
 
 // iOS-Native CSS Styles
 const iOSStyles = `
@@ -752,6 +753,11 @@ export const EnhancedEpisodesTab: React.FC<{
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentEpisode, setCurrentEpisode] = useState(0);
   const [watchProgress, setWatchProgress] = useState<{[key: number]: number}>({});
+  
+  // Streaming overlay state
+  const [isStreamingOpen, setIsStreamingOpen] = useState(false);
+  const [streamingEpisode, setStreamingEpisode] = useState<StreamingEpisode | null>(null);
+  const [streamingEpisodeIndex, setStreamingEpisodeIndex] = useState(0);
 
   // Mock watched episodes data
   const watchedEpisodes = new Set([0, 1, 2]);
@@ -797,8 +803,26 @@ export const EnhancedEpisodesTab: React.FC<{
     setFilteredEpisodes(sorted);
   };
 
-  const handleWatchEpisode = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const handleWatchEpisode = (url: string, episodeIndex?: number) => {
+    const episode = episodes.find(ep => ep.url === url);
+    if (episode) {
+      setStreamingEpisode(episode);
+      setStreamingEpisodeIndex(episodeIndex ?? episodes.indexOf(episode));
+      setIsStreamingOpen(true);
+    }
+  };
+
+  const handleEpisodeChange = (newIndex: number) => {
+    if (newIndex >= 0 && newIndex < episodes.length) {
+      setStreamingEpisode(episodes[newIndex]);
+      setStreamingEpisodeIndex(newIndex);
+      setCurrentEpisode(newIndex);
+    }
+  };
+
+  const closeStreamingOverlay = () => {
+    setIsStreamingOpen(false);
+    setStreamingEpisode(null);
   };
 
   // Empty State
@@ -890,7 +914,7 @@ export const EnhancedEpisodesTab: React.FC<{
                   index={originalIndex}
                   themePalette={themePalette}
                   onPreview={onPreview}
-                  onWatch={handleWatchEpisode}
+                  onWatch={(url) => handleWatchEpisode(url, originalIndex)}
                   isWatched={watchedEpisodes.has(originalIndex)}
                   watchProgress={watchProgress[originalIndex] || 0}
                   isFeatured={false}
@@ -967,7 +991,7 @@ export const EnhancedEpisodesTab: React.FC<{
                       )}
                       {episode.url && (
                         <button
-                          onClick={() => handleWatchEpisode(episode.url!)}
+                          onClick={() => handleWatchEpisode(episode.url!, originalIndex)}
                           className="backdrop-blur-sm rounded-2xl py-2 px-4 ios-text-primary font-medium text-sm ios-spring-animation ios-shadow-soft"
                           style={{
                             background: themePalette?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -985,6 +1009,18 @@ export const EnhancedEpisodesTab: React.FC<{
           </div>
         )
       )}
+
+      {/* Streaming Overlay */}
+      <StreamingOverlay
+        isOpen={isStreamingOpen}
+        onClose={closeStreamingOverlay}
+        episode={streamingEpisode}
+        animeTitle={anime?.title || 'Unknown Anime'}
+        episodes={episodes}
+        currentEpisodeIndex={streamingEpisodeIndex}
+        onEpisodeChange={handleEpisodeChange}
+        themePalette={themePalette}
+      />
     </div>
   );
 };

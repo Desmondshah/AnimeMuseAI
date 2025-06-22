@@ -38,6 +38,7 @@ import type * as retryEnrichment from "../retryEnrichment.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as runMigration from "../runMigration.js";
+import type * as testData from "../testData.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   router: typeof router;
   runMigration: typeof runMigration;
+  testData: typeof testData;
   twilioSender: typeof twilioSender;
   types: typeof types;
   useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
