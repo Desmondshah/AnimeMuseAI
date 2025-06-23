@@ -57,8 +57,8 @@ interface AnimeProp {
     timestamp: number;
     fieldsEdited: string[];
   } | null;
-  anilistId?: string | null;
-  myAnimeListId?: string | null;
+  anilistId?: number | null;
+  myAnimeListId?: number | null;
 }
 
 interface EditAnimeFormProps {
@@ -337,8 +337,8 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
     trailerUrl: anime.trailerUrl || "",
     studios: anime.studios || [],
     themes: anime.themes || [],
-    anilistId: (anime.anilistId && parseInt(anime.anilistId)) || "",
-    myAnimeListId: (anime.myAnimeListId && parseInt(anime.myAnimeListId)) || "",
+    anilistId: anime.anilistId || "",
+    myAnimeListId: anime.myAnimeListId || "",
   });
 
   useEffect(() => {
@@ -353,8 +353,8 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
       trailerUrl: anime.trailerUrl || "",
       studios: anime.studios || [],
       themes: anime.themes || [],
-      anilistId: (anime.anilistId && parseInt(anime.anilistId)) || "",
-      myAnimeListId: (anime.myAnimeListId && parseInt(anime.myAnimeListId)) || "",
+      anilistId: anime.anilistId || "",
+      myAnimeListId: anime.myAnimeListId || "",
     });
   }, [anime]);
 

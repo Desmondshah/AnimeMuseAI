@@ -182,4 +182,3 @@ export class MoodSuggestionEngine {
     return 'fall';
   }
 }
-

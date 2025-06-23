@@ -33,7 +33,6 @@ interface iPadInfo {
 interface MobileOptimizationState {
   isMobile: boolean;
   isIOS: boolean;
-  isSafari: boolean;
   hasNotch: boolean;
   isLowBandwidth: boolean;
   isLowPerformance: boolean;
@@ -41,7 +40,6 @@ interface MobileOptimizationState {
   shouldReduceAnimations: boolean;
   shouldDisableParticles: boolean;
   shouldUseSimpleBackgrounds: boolean;
-  shouldOptimizeForSafari: boolean;
   // Enhanced iPad support
   iPad: iPadInfo;
   isLandscape: boolean;
@@ -54,7 +52,6 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
   const [state, setState] = useState<MobileOptimizationState>({
     isMobile: false,
     isIOS: false,
-    isSafari: false,
     hasNotch: false,
     isLowBandwidth: false,
     isLowPerformance: false,
@@ -66,7 +63,6 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
     shouldReduceAnimations: false,
     shouldDisableParticles: false,
     shouldUseSimpleBackgrounds: false,
-    shouldOptimizeForSafari: false,
     // Enhanced iPad support
     iPad: {
       isIPad: false,
@@ -270,13 +266,6 @@ const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInf
       const isMobile = width <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
-      // Safari detection (including Mobile Safari)
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
-                       /iPad|iPhone|iPod/.test(navigator.userAgent);
-      
-      // Safari-specific optimizations needed
-      const shouldOptimizeForSafari = isSafari && (isMobile || isIOS);
-      
       // Enhanced iPad detection
       const iPadInfo = detectIPadInfo(width, height);
       const isLandscape = width > height;
@@ -332,7 +321,6 @@ const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInf
       setState({
         isMobile,
         isIOS,
-        isSafari,
         hasNotch,
         isLowBandwidth,
         isLowPerformance,
@@ -340,7 +328,6 @@ const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInf
         shouldReduceAnimations,
         shouldDisableParticles,
         shouldUseSimpleBackgrounds,
-        shouldOptimizeForSafari,
         // Enhanced iPad support
         iPad: iPadInfo,
         isLandscape,
@@ -354,8 +341,6 @@ const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInf
       body.classList.toggle('low-bandwidth', Boolean(isLowBandwidth));
       body.classList.toggle('mobile-device', Boolean(isMobile));
       body.classList.toggle('ios-device', Boolean(isIOS));
-      body.classList.toggle('safari-browser', Boolean(isSafari));
-      body.classList.toggle('safari-mobile', Boolean(shouldOptimizeForSafari));
       body.classList.toggle('low-performance', Boolean(isLowPerformance));
       body.classList.toggle('reduce-animations', Boolean(shouldReduceAnimations));
       body.classList.toggle('disable-particles', Boolean(shouldDisableParticles));
