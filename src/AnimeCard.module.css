@@ -100,7 +100,7 @@
   }
 }
 
-/* Mobile optimizations */
+/* Mobile optimizations - ENHANCED for Safari */
 @media (max-width: 768px) {
   .clickablePoster:hover {
     transform: scale(1.01);
@@ -108,10 +108,73 @@
   
   .image {
     transition: opacity 0.15s ease-in-out;
+    /* SAFARI OPTIMIZATION: Force hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: opacity;
+    /* Better image rendering for Safari */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  .imageLoadingPlaceholder {
+    /* Reduce animation complexity on mobile */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   
   .imageLoadingPlaceholder > div {
     animation-duration: 2s;
+    /* Safari-specific optimization */
+    -webkit-animation-duration: 2s;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* Safari-specific optimizations */
+@supports (-webkit-appearance: none) {
+  .image {
+    /* Force Safari to use hardware acceleration */
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    /* Improve image sharpness */
+    image-rendering: -webkit-optimize-contrast;
+  }
+  
+  .imageContainer {
+    /* Prevent Safari layout shifts */
+    -webkit-transform: translateZ(0);
+    contain: layout style paint;
+  }
+  
+  .imageLoadingPlaceholder {
+    /* Better performance on Safari */
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* iOS Safari specific fixes */
+@media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2) {
+  .image {
+    /* High DPI optimization for retina displays */
+    image-rendering: -webkit-optimize-contrast;
+    /* Reduce memory usage on high DPI */
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .imageContainer {
+    /* Prevent memory spikes */
+    contain: strict;
+  }
+  
+  .imageLoadingPlaceholder > div {
+    /* Simpler animation for high DPI devices */
+    animation: pulse 3s ease-in-out infinite;
+    -webkit-animation: pulse 3s ease-in-out infinite;
   }
 }
 

@@ -326,3 +326,85 @@ export const AnimationOptimizer = {
     }
   })
 };
+
+// Mobile Safari optimized intersection observer for image loading
+export const useIntersectionObserver = (
+  callback: (entries: IntersectionObserverEntry[]) => void,
+  options?: IntersectionObserverInit
+) => {
+  const targetRef = useRef<HTMLElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    const target = targetRef.current;
+    if (!target) return;
+
+    // Mobile Safari optimized options
+    const defaultOptions: IntersectionObserverInit = {
+      root: null,
+      rootMargin: '50px', // Load images 50px before they come into view
+      threshold: 0.1, // Trigger when 10% is visible
+      ...options,
+    };
+
+    observerRef.current = new IntersectionObserver(callback, defaultOptions);
+    observerRef.current.observe(target);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [callback, options]);
+
+  return targetRef;
+};
+
+// Optimized image lazy loading hook for Mobile Safari
+export const useOptimizedImageLazyLoading = (src: string) => {
+  const [isInView, setIsInView] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  const intersectionCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && !isInView) {
+      setIsInView(true);
+    }
+  }, [isInView]);
+
+  const targetRef = useIntersectionObserver(intersectionCallback, {
+    rootMargin: '100px', // Start loading 100px before visible
+    threshold: 0.1,
+  });
+
+  useEffect(() => {
+    if (!isInView || !src || isLoaded) return;
+
+    const img = new Image();
+    
+    // Safari optimizations
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    
+    img.onload = () => {
+      setIsLoaded(true);
+      setHasError(false);
+    };
+    
+    img.onerror = () => {
+      setHasError(true);
+      setIsLoaded(false);
+    };
+    
+    img.src = src;
+  }, [isInView, src, isLoaded]);
+
+  return {
+    targetRef,
+    isInView,
+    isLoaded,
+    hasError,
+    shouldLoad: isInView,
+  };
+};

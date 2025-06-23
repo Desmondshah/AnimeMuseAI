@@ -6762,3 +6762,97 @@ h1, h2, h3, h4, h5, h6 {
 .admin-debug-mode .admin-sidebar {
   background: rgba(0, 255, 0, 0.1) !important;
 }
+
+/* iOS specific optimizations - triggered by useMobileOptimizations hook */
+.ios-device {
+  /* iOS specific fixes */
+}
+
+.ios-device .backdrop-blur-sm,
+.ios-device .backdrop-blur-md,
+.ios-device .backdrop-blur-lg,
+.ios-device .backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(2px) !important;
+  backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* iOS scroll improvements */
+.ios-device {
+  -webkit-overflow-scrolling: touch;
+}
+
+.ios-device * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* SAFARI-SPECIFIC OPTIMIZATIONS */
+.safari-browser {
+  /* Force hardware acceleration for Safari */
+}
+
+.safari-browser img {
+  /* Better image rendering in Safari */
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
+
+.safari-mobile {
+  /* Mobile Safari specific optimizations */
+}
+
+.safari-mobile img {
+  /* Optimize image loading for Mobile Safari */
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-transform: translateZ(0);
+  will-change: opacity;
+  /* Prevent layout shifts */
+  contain: layout style paint;
+}
+
+.safari-mobile .animate-pulse {
+  /* Simpler animations for Mobile Safari */
+  animation: safariPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  -webkit-animation: safariPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes safariPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@-webkit-keyframes safariPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.safari-mobile .backdrop-blur-sm,
+.safari-mobile .backdrop-blur-md {
+  /* Reduce blur complexity for Mobile Safari */
+  -webkit-backdrop-filter: blur(1px) !important;
+  backdrop-filter: blur(1px) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Mobile Safari image container optimizations */
+.safari-mobile [class*="imageContainer"] {
+  /* Prevent Safari layout jumps */
+  -webkit-transform: translateZ(0);
+  contain: strict;
+  will-change: auto;
+}
+
+.safari-mobile [class*="clickablePoster"] {
+  /* Optimize poster interactions for Safari */
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
