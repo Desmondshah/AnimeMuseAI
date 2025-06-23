@@ -1,9 +1,6 @@
 // convex/useGlobalIOSOptimizations.ts - Global iOS Performance Provider
-import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useMobileOptimizations } from './useMobileOptimizations';
-import { useAdvancedImageOptimization, useVirtualScrolling, usePerformanceMonitor } from './optimizationUtils';
-import { useIntelligentCache, usePrefetching, useOfflineStorage } from './storageActions';
-import { useHapticFeedback, useProMotionOptimization, useIPadUIOptimizations, useWebWorkers } from './iPad-hooks';
 
 interface GlobalIOSOptimizations {
   isOptimized: boolean;
@@ -11,50 +8,20 @@ interface GlobalIOSOptimizations {
   appliedClasses: string[];
   fps: number;
   memoryUsage: number;
-  
-  // Advanced optimization features
-  imageOptimizer?: any;
-  cache?: any;
-  prefetch?: any;
-  prefetchOnHover?: any;
-  storage?: any;
-  storageReady?: boolean;
-  triggerHaptic?: any;
-  supportsProMotion?: boolean;
-  optimizeForProMotion?: any;
-  iPadOptimizations?: any;
-  filterAnime?: any;
-  sortRecommendations?: any;
-  preloadVisibleImages?: any;
-  
-  // Performance utilities
-  isPerformanceGood?: boolean;
-  performanceMetrics?: any;
 }
 
 export const useGlobalIOSOptimizations = (): GlobalIOSOptimizations => {
   const mobileOpts = useMobileOptimizations();
-  
-  // Initialize all advanced optimization systems
-  const imageOptimizer = useAdvancedImageOptimization();
-  const cache = useIntelligentCache();
-  const { prefetch, prefetchOnHover } = usePrefetching();
-  const { storage, isReady: storageReady } = useOfflineStorage();
-  const { triggerHaptic, triggerSuccess } = useHapticFeedback();
-  const { supportsProMotion, optimizeForProMotion } = useProMotionOptimization();
-  const iPadOptimizations = useIPadUIOptimizations();
-  const { filterAnime, sortRecommendations } = useWebWorkers();
-  const { metrics: performanceMetrics, isPerformanceGood } = usePerformanceMonitor();
 
   // Auto-detect performance level based on device capabilities
   const performanceLevel = useMemo(() => {
-    if (!isPerformanceGood || mobileOpts.isLowPerformance) {
+    if (mobileOpts.performanceMetrics.fps < 45 || mobileOpts.isLowPerformance) {
       return 'battery';
-    } else if (performanceMetrics.fps < 55) {
+    } else if (mobileOpts.performanceMetrics.fps < 55) {
       return 'balanced';
     }
     return 'high';
-  }, [performanceMetrics.fps, mobileOpts.isLowPerformance, isPerformanceGood]);
+  }, [mobileOpts.performanceMetrics.fps, mobileOpts.isLowPerformance]);
 
   // Generate global optimization classes
   const appliedClasses = useMemo(() => {
@@ -249,63 +216,12 @@ export const useGlobalIOSOptimizations = (): GlobalIOSOptimizations => {
     };
   }, []);
 
-  // Service Worker registration for advanced caching
-  useEffect(() => {
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('🚀 Service Worker registered successfully');
-          triggerSuccess();
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
-  }, [triggerSuccess]);
-
-  // Smart image preloading based on viewport
-  const preloadVisibleImages = useCallback(async (imageUrls: string[]) => {
-    if (performanceLevel === 'battery') return;
-    
-    for (const url of imageUrls.slice(0, 5)) { // Limit concurrent preloads
-      try {
-        const optimizedUrl = imageOptimizer.optimizeImageUrl(url, {
-          width: mobileOpts.iPad.isIPad ? 400 : 300,
-          quality: performanceLevel === 'high' ? 90 : 75,
-          format: 'auto'
-        });
-        await imageOptimizer.preloadImage(optimizedUrl);
-      } catch (error) {
-        console.log('Image preload failed:', url);
-      }
-    }
-  }, [imageOptimizer, performanceLevel, mobileOpts.iPad.isIPad]);
-
   return {
     isOptimized: true,
     performanceLevel,
     appliedClasses,
-    fps: performanceMetrics.fps,
-    memoryUsage: performanceMetrics.memoryUsage || 0,
-    
-    // Advanced optimization features
-    imageOptimizer,
-    cache,
-    prefetch,
-    prefetchOnHover,
-    storage,
-    storageReady,
-    triggerHaptic,
-    supportsProMotion,
-    optimizeForProMotion,
-    iPadOptimizations,
-    filterAnime,
-    sortRecommendations,
-    preloadVisibleImages,
-    
-    // Performance utilities
-    isPerformanceGood,
-    performanceMetrics
+    fps: mobileOpts.performanceMetrics.fps,
+    memoryUsage: mobileOpts.performanceMetrics.memoryUsage || 0
   };
 };
 
