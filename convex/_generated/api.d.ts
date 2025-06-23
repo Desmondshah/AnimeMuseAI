@@ -42,6 +42,8 @@ import type * as testData from "../testData.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
+import type * as useGPUAcceleration from "../useGPUAcceleration.js";
+import type * as useIOSHardwareOptimization from "../useIOSHardwareOptimization.js";
 import type * as useMobileOptimizations from "../useMobileOptimizations.js";
 import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
 import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
@@ -49,6 +51,7 @@ import type * as useMoodBoardState from "../useMoodBoardState.js";
 import type * as usePersistentChatHistory from "../usePersistentChatHistory.js";
 import type * as useRafInterval from "../useRafInterval.js";
 import type * as useTheme from "../useTheme.js";
+import type * as useWebWorkerPool from "../useWebWorkerPool.js";
 import type * as users from "../users.js";
 
 /**
@@ -89,6 +92,8 @@ declare const fullApi: ApiFromModules<{
   twilioSender: typeof twilioSender;
   types: typeof types;
   useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
+  useGPUAcceleration: typeof useGPUAcceleration;
+  useIOSHardwareOptimization: typeof useIOSHardwareOptimization;
   useMobileOptimizations: typeof useMobileOptimizations;
   useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
   useMoodBoardPerformance: typeof useMoodBoardPerformance;
@@ -96,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   usePersistentChatHistory: typeof usePersistentChatHistory;
   useRafInterval: typeof useRafInterval;
   useTheme: typeof useTheme;
+  useWebWorkerPool: typeof useWebWorkerPool;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

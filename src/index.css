@@ -6762,3 +6762,13 @@ h1, h2, h3, h4, h5, h6 {
 .admin-debug-mode .admin-sidebar {
   background: rgba(0, 255, 0, 0.1) !important;
 }
+
+/* iPhone CPU & GPU Acceleration Classes */
+.iphone-gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
