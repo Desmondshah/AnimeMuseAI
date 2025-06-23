@@ -597,12 +597,13 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
   }, [currentView, trendingAnime.length, topAnime.length, popularAnime.length, bingeableAnime.length, retroClassicAnime.length, horrorAnime.length, trueCrimeAnime.length, fetchTrendingAnimeAction, fetchTopRatedAnimeAction, fetchPopularAnimeAction, fetchBingeableAnimeAction, fetchRetroClassicAnimeAction, fetchHorrorAnimeAction, fetchTrueCrimeAnimeAction]);
 
 
-  // Enhanced useEffect with better duplicate prevention
+  // Enhanced useEffect with better duplicate prevention and reduced delays
   useEffect(() => {
   if (debouncedFetchRef.current) {
     clearTimeout(debouncedFetchRef.current);
   }
 
+  // Reduced debounce time from default to 50ms for faster response
   debouncedFetchRef.current = setTimeout(() => {
     // Only proceed if user has completed onboarding and we're on dashboard
     if (!userProfile || !userProfile.onboardingCompleted || currentView !== "dashboard") {
@@ -625,7 +626,7 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
         return true;
       }
       
-      // Check if data is stale (12 hours)
+      // Check if data is stale (reduced from 12 hours to 6 hours for fresher content)
       if (existingCategory.lastFetched && needsRefresh(existingCategory)) {
         console.log(`[MainApp] Data is stale - last fetched: ${new Date(existingCategory.lastFetched).toLocaleString()}`);
         return true;
@@ -642,8 +643,9 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
     })();
     
     const isCurrentlyLoading = existingCategory?.isLoading;
+    // Reduced from 5 minutes to 2 minutes for more responsive updates
     const hasRecentData = existingCategory?.lastFetched && 
-      (Date.now() - existingCategory.lastFetched) < 5 * 60 * 1000; // 5 minutes buffer
+      (Date.now() - existingCategory.lastFetched) < 2 * 60 * 1000;
     
     // Exit early if we shouldn't fetch
     if (!shouldFetch || isCurrentlyLoading || fetchInProgressRef.current || hasRecentData) {
@@ -690,134 +692,80 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
       ));
 
       try {
-        const profileDataForAI = {
-          name: userProfile.name, 
-          moods: userProfile.moods, 
-          genres: userProfile.genres,
-          favoriteAnimes: userProfile.favoriteAnimes, 
-          experienceLevel: userProfile.experienceLevel,
-          dislikedGenres: userProfile.dislikedGenres, 
-          dislikedTags: userProfile.dislikedTags,
-          characterArchetypes: userProfile.characterArchetypes, 
-          tropes: userProfile.tropes,
-          artStyles: userProfile.artStyles, 
-          narrativePacing: userProfile.narrativePacing,
-        };
-
-        console.log(`[MainApp] Starting fetch for personalized recommendations...`);
+        console.log(`[MainApp] Fetching data for category: ${categoryToUpdate.title}`);
+        const startTime = performance.now();
         
-        const result = await categoryToUpdate.fetchFn({ 
-          ...categoryToUpdate.fetchArgs, 
-          userProfile: profileDataForAI 
-        });
+        const result = await categoryToUpdate.fetchFn(categoryToUpdate.fetchArgs || {});
+        
+        const endTime = performance.now();
+        console.log(`[MainApp] Fetch completed in ${(endTime - startTime).toFixed(2)}ms for: ${categoryToUpdate.title}`);
 
-        console.log(`[MainApp] Fetch completed:`, {
-          recommendations: result.recommendations?.length,
-          error: result.error
-        });
-
-        const completeRecommendations = ensureCompleteRecommendations(result.recommendations || []);
-
+        const recommendations = ensureCompleteRecommendations(result.recommendations || []);
+        
         setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
-          c.id === categoryToUpdate.id ? { 
-            ...c, 
-            recommendations: completeRecommendations, 
-            isLoading: false, 
-            error: result.error,
-            lastFetched: Date.now() // IMPORTANT: Set the timestamp
+          c.id === categoryToUpdate.id ? {
+            ...c,
+            recommendations,
+            isLoading: false,
+            error: result.error || null,
+            lastFetched: Date.now()
           } : c
         ));
 
-        if (result.error && result.error !== "OpenAI API key not configured.") { 
-          toast.error(`Personalized: ${result.error.substring(0,60)}`); 
+        // Mark as fetched only after successful completion
+        if (!result.error && recommendations.length > 0) {
+          setHasFetchedForYou(true);
+          console.log(`[MainApp] Successfully loaded ${recommendations.length} recommendations for ${categoryToUpdate.title}`);
         }
-      } catch (e: any) {
-        console.error('[MainApp] Fetch error:', e);
+        
+      } catch (error: any) {
+        console.error(`[MainApp] Error fetching ${categoryToUpdate.title}:`, error);
         setForYouCategories((prev: ForYouCategory[]) => prev.map((c: ForYouCategory) => 
-          c.id === categoryToUpdate.id ? { 
-            ...c, 
-            isLoading: false, 
-            error: e.message || "Unknown fetch error" 
+          c.id === categoryToUpdate.id ? {
+            ...c,
+            isLoading: false,
+            error: error.message || "Failed to load recommendations"
           } : c
         ));
-        toast.error(`Failed personalized fetch for "${categoryToUpdate.title}".`);
       } finally {
         fetchInProgressRef.current = false;
       }
     };
-
-    console.log(`[MainApp] ${!hasFetchedForYou ? 'Initial fetch' : '12-hour refresh'} for personalized recommendations`);
     
-    const personalizedCategorySetup: ForYouCategory = {
-      id: "generalPersonalized", 
-      title: "✨ Personalized For You", 
-      recommendations: existingCategory?.recommendations || [], 
-      isLoading: true, 
-      error: null,
-      lastFetched: existingCategory?.lastFetched,
-      fetchFn: async (args: any): Promise<{ 
-        recommendations: AnimeRecommendation[]; 
-        error?: string | null; 
-        details?: any 
-      }> => {
-        console.log(`[MainApp] Executing personalized fetch with args:`, {
-          userProfile: !!args.userProfile,
-          count: args.count,
-          messageId: args.messageId
-        });
-        
-        try {
-          const result = await getPersonalizedRecommendationsAction({
-            userProfile: args.userProfile,
-            watchlistActivity,
-            count: args.count || 10,
-            messageId: args.messageId
-          });
-          
-          console.log(`[MainApp] Personalized fetch completed:`, {
-            count: result.recommendations?.length,
-            error: result.error,
-            hasDebugInfo: !!result.debug
-          });
-          
-          const completeRecommendations = ensureCompleteRecommendations(result.recommendations || []);
-          
-          return {
-            recommendations: completeRecommendations,
-            error: result.error,
-            details: result.debug
-          };
-        } catch (error: any) {
-          console.error(`[MainApp] Personalized fetch error:`, error);
-          return {
-            recommendations: [],
-            error: error.message || "Unknown error",
-            details: { error: error.message }
-          };
-        }
-      },
-      fetchArgs: { 
-        count: 10, 
-        messageId: `foryou-optimized-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` 
-      },
-      reason: "Tailored based on your profile and activity • Refreshes every 12 hours"
-    };
-
-    if (!existingCategory) {
-      setForYouCategories([personalizedCategorySetup]);
+    // Start fetching if needed
+    if (existingCategory) {
+      fetchCategoryData(existingCategory);
+    } else {
+      // Create and fetch new category
+      const newCategory: ForYouCategory = {
+        id: "generalPersonalized",
+        title: "Recommended For You",
+        recommendations: [],
+        reason: "Based on your preferences and watching history",
+        isLoading: false,
+        error: null,
+        fetchFn: getPersonalizedRecommendationsAction,
+        fetchArgs: { useAdvancedContext: true }
+      };
+      
+      setForYouCategories(prev => [newCategory, ...prev]);
+      fetchCategoryData(newCategory);
     }
-    
-    fetchCategoryData(personalizedCategorySetup);
-    setHasFetchedForYou(true);
-  }, 500);
-
+  }, 50); // Reduced from default debounce to 50ms
 
   return () => {
     if (debouncedFetchRef.current) {
       clearTimeout(debouncedFetchRef.current);
     }
   };
-}, [userProfile, currentView, hasFetchedForYou, getPersonalizedRecommendationsAction, fullWatchlist, watchlistActivity, forYouCategories, needsRefresh]);
+}, [
+  userProfile,
+  currentView,
+  hasFetchedForYou,
+  forYouCategories,
+  getPersonalizedRecommendationsAction,
+  needsRefresh
+]);
 
 
   // Trigger refresh when profile preferences change
