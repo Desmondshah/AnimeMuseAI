@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as OpenAITester from "../OpenAITester.js";
 import type * as admin from "../admin.js";
 import type * as advancedPresets from "../advancedPresets.js";
 import type * as ai from "../ai.js";
@@ -27,21 +28,25 @@ import type * as characterMigration from "../characterMigration.js";
 import type * as crons from "../crons.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
+import type * as iPad_hooks from "../iPad-hooks.js";
 import type * as migrations_migrateCharacterEnrichment from "../migrations/migrateCharacterEnrichment.js";
 import type * as migrations from "../migrations.js";
 import type * as moodSuggestionEngine from "../moodSuggestionEngine.js";
 import type * as notifications from "../notifications.js";
 import type * as openaiProxy from "../openaiProxy.js";
+import type * as optimizationUtils from "../optimizationUtils.js";
 import type * as performanceMonitor from "../performanceMonitor.js";
 import type * as recommendationFilterWorker from "../recommendationFilterWorker.js";
 import type * as retryEnrichment from "../retryEnrichment.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as runMigration from "../runMigration.js";
+import type * as storageActions from "../storageActions.js";
 import type * as testData from "../testData.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
+import type * as useGlobalIOSOptimizations from "../useGlobalIOSOptimizations.js";
 import type * as useMobileOptimizations from "../useMobileOptimizations.js";
 import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
 import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
@@ -60,6 +65,7 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  OpenAITester: typeof OpenAITester;
   admin: typeof admin;
   advancedPresets: typeof advancedPresets;
   ai: typeof ai;
@@ -74,21 +80,25 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   externalApis: typeof externalApis;
   http: typeof http;
+  "iPad-hooks": typeof iPad_hooks;
   "migrations/migrateCharacterEnrichment": typeof migrations_migrateCharacterEnrichment;
   migrations: typeof migrations;
   moodSuggestionEngine: typeof moodSuggestionEngine;
   notifications: typeof notifications;
   openaiProxy: typeof openaiProxy;
+  optimizationUtils: typeof optimizationUtils;
   performanceMonitor: typeof performanceMonitor;
   recommendationFilterWorker: typeof recommendationFilterWorker;
   retryEnrichment: typeof retryEnrichment;
   reviews: typeof reviews;
   router: typeof router;
   runMigration: typeof runMigration;
+  storageActions: typeof storageActions;
   testData: typeof testData;
   twilioSender: typeof twilioSender;
   types: typeof types;
   useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
+  useGlobalIOSOptimizations: typeof useGlobalIOSOptimizations;
   useMobileOptimizations: typeof useMobileOptimizations;
   useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
   useMoodBoardPerformance: typeof useMoodBoardPerformance;

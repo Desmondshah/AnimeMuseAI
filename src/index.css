@@ -19,6 +19,212 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ============================================
+   GLOBAL iOS OPTIMIZATION CLASSES
+   Applied automatically by useGlobalIOSOptimizations
+   ============================================ */
+
+/* Base iOS optimizations - applied to ALL components */
+.global-ios-optimized {
+  /* Force hardware acceleration globally */
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.global-ios-optimized * {
+  /* Remove iOS tap highlights */
+  -webkit-tap-highlight-color: transparent;
+  /* Optimize touch actions */
+  touch-action: manipulation;
+  /* Prevent text selection on interactive elements */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for content areas */
+.global-ios-optimized .selectable-text,
+.global-ios-optimized p,
+.global-ios-optimized span:not(.button-text) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* High performance mode - Full visual effects */
+.high-performance-mode {
+  --animation-duration: 0.3s;
+  --blur-intensity: 8px;
+  --shadow-intensity: 0.5;
+}
+
+.high-performance-mode .animate-pulse,
+.high-performance-mode .animate-bounce,
+.high-performance-mode .animate-spin {
+  animation-duration: var(--animation-duration);
+}
+
+/* Balanced performance mode - Reduced effects */
+.balanced-performance-mode {
+  --animation-duration: 0.2s;
+  --blur-intensity: 4px;
+  --shadow-intensity: 0.3;
+}
+
+.balanced-performance-mode .blur-3xl {
+  backdrop-filter: blur(var(--blur-intensity));
+}
+
+.balanced-performance-mode .shadow-2xl {
+  box-shadow: 0 0 25px rgba(0, 0, 0, var(--shadow-intensity));
+}
+
+/* Battery saver mode - Minimal effects */
+.battery-saver-mode {
+  --animation-duration: 0.1s;
+  --blur-intensity: 2px;
+  --shadow-intensity: 0.1;
+}
+
+.battery-saver-mode .animate-pulse,
+.battery-saver-mode .animate-bounce,
+.battery-saver-mode .animate-spin {
+  animation: none !important;
+}
+
+.battery-saver-mode .blur-3xl,
+.battery-saver-mode .backdrop-blur-xl {
+  backdrop-filter: none !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.battery-saver-mode .shadow-2xl,
+.battery-saver-mode .shadow-xl,
+.battery-saver-mode .shadow-lg {
+  box-shadow: none !important;
+}
+
+/* iOS device specific optimizations */
+.ios-device {
+  /* Prevent iOS bounce scrolling globally */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ios-device body {
+  /* Optimize font rendering on iOS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* iPad specific optimizations */
+.ipad-device {
+  /* Optimize for iPad touch targets */
+  --touch-target-size: 44px;
+}
+
+.ipad-device button,
+.ipad-device .touch-target {
+  min-height: var(--touch-target-size);
+  min-width: var(--touch-target-size);
+}
+
+.ipad-pro {
+  /* iPad Pro specific optimizations */
+  --touch-target-size: 48px;
+}
+
+/* Memory pressure optimizations */
+.memory-pressure * {
+  /* Disable expensive visual effects under memory pressure */
+  will-change: auto !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.memory-pressure .blur-3xl,
+.memory-pressure .backdrop-blur-xl {
+  backdrop-filter: none !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Animation reduction */
+.reduce-animations * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+.reduce-animations .animate-pulse,
+.reduce-animations .animate-bounce,
+.reduce-animations .animate-spin {
+  animation: none !important;
+}
+
+/* Particle disabling */
+.disable-particles .particle-system,
+.disable-particles .floating-particles,
+.disable-particles .anime-particles > div:nth-child(n+3) {
+  display: none !important;
+}
+
+/* Simple backgrounds */
+.simple-backgrounds .bg-gradient-to-r,
+.simple-backgrounds .bg-gradient-to-br,
+.simple-backgrounds .bg-gradient-radial {
+  background: var(--brand-bg-primary) !important;
+}
+
+/* Global smooth scrolling optimizations */
+.global-ios-container {
+  /* Apply smooth scrolling to all containers */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.global-ios-container .scrollable,
+.global-ios-container .overflow-auto,
+.global-ios-container .overflow-y-auto {
+  /* Optimize all scrollable areas */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* Performance monitoring overlay */
+.global-ios-container[data-performance-level="battery"]::before {
+  content: "🔋 Battery Saver";
+  position: fixed;
+  top: env(safe-area-inset-top, 20px);
+  right: 20px;
+  background: rgba(255, 152, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.global-ios-container[data-performance-level="balanced"]::before {
+  content: "⚖️ Balanced";
+  position: fixed;
+  top: env(safe-area-inset-top, 20px);
+  right: 20px;
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Hide performance indicators in production */
+.global-ios-container:not([data-debug-mode])::before {
+  display: none;
+}
+
 /* Custom scrollbar for the theme */
 ::-webkit-scrollbar {
   width: 6px; 
