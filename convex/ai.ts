@@ -1466,68 +1466,69 @@ Each recommendation: title, description, reasoning (why this is a perfect surpri
   },
 });
 
-export const getWhatIfRecommendations = action({
+export const analyzeWhatIfScenario = action({
   args: {
     whatIfScenario: v.string(),
-    baseAnime: v.optional(v.string()),
     userProfile: v.optional(enhancedUserProfileValidator),
     messageId: v.string(),
   },
   handler: async (ctx, args) => {
     if (!process.env.CONVEX_OPENAI_API_KEY) {
-      return { recommendations: [], error: "OpenAI API key not configured." };
+      return { analysis: null, error: "OpenAI API key not configured." };
     }
 
-    console.log(`[What If AI] Processing scenario: "${args.whatIfScenario}"`);
+    console.log(`[What If Analysis] Processing scenario: "${args.whatIfScenario}"`);
 
-    let systemPrompt = `You are AniMuse AI, expert in hypothetical anime scenarios and creative "what if" explorations.
+    let systemPrompt = `You are AniMuse AI, an expert anime analyst specializing in hypothetical scenario analysis.
+
+Your task is to thoughtfully analyze "what if" scenarios related to anime characters, worlds, or events. Provide detailed, engaging analysis that explores the implications and consequences of the hypothetical situation.
 
 USER SCENARIO: "${args.whatIfScenario}"`;
 
-    if (args.baseAnime) {
-      systemPrompt += `\nBase anime for comparison: "${args.baseAnime}"`;
-    }
-
     systemPrompt += formatUserProfile(args.userProfile);
 
-    systemPrompt += `\n\nAnalyze this "what if" scenario and recommend anime that:
-1. Explore similar hypothetical situations or alternate realities
-2. Feature characters in similar circumstances or dilemmas
-3. Present comparable thought experiments or philosophical questions
-4. Show how different choices or events could change outcomes
-5. Demonstrate similar cause-and-effect relationships
+    systemPrompt += `\n\nAnalysis Framework:
+1. **Initial Impact**: What would immediately change?
+2. **Character Development**: How would characters evolve differently?
+3. **Plot Implications**: How would the story unfold differently?
+4. **World/Setting Changes**: How would the anime world be affected?
+5. **Thematic Impact**: How would themes and messages change?
+6. **Ripple Effects**: What unexpected consequences might occur?
+7. **Alternative Outcomes**: What different endings or developments might happen?
 
-Focus on creative scenarios like:
-- "What if X character made different choices?"
-- "What if this world had different rules?"
-- "What if these characters met under different circumstances?"
-- "What if this technology/power existed in real life?"
-- "What if historical events went differently?"
+Provide a thoughtful, detailed analysis that:
+- Explores multiple angles and consequences
+- Considers character psychology and motivations
+- Examines how relationships would change
+- Discusses plot and world-building implications
+- Maintains the tone and logic of the original anime
+- Offers creative but plausible interpretations
 
-IMPORTANT: For posterUrl, try to provide real anime poster URLs if you know them. 
-If you don't know a real URL, just put "PLACEHOLDER" and the system will search for real posters.
+Output JSON: {
+  "analysis": {
+    "scenario": "${args.whatIfScenario}",
+    "immediateImpact": "What changes right away...",
+    "characterImpact": "How characters would be affected...",
+    "plotChanges": "How the story would unfold differently...",
+    "worldImpact": "How the anime world/setting would change...",
+    "relationshipChanges": "How character relationships would evolve...",
+    "thematicShift": "How themes and messages would change...",
+    "rippleEffects": "Unexpected consequences and chain reactions...",
+    "alternativeOutcomes": "Different possible endings or developments...",
+    "overallAssessment": "Summary of the complete scenario analysis...",
+    "creativePossibilities": "Interesting creative directions this could lead..."
+  },
+  "confidence": 0.0-1.0,
+  "analysisDepth": "surface|detailed|comprehensive"
+}
 
-Output JSON: {"recommendations": [...]}
-Each recommendation MUST include:
-- title (string, REQUIRED): Exact anime title
-- description (string): Brief synopsis focusing on the "what if" elements
-- reasoning (string, REQUIRED): Detailed explanation of how it explores the "what if" concept
-- posterUrl (string): Real poster URL if known, otherwise "PLACEHOLDER"
-- genres (array of strings): Key genres
-- year (number): Release year if known
-- rating (number 0-10): External rating if known
-- emotionalTags (array of strings): Emotional descriptors
-- studios (array of strings): Animation studios
-- themes (array of strings): Major themes
-- whatIfElements (array of strings): Specific hypothetical aspects
-- scenarioComplexity (number 1-5): Complexity scale of the scenario
-- moodMatchScore (number 1-10, REQUIRED): How well it matches the scenario`;
+Make your analysis engaging, thoughtful, and true to the source material while exploring creative possibilities.`;
 
-    let recommendations: any[] = [];
+    let analysis: any = null;
     let errorResult: string | undefined = undefined;
 
     try {
-      console.log(`[What If AI] Calling OpenAI API...`);
+      console.log(`[What If Analysis] Calling OpenAI API for scenario analysis...`);
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
       const completion = await openai.chat.completions.create({
         model: OPENAI_MODEL,
@@ -1536,64 +1537,49 @@ Each recommendation MUST include:
           { role: "user", content: args.whatIfScenario }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.8, // Higher creativity for "what if" scenarios
+        temperature: 0.8, // Higher creativity for hypothetical analysis
       });
 
-      console.log(`[What If AI] OpenAI response received, parsing...`);
-      const parsed = tryParseAIResponse(completion.choices[0].message.content, "getWhatIfRecommendations");
+      console.log(`[What If Analysis] OpenAI response received, parsing...`);
+      const parsed = JSON.parse(completion.choices[0].message.content || "{}");
       
-      if (parsed) {
-        const rawRecommendations = parsed.slice(0, 4);
-        console.log(`[What If AI] Raw recommendations:`, rawRecommendations.map(r => ({ title: r.title, hasReasoning: !!r.reasoning })));
-        
-        // Enhance with database-first approach
-        console.log(`[What If AI] Enhancing ${rawRecommendations.length} recommendations...`);
-        const enhancedRecommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
-        
-        // Ensure all recommendations have required fields for "what if" mode
-        recommendations = enhancedRecommendations.map((rec: any) => ({
-          ...rec,
-          // Ensure required fields are present
-          moodMatchScore: rec.moodMatchScore || rec.scenarioComplexity || 7,
-          whatIfElements: rec.whatIfElements || ["hypothetical scenario"],
-          scenarioComplexity: rec.scenarioComplexity || 3,
-          reasoning: rec.reasoning || `Explores similar "what if" concepts to: ${args.whatIfScenario}`,
-          // Mark as what-if recommendation
-          isWhatIfRecommendation: true,
-          whatIfScenario: args.whatIfScenario
-        }));
-        
-        console.log(`[What If AI] Successfully processed ${recommendations.length} what-if recommendations`);
+      if (parsed.analysis) {
+        analysis = {
+          ...parsed.analysis,
+          scenario: args.whatIfScenario,
+          analysisTimestamp: Date.now(),
+          analysisType: "what_if_scenario"
+        };
+        console.log(`[What If Analysis] Successfully generated analysis for scenario`);
       } else {
-        errorResult = "AI response format error or no what-if recommendations found.";
-        console.error(`[What If AI] Parse error: ${errorResult}`);
+        errorResult = "AI response format error - no analysis generated.";
+        console.error(`[What If Analysis] Parse error: ${errorResult}`);
       }
     } catch (err: any) {
-      console.error("[What If AI] Error:", err);
-      errorResult = `What If AI Error: ${err.message || "Unknown"}`;
+      console.error("[What If Analysis] Error:", err);
+      errorResult = `What If Analysis Error: ${err.message || "Unknown"}`;
     } finally {
       if (args.messageId) {
         try {
           await ctx.runMutation(api.ai.storeAiFeedback, {
             prompt: args.whatIfScenario,
-            aiAction: "getWhatIfRecommendations",
-            aiResponseRecommendations: recommendations.length ? recommendations : undefined,
-            aiResponseText: recommendations.length === 0 ? errorResult : undefined,
+            aiAction: "analyzeWhatIfScenario",
+            aiResponseText: analysis ? JSON.stringify(analysis) : errorResult,
             feedbackType: "none",
             messageId: args.messageId,
           });
         } catch (feedbackError) {
-          console.warn("[What If AI] Failed to store feedback:", feedbackError);
+          console.warn("[What If Analysis] Failed to store feedback:", feedbackError);
         }
       }
     }
 
-    console.log(`[What If AI] Returning result:`, { 
-      recommendationsCount: recommendations.length, 
+    console.log(`[What If Analysis] Returning result:`, { 
+      hasAnalysis: !!analysis, 
       hasError: !!errorResult 
     });
 
-    return { recommendations, error: errorResult };
+    return { analysis, error: errorResult };
   },
 });
 

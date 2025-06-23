@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "analysis" | "guide";
+  type: "user" | "ai" | "error" | "analysis" | "guide" | "what_if";
   content: string;
-  recommendations?: any[];
+  recommendations?: any[]; // Changed from AnimeRecommendation[] to any[] to fix the type error
   analysis?: any;
   guide?: any;
+  whatIfAnalysis?: any;
   feedback?: "up" | "down" | null;
   rawAiResponse?: any[];
   rawAiText?: string;
   actionType?: string;
 }
-
 const STORAGE_KEY = 'animuse_chat_history';
 const MAX_STORED_MESSAGES = 50; // Limit to prevent localStorage from getting too large
 

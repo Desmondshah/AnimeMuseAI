@@ -16,7 +16,8 @@ import { useMobileOptimizations } from '../../../convex/useMobileOptimizations.t
 type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
 type AnalysisResult = { analysis: any; error?: string; };
 type GuideResult = { guide: any; error?: string; };
-type AIActionResult = RecommendationResult | AnalysisResult | GuideResult;
+type WhatIfResult = { analysis: any; error?: string; }; // ADD THIS LINE
+type AIActionResult = RecommendationResult | AnalysisResult | GuideResult | WhatIfResult; // UPDATE THIS LINE
 
 function isRecommendationResult(result: AIActionResult): result is RecommendationResult {
   return 'recommendations' in result;
@@ -30,13 +31,23 @@ function isGuideResult(result: AIActionResult): result is GuideResult {
   return 'guide' in result;
 }
 
+function isWhatIfResult(result: AIActionResult): result is WhatIfResult {
+  return 'analysis' in result && 
+         result.analysis && 
+         (result.analysis.analysisType === 'what_if_scenario' || 
+          result.analysis.scenario || 
+          result.analysis.immediateImpact ||
+          result.analysis.characterImpact ||
+          result.analysis.creativePossibilities);
+}
 interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "analysis" | "guide";
+  type: "user" | "ai" | "error" | "analysis" | "guide" | "what_if"; // Added "what_if" type
   content: string;
   recommendations?: AnimeRecommendation[];
   analysis?: any;
   guide?: any;
+  whatIfAnalysis?: any; // ADD THIS LINE - this was missing
   feedback?: "up" | "down" | null;
   rawAiResponse?: any[];
   rawAiText?: string;
@@ -235,7 +246,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const getComparativeAnalysisAction = useAction(api.ai.getComparativeAnalysis);
   const getHiddenGemRecommendationsAction = useAction(api.ai.getHiddenGemRecommendations);
   const getFranchiseGuideAction = useAction(api.ai.getFranchiseGuide);
-  const getWhatIfRecommendationsAction = useAction(api.ai.getWhatIfRecommendations);
+  const analyzeWhatIfScenarioAction = useAction(api.ai.analyzeWhatIfScenario);
 
   const userProfileQuery = useQuery(api.users.getMyUserProfile);
   const storeAiFeedback = useMutation(api.ai.storeAiFeedback);
@@ -381,9 +392,9 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           messageId: aiMessageId 
         });
         
-      // FIXED: This was the problem - what_if mode should call getWhatIfRecommendationsAction
+      // FIXED: Now calls the analysis action instead of recommendations
       case "what_if":
-        return await getWhatIfRecommendationsAction({ 
+        return await analyzeWhatIfScenarioAction({ 
           whatIfScenario: currentPrompt, 
           userProfile: profileDataForAI, 
           messageId: aiMessageId 
@@ -409,7 +420,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     getComparativeAnalysisAction, 
     getHiddenGemRecommendationsAction, 
     getFranchiseGuideAction, 
-    getWhatIfRecommendationsAction, // Make sure this is in dependencies
+    analyzeWhatIfScenarioAction, // UPDATED: Use analysis action instead of recommendations
     getAnimeRecommendationAction
   ]);
 
@@ -458,7 +469,20 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
       };
       responseToLog.rawAiText = result.error;
       toast.error("AniMuse had trouble with that request.");
+    } else if (isWhatIfResult(result) && result.analysis) {
+      // Handle What If results FIRST, before other analysis types
+      aiResponseMessage = { 
+        id: aiMessageId, 
+        type: "what_if", 
+        content: `Here's my analysis of your "what if" scenario:`, 
+        whatIfAnalysis: result.analysis, 
+        feedback: null, 
+        actionType: aiMode 
+      };
+      responseToLog.rawAiText = JSON.stringify(result.analysis);
+      toast.success("What if analysis complete!");
     } else if (isAnalysisResult(result) && result.analysis) {
+      // Handle comparative analysis (for compare mode)
       aiResponseMessage = { 
         id: aiMessageId, 
         type: "analysis", 
@@ -558,7 +582,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   updateMessage(messageId, { feedback: feedbackScore });
   
   const message = chatHistory.find(msg => msg.id === messageId);
-  if (message && (message.type === "ai" || message.type === "analysis" || message.type === "guide" || message.type === "error")) {
+  if (message && (message.type === "ai" || message.type === "analysis" || message.type === "guide" || message.type === "what_if" || message.type === "error")) {
     let relatedUserPrompt = "N/A";
     const messageIndex = chatHistory.findIndex(m => m.id === messageId);
     if (messageIndex > 0) {
@@ -575,7 +599,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         prompt: relatedUserPrompt, 
         aiAction: message.actionType || aiMode,
         aiResponseRecommendations: message.recommendations,
-        aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || message.content,
+        aiResponseText: message.rawAiText || JSON.stringify(message.analysis) || JSON.stringify(message.guide) || JSON.stringify(message.whatIfAnalysis) || message.content,
         feedbackType: feedbackScore, 
         messageId: message.id,
       });
@@ -1268,12 +1292,160 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                             </div>
                           )}
 
+                          {/* What If Analysis Display - Add this after the Franchise Guide Display */}
+{msg.type === "what_if" && msg.whatIfAnalysis && (
+  <div className="mt-4 space-y-3">
+    <div className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+      <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
+        <span>🤔</span> What If Analysis
+      </h4>
+
+      {/* Scenario Display */}
+      {msg.whatIfAnalysis.scenario && (
+        <div className="bg-violet-500/10 p-3 rounded-lg mb-4 border-l-4 border-violet-500">
+          <h5 className="font-semibold text-violet-300 text-sm mb-1">
+            📝 Scenario
+          </h5>
+          <p className="text-white/90 text-sm leading-relaxed italic">
+            "{msg.whatIfAnalysis.scenario}"
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {/* Immediate Impact */}
+        {msg.whatIfAnalysis.immediateImpact && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              ⚡ Immediate Impact
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.immediateImpact}
+            </p>
+          </div>
+        )}
+
+        {/* Character Impact */}
+        {msg.whatIfAnalysis.characterImpact && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              👥 Character Development
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.characterImpact}
+            </p>
+          </div>
+        )}
+
+        {/* Plot Changes */}
+        {msg.whatIfAnalysis.plotChanges && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              📖 Story Changes
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.plotChanges}
+            </p>
+          </div>
+        )}
+
+        {/* World Impact */}
+        {msg.whatIfAnalysis.worldImpact && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              🌍 World Changes
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.worldImpact}
+            </p>
+          </div>
+        )}
+
+        {/* Relationship Changes */}
+        {msg.whatIfAnalysis.relationshipChanges && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              💫 Relationship Dynamics
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.relationshipChanges}
+            </p>
+          </div>
+        )}
+
+        {/* Thematic Shift */}
+        {msg.whatIfAnalysis.thematicShift && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              🎭 Thematic Impact
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.thematicShift}
+            </p>
+          </div>
+        )}
+
+        {/* Ripple Effects */}
+        {msg.whatIfAnalysis.rippleEffects && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              🌊 Ripple Effects
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.rippleEffects}
+            </p>
+          </div>
+        )}
+
+        {/* Alternative Outcomes */}
+        {msg.whatIfAnalysis.alternativeOutcomes && (
+          <div className="bg-white/5 p-3 rounded-lg">
+            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
+              🔄 Alternative Outcomes
+            </h6>
+            <p className="text-white/85 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.alternativeOutcomes}
+            </p>
+          </div>
+        )}
+
+        {/* Overall Assessment */}
+        {msg.whatIfAnalysis.overallAssessment && (
+          <div className="bg-brand-primary-action/10 p-3 rounded-lg border border-brand-primary-action/30">
+            <h6 className="font-semibold text-brand-primary-action text-sm mb-2 flex items-center gap-1">
+              🎯 Overall Assessment
+            </h6>
+            <p className="text-white/90 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.overallAssessment}
+            </p>
+          </div>
+        )}
+
+        {/* Creative Possibilities */}
+        {msg.whatIfAnalysis.creativePossibilities && (
+          <div className="bg-violet-500/10 p-3 rounded-lg border border-violet-500/30">
+            <h6 className="font-semibold text-violet-300 text-sm mb-2 flex items-center gap-1">
+              ✨ Creative Possibilities
+            </h6>
+            <p className="text-white/90 text-sm leading-relaxed">
+              {msg.whatIfAnalysis.creativePossibilities}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+                          
+
                           {/* Feedback buttons */}
                           {(msg.type === "ai" ||
-                            msg.type === "analysis" ||
-                            msg.type === "guide" ||
-                            msg.type === "error") && (
-                            <div className="mt-3 flex justify-end gap-2">
+  msg.type === "analysis" ||
+  msg.type === "guide" ||
+  msg.type === "what_if" ||  // ADD THIS LINE
+  msg.type === "error") && (
+  <div className="mt-3 flex justify-end gap-2">
                               <button
                                 onClick={() => handleFeedback(msg.id, "up")}
                                 className={`p-2 rounded-full text-sm transition-all duration-200 ${
