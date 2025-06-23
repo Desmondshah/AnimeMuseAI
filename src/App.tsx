@@ -11,7 +11,6 @@ const PhoneVerificationPrompt = lazy(() => import("./components/animuse/onboardi
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./components/animuse/shared/PageTransition";
 import { useMobileOptimizations } from "../convex/useMobileOptimizations";
-import { GlobalIOSOptimizationProvider } from "../convex/useGlobalIOSOptimizations";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 const NotificationsPanel = lazy(() => import("./components/animuse/onboarding/NotificationsPanel"));
@@ -70,43 +69,41 @@ export default function App() {
   const headerConfig = getHeaderStyles();
 
   return (
-    <GlobalIOSOptimizationProvider>
-      <div className="min-h-screen flex flex-col text-white">
-        <header 
-          className={headerConfig.className}
-          style={headerConfig.style}
-        >
-          <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
-          <div className="flex items-center gap-4">
-            <Authenticated>
-              <div className="relative">
-                <NotificationsBell onTogglePanel={toggleNotificationsPanel} />
-                <Suspense fallback={null}>
-                  <NotificationsPanel
-                    isOpen={isNotificationsPanelOpen}
-                    onClose={() => setIsNotificationsPanelOpen(false)}
-                  />
-                </Suspense>
-              </div>
-            </Authenticated>
-            <SignOutButton />
-          </div>
-        </header>
-        <main className={`flex-1 flex flex-col items-center justify-center w-full ${isIPadDevice ? 'pt-20' : ''}`}>
-          <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
-            <AnimatePresence mode="sync">
-              <PageTransition key={verificationFlowKey}>
-                <Content
-                  key={verificationFlowKey}
-                  onPhoneVerified={handleVerified}
+    <div className="min-h-screen flex flex-col text-white">
+      <header 
+        className={headerConfig.className}
+        style={headerConfig.style}
+      >
+        <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
+        <div className="flex items-center gap-4">
+          <Authenticated>
+            <div className="relative">
+              <NotificationsBell onTogglePanel={toggleNotificationsPanel} />
+              <Suspense fallback={null}>
+                <NotificationsPanel
+                  isOpen={isNotificationsPanelOpen}
+                  onClose={() => setIsNotificationsPanelOpen(false)}
                 />
-              </PageTransition>
-            </AnimatePresence>
-          </div>
-        </main>
-        <Toaster richColors theme="dark" />
-      </div>
-    </GlobalIOSOptimizationProvider>
+              </Suspense>
+            </div>
+          </Authenticated>
+          <SignOutButton />
+        </div>
+      </header>
+      <main className={`flex-1 flex flex-col items-center justify-center w-full ${isIPadDevice ? 'pt-20' : ''}`}>
+        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
+          <AnimatePresence mode="sync">
+            <PageTransition key={verificationFlowKey}>
+              <Content
+                key={verificationFlowKey}
+                onPhoneVerified={handleVerified}
+              />
+            </PageTransition>
+          </AnimatePresence>
+        </div>
+      </main>
+      <Toaster richColors theme="dark" />
+    </div>
   );
 }
 

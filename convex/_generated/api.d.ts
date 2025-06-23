@@ -42,7 +42,6 @@ import type * as testData from "../testData.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
-import type * as useGlobalIOSOptimizations from "../useGlobalIOSOptimizations.js";
 import type * as useMobileOptimizations from "../useMobileOptimizations.js";
 import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
 import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
@@ -90,7 +89,6 @@ declare const fullApi: ApiFromModules<{
   twilioSender: typeof twilioSender;
   types: typeof types;
   useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
-  useGlobalIOSOptimizations: typeof useGlobalIOSOptimizations;
   useMobileOptimizations: typeof useMobileOptimizations;
   useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
   useMoodBoardPerformance: typeof useMoodBoardPerformance;
