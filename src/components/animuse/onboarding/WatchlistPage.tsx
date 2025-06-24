@@ -266,8 +266,8 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
                       
                       {/* Status Badge */}
                       <div className="absolute top-4 right-4 z-10">
-                        <div className={`px-2 py-1 border-2 border-black shadow-brutal ${statusConfig[item.status]?.color || 'bg-white text-black'}`}>
-                          <span className="text-xs font-black">{statusConfig[item.status]?.icon || "📚"}</span>
+                        <div className={`px-2 py-1 border-2 border-black shadow-brutal ${statusConfig[item.status as keyof typeof statusConfig]?.color || 'bg-white text-black'}`}>
+                          <span className="text-xs font-black">{statusConfig[item.status as keyof typeof statusConfig]?.icon || "📚"}</span>
                         </div>
                       </div>
 
