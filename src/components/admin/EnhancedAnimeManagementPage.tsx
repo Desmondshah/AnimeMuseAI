@@ -749,44 +749,47 @@ const BrutalistSimpleAnimeCard: React.FC<{
   onViewHistory: () => void;
 }> = memo(({ anime, onEdit, onDelete, onManageCharacters, onViewHistory }) => {
   return (
-    <div className="bg-black border-4 border-white p-4 aspect-square flex flex-col">
-      {/* Poster Section */}
-      <div className="flex-shrink-0 mb-4">
-        <div className="w-full h-32 bg-white border-4 border-black overflow-hidden">
-        {anime.posterUrl ? (
-          <img
-            src={anime.posterUrl}
-              alt={anime.title || 'Anime Poster'}
-            className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-          ) : null}
-          <div className={`w-full h-full flex items-center justify-center text-4xl ${anime.posterUrl ? 'hidden' : ''}`}>
-            🎬
+    <div className="bg-black border-4 border-white p-4 flex flex-col justify-between">
+      <div>
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-24 flex-shrink-0">
+            <div className="w-full bg-white border-4 border-black overflow-hidden aspect-[2/3]">
+              {anime.posterUrl ? (
+                <img
+                  src={anime.posterUrl}
+                  alt={anime.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full items-center justify-center text-4xl ${anime.posterUrl ? 'hidden' : 'flex'}`}>
+                🎬
+              </div>
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-black text-white uppercase tracking-wide mb-2 line-clamp-2">
+              {anime.title || 'UNTITLED ANIME'}
+            </h3>
+            <div className="text-xs text-white uppercase tracking-wide mb-2">
+              <span className="bg-white text-black px-1 py-0.5 border-2 border-black font-black mr-2">
+                {anime.type || 'UNKNOWN TYPE'}
+              </span>
+              <span className="bg-white text-black px-1 py-0.5 border-2 border-black font-black">
+                {anime.airingStatus || 'UNKNOWN'}
+              </span>
+            </div>
+            <p className="text-sm text-white/80 font-bold mb-3 line-clamp-3">
+              {anime.description || 'NO DESCRIPTION AVAILABLE'}
+            </p>
           </div>
         </div>
-      </div>
-      
-      {/* Content Section */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1">
-          <h3 className="text-lg font-black text-white uppercase tracking-wide mb-2 line-clamp-2">
-            {anime.title || 'UNTITLED ANIME'}
-        </h3>
-          <p className="text-white text-xs uppercase tracking-wide mb-2">
-            {anime.type || 'UNKNOWN TYPE'} • {anime.airingStatus || 'UNKNOWN STATUS'}
-          </p>
-          <p className="text-white/80 text-xs mb-3 line-clamp-2">
-            {anime.description || 'NO DESCRIPTION AVAILABLE'}
-          </p>
-        </div>
         
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-1 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="bg-white text-black px-2 py-1 border-2 border-black">
             <div className="text-xs font-black uppercase tracking-wide">YEAR</div>
             <div className="font-black text-sm">{anime.year || 'N/A'}</div>
@@ -796,34 +799,33 @@ const BrutalistSimpleAnimeCard: React.FC<{
             <div className="font-black text-sm">{anime.rating || 'N/A'}</div>
           </div>
         </div>
-        
-        {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-1">
-          <button
-            onClick={() => onEdit(anime)}
-            className="bg-green-500 text-white border-2 border-green-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-green-600 transition-colors text-xs"
-          >
-            EDIT
-          </button>
-          <button
-            onClick={() => onManageCharacters(anime)}
-            className="bg-blue-500 text-white border-2 border-blue-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-blue-600 transition-colors text-xs"
-          >
-            CHARS
-          </button>
-          <button
-            onClick={onViewHistory}
-            className="bg-purple-500 text-white border-2 border-purple-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-purple-600 transition-colors text-xs"
-          >
-            HISTORY
-          </button>
-          <button
-            onClick={() => onDelete(anime._id)}
-            className="bg-red-500 text-white border-2 border-red-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-red-600 transition-colors text-xs"
-          >
-            DEL
-          </button>
-        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <button
+          onClick={() => onEdit(anime)}
+          className="bg-green-500 text-white border-2 border-green-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-green-600 transition-colors text-xs"
+        >
+          EDIT
+        </button>
+        <button
+          onClick={() => onManageCharacters(anime)}
+          className="bg-blue-500 text-white border-2 border-blue-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-blue-600 transition-colors text-xs"
+        >
+          CHARS
+        </button>
+        <button
+          onClick={onViewHistory}
+          className="bg-purple-500 text-white border-2 border-purple-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-purple-600 transition-colors text-xs"
+        >
+          HISTORY
+        </button>
+        <button
+          onClick={() => onDelete(anime._id)}
+          className="bg-red-500 text-white border-2 border-red-500 px-2 py-2 font-black uppercase tracking-wide hover:bg-red-600 transition-colors text-xs"
+        >
+          DEL
+        </button>
       </div>
     </div>
   );
@@ -982,29 +984,29 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
-      {/* BRUTALIST HEADER */}
-      <div className="bg-white border-4 border-black p-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+    <div className="w-full h-full min-h-screen space-y-12"> {/* ENHANCED full-height container with generous spacing */}
+      {/* BRUTALIST HEADER - Full Width Utilization */}
+      <div className="bg-white border-4 border-black p-12"> {/* INCREASED padding for full-width sections */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8"> {/* INCREASED gap */}
           <div>
-            <h1 className="text-5xl font-black text-black mb-4 uppercase tracking-wider">
+            <h1 className="text-6xl font-black text-black mb-6 uppercase tracking-wider"> {/* LARGER title */}
               ANIME MANAGEMENT
             </h1>
-            <p className="text-2xl text-black font-bold uppercase tracking-wide">
+            <p className="text-3xl text-black font-bold uppercase tracking-wide"> {/* LARGER subtitle */}
               MANAGE ANIME DATABASE, CHARACTERS, AND CONTENT
             </p>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8"> {/* INCREASED gap */}
             <button
               onClick={() => setShowCreateForm(true)}
-              className="bg-purple-500 text-white hover:bg-purple-600 border-4 border-purple-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
+              className="bg-purple-500 text-white hover:bg-purple-600 border-4 border-purple-500 px-12 py-6 font-black uppercase tracking-wide transition-colors text-xl" // LARGER buttons
             >
               + CREATE ANIME
             </button>
             <button
               onClick={() => setShowBatchImport(true)}
-              className="bg-blue-500 text-white hover:bg-blue-600 border-4 border-blue-500 px-8 py-4 font-black uppercase tracking-wide transition-colors"
+              className="bg-blue-500 text-white hover:bg-blue-600 border-4 border-blue-500 px-12 py-6 font-black uppercase tracking-wide transition-colors text-xl" // LARGER buttons
             >
               📦 BATCH IMPORT
             </button>
@@ -1012,30 +1014,30 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* BRUTALIST Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* BRUTALIST Stats - Enhanced Full-Width */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 mb-12"> {/* INCREASED gaps and margin */}
         {[
           { label: 'TOTAL ANIME', value: stats.total, icon: '🎬' },
           { label: 'TV SERIES', value: stats.tv, icon: '📺' },
           { label: 'MOVIES', value: stats.movie, icon: '🎥' },
           { label: 'ONGOING', value: stats.ongoing, icon: '⏳' },
         ].map((stat, index) => (
-          <div key={index} className="bg-white border-4 border-black p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-4xl">{stat.icon}</div>
+          <div key={index} className="bg-white border-4 border-black p-10"> {/* INCREASED padding */}
+            <div className="flex items-center justify-between mb-6"> {/* INCREASED margin */}
+              <div className="text-6xl">{stat.icon}</div> {/* LARGER icon */}
             </div>
-            <div className="text-4xl font-black text-black mb-2">{stat.value}</div>
-            <div className="text-lg font-black text-black uppercase tracking-wide">{stat.label}</div>
+            <div className="text-6xl font-black text-black mb-4">{stat.value}</div> {/* LARGER text */}
+            <div className="text-xl font-black text-black uppercase tracking-wide">{stat.label}</div> {/* LARGER label */}
           </div>
         ))}
       </div>
 
-      {/* BRUTALIST Filters */}
-      <div className="bg-white border-4 border-black p-6 mb-8">
-        <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-wide border-b-4 border-black pb-4">
+      {/* BRUTALIST Filters - Full-Width Enhanced */}
+      <div className="bg-white border-4 border-black p-10 mb-12"> {/* INCREASED padding and margin */}
+        <h3 className="text-3xl font-black text-black mb-8 uppercase tracking-wide border-b-4 border-black pb-6"> {/* LARGER text and spacing */}
           FILTERS & SEARCH
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8"> {/* INCREASED gap */}
           <BrutalistSimpleFilter
             value={searchTerm}
             onChange={setSearchTerm}
@@ -1062,8 +1064,8 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* BRUTALIST Anime Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* BRUTALIST Anime Grid - CORRECTED for proper sizing */}
+      <div className="grid w-full gap-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))' }}>
         {filteredAnimes.map((anime) => (
           <BrutalistSimpleAnimeCard
             key={anime._id}

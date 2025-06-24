@@ -1951,8 +1951,8 @@ Provide ${recommendationCount} carefully curated recommendations that create a c
             if (parsed) {
                 const rawRecommendations = parsed.slice(0, recommendationCount);
                 
-                console.log(`[Enhanced Mood AI] Enhancing ${rawRecommendations.length} mood-based recommendations...`);
-                recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
+                console.log(`[Enhanced Mood AI] Enhancing ${rawRecommendations.length} mood-based recommendations with better matching...`);
+                recommendations = await enhanceRecommendationsWithBetterMatching(ctx, rawRecommendations);
                 
                 // Add mood-specific metadata
                 recommendations = recommendations.map((rec: any) => ({
@@ -3283,3 +3283,232 @@ function mergeCharacterData(existingData: any, enrichedData: EnrichedCharacterDa
 
   return merged;
 }
+
+// Add this diagnostic function to help debug mood board recommendations
+export const debugMoodBoardDatabaseMatching = action({
+  args: {
+    testTitles: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Debug Mood Board] Testing ${args.testTitles.length} titles for database matches...`);
+    
+    interface TestResult {
+      testTitle: string;
+      exactMatch?: {
+        id: any;
+        title: string;
+        posterUrl: string;
+      } | null;
+      searchMatch?: {
+        id: any;
+        title: string;
+        posterUrl: string;
+      } | null;
+      searchResultsCount?: number;
+      error?: string;
+    }
+    
+    const results: TestResult[] = [];
+    
+    for (const title of args.testTitles) {
+      try {
+        // Test the existing lookup
+        const dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title });
+        
+        // Also test search index lookup
+        const searchResults = await ctx.runQuery(internal.anime.getFilteredAnime, {
+          paginationOpts: { numItems: 10, cursor: null },
+          searchTerm: title
+        });
+        
+        const searchMatch = searchResults.page.find((anime: any) => 
+          anime.title.toLowerCase().includes(title.toLowerCase()) ||
+          title.toLowerCase().includes(anime.title.toLowerCase())
+        );
+        
+        results.push({
+          testTitle: title,
+          exactMatch: dbAnime ? {
+            id: dbAnime._id,
+            title: dbAnime.title,
+            posterUrl: dbAnime.posterUrl
+          } : null,
+          searchMatch: searchMatch ? {
+            id: searchMatch._id,
+            title: searchMatch.title,
+            posterUrl: searchMatch.posterUrl
+          } : null,
+          searchResultsCount: searchResults.page.length
+        });
+        
+      } catch (error: any) {
+        results.push({
+          testTitle: title,
+          error: error.message
+        });
+      }
+    }
+    
+    return {
+      debug: true,
+      testResults: results,
+      summary: {
+        totalTested: args.testTitles.length,
+        exactMatches: results.filter(r => r.exactMatch).length,
+        searchMatches: results.filter(r => r.searchMatch).length,
+        errors: results.filter(r => r.error).length
+      }
+    };
+  }
+});
+
+// Enhanced database matching function with better title normalization
+const enhanceRecommendationsWithBetterMatching = async (
+  ctx: any,
+  recommendations: any[]
+): Promise<RecommendationWithDatabase[]> => {
+  const enhancedRecommendations: RecommendationWithDatabase[] = [];
+  const concurrentLimit = 2;
+  
+  console.log(`[Better Database Matching] Processing ${recommendations.length} recommendations...`);
+  
+  for (let i = 0; i < recommendations.length; i += concurrentLimit) {
+    const batch = recommendations.slice(i, i + concurrentLimit);
+    
+    const batchResults = await Promise.all(
+      batch.map(async (rec: any, batchIndex: number): Promise<RecommendationWithDatabase> => {
+        const globalIndex = i + batchIndex;
+        let posterUrl = rec.posterUrl;
+        let foundInDatabase = false;
+        
+        console.log(`[Better Database Matching] Processing (${globalIndex + 1}/${recommendations.length}): ${rec.title}`);
+        
+        // Step 1: Try multiple title variations for better matching
+        if (rec.title) {
+          const titleVariations = [
+            rec.title,
+            rec.title.replace(/[^\w\s]/g, ''), // Remove special characters
+            rec.title.replace(/\s+/g, ' ').trim(), // Normalize whitespace
+            rec.title.toLowerCase(),
+            rec.title.replace(':', '').replace('!', '').replace('?', ''), // Remove punctuation
+          ];
+          
+          let dbAnime: any = null;
+          
+          // Try exact matches first
+          for (const titleVar of titleVariations) {
+            try {
+              dbAnime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+                title: titleVar 
+              });
+              if (dbAnime) {
+                console.log(`[Better Database Matching] ✅ Exact match found for "${rec.title}" using variation "${titleVar}"`);
+                break;
+              }
+            } catch (error: any) {
+              console.warn(`[Better Database Matching] Error with title "${titleVar}":`, error.message);
+            }
+          }
+          
+          // If no exact match, try fuzzy search
+          if (!dbAnime) {
+            try {
+              const searchResults = await ctx.runQuery(internal.anime.getFilteredAnime, {
+                paginationOpts: { numItems: 20, cursor: null },
+                searchTerm: rec.title
+              });
+              
+              // Look for close matches
+              const closeMatch = searchResults.page.find((anime: any) => {
+                const titleLower = anime.title.toLowerCase();
+                const recTitleLower = rec.title.toLowerCase();
+                
+                return titleLower.includes(recTitleLower) || 
+                       recTitleLower.includes(titleLower) ||
+                       titleLower.replace(/[^\w]/g, '') === recTitleLower.replace(/[^\w]/g, '');
+              });
+              
+              if (closeMatch) {
+                dbAnime = closeMatch;
+                console.log(`[Better Database Matching] ✅ Fuzzy match found: "${rec.title}" -> "${closeMatch.title}"`);
+              }
+            } catch (error: any) {
+              console.warn(`[Better Database Matching] Search error for "${rec.title}":`, error.message);
+            }
+          }
+          
+          if (dbAnime && isValidPosterUrl(dbAnime.posterUrl)) {
+            posterUrl = dbAnime.posterUrl;
+            foundInDatabase = true;
+            rec._id = dbAnime._id;
+            
+            // Enhance other fields from database
+            rec.description = rec.description || dbAnime.description;
+            rec.genres = rec.genres?.length ? rec.genres : (dbAnime.genres || []);
+            rec.year = rec.year || dbAnime.year;
+            rec.rating = rec.rating || dbAnime.rating;
+            rec.studios = rec.studios?.length ? rec.studios : (dbAnime.studios || []);
+            
+            console.log(`[Better Database Matching] ✅ Enhanced "${rec.title}" with database data`);
+          } else {
+            console.log(`[Better Database Matching] ❌ No database match found for: ${rec.title}`);
+          }
+        }
+        
+        // Step 2: If not found in DB, use external APIs (same as before)
+        if (!foundInDatabase && (!posterUrl || posterUrl === "PLACEHOLDER" || posterUrl.includes('placehold.co') || posterUrl.includes('placeholder') || !posterUrl.startsWith('https://'))) {
+          console.log(`[Better Database Matching] 🔍 Fetching external poster for: ${rec.title}`);
+          
+          try {
+            const externalPosterUrl = await fetchRealAnimePosterWithRetry(rec.title, 0);
+            
+            if (externalPosterUrl) {
+              posterUrl = externalPosterUrl;
+              console.log(`[Better Database Matching] ✅ Found external poster: ${rec.title}`);
+            } else {
+              const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+              posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+              console.log(`[Better Database Matching] 📝 Using fallback placeholder: ${rec.title}`);
+            }
+          } catch (error: any) {
+            console.error(`[Better Database Matching] External fetch error for "${rec.title}":`, error.message);
+            const encodedTitle = encodeURIComponent((rec.title || "Anime").substring(0, 30));
+            posterUrl = `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodedTitle}&font=roboto`;
+          }
+        }
+        
+        return {
+          ...rec,
+          posterUrl,
+          title: rec.title || "Unknown Title",
+          description: rec.description || "No description available.",
+          reasoning: rec.reasoning || "AI recommendation.",
+          foundInDatabase,
+          moodMatchScore: rec.moodMatchScore || 7,
+          genres: Array.isArray(rec.genres) ? rec.genres : [],
+          emotionalTags: Array.isArray(rec.emotionalTags) ? rec.emotionalTags : [],
+          studios: Array.isArray(rec.studios) ? rec.studios : [],
+          themes: Array.isArray(rec.themes) ? rec.themes : [],
+        } as RecommendationWithDatabase;
+      })
+    );
+    
+    enhancedRecommendations.push(...batchResults);
+    
+    if (i + concurrentLimit < recommendations.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+  
+  const dbHits = enhancedRecommendations.filter((rec: RecommendationWithDatabase) => rec.foundInDatabase).length;
+  const realPostersFound = enhancedRecommendations.filter((rec: RecommendationWithDatabase) => 
+    rec.posterUrl && !rec.posterUrl.includes('placehold.co')
+  ).length;
+  
+  console.log(`[Better Database Matching] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
+  
+  return enhancedRecommendations;
+};
+
+// Update the getEnhancedRecommendationsByMoodTheme to use better matching
+// ... existing code ...

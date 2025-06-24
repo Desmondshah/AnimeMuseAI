@@ -1115,13 +1115,25 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
               <div className="relative bg-gradient-to-r from-brand-primary-action to-red-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 flex items-center justify-between overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
                 <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">FOR YOU</h2>
+                <div className="relative z-10 flex items-center gap-2">
+                  {/* ADMIN ACCESS BRUTALIST BUTTON - Only visible to admins */}
+                  {isUserAdmin && (
                     <button
-                      onClick={refreshPersonalizedRecommendations}
-                      disabled={category.isLoading}
-                  className="relative z-10 bg-white text-black px-3 py-1 border-2 border-black font-bold text-xs uppercase disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5 transition-transform duration-75"
-                >
-                  {category.isLoading ? 'LOADING...' : 'REFRESH'}
+                      onClick={() => setCurrentView("admin_dashboard")}
+                      className="bg-black text-white border-2 border-white px-3 py-1 font-black text-xs uppercase tracking-wider hover:bg-red-600 hover:border-black transition-all duration-150 active:translate-x-0.5 active:translate-y-0.5 shadow-[2px_2px_0px_0px_rgba(255,255,255,0.3)]"
+                      title="Admin Dashboard Access"
+                    >
+                      🔧 ADMIN
                     </button>
+                  )}
+                  <button
+                    onClick={refreshPersonalizedRecommendations}
+                    disabled={category.isLoading}
+                    className="bg-white text-black px-3 py-1 border-2 border-black font-bold text-xs uppercase disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5 transition-transform duration-75"
+                  >
+                    {category.isLoading ? 'LOADING...' : 'REFRESH'}
+                  </button>
+                </div>
               </div>
 
               {category.isLoading ? (

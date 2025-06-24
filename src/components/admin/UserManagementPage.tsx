@@ -339,10 +339,8 @@ const UserManagementPageComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* BRUTALIST USER GRID - iPad Optimized */}
-      <div className={`${getGridClasses('cards')} ${
-        iPad.isIPadMini ? 'gap-3' : iPad.isIPadPro12 ? 'gap-8' : 'gap-4 md:gap-6'
-      }`}>
+      {/* BRUTALIST USER GRID - CORRECTED for proper sizing */}
+      <div className="grid w-full gap-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))' }}>
         {filteredUsers.map((user: Doc<"userProfiles">) => (
           <BrutalistUserCard
             key={user._id}

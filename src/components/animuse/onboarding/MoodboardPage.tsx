@@ -496,6 +496,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
 }) => {
   const userProfile = useQuery(api.users.getMyUserProfile);
   const getRecommendationsByMoodTheme = useAction(api.ai.getEnhancedRecommendationsByMoodTheme);
+  // Removed debug action - moved to admin dashboard
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -678,6 +679,8 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
       onRecommendationsChange([]);
     }
   }, [selectedMoodCues, moodBoardRecommendations.length, isLoadingMoodBoard, fetchMoodBoardRecommendations, onRecommendationsChange]);
+
+  // Debug functions moved to admin dashboard
 
   // ============================================================================
   // RENDER
@@ -940,11 +943,15 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
             {/* Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
-                onClick={fetchMoodBoardRecommendations}
+                onClick={() => {
+                  // Clear cache and fetch fresh recommendations
+                  localStorage.removeItem(HISTORY_KEY);
+                  fetchMoodBoardRecommendations();
+                }}
                 disabled={isLoadingMoodBoard}
                 className="bg-brand-primary-action border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target disabled:opacity-50"
               >
-                {isLoadingMoodBoard ? "🔄 CRAFTING..." : "🎯 GET RECS"}
+                {isLoadingMoodBoard ? "🔄 CRAFTING..." : "🎯 FRESH RECS"}
               </button>
               
               <button
@@ -961,6 +968,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                 🗑️ CLEAR ALL
               </button>
             </div>
+
           </div>
         )}
 

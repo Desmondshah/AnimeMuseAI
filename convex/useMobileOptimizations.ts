@@ -28,6 +28,10 @@ interface iPadInfo {
     users: number;
     stats: number;
   };
+  containerPadding: number;
+  gridGap: number;
+  aspectRatio: number;
+  isLandscape: boolean;
 }
 
 interface MobileOptimizationState {
@@ -78,14 +82,30 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
         users: 2,
         stats: 4,
       },
+      containerPadding: 24,
+      gridGap: 24,
+      aspectRatio: 1,
+      isLandscape: false,
     },
     isLandscape: false,
-    isPortrait: true,
-    shouldUseSidebarOverlay: false,
-    adminGridClasses: () => '',
+          isPortrait: true,
+      shouldUseSidebarOverlay: false,
+      adminGridClasses: (type: string) => generateAdminGridClasses(type, {
+        isIPad: false,
+        isIPadMini: false,
+        isIPadAir: false,
+        isIPadPro11: false,
+        isIPadPro12: false,
+        sidebarWidth: 280,
+        gridColumns: { anime: 3, characters: 4, reviews: 2, users: 2, stats: 4 },
+        containerPadding: 24,
+        gridGap: 24,
+        aspectRatio: 1,
+        isLandscape: false,
+      }),
   });
 
-  // Enhanced iPad detection
+  // Enhanced iPad detection with improved orientation handling
   const detectIPadInfo = useCallback((width: number, height: number): iPadInfo => {
     const userAgent = navigator.userAgent;
     const isIPadDevice = /iPad/.test(userAgent) || 
@@ -101,6 +121,10 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
         isIPadPro12: false,
         sidebarWidth: 280,
         gridColumns: { anime: 3, characters: 4, reviews: 2, users: 2, stats: 4 },
+        containerPadding: 24,
+        gridGap: 24,
+        aspectRatio: 1,
+        isLandscape: false,
       };
     }
 
@@ -110,34 +134,65 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
     const isIPadPro11 = (width >= 834 && width <= 834) && (height >= 1194 && height <= 1194);
     const isIPadPro12 = width >= 1024 && width <= 1366;
 
-    // Orientation detection
+    // Enhanced orientation detection
     const isLandscape = width > height;
+    const aspectRatio = width / height;
 
-    // Dynamic sidebar width
+    // BRUTALIST SPACING CALCULATIONS - More generous spacing for readability
     let sidebarWidth = 280;
-    if (width <= 834) sidebarWidth = 240;
-    if (width >= 1024) sidebarWidth = 320;
+    let containerPadding = 24;
+    let gridGap = 24;
+    
+    if (isLandscape) {
+      // Landscape: MUCH MORE GENEROUS SPACING for breathing room
+      if (width >= 1024) {
+        sidebarWidth = 300; // iPad Pro 12" landscape - reduced sidebar for more content space
+        containerPadding = 60; // Much larger padding
+        gridGap = 48; // Significantly larger gaps
+      } else {
+        sidebarWidth = 250; // iPad Mini/Air landscape - reduced sidebar
+        containerPadding = 48; // Much larger padding
+        gridGap = 40; // Significantly larger gaps
+      }
+    } else {
+      // Portrait: More vertical space, optimize for stacked content
+      if (width >= 834) {
+        sidebarWidth = 240; // iPad Pro/Air portrait
+        containerPadding = 32;
+        gridGap = 28;
+      } else {
+        sidebarWidth = 200; // iPad Mini portrait
+        containerPadding = 24;
+        gridGap = 20;
+      }
+    }
 
-    // Dynamic grid columns based on screen size and orientation
+    // MINIMALIST GRID CONFIGURATION - Less cramped, more breathing room
     let gridColumns = {
-      anime: 3,
-      characters: 4,
-      reviews: 2,
+      anime: 2,
+      characters: 3,
+      reviews: 1,
       users: 2,
-      stats: 4,
+      stats: 2,
     };
 
     if (isLandscape) {
+      // Landscape: MINIMAL COLUMNS for maximum breathing room and readability
       if (width >= 1024) {
-        gridColumns = { anime: 5, characters: 6, reviews: 3, users: 4, stats: 4 };
+        // iPad Pro 12" landscape - fewer columns for spacious layout
+        gridColumns = { anime: 2, characters: 3, reviews: 1, users: 2, stats: 3 };
       } else {
-        gridColumns = { anime: 4, characters: 5, reviews: 3, users: 3, stats: 4 };
+        // iPad Mini/Air landscape - very minimal columns
+        gridColumns = { anime: 2, characters: 2, reviews: 1, users: 2, stats: 2 };
       }
     } else {
+      // Portrait: Focus on vertical flow, fewer columns for better readability
       if (width >= 834) {
-        gridColumns = { anime: 3, characters: 4, reviews: 2, users: 3, stats: 3 };
+        // iPad Pro/Air portrait
+        gridColumns = { anime: 2, characters: 3, reviews: 1, users: 2, stats: 2 };
       } else {
-        gridColumns = { anime: 2, characters: 3, reviews: 2, users: 2, stats: 2 };
+        // iPad Mini portrait - very minimal columns
+        gridColumns = { anime: 2, characters: 2, reviews: 1, users: 1, stats: 2 };
       }
     }
 
@@ -149,6 +204,10 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
       isIPadPro12,
       sidebarWidth,
       gridColumns,
+      containerPadding,
+      gridGap,
+      aspectRatio,
+      isLandscape
     };
   }, []);
 
@@ -228,32 +287,57 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
   }, []);
 
   // Generate admin grid classes
-  // Generate admin grid classes - FIXED for proper iPad responsiveness
-const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInfo['gridColumns']) => {
-  const columns = gridColumns[type as keyof typeof gridColumns] || 3;
+  // BRUTALIST GRID CLASSES - Enhanced spacing for iPad orientations
+const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) => {
+  const { gridColumns, gridGap, isLandscape, containerPadding } = iPadInfo;
+  const columns = gridColumns[type as keyof typeof gridColumns] || 2;
   
-  // Base grid classes with proper responsive breakpoints
-  const baseClasses = 'grid gap-4 md:gap-6 w-full max-w-full';
+  // BRUTALIST SPACING - Much more generous gaps for landscape breathing room
+  const gapClass = gridGap >= 48 ? 'gap-12' : gridGap >= 40 ? 'gap-10' : gridGap >= 32 ? 'gap-8' : gridGap >= 28 ? 'gap-7' : gridGap >= 24 ? 'gap-6' : 'gap-4';
+  const paddingClass = containerPadding >= 60 ? 'p-15' : containerPadding >= 48 ? 'p-12' : containerPadding >= 40 ? 'p-10' : containerPadding >= 32 ? 'p-8' : containerPadding >= 28 ? 'p-7' : 'p-6';
   
-  // iPad-specific responsive grid classes
-  if (type === 'stats') {
-    return `${baseClasses} grid-cols-2 md:grid-cols-${Math.min(columns, 4)}`;
+  // Base classes with brutalist spacing
+  const baseClasses = `grid ${gapClass} w-full max-w-full ${paddingClass}`;
+  
+  // ORIENTATION-AWARE GRID CONFIGURATION
+  if (isLandscape) {
+    // Landscape: Utilize horizontal space but maintain readability
+    if (type === 'stats') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 4)}`;
+    }
+    
+    if (type === 'anime') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 4)}`;
+    }
+    
+    if (type === 'users') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 3)}`;
+    }
+    
+    if (type === 'reviews') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
+    }
+  } else {
+    // Portrait: Focus on vertical flow, minimize horizontal cramping
+    if (type === 'stats') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
+    }
+    
+    if (type === 'anime') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
+    }
+    
+    if (type === 'users') {
+      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
+    }
+    
+    if (type === 'reviews') {
+      return `${baseClasses} grid-cols-1`;
+    }
   }
   
-  if (type === 'anime') {
-    return `${baseClasses} grid-cols-2 md:grid-cols-${Math.min(columns, 3)} lg:grid-cols-${Math.min(columns, 4)}`;
-  }
-  
-  if (type === 'users') {
-    return `${baseClasses} grid-cols-1 md:grid-cols-${Math.min(columns, 2)} lg:grid-cols-${Math.min(columns, 3)}`;
-  }
-  
-  if (type === 'reviews') {
-    return `${baseClasses} grid-cols-1 md:grid-cols-${Math.min(columns, 2)}`;
-  }
-  
-  // Default fallback
-  return `${baseClasses} grid-cols-2 md:grid-cols-${Math.min(columns, 3)}`;
+  // Default fallback with orientation awareness
+  return `${baseClasses} grid-cols-${isLandscape ? Math.min(columns, 3) : Math.min(columns, 2)}`;
 }, []);
 
   useEffect(() => {
@@ -333,7 +417,7 @@ const generateAdminGridClasses = useCallback((type: string, gridColumns: iPadInf
         isLandscape,
         isPortrait,
         shouldUseSidebarOverlay,
-        adminGridClasses: (type: string) => generateAdminGridClasses(type, iPadInfo.gridColumns),
+        adminGridClasses: (type: string) => generateAdminGridClasses(type, iPadInfo),
       });
 
       // Apply CSS classes for styling (enhanced)
@@ -506,32 +590,27 @@ export const useAdminLayoutOptimization = () => {
     sidebarWidth: iPad.sidebarWidth,
     shouldUseSidebarOverlay,
     getGridClasses: (type: string) => {
-      // Ensure we return proper Tailwind classes that exist
-      const columns = iPad.gridColumns[type as keyof typeof iPad.gridColumns] || 3;
-      const baseClasses = 'grid gap-4 md:gap-6 w-full max-w-full box-border';
+      // FULL WIDTH grid classes without max-width constraints
+      const baseClasses = 'grid w-full';
+      const gapClass = iPad.gridGap >= 48 ? 'gap-12' : iPad.gridGap >= 40 ? 'gap-10' : iPad.gridGap >= 32 ? 'gap-8' : 'gap-6';
       
-      // Use only safe Tailwind grid classes
+      // MAXIMUM WIDTH UTILIZATION - responsive breakpoints for all screen sizes
       switch (type) {
         case 'stats':
-          if (iPad.isIPadMini) return `${baseClasses} grid-cols-2`;
-          if (iPad.isIPadPro12) return `${baseClasses} grid-cols-2 md:grid-cols-4`;
-          return `${baseClasses} grid-cols-2 md:grid-cols-3`;
+          return `${baseClasses} ${gapClass} grid-cols-2 md:grid-cols-4`;
           
         case 'anime':
-          if (iPad.isIPadMini) return `${baseClasses} grid-cols-2`;
-          if (iPad.isIPadPro12) return `${baseClasses} grid-cols-2 md:grid-cols-3 lg:grid-cols-4`;
-          return `${baseClasses} grid-cols-2 md:grid-cols-3`;
+          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6`;
           
         case 'users':
-          if (iPad.isIPadMini) return `${baseClasses} grid-cols-1 md:grid-cols-2`;
-          if (iPad.isIPadPro12) return `${baseClasses} grid-cols-1 md:grid-cols-2 lg:grid-cols-3`;
-          return `${baseClasses} grid-cols-1 md:grid-cols-2`;
+        case 'cards':
+          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`;
           
         case 'reviews':
-          return `${baseClasses} grid-cols-1 md:grid-cols-2`;
+          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`;
           
         default:
-          return `${baseClasses} grid-cols-2 md:grid-cols-3`;
+          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`;
       }
     },
     contentPadding: iPad.isIPadMini ? 'p-4' : iPad.isIPadPro12 ? 'p-6 md:p-8 lg:p-12' : 'p-6 md:p-8',

@@ -426,3 +426,398 @@ body {
     box-shadow: 4px 4px 0px 0px #000 !important;
   }
 }
+
+/* RESPONSIVE BRUTALIST ADMIN CSS */
+
+/* Base responsive breakpoints */
+:root {
+  --mobile-max: 768px;
+  --tablet-max: 1024px;
+  --desktop-min: 1025px;
+}
+
+/* Remove default margins and ensure full width usage */
+.admin-container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* MOBILE STYLES (iPhone) */
+@media (max-width: 768px) {
+  .admin-main-content {
+    padding: 1rem;
+    margin: 0;
+    width: 100%;
+    padding-bottom: 5rem; /* Space for bottom navigation */
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 1.5rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-nav-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #000;
+    border-top: 4px solid #fff;
+    z-index: 50;
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .admin-nav-mobile button {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    color: #fff;
+    background: #000;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .admin-nav-mobile button.active {
+    background: #fff;
+    color: #000;
+  }
+
+  .admin-title-mobile {
+    font-size: 2rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .admin-description-mobile {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+}
+
+/* TABLET STYLES (iPad) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .admin-main-content {
+    padding: 1.5rem;
+    margin: 0;
+    width: 100%;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 2rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-nav-tablet {
+    background: #000;
+    border-bottom: 4px solid #fff;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .admin-nav-tablet::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav-tablet button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    border-right: 4px solid #fff;
+    background: #000;
+    color: #fff;
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    transition: all 0.2s;
+  }
+
+  .admin-nav-tablet button:last-child {
+    border-right: none;
+  }
+
+  .admin-nav-tablet button.active {
+    background: #fff;
+    color: #000;
+  }
+
+  .admin-title-tablet {
+    font-size: 2.5rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .admin-description-tablet {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  /* iPad Landscape optimizations */
+  @media (orientation: landscape) {
+    .admin-action-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .admin-main-content {
+      padding: 2rem;
+    }
+  }
+}
+
+/* DESKTOP STYLES (MacBook) */
+@media (min-width: 1025px) {
+  .admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 20rem;
+    background: #000;
+    border-right: 4px solid #fff;
+    z-index: 40;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+
+  .admin-main-content {
+    margin-left: 20rem;
+    padding: 2rem;
+    width: calc(100% - 20rem);
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 2.5rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-sidebar nav {
+    margin-top: 2rem;
+  }
+
+  .admin-sidebar nav button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #000;
+    color: #fff;
+    border: 4px solid #fff;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .admin-sidebar nav button.active {
+    background: #fff;
+    color: #000;
+  }
+
+  .admin-sidebar nav button:hover {
+    background: #333;
+  }
+
+  .admin-sidebar nav button.active:hover {
+    background: #f0f0f0;
+  }
+}
+
+/* UTILITY CLASSES FOR BRUTALIST DESIGN */
+.brutal-container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.brutal-full-width {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.brutal-no-sidebar-margin {
+  margin-left: 0 !important;
+}
+
+.brutal-responsive-padding {
+  padding: 1rem;
+}
+
+@media (min-width: 769px) {
+  .brutal-responsive-padding {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .brutal-responsive-padding {
+    padding: 2rem;
+  }
+}
+
+/* PREVENT CRAMPED LAYOUTS */
+.admin-content-wrapper {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.admin-grid-container {
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 769px) {
+  .admin-grid-container {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .admin-grid-container {
+    gap: 2rem;
+  }
+}
+
+/* TOUCH TARGETS FOR MOBILE */
+.admin-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* SCROLLBAR HIDING */
+.admin-scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.admin-scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* SAFE AREA FOR MOBILE DEVICES */
+.admin-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* BRUTALIST HOVER EFFECTS */
+.brutal-hover-invert {
+  transition: all 0.2s ease;
+}
+
+.brutal-hover-invert:hover {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+/* RESPONSIVE TEXT SIZES */
+.brutal-text-responsive-xl {
+  font-size: 2rem;
+}
+
+@media (min-width: 769px) {
+  .brutal-text-responsive-xl {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .brutal-text-responsive-xl {
+    font-size: 3rem;
+  }
+}
+
+.brutal-text-responsive-lg {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 769px) {
+  .brutal-text-responsive-lg {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .brutal-text-responsive-lg {
+    font-size: 2.5rem;
+  }
+}
+
+/* PREVENT LAYOUT SHIFTS */
+.admin-layout-stable {
+  contain: layout style;
+  will-change: auto;
+}
+
