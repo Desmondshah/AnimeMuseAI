@@ -7,6 +7,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* EMERGENCY ADMIN LAYOUT FIX */
+@media (orientation: landscape) and (min-width: 768px) {
+  .w-full.max-w-lg,
+  .w-full.max-w-xl, 
+  .w-full.max-w-2xl {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 2rem !important;
+    width: 100% !important;
+  }
+}
+
 :root {
   --vh: 1vh;
 }
@@ -427,7 +443,7 @@ body {
   }
 }
 
-/* RESPONSIVE BRUTALIST ADMIN CSS */
+/* RESPONSIVE BRUTALIST ADMIN CSS WITH LANDSCAPE SUPPORT */
 
 /* Base responsive breakpoints */
 :root {
@@ -444,13 +460,14 @@ body {
   padding: 0;
 }
 
-/* MOBILE STYLES (iPhone) */
-@media (max-width: 768px) {
+/* MOBILE PORTRAIT STYLES (iPhone Portrait) */
+@media (max-width: 768px) and (orientation: portrait) {
   .admin-main-content {
     padding: 1rem;
     margin: 0;
     width: 100%;
     padding-bottom: 5rem; /* Space for bottom navigation */
+    padding-top: 5rem; /* Space for top header */
   }
 
   .admin-stats-grid {
@@ -467,14 +484,6 @@ body {
     width: 100%;
   }
 
-  .admin-card {
-    padding: 1.5rem;
-    border: 4px solid #fff;
-    background: #000;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
   .admin-nav-mobile {
     position: fixed;
     bottom: 0;
@@ -483,34 +492,309 @@ body {
     background: #000;
     border-top: 4px solid #fff;
     z-index: 50;
-    display: flex;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* MOBILE LANDSCAPE STYLES (iPhone/small tablets in landscape) */
+@media (max-width: 768px) and (orientation: landscape),
+       (min-width: 569px) and (max-width: 1024px) and (orientation: landscape) {
+  .admin-main-content {
+    padding: 1rem 1.25rem;
+    margin: 0;
+    width: 100%;
+    padding-top: 1.25rem; /* Just top nav space */
   }
 
-  .admin-nav-mobile button {
-    flex: 1;
-    padding: 0.75rem 0.5rem;
-    text-align: center;
-    color: #fff;
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-nav-landscape {
     background: #000;
-    border: none;
-    transition: all 0.2s;
+    border-bottom: 4px solid #fff;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  .admin-nav-mobile button.active {
+  .admin-nav-landscape::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-card {
+    padding: 1rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* TABLET PORTRAIT STYLES (iPad Portrait) */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .admin-main-content {
+    padding: 1.5rem;
+    margin: 0;
+    width: 100%;
+    padding-top: 1.5rem;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 1.5rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* TABLET LANDSCAPE STYLES (iPad Landscape) */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  .admin-main-content {
+    padding: 1.5rem 2rem;
+    margin: 0;
+    width: 100%;
+    padding-top: 1.5rem;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 2rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* UNIVERSAL HORIZONTAL NAVIGATION (Mobile Landscape + Tablet) */
+@media (orientation: landscape) and (max-width: 1024px) {
+  .admin-nav-horizontal {
+    background: #000;
+    border-bottom: 4px solid #fff;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .admin-nav-horizontal::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav-horizontal button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+    border-right: 4px solid #fff;
+    background: #000;
+    color: #fff;
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .admin-nav-horizontal button:last-child {
+    border-right: none;
+  }
+
+  .admin-nav-horizontal button.active {
     background: #fff;
     color: #000;
   }
+}
 
-  .admin-title-mobile {
-    font-size: 2rem;
-    line-height: 1.1;
-    margin-bottom: 1rem;
+/* DESKTOP STYLES (MacBook) - Unchanged */
+@media (min-width: 1025px) {
+  .admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 20rem;
+    background: #000;
+    border-right: 4px solid #fff;
+    z-index: 40;
+    padding: 2rem;
+    box-sizing: border-box;
   }
 
-  .admin-description-mobile {
-    font-size: 0.875rem;
-    line-height: 1.4;
+  .admin-main-content {
+    margin-left: 20rem;
+    padding: 2rem;
+    width: calc(100% - 20rem);
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+
+  .admin-card {
+    padding: 2.5rem;
+    border: 4px solid #fff;
+    background: #000;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* LANDSCAPE-SPECIFIC OPTIMIZATIONS */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Very short landscape screens (like iPhone in landscape) */
+  .admin-main-content {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .admin-card {
+    padding: 0.75rem !important;
+  }
+  
+  .admin-nav-horizontal button {
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
+/* UTILITY CLASSES FOR ORIENTATION-AWARE DESIGN */
+.landscape-only {
+  display: none;
+}
+
+@media (orientation: landscape) {
+  .landscape-only {
+    display: block;
+  }
+  
+  .portrait-only {
+    display: none;
+  }
+}
+
+.portrait-only {
+  display: block;
+}
+
+/* RESPONSIVE GRID UTILITIES */
+.grid-responsive-stats {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  grid-template-columns: repeat(2, 1fr); /* Mobile portrait default */
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .grid-responsive-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 769px) {
+  .grid-responsive-stats {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid-responsive-stats {
+    gap: 2rem;
+  }
+}
+
+.grid-responsive-actions {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  grid-template-columns: 1fr; /* Mobile portrait default */
+}
+
+@media (orientation: landscape) and (max-width: 768px) {
+  .grid-responsive-actions {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 569px) and (orientation: landscape) {
+  .grid-responsive-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (orientation: portrait) {
+  .grid-responsive-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 769px) and (orientation: landscape) {
+  .grid-responsive-actions {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid-responsive-actions {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -821,3 +1105,432 @@ body {
   will-change: auto;
 }
 
+/* FIXED ADMIN CSS - Proper Landscape Support */
+
+/* Remove all width constraints that force vertical layouts */
+.admin-container,
+.admin-content-wrapper,
+.admin-grid-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+/* FIXED: Responsive breakpoints with proper landscape detection */
+:root {
+  --mobile-portrait: 768px;
+  --tablet-landscape: 1024px;
+  --desktop-min: 1200px;
+}
+
+/* MOBILE PORTRAIT ONLY */
+@media (max-width: 768px) and (orientation: portrait) {
+  .admin-main-content {
+    padding: 1rem;
+    margin: 0;
+    width: 100%;
+    padding-bottom: 5rem; /* Space for bottom navigation */
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    width: 100%;
+  }
+}
+
+/* MOBILE LANDSCAPE & TABLET - Use horizontal space properly */
+@media (min-width: 569px) and (max-width: 1199px) {
+  .admin-main-content {
+    padding: 1.5rem 2rem;
+    margin: 0;
+    width: 100%;
+    max-width: none; /* IMPORTANT: No width limits */
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Use full width */
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Use landscape space */
+    gap: 2rem;
+    width: 100%;
+  }
+
+  /* FIXED: Navigation uses horizontal space */
+  .admin-nav-tablet {
+    background: #000;
+    border-bottom: 4px solid #fff;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 100%;
+  }
+
+  .admin-nav-tablet::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav-tablet button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    border-right: 4px solid #fff;
+    background: #000;
+    color: #fff;
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    transition: all 0.2s;
+    min-width: max-content;
+  }
+}
+
+/* DESKTOP - Sidebar layout */
+@media (min-width: 1200px) {
+  .admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 20rem;
+    background: #000;
+    border-right: 4px solid #fff;
+    z-index: 40;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+
+  .admin-main-content {
+    margin-left: 20rem;
+    padding: 2rem;
+    width: calc(100% - 20rem);
+    max-width: none; /* IMPORTANT: No width limits */
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  .admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    width: 100%;
+  }
+}
+
+/* FIXED: Card layouts use full available width */
+.admin-card {
+  padding: 2rem;
+  border: 4px solid #fff;
+  background: #000;
+  width: 100%;
+  max-width: none; /* IMPORTANT: Remove width constraints */
+  box-sizing: border-box;
+  min-height: 200px; /* Ensure minimum height for content */
+}
+
+/* FIXED: Grid containers use full width */
+.admin-grid-full-width {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Responsive grid classes that actually work */
+.grid-cols-auto-fit-300 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.grid-cols-auto-fit-400 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  width: 100%;
+}
+
+/* FIXED: Override any max-width constraints in admin components */
+.admin-page * {
+  max-width: none !important;
+}
+
+.admin-page .container,
+.admin-page .max-w-4xl,
+.admin-page .max-w-6xl,
+.admin-page .max-w-7xl {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* UTILITY CLASSES FOR LANDSCAPE LAYOUTS */
+.landscape-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 100%;
+}
+
+.landscape-cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  width: 100%;
+}
+
+.landscape-cols-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+  width: 100%;
+}
+
+/* RESPONSIVE CONTENT SPACING */
+.admin-spacing-responsive {
+  padding: 1rem;
+}
+
+@media (min-width: 569px) and (max-width: 1199px) {
+  .admin-spacing-responsive {
+    padding: 1.5rem 2rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .admin-spacing-responsive {
+    padding: 2rem;
+  }
+}
+
+/* FIXED: Remove any flex-col that forces vertical layout on landscape */
+@media (orientation: landscape) and (min-width: 569px) {
+  .force-landscape-horizontal {
+    flex-direction: row !important;
+  }
+  
+  .landscape-grid-horizontal {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 2rem !important;
+  }
+}
+
+/* iPad specific optimizations */
+.touch-target-ipad {
+  min-height: 44px;
+  min-width: 44px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iPad Edit Form specific fixes */
+.iPad-edit-form {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.iPad-user-management {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* PREVENT SAFARI FROM ADDING MARGINS */
+@supports (-webkit-touch-callout: none) {
+  .admin-container,
+  .admin-main-content,
+  .admin-content-wrapper {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* Force grid items to use available space */
+.admin-grid-item {
+  width: 100%;
+  max-width: none;
+  min-width: 0; /* Allows flex items to shrink */
+}
+
+/* OVERRIDE ANY BRUTALIST CONSTRAINTS */
+.brutal-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.brutal-full-width {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure forms use full width */
+.admin-form-container {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* TARGETED FIX for Admin Layout Issues */
+
+/* 1. Remove ALL width constraints from admin containers */
+.admin-page,
+.admin-page *,
+[class*="admin"],
+[class*="Admin"] {
+  max-width: none !important;
+  width: auto !important;
+}
+
+/* 2. Fix the main App container that might be constraining everything */
+#root {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* 3. Fix the main app wrapper */
+.min-h-screen {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* 4. Target your specific responsive wrapper */
+.w-full.max-w-lg,
+.w-full.max-w-xl,
+.w-full.max-w-2xl {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* 5. Override Tailwind's max-width utilities in admin context */
+body:has([class*="admin"]) .max-w-lg,
+body:has([class*="admin"]) .max-w-xl,
+body:has([class*="admin"]) .max-w-2xl,
+body:has([class*="admin"]) .max-w-3xl,
+body:has([class*="admin"]) .max-w-4xl,
+body:has([class*="admin"]) .max-w-5xl,
+body:has([class*="admin"]) .max-w-6xl,
+body:has([class*="admin"]) .max-w-7xl {
+  max-width: none !important;
+}
+
+/* 6. Force grids to use full width - target the exact classes you're using */
+.grid {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* 7. Fix any container that has mx-auto (auto margins) */
+.mx-auto {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* 8. Force the specific grid patterns to work in landscape */
+@media (orientation: landscape) and (min-width: 768px) {
+  
+  /* Force stats to use 4 columns */
+  .grid-cols-2 {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  
+  /* Force action grids to use 3 columns */
+  .space-y-6 > .grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 2rem !important;
+  }
+  
+  /* Target any auto-fit that might not be working */
+  [style*="grid-template-columns"] {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+}
+
+/* 9. Specific fix for your main content wrapper in App.tsx */
+.flex-1.flex.flex-col.items-center.justify-center.w-full {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+
+.w-full.max-w-lg.sm\\:max-w-xl.md\\:max-w-2xl.mx-auto {
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+/* 10. Emergency override - if nothing else works */
+@media (orientation: landscape) and (min-width: 768px) {
+  * {
+    max-width: none !important;
+  }
+  
+  .grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+  
+  /* Force all admin content to use full screen */
+  [class*="AdminDashboard"],
+  [class*="UserManagement"],
+  [class*="AnimeManagement"] {
+    width: 100vw !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 1rem !important;
+  }
+}
+
+/* 11. Debug - Add red border to see what's constraining width */
+.debug-width * {
+  outline: 1px solid red !important;
+}
+
+/* 12. Last resort - completely override your wrapper */
+@media (min-width: 768px) {
+  .admin-container-override {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 2rem !important;
+    overflow-y: auto !important;
+    z-index: 10 !important;
+  }
+}

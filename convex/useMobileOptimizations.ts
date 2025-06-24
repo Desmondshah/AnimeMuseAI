@@ -1,4 +1,4 @@
-// convex/useMobileOptimizations.ts - Enhanced with iPad Support
+// FIXED useMobileOptimizations.ts - Proper Landscape Detection
 import { useEffect, useState, useCallback } from 'react';
 
 // Custom event for animation preference changes
@@ -88,24 +88,24 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
       isLandscape: false,
     },
     isLandscape: false,
-          isPortrait: true,
-      shouldUseSidebarOverlay: false,
-      adminGridClasses: (type: string) => generateAdminGridClasses(type, {
-        isIPad: false,
-        isIPadMini: false,
-        isIPadAir: false,
-        isIPadPro11: false,
-        isIPadPro12: false,
-        sidebarWidth: 280,
-        gridColumns: { anime: 3, characters: 4, reviews: 2, users: 2, stats: 4 },
-        containerPadding: 24,
-        gridGap: 24,
-        aspectRatio: 1,
-        isLandscape: false,
-      }),
+    isPortrait: true,
+    shouldUseSidebarOverlay: false,
+    adminGridClasses: (type: string) => generateAdminGridClasses(type, {
+      isIPad: false,
+      isIPadMini: false,
+      isIPadAir: false,
+      isIPadPro11: false,
+      isIPadPro12: false,
+      sidebarWidth: 280,
+      gridColumns: { anime: 3, characters: 4, reviews: 2, users: 2, stats: 4 },
+      containerPadding: 24,
+      gridGap: 24,
+      aspectRatio: 1,
+      isLandscape: false,
+    }),
   });
 
-  // Enhanced iPad detection with improved orientation handling
+  // FIXED: Enhanced iPad detection with proper orientation handling
   const detectIPadInfo = useCallback((width: number, height: number): iPadInfo => {
     const userAgent = navigator.userAgent;
     const isIPadDevice = /iPad/.test(userAgent) || 
@@ -128,46 +128,46 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
       };
     }
 
+    // FIXED: Proper orientation detection
+    const isLandscape = width > height;
+    const aspectRatio = width / height;
+
     // Determine specific iPad model based on screen dimensions
     const isIPadMini = width <= 834 && height <= 1024;
     const isIPadAir = (width >= 820 && width <= 834) && (height >= 1180 && height <= 1194);
     const isIPadPro11 = (width >= 834 && width <= 834) && (height >= 1194 && height <= 1194);
     const isIPadPro12 = width >= 1024 && width <= 1366;
 
-    // Enhanced orientation detection
-    const isLandscape = width > height;
-    const aspectRatio = width / height;
-
-    // BRUTALIST SPACING CALCULATIONS - More generous spacing for readability
+    // FIXED: Landscape-optimized spacing for admin layouts
     let sidebarWidth = 280;
     let containerPadding = 24;
     let gridGap = 24;
     
     if (isLandscape) {
-      // Landscape: MUCH MORE GENEROUS SPACING for breathing room
+      // Landscape: Optimize for horizontal space usage
       if (width >= 1024) {
-        sidebarWidth = 300; // iPad Pro 12" landscape - reduced sidebar for more content space
-        containerPadding = 60; // Much larger padding
-        gridGap = 48; // Significantly larger gaps
+        sidebarWidth = 280; // Keep sidebar manageable
+        containerPadding = 32; // More generous padding
+        gridGap = 32; // Better spacing between items
       } else {
-        sidebarWidth = 250; // iPad Mini/Air landscape - reduced sidebar
-        containerPadding = 48; // Much larger padding
-        gridGap = 40; // Significantly larger gaps
+        sidebarWidth = 240; // Smaller sidebar for tablets
+        containerPadding = 24;
+        gridGap = 24;
       }
     } else {
-      // Portrait: More vertical space, optimize for stacked content
+      // Portrait: Focus on vertical flow
       if (width >= 834) {
-        sidebarWidth = 240; // iPad Pro/Air portrait
-        containerPadding = 32;
-        gridGap = 28;
-      } else {
-        sidebarWidth = 200; // iPad Mini portrait
+        sidebarWidth = 240;
         containerPadding = 24;
+        gridGap = 24;
+      } else {
+        sidebarWidth = 200;
+        containerPadding: 20;
         gridGap = 20;
       }
     }
 
-    // MINIMALIST GRID CONFIGURATION - Less cramped, more breathing room
+    // FIXED: Grid configuration that uses landscape space effectively
     let gridColumns = {
       anime: 2,
       characters: 3,
@@ -177,21 +177,33 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
     };
 
     if (isLandscape) {
-      // Landscape: MINIMAL COLUMNS for maximum breathing room and readability
+      // Landscape: Use horizontal space effectively
       if (width >= 1024) {
-        // iPad Pro 12" landscape - fewer columns for spacious layout
-        gridColumns = { anime: 2, characters: 3, reviews: 1, users: 2, stats: 3 };
+        // iPad Pro 12" landscape - maximize horizontal space usage
+        gridColumns = { 
+          anime: 4,      // More items per row
+          characters: 5, // More characters visible
+          reviews: 2,    // Two-column reviews
+          users: 3,      // Three-column users
+          stats: 4       // Four stats across
+        };
       } else {
-        // iPad Mini/Air landscape - very minimal columns
-        gridColumns = { anime: 2, characters: 2, reviews: 1, users: 2, stats: 2 };
+        // iPad Mini/Air landscape
+        gridColumns = { 
+          anime: 3, 
+          characters: 4, 
+          reviews: 2, 
+          users: 3, 
+          stats: 4 
+        };
       }
     } else {
-      // Portrait: Focus on vertical flow, fewer columns for better readability
+      // Portrait: Optimize for vertical scrolling
       if (width >= 834) {
         // iPad Pro/Air portrait
         gridColumns = { anime: 2, characters: 3, reviews: 1, users: 2, stats: 2 };
       } else {
-        // iPad Mini portrait - very minimal columns
+        // iPad Mini portrait
         gridColumns = { anime: 2, characters: 2, reviews: 1, users: 1, stats: 2 };
       }
     }
@@ -286,59 +298,41 @@ export const useMobileOptimizations = (): MobileOptimizationState => {
     }, 10000);
   }, []);
 
-  // Generate admin grid classes
-  // BRUTALIST GRID CLASSES - Enhanced spacing for iPad orientations
-const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) => {
-  const { gridColumns, gridGap, isLandscape, containerPadding } = iPadInfo;
-  const columns = gridColumns[type as keyof typeof gridColumns] || 2;
-  
-  // BRUTALIST SPACING - Much more generous gaps for landscape breathing room
-  const gapClass = gridGap >= 48 ? 'gap-12' : gridGap >= 40 ? 'gap-10' : gridGap >= 32 ? 'gap-8' : gridGap >= 28 ? 'gap-7' : gridGap >= 24 ? 'gap-6' : 'gap-4';
-  const paddingClass = containerPadding >= 60 ? 'p-15' : containerPadding >= 48 ? 'p-12' : containerPadding >= 40 ? 'p-10' : containerPadding >= 32 ? 'p-8' : containerPadding >= 28 ? 'p-7' : 'p-6';
-  
-  // Base classes with brutalist spacing
-  const baseClasses = `grid ${gapClass} w-full max-w-full ${paddingClass}`;
-  
-  // ORIENTATION-AWARE GRID CONFIGURATION
-  if (isLandscape) {
-    // Landscape: Utilize horizontal space but maintain readability
-    if (type === 'stats') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 4)}`;
+  // FIXED: Generate admin grid classes that work in landscape
+  const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) => {
+    const { gridColumns, gridGap, isLandscape, containerPadding } = iPadInfo;
+    const columns = gridColumns[type as keyof typeof gridColumns] || 2;
+    
+    // FIXED: Base classes that don't constrain width
+    const baseClasses = `grid w-full`;
+    
+    // Use Tailwind classes that support the number of columns we want
+    let gridClass = '';
+    switch (columns) {
+      case 1:
+        gridClass = 'grid-cols-1';
+        break;
+      case 2:
+        gridClass = 'grid-cols-1 sm:grid-cols-2';
+        break;
+      case 3:
+        gridClass = 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
+        break;
+      case 4:
+        gridClass = 'grid-cols-2 md:grid-cols-4';
+        break;
+      case 5:
+        gridClass = 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5';
+        break;
+      default:
+        gridClass = 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3';
     }
     
-    if (type === 'anime') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 4)}`;
-    }
+    // Gap classes
+    const gapClass = gridGap >= 32 ? 'gap-8' : gridGap >= 24 ? 'gap-6' : 'gap-4';
     
-    if (type === 'users') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 3)}`;
-    }
-    
-    if (type === 'reviews') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
-    }
-  } else {
-    // Portrait: Focus on vertical flow, minimize horizontal cramping
-    if (type === 'stats') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
-    }
-    
-    if (type === 'anime') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
-    }
-    
-    if (type === 'users') {
-      return `${baseClasses} grid-cols-${Math.min(columns, 2)}`;
-    }
-    
-    if (type === 'reviews') {
-      return `${baseClasses} grid-cols-1`;
-    }
-  }
-  
-  // Default fallback with orientation awareness
-  return `${baseClasses} grid-cols-${isLandscape ? Math.min(columns, 3) : Math.min(columns, 2)}`;
-}, []);
+    return `${baseClasses} ${gridClass} ${gapClass}`;
+  }, []);
 
   useEffect(() => {
     const updateState = () => {
@@ -346,15 +340,17 @@ const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) 
       const width = metrics.screenSize.width;
       const height = metrics.screenSize.height;
       
-      // Original device detection
-      const isMobile = width <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      // FIXED: Better mobile detection that doesn't interfere with landscape
+      const isMobile = width < 768; // Only consider width, not orientation
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       // Enhanced iPad detection
       const iPadInfo = detectIPadInfo(width, height);
       const isLandscape = width > height;
-      const isPortrait = height > width;
-      const shouldUseSidebarOverlay = iPadInfo.isIPad && width <= 834;
+      const isPortrait = height >= width; // Changed from > to >= to handle square-ish screens
+      
+      // FIXED: Sidebar overlay only for small screens, not landscape tablets
+      const shouldUseSidebarOverlay = isMobile && isPortrait;
       
       // Notch detection (from your original)
       let hasNotch = false;
@@ -380,7 +376,7 @@ const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) 
       // Enhanced performance detection for iPad
       const isLowPerformance = metrics.fps < 30 || 
                               (metrics.memoryUsage ? metrics.memoryUsage > 0.8 : false) ||
-                              (metrics.devicePixelRatio > 2 && width > 1024); // High DPI large screens
+                              (metrics.devicePixelRatio > 2 && width > 1024);
 
       // Optimization decisions (enhanced)
       const storedPref = localStorage.getItem('animuse-animations-enabled');
@@ -389,7 +385,7 @@ const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) 
       const shouldReduceAnimations = !animationsEnabled ||
                                    isLowBandwidth ||
                                    isLowPerformance ||
-                                   (iPadInfo.isIPad && iPadInfo.isIPadMini) || // Reduce on iPad Mini
+                                   (iPadInfo.isIPad && iPadInfo.isIPadMini) ||
                                    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       const shouldDisableParticles = isLowBandwidth || 
@@ -399,8 +395,7 @@ const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) 
 
       const shouldUseSimpleBackgrounds = isLowBandwidth || 
                                        isLowPerformance ||
-                                       (metrics.memoryUsage ? metrics.memoryUsage > 0.7 : false) ||
-                                       (iPadInfo.isIPadMini && isLandscape); // Simple backgrounds on iPad Mini landscape
+                                       (metrics.memoryUsage ? metrics.memoryUsage > 0.7 : false);
 
       setState({
         isMobile,
@@ -542,7 +537,7 @@ const generateAdminGridClasses = useCallback((type: string, iPadInfo: iPadInfo) 
   return state;
 };
 
-// Enhanced helper hooks
+// FIXED: Enhanced helper hooks
 export const useAnimationOptimization = () => {
   const { shouldReduceAnimations, isLowPerformance, iPad } = useMobileOptimizations();
   
@@ -582,32 +577,52 @@ export const useBackgroundOptimization = () => {
   };
 };
 
-// New iPad-specific hooks
+// FIXED: Admin layout hook that properly uses landscape space
 export const useAdminLayoutOptimization = () => {
-  const { iPad, shouldUseSidebarOverlay, adminGridClasses, isLandscape } = useMobileOptimizations();
+  const { iPad, shouldUseSidebarOverlay, adminGridClasses, isLandscape, isMobile } = useMobileOptimizations();
   
   return {
     sidebarWidth: iPad.sidebarWidth,
     shouldUseSidebarOverlay,
     getGridClasses: (type: string) => {
-      // FULL WIDTH grid classes without max-width constraints
+      // FIXED: Full width grid classes without constraints
       const baseClasses = 'grid w-full';
-      const gapClass = iPad.gridGap >= 48 ? 'gap-12' : iPad.gridGap >= 40 ? 'gap-10' : iPad.gridGap >= 32 ? 'gap-8' : 'gap-6';
+      const gapClass = iPad.gridGap >= 32 ? 'gap-8' : iPad.gridGap >= 24 ? 'gap-6' : 'gap-4';
       
-      // MAXIMUM WIDTH UTILIZATION - responsive breakpoints for all screen sizes
+      // FIXED: Better responsive breakpoints that use landscape space
       switch (type) {
         case 'stats':
+          if (isLandscape && !isMobile) {
+            return `${baseClasses} ${gapClass} grid-cols-4`; // Always 4 in landscape
+          }
           return `${baseClasses} ${gapClass} grid-cols-2 md:grid-cols-4`;
           
         case 'anime':
-          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6`;
-          
-        case 'users':
         case 'cards':
+          if (isLandscape && iPad.isIPad) {
+            // iPad landscape: Use more columns
+            return `${baseClasses} ${gapClass} grid-cols-4 lg:grid-cols-5`;
+          }
           return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`;
           
-        case 'reviews':
+        case 'users':
+          if (isLandscape && !isMobile) {
+            return `${baseClasses} ${gapClass} grid-cols-3 lg:grid-cols-4`;
+          }
           return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`;
+          
+        case 'reviews':
+          if (isLandscape && !isMobile) {
+            return `${baseClasses} ${gapClass} grid-cols-2 lg:grid-cols-3`;
+          }
+          return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3`;
+          
+        case 'form':
+          // Form layouts - 2 columns in landscape, 1 in portrait
+          if (isLandscape && !isMobile) {
+            return `${baseClasses} ${gapClass} grid-cols-2`;
+          }
+          return `${baseClasses} ${gapClass} grid-cols-1 md:grid-cols-2`;
           
         default:
           return `${baseClasses} ${gapClass} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`;

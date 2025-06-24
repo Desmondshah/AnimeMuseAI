@@ -1,4 +1,4 @@
-// Fixed AdminDashboardPage.tsx - Responsive and properly spaced with landscape support
+// FIXED AdminDashboardPage.tsx - Proper Landscape Layouts
 import React, { useState, memo, useEffect } from "react";
 import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
@@ -12,7 +12,7 @@ interface AdminDashboardPageProps {
 
 type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation";
 
-// Enhanced device detection hook
+// FIXED: Proper responsive layout detection
 const useResponsiveLayout = () => {
   const [dimensions, setDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -38,31 +38,29 @@ const useResponsiveLayout = () => {
 
   const { width, height } = dimensions;
   const isLandscape = width > height;
-  const isPortrait = height > width;
+  const isPortrait = height >= width;
   
-  // Device type detection
-  const isMobileDevice = width <= 768;
-  const isTabletDevice = width > 768 && width <= 1024;
-  const isDesktopDevice = width > 1024;
+  // FIXED: Better device detection
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1200;
+  const isDesktop = width >= 1200;
   
-  // Layout mode detection (considering both size and orientation)
-  const isMobileLayout = isMobileDevice && isPortrait;
-  const isMobileLandscape = isMobileDevice && isLandscape;
-  const isTabletLayout = isTabletDevice || (isMobileDevice && isLandscape && width >= 568);
-  const isDesktopLayout = isDesktopDevice;
+  // FIXED: Layout modes based on actual usage patterns
+  const shouldUseMobileLayout = isMobile && isPortrait;
+  const shouldUseTabletLayout = (isMobile && isLandscape) || (isTablet);
+  const shouldUseDesktopLayout = isDesktop;
 
   return {
     width,
     height,
     isLandscape,
     isPortrait,
-    isMobileDevice,
-    isTabletDevice,
-    isDesktopDevice,
-    isMobileLayout,
-    isMobileLandscape,
-    isTabletLayout,
-    isDesktopLayout,
+    isMobile,
+    isTablet,
+    isDesktop,
+    shouldUseMobileLayout,
+    shouldUseTabletLayout,
+    shouldUseDesktopLayout,
   };
 };
 
@@ -86,18 +84,17 @@ const BrutalistLoading: React.FC<{ sectionTitle: string }> = memo(({ sectionTitl
   );
 });
 
-// Responsive Navigation Component with landscape support
+// FIXED: Responsive Navigation Component with proper landscape support
 const ResponsiveNavigation: React.FC<{
   activeView: AdminView;
   setActiveView: (view: AdminView) => void;
   navigationItems: any[];
   onNavigateBack: () => void;
 }> = ({ activeView, setActiveView, navigationItems, onNavigateBack }) => {
-  const { isMobileLayout, isMobileLandscape, isTabletLayout, isDesktopLayout } = useResponsiveLayout();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { shouldUseMobileLayout, shouldUseTabletLayout, shouldUseDesktopLayout, isLandscape } = useResponsiveLayout();
 
   // Mobile Portrait: Bottom navigation
-  if (isMobileLayout) {
+  if (shouldUseMobileLayout) {
     return (
       <>
         {/* Top bar for mobile portrait */}
@@ -140,48 +137,40 @@ const ResponsiveNavigation: React.FC<{
     );
   }
 
-  // Mobile Landscape or Tablet: Top horizontal navigation
-  if (isMobileLandscape || isTabletLayout) {
+  // FIXED: Tablet and Mobile Landscape - Use horizontal layout
+  if (shouldUseTabletLayout) {
     return (
       <div className="bg-black border-b-4 border-white">
-        <div className="flex items-center justify-between p-3">
-          <h1 className={`font-black text-white uppercase tracking-wider ${
-            isMobileLandscape ? 'text-lg' : 'text-2xl'
-          }`}>
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
             ADMIN CONSOLE
           </h1>
           <button 
             onClick={onNavigateBack}
-            className={`bg-white text-black border-4 border-white font-black uppercase ${
-              isMobileLandscape ? 'px-4 py-2 text-sm' : 'px-6 py-3 text-base'
-            }`}
+            className="bg-white text-black border-4 border-white font-black uppercase px-4 py-2 md:px-6 md:py-3 text-sm md:text-base"
           >
             ← BACK
           </button>
         </div>
+        
+        {/* FIXED: Horizontal navigation that actually uses landscape space */}
         <div className="flex overflow-x-auto scrollbar-hide">
           {navigationItems.map((item) => (
             <button
               key={item.view}
               onClick={() => setActiveView(item.view)}
-              className={`flex items-center gap-3 whitespace-nowrap border-r-4 border-white last:border-r-0 transition-colors ${
-                isMobileLandscape ? 'px-4 py-3' : 'px-6 py-4'
-              } ${
-                activeView === item.view 
+              className={`flex items-center gap-3 whitespace-nowrap border-r-4 border-white last:border-r-0 transition-colors px-6 py-4 min-w-max
+                ${activeView === item.view 
                   ? 'bg-white text-black' 
                   : 'bg-black text-white hover:bg-gray-800'
-              }`}
+                }`}
             >
-              <span className={`${isMobileLandscape ? 'text-xl' : 'text-2xl'}`}>{item.icon}</span>
+              <span className="text-2xl">{item.icon}</span>
               <div className="text-left">
-                <div className={`font-black uppercase tracking-wide ${
-                  isMobileLandscape ? 'text-sm' : 'text-base'
-                }`}>
+                <div className="font-black uppercase tracking-wide text-base">
                   {item.label}
                 </div>
-                <div className={`font-bold uppercase tracking-wide opacity-70 ${
-                  isMobileLandscape ? 'text-xs' : 'text-xs'
-                }`}>
+                <div className="font-bold uppercase tracking-wide opacity-70 text-xs">
                   {item.description}
                 </div>
               </div>
@@ -249,11 +238,11 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
   
   const { performanceMetrics } = useMobileOptimizations();
   const { 
-    isMobileLayout, 
-    isMobileLandscape, 
-    isTabletLayout, 
-    isDesktopLayout,
-    isLandscape 
+    shouldUseMobileLayout, 
+    shouldUseTabletLayout, 
+    shouldUseDesktopLayout,
+    isLandscape,
+    width
   } = useResponsiveLayout();
 
   const navigationItems = [
@@ -287,9 +276,9 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
     },
   ];
 
-  // Calculate main content styles based on device and orientation
+  // FIXED: Calculate main content styles based on actual layout mode
   const getMainContentStyles = () => {
-    if (isMobileLayout) {
+    if (shouldUseMobileLayout) {
       // Mobile Portrait
       return {
         paddingTop: '80px', // Top bar height
@@ -302,8 +291,8 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
       };
     }
     
-    if (isMobileLandscape || isTabletLayout) {
-      // Mobile Landscape or Tablet
+    if (shouldUseTabletLayout) {
+      // FIXED: Tablet and Mobile Landscape - No sidebar, full width
       return {
         paddingTop: '20px',
         paddingLeft: '20px',
@@ -311,6 +300,7 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
         width: '100%',
         marginLeft: 0,
         marginRight: 0,
+        maxWidth: 'none', // IMPORTANT: Remove width constraints
       };
     }
     
@@ -321,12 +311,13 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
       paddingLeft: '32px',
       paddingRight: '32px',
       width: 'calc(100% - 320px)',
+      maxWidth: 'none', // IMPORTANT: Remove width constraints
     };
   };
 
-  // Get responsive grid classes
+  // FIXED: Get responsive grid classes that actually use available space
   const getGridClasses = () => {
-    if (isMobileLayout) {
+    if (shouldUseMobileLayout) {
       return {
         stats: 'grid-cols-2',
         actions: 'grid-cols-1',
@@ -335,18 +326,10 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
       };
     }
     
-    if (isMobileLandscape) {
+    if (shouldUseTabletLayout) {
       return {
-        stats: 'grid-cols-4',
-        actions: 'grid-cols-3',
-        spacing: 'gap-4',
-        padding: 'p-4'
-      };
-    }
-    
-    if (isTabletLayout) {
-      return {
-        stats: 'grid-cols-4',
+        // FIXED: Use landscape space properly
+        stats: isLandscape ? 'grid-cols-4' : 'grid-cols-2',
         actions: isLandscape ? 'grid-cols-3' : 'grid-cols-2',
         spacing: 'gap-6',
         padding: 'p-6'
@@ -357,7 +340,7 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
     return {
       stats: 'grid-cols-4',
       actions: 'grid-cols-3',
-      spacing: 'gap-6',
+      spacing: 'gap-8',
       padding: 'p-8'
     };
   };
@@ -366,8 +349,8 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
 
   const renderOverview = () => (
     <div className="space-y-6 w-full">
-      {/* Hero Section - Desktop only */}
-      {isDesktopLayout && (
+      {/* FIXED: Hero Section - Only show on desktop */}
+      {shouldUseDesktopLayout && (
         <div className="bg-black border-4 border-white p-12">
           <div className="text-center">
             <h1 className="text-6xl font-black text-white mb-6 uppercase tracking-wider">
@@ -380,23 +363,23 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
         </div>
       )}
 
-      {/* Welcome Header for Mobile Portrait and Tablet Portrait */}
-      {(isMobileLayout || (isTabletLayout && !isLandscape)) && (
+      {/* FIXED: Welcome Header for non-desktop layouts */}
+      {!shouldUseDesktopLayout && (
         <div className={`bg-white border-4 border-black ${gridClasses.padding}`}>
           <h1 className={`font-black text-black uppercase tracking-wider mb-4 ${
-            isMobileLayout ? 'text-2xl' : 'text-3xl'
+            shouldUseMobileLayout ? 'text-2xl' : 'text-3xl'
           }`}>
             ADMIN CONSOLE
           </h1>
           <p className={`text-black font-bold uppercase tracking-wide ${
-            isMobileLayout ? 'text-sm' : 'text-base'
+            shouldUseMobileLayout ? 'text-sm' : 'text-base'
           }`}>
             BRUTALIST COMMAND CENTER
           </p>
         </div>
       )}
 
-      {/* Stats Grid - Fully Responsive */}
+      {/* FIXED: Stats Grid - Use full available width */}
       <div className={`grid ${gridClasses.stats} ${gridClasses.spacing} w-full`}>
         {[
           { label: 'TOTAL ANIME', value: '1,247', change: '+12%', icon: '🎬' },
@@ -407,30 +390,29 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
           <div key={index} className={`bg-black border-4 border-white ${gridClasses.padding}`}>
             <div className="flex items-center justify-between mb-4">
               <div className={`${
-                isMobileLayout ? 'text-2xl' : 
-                isMobileLandscape ? 'text-3xl' : 
+                shouldUseMobileLayout ? 'text-2xl' : 
+                shouldUseTabletLayout ? 'text-3xl' : 
                 'text-4xl'
               }`}>{stat.icon}</div>
               <div className={`bg-green-500 text-black font-black uppercase ${
-                isMobileLayout ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'
+                shouldUseMobileLayout ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'
               }`}>
                 {stat.change}
               </div>
             </div>
             <div className={`font-black text-white mb-2 ${
-              isMobileLayout ? 'text-xl' : 
-              isMobileLandscape ? 'text-2xl' : 
-              isTabletLayout ? 'text-3xl' : 
+              shouldUseMobileLayout ? 'text-xl' : 
+              shouldUseTabletLayout ? 'text-2xl' : 
               'text-4xl'
             }`}>{stat.value}</div>
             <div className={`text-white font-bold uppercase tracking-wide ${
-              isMobileLayout ? 'text-xs' : 'text-sm'
+              shouldUseMobileLayout ? 'text-xs' : 'text-sm'
             }`}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Action Cards - Fully Responsive */}
+      {/* FIXED: Action Cards - Use full available width */}
       <div className={`grid ${gridClasses.actions} ${gridClasses.spacing} w-full`}>
         {navigationItems.slice(1).map((item, index) => (
           <div
@@ -439,34 +421,33 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
             className={`group cursor-pointer border-4 border-white bg-black hover:bg-white hover:text-black transition-all duration-200 ${gridClasses.padding}`}
           >
             <div className={`mb-6 ${
-              isMobileLayout ? 'text-4xl' : 
-              isMobileLandscape ? 'text-5xl' : 
+              shouldUseMobileLayout ? 'text-4xl' : 
+              shouldUseTabletLayout ? 'text-5xl' : 
               'text-6xl'
             }`}>
               {item.icon}
             </div>
             <h3 className={`font-black text-white group-hover:text-black mb-4 uppercase tracking-wider ${
-              isMobileLayout ? 'text-lg' : 
-              isMobileLandscape ? 'text-xl' : 
-              isTabletLayout ? 'text-2xl' : 
+              shouldUseMobileLayout ? 'text-lg' : 
+              shouldUseTabletLayout ? 'text-xl' : 
               'text-3xl'
             }`}>
               {item.label}
             </h3>
             <p className={`text-white group-hover:text-black font-bold uppercase tracking-wide mb-6 ${
-              isMobileLayout ? 'text-sm' : 'text-base'
+              shouldUseMobileLayout ? 'text-sm' : 'text-base'
             }`}>
               {item.description}
             </p>
             
             <div className="flex justify-end">
               <div className={`bg-white text-black flex items-center justify-center group-hover:bg-black group-hover:text-white border-4 border-black transition-all ${
-                isMobileLayout ? 'w-10 h-10' : 
-                isMobileLandscape ? 'w-12 h-12' : 
+                shouldUseMobileLayout ? 'w-10 h-10' : 
+                shouldUseTabletLayout ? 'w-12 h-12' : 
                 'w-14 h-14'
               }`}>
                 <span className={`font-black ${
-                  isMobileLayout ? 'text-lg' : 'text-2xl'
+                  shouldUseMobileLayout ? 'text-lg' : 'text-2xl'
                 }`}>→</span>
               </div>
             </div>
@@ -500,16 +481,15 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
         onNavigateBack={onNavigateBack}
       />
 
-      {/* Main Content */}
+      {/* FIXED: Main Content - Remove width constraints */}
       <main style={getMainContentStyles()} className="w-full">
         {currentAdminView === 'overview' ? (
           renderOverview()
         ) : (
           <div className="bg-black border-4 border-white w-full">
             <div className={`w-full ${
-              isMobileLayout ? 'p-4' : 
-              isMobileLandscape ? 'p-4' : 
-              isTabletLayout ? 'p-6' : 
+              shouldUseMobileLayout ? 'p-4' : 
+              shouldUseTabletLayout ? 'p-6' : 
               'p-8'
             }`}>
               {renderMainContent()}

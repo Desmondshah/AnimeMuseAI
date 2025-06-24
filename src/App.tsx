@@ -91,7 +91,7 @@ export default function App() {
         </div>
       </header>
       <main className={`flex-1 flex flex-col items-center justify-center w-full ${isIPadDevice ? 'pt-20' : ''}`}>
-        <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
+      <div className="w-full mx-auto" style={{ maxWidth: 'none' }}>
           <AnimatePresence mode="sync">
             <PageTransition key={verificationFlowKey}>
               <Content
