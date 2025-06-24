@@ -18,11 +18,11 @@ const iconPaths: Record<string, string> = {
 
 const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, onTabChange }) => {
   const tabs: { view: ValidViewName; label: string; icon: string }[] = [
-    { view: "dashboard", label: "Home", icon: "dashboard" },
-    { view: "moodboard_page", label: "Mood", icon: "moodboard_page" },
-    { view: "browse", label: "Browse", icon: "browse" },
-    { view: "my_list", label: "List", icon: "my_list" },
-    { view: "profile_settings", label: "Profile", icon: "profile_settings" },
+    { view: "dashboard", label: "HOME", icon: "dashboard" },
+    { view: "moodboard_page", label: "MOOD", icon: "moodboard_page" },
+    { view: "browse", label: "FIND", icon: "browse" },
+    { view: "my_list", label: "LIST", icon: "my_list" },
+    { view: "profile_settings", label: "USER", icon: "profile_settings" },
   ];
 
   const [isHidden, setIsHidden] = useState(false);
@@ -56,9 +56,9 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
 
   return (
     <motion.nav
-      className="fixed bottom-0 left-0 right-0 bg-brand-surface/80 backdrop-blur-xl border-t border-brand-accent-gold/30 shadow-lg z-50 rounded-t-2xl"
+      className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-black shadow-[0_-8px_0px_0px_#000] z-50"
       style={{
-        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
         willChange: 'transform'
@@ -69,63 +69,70 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
       }}
       transition={{
         type: 'tween',
-        duration: 0.3,
+        duration: 0.2,
         ease: 'easeInOut'
       }}
       viewport={{ once: false, margin: "0px" }}
     >
-      <div className="max-w-lg sm:max-w-xl md:max-w-2xl mx-auto flex justify-around items-center h-20 px-1">
-        {tabs.map((tab) => {
+      {/* BRUTAL GRID PATTERN */}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_24%,#000_25%,#000_26%,transparent_27%),linear-gradient(180deg,transparent_24%,#000_25%,#000_26%,transparent_27%)] bg-[length:40px_40px] opacity-10"></div>
+      
+      <div className="relative max-w-lg sm:max-w-xl md:max-w-2xl mx-auto flex justify-around items-center h-16 px-2">
+        {tabs.map((tab, index) => {
           const isActive = currentView === tab.view;
+          const colors = [
+            'bg-brand-primary-action', // HOME - orange
+            'bg-purple-500',           // MOOD - purple
+            'bg-blue-500',            // FIND - blue
+            'bg-green-500',           // LIST - green
+            'bg-brand-accent-gold',   // USER - gold
+          ];
+          const activeColor = colors[index];
+          
           return (
             <button
               key={tab.view}
               onClick={() => handleTabClick(tab.view)}
               className={`
                 relative flex flex-col items-center justify-center
-                w-full h-full py-2 px-2 text-xs
-                transition-all duration-200 ease-in-out
-                focus:outline-none focus:ring-2 focus:ring-brand-primary-action/50
+                w-full h-full py-1 px-1 text-xs
+                transition-all duration-75
+                focus:outline-none
                 touch-manipulation cursor-pointer
-                ${isActive ? "text-brand-primary-action" : "text-white/70 hover:text-brand-accent-gold active:text-brand-primary-action"}
+                border-2 border-black
+                active:translate-x-0.5 active:translate-y-0.5
+                ${isActive 
+                  ? `${activeColor} text-white shadow-[2px_2px_0px_0px_#000] active:shadow-[1px_1px_0px_0px_#000]` 
+                  : `bg-white text-black shadow-[2px_2px_0px_0px_#000] active:shadow-[1px_1px_0px_0px_#000] hover:${activeColor} hover:text-white`
+                }
               `}
               aria-current={isActive ? "page" : undefined}
-              aria-label={`Maps to ${tab.label}`}
+              aria-label={`Navigate to ${tab.label}`}
               style={{
                 WebkitTapHighlightColor: 'transparent',
-                minHeight: '60px',
-                minWidth: '60px',
+                minHeight: '56px',
+                minWidth: '56px',
               }}
             >
-              <div
-                className="absolute inset-0 rounded-lg"
-                aria-hidden="true"
-                style={{ minHeight: '60px', minWidth: '60px' }}
-              />
-
-              <div className={`relative z-10 transition-transform duration-200 ${isActive ? 'scale-110' : 'hover:scale-105'}`}>
+              <div className="relative z-10 flex flex-col items-center">
                 <svg
-                  className={`w-6 h-6 mb-1 transition-all duration-200 ${isActive ? "text-brand-primary-action" : "text-white/70"}`}
+                  className={`w-5 h-5 mb-1 stroke-[2.5] transition-all duration-75 ${isActive ? "text-white" : "text-black"}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  strokeWidth="1.5"
+                  strokeWidth="2.5"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d={iconPaths[tab.icon]} />
                 </svg>
+                
+                <span className={`text-[10px] font-black uppercase leading-none tracking-tight transition-all duration-75 ${isActive ? 'text-white' : 'text-black'}`}>
+                  {tab.label}
+                </span>
               </div>
 
-              <span className={`relative z-10 text-xs leading-tight transition-all duration-200 ${isActive ? 'font-semibold text-brand-primary-action' : 'text-white/70'}`}>
-                {tab.label}
-              </span>
-
+              {/* BRUTAL ACTIVE INDICATOR */}
               {isActive && (
-                <motion.div
-                  className="absolute bottom-0 left-1/2 w-8 h-1 bg-brand-primary-action rounded-full"
-                  layoutId="activeTab"
-                  initial={false}
-                  style={{ x: '-50%' }}
-                />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-white border-2 border-black"></div>
               )}
             </button>
           );

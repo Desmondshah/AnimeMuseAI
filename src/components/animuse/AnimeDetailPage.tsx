@@ -1687,6 +1687,7 @@ export default function AnimeDetailPage({
   const { isLoading: authIsLoading, isAuthenticated } = useConvexAuth();
   const loggedInUser = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
   const currentUserId = isAuthenticated && loggedInUser ? loggedInUser._id : null;
+  const isAdmin = isAuthenticated && loggedInUser?.isAdmin;
   
   // Mobile optimizations
   const mobileOpts = useMobileOptimizations();
@@ -1840,6 +1841,64 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
   const removeFromCustomListMutation = useMutation(api.users.removeAnimeFromCustomList);
 
   const [isAddToCustomListModalOpen, setIsAddToCustomListModalOpen] = useState(false);
+  const [charactersToShow, setCharactersToShow] = useState(8);
+  const [selectedEpisodeIndex, setSelectedEpisodeIndex] = useState(0);
+  const [episodesToShow, setEpisodesToShow] = useState(20);
+  const [reviewsToShow, setReviewsToShow] = useState(10);
+  const [deletingReviewId, setDeletingReviewId] = useState<Id<"reviews"> | null>(null);
+
+  const handleLoadMoreCharacters = () => {
+    setCharactersToShow(prev => prev + 8);
+  };
+
+  const handleLoadMoreEpisodes = () => {
+    setEpisodesToShow(prev => prev + 20);
+  };
+
+  const handleLoadMoreReviews = () => {
+    setReviewsToShow(prev => prev + 10);
+  };
+
+  const handleDeleteReview = async (reviewId: Id<"reviews">) => {
+    if (!confirm("Are you sure you want to delete this review? This action cannot be undone.")) {
+      return;
+    }
+    
+    setDeletingReviewId(reviewId);
+    try {
+      await deleteReviewInternalMutation({ reviewId });
+      // The UI will automatically update due to the reactive query
+    } catch (error) {
+      console.error("Failed to delete review:", error);
+      alert("Failed to delete review. Please try again.");
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
+
+  const handleEpisodeSelect = (index: number) => {
+    setSelectedEpisodeIndex(index);
+    
+    // Scroll to the episode card in the grid
+    setTimeout(() => {
+      const episodeElement = document.getElementById(`episode-card-${index}`);
+      if (episodeElement) {
+        episodeElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        });
+        
+        // Add a brief highlight effect
+        episodeElement.classList.add('ring-4', 'ring-brand-accent-peach', 'ring-opacity-75');
+        setTimeout(() => {
+          episodeElement.classList.remove('ring-4', 'ring-brand-accent-peach', 'ring-opacity-75');
+        }, 2000);
+      }
+    }, 100); // Small delay to ensure DOM is updated
+  };
+
+
 
   const toggleAnimeInCustomList = useCallback(async (listId: Id<"customLists">, inList: boolean) => {
     if (!anime) return;
@@ -2377,1102 +2436,654 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
   } : {};
 
   return (
-    <div className="ios-character-page min-h-screen bg-brand-background relative overflow-hidden" style={dynamicBackgroundStyle}>
-      {/* Enhanced Background Elements with Dynamic Colors */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-20 left-10 w-80 h-80 rounded-full blur-3xl animate-pulse"
+    <div className="relative min-h-screen bg-black overflow-hidden">
+            {/* SIMPLE BRUTALIST BACKGROUND */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Simple Grid Overlay */}
+        <div className="absolute inset-0 opacity-5"
           style={{
-            background: themePalette ? 
-              `radial-gradient(circle, ${themePalette.primary}12, transparent)` : 
-              'radial-gradient(circle, rgba(236, 176, 145, 0.12), transparent)'
-          }}
-        ></div>
-        <div 
-          className="absolute bottom-32 right-16 w-96 h-96 rounded-full blur-3xl animate-pulse"
-          style={{
-            background: themePalette ? 
-              `radial-gradient(circle, ${themePalette.accent}10, transparent)` : 
-              'radial-gradient(circle, rgba(255, 107, 53, 0.10), transparent)',
-            animationDelay: '1000ms'
-          }}
-        ></div>
-        <div 
-          className="absolute top-1/2 right-1/4 w-64 h-64 rounded-full blur-3xl animate-pulse"
-          style={{
-            background: themePalette ? 
-              `radial-gradient(circle, ${themePalette.secondary}08, transparent)` : 
-              'radial-gradient(circle, rgba(74, 144, 226, 0.08), transparent)',
-            animationDelay: '2000ms'
+               backgroundImage: `
+                 linear-gradient(90deg, #FFFFFF 1px, transparent 1px),
+                 linear-gradient(0deg, #FFFFFF 1px, transparent 1px)
+               `,
+               backgroundSize: '60px 60px'
           }}
         ></div>
       </div>
 
-      {/* Hero Section with Dynamic Theming */}
-      <div className="character-hero relative">
-        <div 
-          ref={heroRef}
-          className="character-hero-image fixed inset-0 w-full h-screen"
-        >
-          <img
-            src={anime.posterUrl || placeholderPoster}
-            alt={anime.title}
-            className="w-full h-full object-cover"
-            onLoad={(e) => handleImageLoad(e.target as HTMLImageElement)}
-            onError={(e) => { (e.target as HTMLImageElement).src = placeholderPoster; }}
-          />
-        </div>
-        
-        {/* Enhanced overlay for immersive fade effect */}
-        <div 
-          className="character-hero-overlay absolute inset-0"
-          style={heroOverlayStyle || { 
-            background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.9) 85%, rgba(0,0,0,1) 100%)' 
-          }}
-        />
-        
-        {/* Back button with dynamic theming */}
-        <div className="absolute top-safe-top left-4 z-20 pt-4">
+      {/* MINIMALIST POSTER HERO SECTION */}
+      <div className="relative z-10">
+        {/* Brutalist Back Button */}
+        <div className="absolute top-safe-top left-4 z-50 pt-4">
           <button
             onClick={onBack}
-            className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl p-3 transition-all duration-300 hover:scale-105"
-            style={themePalette ? {
-              borderColor: `${themePalette.primary}30`,
-              backgroundColor: `${themePalette.dark}40`
-            } : {}}
+            className="w-12 h-12 bg-white border-4 border-black shadow-brutal flex items-center justify-center transition-all duration-300 hover:shadow-brutal-lg touch-target"
           >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
         </div>
 
-        {/* Color extraction status indicator */}
-        {isExtractingColors && (
-          <div className="absolute top-safe-top right-4 z-20 pt-4">
-            <div className="bg-black/60 backdrop-blur-lg border border-white/20 rounded-2xl px-4 py-2 flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              <span className="text-white/80 text-sm font-medium">Extracting theme...</span>
+        {/* BRUTALIST POSTER DISPLAY */}
+        <div className="relative min-h-screen flex items-center justify-center px-6 py-20">
+          {/* Poster Container - Brutalist Design */}
+          <div className="relative max-w-sm mx-auto">
+            {/* Brutalist Poster Frame */}
+            <div className="relative bg-black border-4 border-white shadow-brutal p-3">
+              <div className="relative aspect-[2/3] overflow-hidden bg-black border-2 border-white">
+          <img
+            src={anime.posterUrl || placeholderPoster}
+            alt={anime.title}
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+            onLoad={(e) => handleImageLoad(e.target as HTMLImageElement)}
+            onError={(e) => { (e.target as HTMLImageElement).src = placeholderPoster; }}
+          />
+                
+                {/* Enhanced Gradient Overlay for Text Readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                
+                {/* TOP SECTION - Status & Rating */}
+                <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
+                  {/* Minimalist Status Badge */}
+                  {anime.airingStatus && anime.airingStatus !== "FINISHED" && (
+                    <div className="bg-green-500/90 backdrop-blur-sm rounded-full px-3 py-1 border border-green-400/50">
+                      <span className="text-white text-xs font-bold uppercase tracking-wide">
+                        {anime.airingStatus === "RELEASING" ? "AIRING" : anime.airingStatus}
+                      </span>
+        </div>
+                  )}
+                  
+                  {/* Rating Badge */}
+                  {anime.rating && (
+                    <div className="bg-black/70 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-400 text-sm">⭐</span>
+                        <span className="text-white text-sm font-bold">
+                          {(anime.rating / 2).toFixed(1)}
+                        </span>
             </div>
           </div>
         )}
+                </div>
 
-        {/* Hero content with enhanced dynamic styling */}
-        <div className="character-hero-content absolute bottom-20 left-0 right-0 p-6 sm:p-8 md:p-12 z-10">
-          <h1 className="character-name text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading text-white font-bold mb-4 drop-shadow-2xl">
-            {anime.title}
-          </h1>
-          
-          {/* Quick info badges with dynamic theming */}
-          <div className="flex flex-wrap gap-3 mb-6">
+                {/* MIDDLE SECTION - Year & Episodes */}
+                <div className="absolute top-1/2 left-4 right-4 transform -translate-y-1/2">
+                  <div className="flex gap-2">
             {anime.year && (
-              <span 
-                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.primary}30`,
-                  borderColor: `${themePalette.primary}50`
-                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                📅 {anime.year}
-              </span>
-            )}
-            {anime.rating && (
-              <span 
-                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.accent}30`,
-                  borderColor: `${themePalette.accent}50`
-                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                ⭐ {(anime.rating / 2).toFixed(1)}/5
-              </span>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
+                        <div className="text-white/60 text-xs font-medium uppercase tracking-wide">Year</div>
+                        <div className="text-white text-sm font-bold">{anime.year}</div>
+                      </div>
             )}
             {anime.totalEpisodes && (
-              <span 
-                className="character-badge backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.secondary}30`,
-                  borderColor: `${themePalette.secondary}50`
-                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                📺 {anime.totalEpisodes} episodes
-              </span>
-            )}
-            {anime.airingStatus && anime.airingStatus !== "FINISHED" && (
-              <span className="character-badge bg-green-500/80 backdrop-blur-sm rounded-full px-4 py-2 text-white font-medium border border-green-400/50">
-                🔴 {anime.airingStatus === "RELEASING" ? "Airing" : anime.airingStatus}
-              </span>
-            )}
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
+                        <div className="text-white/60 text-xs font-medium uppercase tracking-wide">Episodes</div>
+                        <div className="text-white text-sm font-bold">{anime.totalEpisodes}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* BOTTOM SECTION - Title, Genres, Studio */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  {/* Studio */}
+                  {anime.studios?.[0] && (
+                    <div className="mb-3">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20 inline-block">
+                        <div className="text-white/60 text-xs font-medium uppercase tracking-wide mb-1">Studio</div>
+                        <div className="text-white text-sm font-bold truncate max-w-[200px]">
+                          {anime.studios[0]}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Title */}
+                  <div className="mb-4">
+                    <h1 className="text-white text-xl sm:text-2xl font-bold leading-tight drop-shadow-lg">
+                      {anime.title}
+                    </h1>
           </div>
 
-          {/* Genre tags with dynamic theming */}
+                  {/* Genres */}
           {anime.genres && anime.genres.length > 0 && (
-  <div className="flex flex-wrap gap-2 mb-6">
-    {anime.genres.slice(0, 4).map((genre: string, idx: number) => (
+                    <div className="flex flex-wrap gap-2">
+                      {anime.genres.slice(0, 3).map((genre: string, idx: number) => (
       <span 
         key={idx} 
-        className="character-badge text-white px-3 py-1 rounded-full backdrop-blur-sm font-medium border"
-        style={themePalette ? {
-          background: `linear-gradient(135deg, ${themePalette.primary}80, ${themePalette.accent}80)`,
-          borderColor: `${themePalette.primary}60`
-        } : {
-          background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.8), rgba(255, 107, 53, 0.8))',
-          borderColor: 'rgba(236, 176, 145, 0.6)'
-        }}
-      >
+                          className="bg-brand-primary-action/80 backdrop-blur-sm rounded-full px-3 py-1 border border-brand-primary-action/50"
+                        >
+                          <span className="text-black text-xs font-bold uppercase tracking-wide">
         {genre}
+                          </span>
       </span>
     ))}
-    {anime.genres.length > 4 && (
-      <span 
-        className="character-badge backdrop-blur-sm rounded-full px-3 py-1 text-white font-medium border"
-        style={themePalette ? {
-          backgroundColor: `${themePalette.dark}60`,
-          borderColor: `${themePalette.primary}30`
-        } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-      >
-        +{anime.genres.length - 4} more
+                      {anime.genres.length > 3 && (
+                        <span className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                          <span className="text-white text-xs font-bold">
+                            +{anime.genres.length - 3}
+                          </span>
       </span>
     )}
   </div>
 )}
+                </div>
+              </div>
+            </div>
 
-          {/* Action buttons with enhanced dynamic styling */}
-          <div className="flex gap-3 flex-wrap">
+            {/* ACTION BUTTONS SECTION */}
+            <div className="mt-8 text-center">
+
+                {/* Brutal Action Buttons */}
+                <div className="space-y-4">
             {isAuthenticated ? (
               <>
                 {watchlistEntry?.status === "Plan to Watch" ? (
-                  <StyledButton 
+                        <button 
                     onClick={() => handleWatchlistAction("Watching")} 
-                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
-                    style={actionButtonStyle}
+                          className="w-full bg-brand-primary-action border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-4 touch-target"
                   >
-                    🎬 Start Watching
-                  </StyledButton>
+                          <span className="text-black font-black uppercase text-lg">🎬 START WATCHING</span>
+                        </button>
                 ) : watchlistEntry?.status === "Watching" ? (
-                  <StyledButton 
+                        <button 
                     onClick={() => handleWatchlistAction("Completed")} 
-                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
-                    style={{
-                      background: 'linear-gradient(135deg, #10B981, #34D399)',
-                      boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)'
-                    }}
-                  >
-                    ✅ Mark Completed
-                  </StyledButton>
+                          className="w-full bg-green-500 border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-4 touch-target"
+                        >
+                          <span className="text-black font-black uppercase text-lg">✅ MARK COMPLETED</span>
+                        </button>
                 ) : watchlistEntry?.status === "Completed" ? (
-                  <div 
-                    className="backdrop-blur-lg border px-6 py-3 rounded-2xl"
-                    style={themePalette ? {
-                      backgroundColor: `${themePalette.primary}20`,
-                      borderColor: `${themePalette.primary}40`
-                    } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-                  >
-                    <span className="text-green-400 font-semibold flex items-center gap-2">
-                      🏆 Completed
-                    </span>
+                        <div className="w-full bg-green-500 border-4 border-black shadow-brutal p-4">
+                          <span className="text-black font-black uppercase text-lg">🏆 COMPLETED</span>
                   </div>
                 ) : (
-                  <StyledButton 
+                        <button 
                     onClick={() => handleWatchlistAction("Plan to Watch")} 
-                    variant="primary" 
-                    className="!text-white !font-semibold !px-6 !py-3 !rounded-2xl !border-0"
-                    style={actionButtonStyle}
+                          className="w-full bg-brand-accent-peach border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-4 touch-target"
                   >
-                    📚 Add to Watchlist
-                  </StyledButton>
+                          <span className="text-black font-black uppercase text-lg">📚 ADD TO WATCHLIST</span>
+                        </button>
                 )}
               </>
             ) : (
-              <div 
-                className="backdrop-blur-lg border px-6 py-3 rounded-2xl"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.dark}40`,
-                  borderColor: `${themePalette.primary}20`
-                } : { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                <span className="text-white/70 text-sm">Login to manage watchlist</span>
+                    <div className="w-full bg-gray-600 border-4 border-black shadow-brutal p-4">
+                      <span className="text-white font-black uppercase text-sm">LOGIN TO MANAGE WATCHLIST</span>
               </div>
             )}
             
-            {/* Add to Custom List Button */}
+                  {/* Secondary Actions */}
+                  <div className="grid grid-cols-2 gap-4">
             {isAuthenticated && (
-              <StyledButton
+                      <button
                 onClick={() => setIsAddToCustomListModalOpen(true)}
-                variant="ghost"
-                className="!backdrop-blur-lg !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2 !border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.primary}15`,
-                  borderColor: `${themePalette.primary}30`
-                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                <span className="text-lg">➕</span>
-                <span className="font-medium">Custom Lists</span>
-              </StyledButton>
-            )}
-            
-            {/* Smart Refresh Button */}
-            <StyledButton 
+                        className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 touch-target"
+                      >
+                        <span className="text-black font-black uppercase text-sm">➕ LISTS</span>
+                      </button>
+                    )}
+                    
+                    <button 
               onClick={() => handleSmartRefresh("manual", true)} 
-              variant="ghost" 
-              className="!backdrop-blur-lg !text-white/80 !px-4 !py-3 !rounded-2xl flex items-center gap-2 !border"
-              style={themePalette ? {
-                backgroundColor: `${themePalette.secondary}15`,
-                borderColor: `${themePalette.secondary}30`
-              } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
+                      className="bg-brand-secondary-blue border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 touch-target"
               disabled={isAutoRefreshing}
             >
-              <span className={`text-lg ${isAutoRefreshing ? "animate-spin" : ""}`}>🔄</span>
-              <span className="font-medium">{isAutoRefreshing ? "Updating..." : "Refresh Data"}</span>
-            </StyledButton>
+                      <span className="text-white font-black uppercase text-sm">
+                        {isAutoRefreshing ? "UPDATING..." : "🔄 REFRESH"}
+                      </span>
+                    </button>
           </div>
-
-          {/* Scroll indicator with dynamic theming */}
-          <div className="scroll-indicator absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div 
-              className="scroll-indicator-mouse w-6 h-10 border-2 rounded-full flex justify-center"
-              style={themePalette ? {
-                borderColor: `${themePalette.primary}50`
-              } : { borderColor: 'rgba(255,255,255,0.5)' }}
-            >
-              <div 
-                className="scroll-indicator-dot w-1 h-1 rounded-full mt-2 animate-pulse"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.accent}70`
-                } : { backgroundColor: 'rgba(255,255,255,0.7)' }}
-              ></div>
+                </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Data Freshness Indicator with Dynamic Theming */}
-      {refreshRecommendation && (
-        <div className="relative z-10 px-6 pb-8 bg-gradient-to-b from-transparent via-black/30 to-black">
-          <div 
-            className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-lg border rounded-2xl"
-            style={sectionCardStyle}
-          >
-            <DataFreshnessIndicator
-              freshnessScore={refreshRecommendation.freshnessScore}
-              priority={refreshRecommendation.priority}
-              lastFetched={refreshRecommendation.anime?.lastFetched}
-              isRefreshing={isAutoRefreshing}
-              onRefresh={() => handleSmartRefresh("manual")}
-              themePalette={themePalette || undefined}
-            />
-            
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-white/70 text-sm">
-                <input
-                  type="checkbox"
-                  checked={autoRefreshEnabled}
-                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-                  className="rounded border-white/30 bg-white/10 focus:ring-2"
-                  style={themePalette ? {
-                    accentColor: themePalette.primary
-                  } : { accentColor: '#ECB091' }}
-                />
-                Auto-update
-              </label>
-              
-              <StyledButton
-                onClick={() => setShowRefreshDetails(!showRefreshDetails)}
-                variant="ghost"
-                className="!text-xs !py-1 !px-2 !text-white/70 !border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.primary}10`,
-                  borderColor: `${themePalette.primary}20`
-                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
-              >
-                {showRefreshDetails ? "Hide Details" : "Details"}
-              </StyledButton>
+      {/* MINIMALIST TAB NAVIGATION */}
+      <div className="relative z-20 bg-black/80 backdrop-blur-xl border-t-4 border-white">
+        <div className="flex overflow-x-auto scrollbar-hide px-4 py-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                flex-shrink-0 px-6 py-3 mx-1 font-black uppercase text-sm transition-all duration-300 touch-target
+                ${activeTab === tab.id 
+                  ? 'bg-brand-primary-action text-black border-4 border-black shadow-brutal' 
+                  : 'text-white/70 hover:text-white hover:bg-white/10 border-2 border-transparent'
+                }
+              `}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
             </div>
           </div>
 
-          {/* Refresh Details Panel with Dynamic Theming */}
-          {showRefreshDetails && (
-            <div 
-              className="mt-4 p-4 backdrop-blur-lg border rounded-2xl"
-              style={sectionCardStyle}
-            >
-              <h4 className="text-white font-medium mb-3">Data Status Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-white/60 mb-1">Freshness Score:</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-white/10 rounded-full h-2">
-                      <div 
-                        className="h-2 rounded-full"
-                        style={{
-                          width: `${refreshRecommendation.freshnessScore}%`,
-                          background: themePalette ? 
-                            `linear-gradient(to right, ${themePalette.primary}, ${themePalette.accent})` :
-                            'linear-gradient(to right, #EF4444, #F59E0B, #10B981)'
-                        }}
-                      ></div>
+      {/* BRUTAL CONTENT SECTIONS */}
+      <div className="relative z-10 bg-black">
+        {/* Overview Tab */}
+        {activeTab === "overview" && (
+          <div className="p-6">
+            {/* Synopsis - Brutal Card */}
+            <div className="bg-white border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-black border-4 border-white shadow-brutal p-4 mb-4">
+                <h2 className="text-white font-black uppercase text-xl">📖 SYNOPSIS</h2>
                     </div>
-                    <span className="text-white">{refreshRecommendation.freshnessScore}/100</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-white/60 mb-1">Reason:</p>
-                  <p className="text-white">{refreshRecommendation.reason}</p>
-                </div>
-                <div>
-                  <p className="text-white/60 mb-1">Recommended Action:</p>
-                  <p className="text-white capitalize">{refreshRecommendation.recommendedAction}</p>
-                </div>
-                <div>
-                  <p className="text-white/60 mb-1">Last Refresh Result:</p>
-                  <p className="text-white">
-                    {lastRefreshResult ? lastRefreshResult.message : "No recent refresh"}
-                  </p>
-                </div>
+              <p className="text-black leading-relaxed font-medium">
+                {anime.description || "No synopsis available for this anime."}
+              </p>
               </div>
-            </div>
-          )}
         </div>
       )}
 
-      {/* Tab Navigation with Dynamic Theming */}
-      <IOSTabBar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        tabs={tabs}
+        {/* Episodes Tab - Swipeable Brutalist Design */}
+        {activeTab === "episodes" && (
+          <div className="p-4 space-y-4">
+            {episodes && episodes.length > 0 ? (
+              <div className="space-y-4">
+                {/* Swipeable Episode Number Tabs */}
+                <SwipeableEpisodeTabs
+                  episodes={episodes}
+                  selectedIndex={selectedEpisodeIndex}
+                  onEpisodeSelect={handleEpisodeSelect}
         themePalette={themePalette || undefined}
       />
 
-      {/* Content Sections with Enhanced Dynamic Theming */}
-      <div className="relative z-10 pb-24 min-h-screen bg-black">
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div className="ios-scroll-section px-6 py-8 space-y-8">
-            {/* Synopsis */}
-            <div 
-              className="section-card backdrop-blur-lg border rounded-3xl p-6"
-              style={sectionCardStyle}
-            >
-              <div className="section-card-header flex items-center gap-3 mb-6">
-                <div 
-                  className="section-card-icon p-2 rounded-full"
-                  style={themePalette ? {
-                    background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
-                  } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
-                >
-                  📖
-                </div>
-                <h2 className="section-card-title text-2xl font-heading text-white font-bold">Synopsis</h2>
-              </div>
-              <p className="text-white/90 leading-relaxed selectable-text">
-                {anime.description || "No synopsis available for this anime."}
-              </p>
+                {/* Episode Grid - 2 Columns for iPhone */}
+                <div className="bg-black border-4 border-white shadow-brutal-lg p-4">
+                  <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-3 mb-4">
+                    <h3 className="text-black font-black uppercase text-base">📺 ALL EPISODES</h3>
             </div>
 
-            {/* Quick Stats with Dynamic Theming */}
-            <div className="grid grid-cols-2 gap-4">
-              <div 
-                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
-                style={sectionCardStyle}
-              >
-                <div className="text-2xl mb-2">📊</div>
-                <div className="text-white/60 text-sm">Rating</div>
-                <div className="text-white font-semibold">
-                  {anime.rating ? `${(anime.rating / 2).toFixed(1)}/5` : "N/A"}
+                  <div className="grid grid-cols-2 gap-3">
+                    {episodes.slice(0, episodesToShow).map((episode, index) => (
+                      <div 
+                        key={index}
+                        id={`episode-card-${index}`}
+                        onClick={() => handleEpisodeSelect(index)}
+                        className={`
+                          bg-white border-4 shadow-brutal overflow-hidden transition-all cursor-pointer touch-target
+                          ${index === selectedEpisodeIndex 
+                            ? 'border-brand-accent-peach shadow-brutal-lg scale-105' 
+                            : 'border-black hover:shadow-brutal-lg hover:border-gray-700'
+                          }
+                        `}
+                      >
+                        {/* Episode Image Section */}
+                        <div className="relative aspect-video bg-gray-200 border-b-4 border-black">
+                          {episode.thumbnail ? (
+                            <img
+                              src={episode.thumbnail}
+                              alt={episode.title || `Episode ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://placehold.co/400x225/ECB091/321D0B/png?text=EP+${index + 1}&font=poppins`;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-brand-accent-peach flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="text-black font-black text-4xl mb-2">📺</div>
+                                <div className="text-black font-black text-xl">EP {index + 1}</div>
                 </div>
               </div>
-              <div 
-                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
-                style={sectionCardStyle}
-              >
-                <div className="text-2xl mb-2">📺</div>
-                <div className="text-white/60 text-sm">Episodes</div>
-                <div className="text-white font-semibold">
-                  {anime.totalEpisodes || "N/A"}
+                          )}
+
+                          {/* Episode Number Badge */}
+                          <div className="absolute top-3 left-3">
+                            <div className={`
+                              border-2 border-white px-3 py-1
+                              ${index === selectedEpisodeIndex ? 'bg-brand-accent-peach' : 'bg-black'}
+                            `}>
+                              <span className={`
+                                font-black text-sm
+                                ${index === selectedEpisodeIndex ? 'text-black' : 'text-white'}
+                              `}>
+                                #{index + 1}
+                              </span>
                 </div>
               </div>
-              <div 
-                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
-                style={sectionCardStyle}
-              >
-                <div className="text-2xl mb-2">🎬</div>
-                <div className="text-white/60 text-sm">Studio</div>
-                <div className="text-white font-semibold text-xs">
-                  {anime.studios?.[0] || "N/A"}
+
+                          {/* Duration Badge */}
+                          {episode.duration && (
+                            <div className="absolute top-3 right-3">
+                              <div className="bg-brand-primary-action border-2 border-black px-2 py-1">
+                                <span className="text-black font-black text-xs">{episode.duration}</span>
                 </div>
               </div>
-              <div 
-                className="section-card backdrop-blur-lg border rounded-2xl p-4 text-center"
-                style={sectionCardStyle}
-              >
-                <div className="text-2xl mb-2">📅</div>
-                <div className="text-white/60 text-sm">Year</div>
-                <div className="text-white font-semibold">
-                  {anime.year || "N/A"}
-                </div>
-              </div>
+                          )}
+                          
+                          {/* Air Date Badge */}
+                          {episode.airDate && (
+                            <div className="absolute bottom-3 left-3">
+                              <div className="bg-white/90 border-2 border-black px-2 py-1">
+                                <span className="text-black font-black text-xs">{episode.airDate}</span>
             </div>
           </div>
+        )}
+      </div>
+
+                        {/* Episode Info Section - Compact for 2-column */}
+                        <div className="p-3">
+                          {/* Title */}
+                          <h3 className="text-black font-black text-sm uppercase leading-tight mb-2 line-clamp-2">
+                            {episode.title || `EP ${index + 1}`}
+                          </h3>
+                          
+                          {/* Description - More compact */}
+                          {episode.description && (
+                            <p className="text-black/70 font-bold text-xs leading-snug mb-3 line-clamp-2">
+                              {episode.description}
+                            </p>
+                          )}
+                          
+                          {/* Metadata Row - Compact */}
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            {episode.site && (
+                              <div className="bg-gray-200 border-2 border-black px-2 py-1">
+                                <span className="text-black font-black text-xs uppercase">{episode.site}</span>
+          </div>
+                            )}
+                            {episode.quality && (
+                              <div className="bg-green-200 border-2 border-black px-1 py-1">
+                                <span className="text-black font-black text-xs uppercase">{episode.quality}</span>
+                              </div>
+                            )}
+        </div>
+
+                          {/* Action Buttons - Stacked for narrow columns */}
+                          <div className="space-y-2">
+                            {episode.previewUrl && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenPreview(episode.previewUrl);
+                                }}
+                                className="w-full bg-brand-secondary-blue border-3 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-2 touch-target"
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  <span className="text-white font-black text-lg">👁️</span>
+                                  <span className="text-white font-black text-xs uppercase">PREVIEW</span>
+        </div>
+                              </button>
+                            )}
+
+                            {episode.url && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(episode.url, '_blank');
+                                }}
+                                className="w-full bg-brand-accent-peach border-3 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-2 touch-target"
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  <span className="text-black font-black text-lg">▶️</span>
+                                  <span className="text-black font-black text-xs uppercase">WATCH</span>
+            </div>
+                              </button>
+                            )}
+                            
+                            {/* If no action buttons, show placeholder */}
+                            {!episode.previewUrl && !episode.url && (
+                              <div className="w-full bg-gray-400 border-3 border-black p-2 text-center">
+                                <span className="text-black font-black text-xs uppercase">NO LINKS</span>
+          </div>
+                            )}
+        </div>
+              </div>
+                      </div>
+                  ))}
+                </div>
+                
+                  {/* Load More Episodes Button */}
+                  {episodes.length > episodesToShow && (
+                    <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-4 text-center mt-4">
+                      <div className="text-black font-black text-xl mb-2">📺</div>
+                      <h3 className="text-black font-black uppercase text-base mb-2">MORE EPISODES</h3>
+                      <p className="text-black/80 font-bold text-xs mb-3">
+                        + {episodes.length - episodesToShow} Additional Episodes Available
+                      </p>
+              <button 
+                        onClick={handleLoadMoreEpisodes}
+                        className="bg-black border-2 border-white shadow-brutal px-6 py-3 hover:shadow-brutal-lg transition-all touch-target"
+                      >
+                        <span className="text-white font-black uppercase text-sm">LOAD MORE EPISODES</span>
+              </button>
+                </div>
+                  )}
+              </div>
+            </div>
+            ) : (
+              <div className="bg-gray-600 border-4 border-black shadow-brutal p-8 text-center">
+                <div className="text-white font-black text-6xl mb-4">📺</div>
+                <h3 className="text-white font-black uppercase text-xl mb-3">NO EPISODES FOUND</h3>
+                <p className="text-white/80 font-bold text-sm mb-4">
+                  Episode information is not available for this anime
+                </p>
+                <button 
+                  onClick={() => handleSmartRefresh("manual", true)}
+                  className="bg-brand-primary-action border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 touch-target"
+                  disabled={isAutoRefreshing}
+                >
+                  <span className="text-black font-black uppercase text-sm">
+                    {isAutoRefreshing ? "REFRESHING..." : "🔄 REFRESH DATA"}
+                  </span>
+                </button>
+          </div>
+            )}
+        </div>
+        )}
+
+        {/* Characters Tab */}
+        {activeTab === "characters" && (
+          <div className="p-4 space-y-4">
+            <div className="bg-black border-4 border-white shadow-brutal-lg p-4">
+              <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-3 mb-4">
+                <h2 className="text-black font-black uppercase text-base">👥 CHARACTERS</h2>
+          </div>
+
+              {charactersForDisplay && charactersForDisplay.length > 0 ? (
+          <div className="space-y-4">
+                  {/* Characters Grid - 2 Columns for iPhone */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {charactersForDisplay.slice(0, charactersToShow).map((character, index) => (
+                      <div 
+                        key={`character-${character.id || character.name || index}`}
+                        onClick={() => onCharacterClick(character, anime.title)}
+                        className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all cursor-pointer touch-target"
+                      >
+                        <div className="aspect-[3/4] bg-gray-200 border-b-3 border-black relative overflow-hidden">
+                          {character.imageUrl ? (
+                            <img
+                              src={character.imageUrl}
+                              alt={character.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(character.name.charAt(0))}&font=poppins`;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-brand-accent-peach flex items-center justify-center">
+                              <span className="text-black font-black text-2xl">
+                                {character.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                          )}
+                          
+                          {/* Role Badge - Compact */}
+                          {character.role && (
+                            <div className="absolute top-1 right-1">
+                              <div className={`
+                                px-1 py-0.5 border-2 border-black text-xs font-black uppercase
+                                ${character.role === "MAIN" ? "bg-brand-primary-action text-black" : 
+                                  character.role === "SUPPORTING" ? "bg-brand-secondary-blue text-white" : 
+                                  "bg-gray-600 text-white"}
+                              `}>
+                                {character.role === "MAIN" && "⭐"}
+                                {character.role === "SUPPORTING" && "🎭"}
+                                {character.role === "BACKGROUND" && "👤"}
+                                {character.role.slice(0, 4)}
+                </div>
+                </div>
+                          )}
+          </div>
+
+                        <div className="p-2">
+                          <h3 className="text-black font-black text-xs uppercase truncate">
+                            {character.name}
+                          </h3>
+                          {character.description && (
+                            <p className="text-black/70 text-xs font-bold mt-1 line-clamp-2">
+                              {character.description}
+                            </p>
+                          )}
+            </div>
+          </div>
+          ))}
+                </div>
+                
+                  {/* Load More Characters - Spans 2 columns */}
+                  {charactersForDisplay.length > charactersToShow && (
+                    <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-4 text-center">
+                      <div className="text-black font-black text-xl mb-2">👥</div>
+                      <h3 className="text-black font-black uppercase text-base mb-2">MORE CHARACTERS</h3>
+                      <p className="text-black/80 font-bold text-xs mb-3">
+                        + {charactersForDisplay.length - charactersToShow} Additional Characters Available
+                      </p>
+                      <button 
+                        onClick={handleLoadMoreCharacters}
+                        className="bg-black border-2 border-white shadow-brutal px-4 py-2 hover:shadow-brutal-lg transition-all touch-target"
+                      >
+                        <span className="text-white font-black uppercase text-xs">LOAD MORE</span>
+                      </button>
+                    </div>
+                  )}
+                  </div>
+              ) : (
+                <div className="bg-gray-600 border-4 border-black shadow-brutal p-6 text-center">
+                  <div className="text-white font-black text-3xl mb-3">👥</div>
+                  <h3 className="text-white font-black uppercase text-base mb-2">NO CHARACTER DATA</h3>
+                  <p className="text-white/80 font-bold text-xs">Character information not available</p>
+                </div>
+              )}
+          </div>
+      </div>
         )}
 
         {/* OST Tab */}
         {activeTab === "ost" && (
-  <div className="ios-scroll-section px-6 py-8 space-y-8">
-    {/* OST Header with Animated Background */}
-    <div className="relative overflow-hidden rounded-3xl p-8" style={sectionCardStyle}>
-      {/* Animated Music Waves Background */}
-      <div className="absolute inset-0 opacity-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
-            style={{
-              top: `${20 + i * 15}%`,
-              animationDelay: `${i * 0.3}s`,
-              animationDuration: `${2 + i * 0.5}s`
-            }}
-          ></div>
-        ))}
-      </div>
-
-      {/* Header Content */}
-      <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-6">
-          <div 
-            className="p-3 rounded-2xl"
-            style={themePalette ? {
-              background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
-            } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
-          >
-            <span className="text-3xl">🎵</span>
-          </div>
-          <div>
-            <h2 className="text-3xl font-heading font-bold text-white mb-2">
-              Official Soundtrack
-            </h2>
-            <p className="text-white/70 text-lg">
-              Immerse yourself in the musical world of {anime.title}
-            </p>
-          </div>
+          <div className="p-6 space-y-6">
+            <div className="bg-black border-4 border-white shadow-brutal-lg p-6">
+              <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-4 mb-6">
+                <h2 className="text-black font-black uppercase text-xl">🎵 SOUNDTRACK</h2>
         </div>
 
-        {/* Music Genre Tags */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {['Epic', 'Orchestral', 'Emotional', 'Action', 'Ambient'].map((genre, index) => (
-            <motion.span
-              key={genre}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="px-3 py-1 rounded-full text-sm font-medium border"
-              style={themePalette ? {
-                background: `${themePalette.primary}20`,
-                borderColor: `${themePalette.primary}40`,
-                color: themePalette.primary
-              } : {
-                background: 'rgba(236, 176, 145, 0.2)',
-                borderColor: 'rgba(236, 176, 145, 0.4)',
-                color: '#ECB091'
-              }}
-            >
-              {genre}
-            </motion.span>
+              {/* Brutal Music Categories */}
+              <div className="space-y-4">
+                {/* Opening Themes */}
+                <div className="bg-brand-accent-peach border-4 border-black shadow-brutal p-4">
+                  <div className="bg-black border-2 border-white p-3 mb-3">
+                    <h3 className="text-white font-black uppercase text-lg">🎭 OPENING THEMES</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { title: 'Opening 1: "Resonance"', artist: 'TM Revolution', duration: '1:30' },
+                      { title: 'Opening 2: "Chain of Souls"', artist: 'Faylan', duration: '1:28' }
+            ].map((track, index) => (
+                      <div key={index} className="bg-white border-2 border-black shadow-brutal p-3 flex justify-between items-center">
+                        <div>
+                          <h4 className="text-black font-black text-sm">{track.title}</h4>
+                          <p className="text-black/70 font-bold text-xs">{track.artist}</p>
+              </div>
+                        <div className="text-black font-black text-xs">{track.duration}</div>
+              </div>
           ))}
         </div>
-      </div>
-    </div>
-
-    {/* Music Player Interface */}
-    <div className="space-y-6">
-      {/* Featured Track Player */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-3xl backdrop-blur-lg border"
-        style={sectionCardStyle}
-      >
-        {/* Vinyl Record Animation */}
-        <div className="absolute top-6 right-6 w-20 h-20 rounded-full border-4 border-white/20 flex items-center justify-center overflow-hidden">
-          <div 
-            className="w-16 h-16 rounded-full animate-spin"
-            style={{
-              background: themePalette ? 
-                `conic-gradient(${themePalette.primary}, ${themePalette.accent}, ${themePalette.secondary}, ${themePalette.primary})` :
-                'conic-gradient(#ECB091, #FF6B35, #4A90E2, #ECB091)',
-              animationDuration: '3s'
-            }}
-          >
-            <div className="w-full h-full rounded-full bg-black/80 border-2 border-white/30 flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-white/60"></div>
-            </div>
           </div>
-        </div>
 
-        <div className="p-8">
-          <div className="max-w-2xl">
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Now Playing: Main Theme
-            </h3>
-            <p className="text-white/70 mb-4">
-              Composed by Hiroyuki Sawano • Epic Orchestral
-            </p>
-
-            {/* Waveform Visualization */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-white/60">0:00</span>
-                <span className="text-sm text-white/60">3:42</span>
+                {/* Ending Themes */}
+                <div className="bg-brand-secondary-blue border-4 border-black shadow-brutal p-4">
+                  <div className="bg-black border-2 border-white p-3 mb-3">
+                    <h3 className="text-white font-black uppercase text-lg">🎼 ENDING THEMES</h3>
               </div>
-              <div className="relative h-16 bg-black/20 rounded-xl overflow-hidden">
-                {/* Animated Waveform */}
-                <div className="flex items-end justify-center h-full gap-1 px-4">
-                  {[...Array(50)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-gradient-to-t from-white/80 to-white/40 rounded-full animate-pulse"
-                      style={{
-                        width: '2px',
-                        height: `${20 + Math.random() * 60}%`,
-                        animationDelay: `${i * 0.05}s`,
-                        animationDuration: `${1 + Math.random()}s`
-                      }}
-                    ></div>
+                  <div className="space-y-2">
+                    {[
+                      { title: 'Ending 1: "Style"', artist: 'Kana Nishino', duration: '1:25' },
+                      { title: 'Ending 2: "Strength"', artist: 'Abingdon Boys School', duration: '1:32' }
+            ].map((track, index) => (
+                      <div key={index} className="bg-white border-2 border-black shadow-brutal p-3 flex justify-between items-center">
+              <div>
+                          <h4 className="text-black font-black text-sm">{track.title}</h4>
+                          <p className="text-black/70 font-bold text-xs">{track.artist}</p>
+              </div>
+                        <div className="text-black font-black text-xs">{track.duration}</div>
+            </div>
                   ))}
                 </div>
-                
-                {/* Progress Indicator */}
-                <div 
-                  className="absolute top-0 left-0 h-full opacity-60 transition-all duration-300"
-                  style={{
-                    width: '35%',
-                    background: themePalette ? 
-                      `linear-gradient(90deg, ${themePalette.primary}40, ${themePalette.accent}40)` :
-                      'linear-gradient(90deg, rgba(236, 176, 145, 0.4), rgba(255, 107, 53, 0.4))'
-                  }}
-                ></div>
               </div>
-            </div>
-
-            {/* Player Controls */}
-            <div className="flex items-center gap-4">
-              <button 
-                className="p-3 rounded-full backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
-                style={themePalette ? {
-                  background: `${themePalette.primary}20`
-                } : { background: 'rgba(255, 255, 255, 0.1)' }}
-              >
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4l12 8-12 8V4z"/>
-                </svg>
-              </button>
-              
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-white/60" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-                </svg>
-                <div className="w-20 h-1 bg-white/20 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full"
-                    style={{
-                      width: '70%',
-                      background: themePalette?.primary || '#ECB091'
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Track Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Opening & Ending Themes */}
-        <motion.div 
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="backdrop-blur-lg border rounded-3xl p-6"
-          style={sectionCardStyle}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div 
-              className="p-2 rounded-xl"
-              style={themePalette ? {
-                background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.accent}30)`
-              } : { background: 'linear-gradient(135deg, rgba(74, 144, 226, 0.3), rgba(255, 107, 53, 0.3))' }}
-            >
-              🎭
-            </div>
-            <h3 className="text-xl font-bold text-white">Opening & Ending</h3>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              { title: 'Opening 1: "Resonance"', artist: 'TM Revolution', type: 'OP', duration: '1:30' },
-              { title: 'Opening 2: "Chain of Souls"', artist: 'Faylan', type: 'OP', duration: '1:28' },
-              { title: 'Ending 1: "Style"', artist: 'Kana Nishino', type: 'ED', duration: '1:25' },
-              { title: 'Ending 2: "Strength"', artist: 'Abingdon Boys School', type: 'ED', duration: '1:32' }
-            ].map((track, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className="group flex items-center gap-4 p-4 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
-                whileHover={{ x: 8 }}
-              >
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold"
-                  style={themePalette ? {
-                    background: track.type === 'OP' ? 
-                      `linear-gradient(135deg, ${themePalette.primary}, ${themePalette.accent})` :
-                      `linear-gradient(135deg, ${themePalette.secondary}, ${themePalette.primary})`
-                  } : {
-                    background: track.type === 'OP' ? 
-                      'linear-gradient(135deg, #FF6B35, #E55A2B)' :
-                      'linear-gradient(135deg, #4A90E2, #6BAED6)'
-                  }}
-                >
-                  {track.type}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white text-sm truncate group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
-                    {track.title}
-                  </h4>
-                  <p className="text-white/60 text-xs">{track.artist}</p>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-white/40 text-xs">{track.duration}</span>
-                  <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                    <svg className="w-4 h-4 text-white/60 hover:text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Background Music */}
-        <motion.div 
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="backdrop-blur-lg border rounded-3xl p-6"
-          style={sectionCardStyle}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div 
-              className="p-2 rounded-xl"
-              style={themePalette ? {
-                background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.secondary}30)`
-              } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(74, 144, 226, 0.3))' }}
-            >
-              🎼
-            </div>
-            <h3 className="text-xl font-bold text-white">Background Scores</h3>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              { title: 'Battle Theme', mood: 'Epic', duration: '2:45', intensity: 90 },
-              { title: 'Peaceful Village', mood: 'Calm', duration: '3:12', intensity: 30 },
-              { title: 'Emotional Farewell', mood: 'Sad', duration: '2:58', intensity: 70 },
-              { title: 'Victory March', mood: 'Triumphant', duration: '3:33', intensity: 85 }
-            ].map((track, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="group p-4 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
-                whileHover={{ x: 8 }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-white text-sm group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
-                    {track.title}
-                  </h4>
-                  <span className="text-white/40 text-xs">{track.duration}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span 
-                    className="text-xs px-2 py-1 rounded-full font-medium"
-                    style={themePalette ? {
-                      background: `${themePalette.accent}20`,
-                      color: themePalette.accent
-                    } : {
-                      background: 'rgba(255, 107, 53, 0.2)',
-                      color: '#FF6B35'
-                    }}
-                  >
-                    {track.mood}
-                  </span>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/60">Intensity:</span>
-                    <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-1000"
-                        style={{
-                          width: `${track.intensity}%`,
-                          background: track.intensity > 70 ? '#F44336' : 
-                                    track.intensity > 40 ? '#FF9800' : '#4CAF50'
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
 
       {/* Streaming Platforms */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.6 }}
-        className="backdrop-blur-lg border rounded-3xl p-8"
-        style={sectionCardStyle}
-      >
-        <div className="text-center mb-8">
-          <h3 className="text-2xl font-bold text-white mb-4">Listen on Your Favorite Platform</h3>
-          <p className="text-white/70">Stream the complete soundtrack across multiple platforms</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { 
-              name: 'Spotify', 
-              icon: '🎵', 
-              color: '#1DB954',
-              tracks: '24 tracks',
-              url: 'https://open.spotify.com'
-            },
-            { 
-              name: 'Apple Music', 
-              icon: '🎵', 
-              color: '#FA243C',
-              tracks: '24 tracks',
-              url: 'https://music.apple.com'
-            },
-            { 
-              name: 'YouTube Music', 
-              icon: '📺', 
-              color: '#FF0000',
-              tracks: '28 tracks',
-              url: 'https://music.youtube.com'
-            },
-            { 
-              name: 'SoundCloud', 
-              icon: '☁️', 
-              color: '#FF3300',
-              tracks: '15 tracks',
-              url: 'https://soundcloud.com'
-            }
-          ].map((platform, index) => (
-            <motion.a
-              key={platform.name}
-              href={platform.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.7 + index * 0.1 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-              whileTap={{ scale: 0.95 }}
-              className="group p-6 rounded-2xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all duration-300 text-center"
-            >
-              <div 
-                className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl transition-all duration-300 group-hover:scale-110"
-                style={{ 
-                  background: `linear-gradient(135deg, ${platform.color}20, ${platform.color}40)`,
-                  borderColor: `${platform.color}30`
-                }}
-              >
-                {platform.icon}
-              </div>
-              <h4 className="font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/80 transition-all">
-                {platform.name}
-              </h4>
-              <p className="text-white/60 text-sm">{platform.tracks}</p>
-              
-              {/* Hover Effect */}
-              <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div 
-                  className="w-full h-1 rounded-full"
-                  style={{ backgroundColor: platform.color }}
-                ></div>
-              </div>
-            </motion.a>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Composer Spotlight */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-        className="backdrop-blur-lg border rounded-3xl overflow-hidden"
-        style={sectionCardStyle}
-      >
-        <div className="relative p-8">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/5"></div>
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1 h-1 bg-white rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`
-                }}
-              ></div>
-            ))}
+                <div className="bg-white border-4 border-black shadow-brutal p-4">
+                  <div className="bg-brand-primary-action border-2 border-black p-3 mb-3">
+                    <h3 className="text-black font-black uppercase text-lg">🎵 STREAMING PLATFORMS</h3>
           </div>
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-6 mb-6">
-              <div 
-                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center text-3xl"
-                style={themePalette ? {
-                  background: `linear-gradient(135deg, ${themePalette.primary}40, ${themePalette.accent}40)`
-                } : {}}
-              >
-                🎹
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">Featured Composer</h3>
-                <p className="text-white/70">The musical genius behind the soundtrack</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <h4 className="text-xl font-semibold text-white mb-4">Hiroyuki Sawano</h4>
-                <p className="text-white/80 leading-relaxed mb-6">
-                  Renowned for his epic orchestral compositions and innovative use of electronic elements, 
-                  Sawano has created some of the most memorable anime soundtracks of the modern era. 
-                  His work perfectly captures the emotional depth and intensity of the series.
-                </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {['Attack on Titan', 'Guilty Crown', 'Kill la Kill', 'Aldnoah.Zero'].map((work, index) => (
-                    <span 
-                      key={work}
-                      className="px-3 py-1 rounded-full text-sm border"
-                      style={themePalette ? {
-                        background: `${themePalette.secondary}15`,
-                        borderColor: `${themePalette.secondary}30`,
-                        color: themePalette.secondary
-                      } : {
-                        background: 'rgba(74, 144, 226, 0.15)',
-                        borderColor: 'rgba(74, 144, 226, 0.3)',
-                        color: '#4A90E2'
-                      }}
-                    >
-                      {work}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h5 className="text-lg font-semibold text-white">Musical Style</h5>
-                {[
-                  { style: 'Orchestral Grandeur', level: 95 },
-                  { style: 'Electronic Fusion', level: 80 },
-                  { style: 'Emotional Depth', level: 90 },
-                  { style: 'Battle Intensity', level: 100 }
-                ].map((item, index) => (
-                  <div key={item.style} className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-white/80 text-sm">{item.style}</span>
-                      <span className="text-white/60 text-sm">{item.level}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div 
-                        className="h-full rounded-full"
-                        style={{
-                          background: themePalette ? 
-                            `linear-gradient(90deg, ${themePalette.primary}, ${themePalette.accent})` :
-                            'linear-gradient(90deg, #ECB091, #FF6B35)'
-                        }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${item.level}%` }}
-                        transition={{ delay: 1 + index * 0.2, duration: 1 }}
-                      ></motion.div>
-                    </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { name: 'Spotify', tracks: '24 tracks', color: 'bg-green-500' },
+                      { name: 'Apple Music', tracks: '24 tracks', color: 'bg-red-500' },
+                      { name: 'YouTube Music', tracks: '28 tracks', color: 'bg-red-600' },
+                      { name: 'SoundCloud', tracks: '15 tracks', color: 'bg-orange-500' }
+          ].map((platform, index) => (
+                      <div key={platform.name} className={`${platform.color} border-2 border-black shadow-brutal p-3 text-center cursor-pointer hover:shadow-brutal-lg transition-all touch-target`}>
+                        <h4 className="text-white font-black text-sm">{platform.name}</h4>
+                        <p className="text-white/80 font-bold text-xs">{platform.tracks}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
-      </motion.div>
     </div>
   </div>
 )}
 
-        {/* Episodes Tab */}
-{activeTab === "episodes" && (
-  <EnhancedEpisodesTab
-    episodes={episodes}
-    themePalette={themePalette || undefined}
-    onPreview={handleOpenPreview}
-    anime={anime}
-  />
-)}
-
-        {/* Characters Tab */}
-        {activeTab === "characters" && (
-  <div className="ios-scroll-section px-6 py-8">
-    {charactersForDisplay && charactersForDisplay.length > 0 ? (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">
-            👥 Characters ({charactersForDisplay.length})
-          </h2>
-          
-          {/* Enhanced Status Indicator */}
-          <div className="flex items-center gap-3">
-            {/* Enrichment Status */}
-            {isEnriching ? (
-              <div 
-                className="flex items-center gap-2 rounded-full px-3 py-1 border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.secondary}20`,
-                  borderColor: `${themePalette.secondary}30`
-                } : { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
-              >
-                <div 
-                  className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
-                  style={themePalette ? {
-                    borderColor: themePalette.secondary
-                  } : { borderColor: '#3B82F6' }}
-                ></div>
-                <span className="text-xs font-medium" style={{ color: themePalette?.secondary || '#60A5FA' }}>
-                  Enhancing...
-                </span>
+        {/* Reviews Tab - Brutalist Mobile Design */}
+        {activeTab === "reviews" && (
+          <div className="p-4">
+            {/* Header Section */}
+            <div className="bg-black border-4 border-white shadow-brutal-lg mb-4">
+              <div className="bg-brand-primary-action border-b-4 border-black p-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-black font-black uppercase text-xl">⭐ REVIEWS</h2>
+                  {reviewsForDisplay && reviewsForDisplay.length > 0 && (
+                    <div className="bg-black border-2 border-white px-3 py-1">
+                      <span className="text-white font-black text-sm">{reviewsForDisplay.length} REVIEWS</span>
               </div>
-            ) : (
-              <div 
-                className="flex items-center gap-2 rounded-full px-3 py-1 border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.primary}15`,
-                  borderColor: `${themePalette.primary}30`
-                } : { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }}
-              >
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs font-medium text-green-400">
-                  {(() => {
-                    const enrichedCount = charactersForDisplay.filter(c => c.enrichmentStatus === "success").length;
-                    const totalCount = charactersForDisplay.length;
-                    return enrichedCount === totalCount ? 'Fully Enhanced' : `${enrichedCount}/${totalCount} Enhanced`;
-                  })()}
-                </span>
-              </div>
-            )}
-
-            {/* Manual Refresh Button */}
-            {!isEnriching && (
-              <StyledButton
-                onClick={enrichMissingCharacters}
-                variant="ghost"
-                className="!text-xs !py-1 !px-2 !border"
-                style={themePalette ? {
-                  backgroundColor: `${themePalette.accent}10`,
-                  borderColor: `${themePalette.accent}20`,
-                  color: themePalette.accent
-                } : { 
-                  backgroundColor: 'rgba(168, 85, 247, 0.1)', 
-                  borderColor: 'rgba(168, 85, 247, 0.2)',
-                  color: '#A855F7'
-                }}
-                title="Enhance more characters"
-              >
-                🤖 Enhance
-              </StyledButton>
             )}
           </div>
         </div>
       
-        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-          {charactersForDisplay
-            .filter(character => character && character.name) // Filter out invalid characters
-            .map((character, index) => (
-            <CharacterCard
-              key={`character-${character.id || character.name || index}`}
-              character={character}
-              onClick={() => onCharacterClick(character, anime.title)}
-              themePalette={themePalette || undefined}
-            />
-          ))}
-        </div>
-      </div>
-    ) : (
-      <div 
-        className="section-card backdrop-blur-lg border rounded-3xl p-8 text-center"
-        style={sectionCardStyle}
-      >
-        <div className="text-6xl mb-4 opacity-50">👥</div>
-        <h3 className="text-xl text-white/70 mb-2">No Character Data</h3>
-        <p className="text-white/50 text-sm">
-          Character information is not yet available for this anime.
-        </p>
-      </div>
-    )}
-  </div>
-)}
-
-        {/* Reviews Tab with Enhanced Theming */}
-        {activeTab === "reviews" && (
-          <div className="ios-scroll-section px-6 py-8">
-            <div 
-              className="section-card backdrop-blur-lg border rounded-3xl p-6"
-              style={sectionCardStyle}
-            >
-              <div className="section-card-header flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="section-card-icon p-2 rounded-full"
-                    style={themePalette ? {
-                      background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.accent}30)`
-                    } : { background: 'linear-gradient(135deg, rgba(236, 112, 199, 0.3), rgba(168, 85, 247, 0.3))' }}
-                  >
-                    ⭐
-                  </div>
-                  <h2 className="section-card-title text-2xl font-heading text-white font-bold">Reviews</h2>
-                </div>
                 {isAuthenticated && (
-                  <StyledButton
+                <div className="p-4 bg-gray-900">
+                  <button
                     onClick={() => setShowReviewForm(!showReviewForm)}
-                    variant="primary"
-                    className="!text-sm !px-4 !py-2 !rounded-xl !border-0"
-                    style={themePalette ? {
-                      background: themePalette.gradient,
-                      boxShadow: `0 4px 15px ${themePalette.primary}30`
-                    } : {}}
+                    className="w-full bg-brand-accent-peach border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-4 touch-target"
                   >
-                    {showReviewForm ? "Cancel" : "Write Review"}
-                  </StyledButton>
+                    <span className="text-black font-black uppercase text-sm">
+                      {showReviewForm ? "✖ CANCEL REVIEW" : "✍ WRITE REVIEW"}
+                    </span>
+                  </button>
+                </div>
                 )}
               </div>
 
               {/* Review Form */}
               {showReviewForm && isAuthenticated && (
-                <div className="mb-8">
+              <div className="bg-white border-4 border-black shadow-brutal-lg p-4 mb-4">
+                <div className="bg-black border-4 border-white shadow-brutal p-3 mb-4 text-center">
+                  <h3 className="text-white font-black uppercase text-lg">📝 WRITE YOUR REVIEW</h3>
+                </div>
                   <ReviewForm
                     animeId={anime._id}
                     existingReview={editingReview}
@@ -3488,332 +3099,236 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
 
               {/* Reviews List */}
               {reviewsIsLoadingInitial && reviewsForDisplay.length === 0 ? (
-                <IOSLoadingSpinner message="Loading reviews..." themePalette={themePalette || undefined} />
+              <div className="bg-gray-800 border-4 border-white shadow-brutal-lg p-8 text-center">
+                <div className="text-white font-black text-4xl mb-4 animate-pulse">⭐</div>
+                <h3 className="text-white font-black uppercase text-lg">LOADING REVIEWS...</h3>
+              </div>
               ) : reviewsForDisplay.length > 0 ? (
-                <div className="space-y-6">
-                  {reviewsForDisplay.map((review) => (
+              <div className="space-y-4">
+                {/* Reviews Grid - Brutalist Cards */}
+                {reviewsForDisplay.slice(0, reviewsToShow).map((review) => (
                     <div 
                       key={review._id} 
-                      className="backdrop-blur-sm border rounded-2xl p-6"
-                      style={themePalette ? {
-                        backgroundColor: `${themePalette.dark}40`,
-                        borderColor: `${themePalette.primary}10`
-                      } : { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }}
-                    >
-                      <ReviewCard
-                        review={review}
-                        currentUserId={currentUserId}
-                        onEdit={(reviewToEdit) => {
-                          if (reviewToEdit.userId === currentUserId) {
-                            setEditingReview(reviewToEdit);
-                            setShowReviewForm(true);
-                          }
-                        }}
-                        onDelete={async (reviewId) => {
-                          if (window.confirm("Are you sure you want to delete this review?")) {
-                            try {
-                              await deleteReviewInternalMutation({ reviewId });
-                              toast.success("Review deleted successfully.");
-                            } catch (error: any) {
-                              toast.error("Failed to delete review.");
-                            }
-                          }
-                        }}
-                      />
-                      
-                      {/* Review Actions with Dynamic Theming */}
-                      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <StyledButton
-                              onClick={() => handleVote(review._id, "up")}
-                              variant="ghost"
-                              className={`!text-xs !px-2 !py-1 !border ${
-                                review.currentUserVote === "up" 
-                                  ? "!text-brand-primary-action" 
-                                  : "!text-white/70 hover:!text-brand-primary-action"
-                              }`}
-                              style={review.currentUserVote === "up" && themePalette ? {
-                                backgroundColor: `${themePalette.primary}10`,
-                                borderColor: `${themePalette.primary}30`,
-                                color: themePalette.primary
-                              } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
-                              disabled={!isAuthenticated || review.userId === currentUserId}
-                            >
-                              👍 {review.upvotes || 0}
-                            </StyledButton>
-                            <StyledButton
-                              onClick={() => handleVote(review._id, "down")}
-                              variant="ghost"
-                              className={`!text-xs !px-2 !py-1 !border ${
-                                review.currentUserVote === "down" 
-                                  ? "!text-red-500" 
-                                  : "!text-white/70 hover:!text-red-500"
-                              }`}
-                              style={review.currentUserVote === "down" ? {
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                borderColor: 'rgba(239, 68, 68, 0.3)',
-                                color: '#EF4444'
-                              } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
-                              disabled={!isAuthenticated || review.userId === currentUserId}
-                            >
-                              👎 {review.downvotes || 0}
-                            </StyledButton>
+                    className="bg-white border-4 border-black shadow-brutal-lg overflow-hidden"
+                  >
+                    {/* Review Header */}
+                    <div className="bg-black border-b-4 border-white p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {/* User Avatar */}
+                          <div className="bg-brand-primary-action border-2 border-white w-12 h-12 flex items-center justify-center">
+                            <span className="text-black font-black text-lg">
+                              {review.userName?.charAt(0).toUpperCase() || "U"}
+                            </span>
                           </div>
-
-                          <StyledButton
-                            onClick={() => handleToggleComments(review._id)}
-                            variant="ghost"
-                            className="!text-xs !px-2 !py-1 hover:!text-brand-primary-action !border"
-                            style={themePalette ? {
-                              backgroundColor: `${themePalette.accent}10`,
-                              borderColor: `${themePalette.accent}20`,
-                              color: themePalette.accent
-                            } : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#ECB091' }}
-                          >
-                            💬 {review.commentCount || 0} Comments
-                          </StyledButton>
+                          {/* User Info */}
+                          <div>
+                            <h4 className="text-white font-black text-sm uppercase">{review.userName}</h4>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} className={`text-lg ${i < review.rating ? 'text-yellow-400' : 'text-gray-600'}`}>
+                                  ★
+                                </span>
+                              ))}
+                              <span className="text-white font-black text-xs ml-2">
+                                {review.rating}/5
+                              </span>
                         </div>
                       </div>
-
-                      {/* Comments Section */}
-                      {activeReviewIdForComments === review._id && (
-                        <div className="mt-6 pt-6 border-t border-white/10">
-                          {isAuthenticated && (
-                            <div className="mb-6">
-                              <textarea
-                                value={newCommentText[review._id] || ""}
-                                onChange={(e) => setNewCommentText(prev => ({ ...prev, [review._id]: e.target.value }))}
-                                rows={3}
-                                maxLength={1000}
-                                placeholder="Add a comment..."
-                                className="w-full backdrop-blur-sm border rounded-2xl p-4 text-white placeholder-white/60 focus:outline-none transition-all duration-300 resize-none mb-3 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                                style={themePalette ? {
-                                  backgroundColor: `${themePalette.dark}40`,
-                                  borderColor: `${themePalette.primary}20`
-                                } : { 
-                                  backgroundColor: 'rgba(0,0,0,0.4)', 
-                                  borderColor: 'rgba(255,255,255,0.2)'
-                                }}
-                              />
-                              <div className="flex justify-between items-center">
-                                <p className="text-white/60 text-xs">
-                                  {(newCommentText[review._id] || "").length}/1000
-                                </p>
-                                <StyledButton
-                                  onClick={() => handleAddComment(review._id)}
-                                  variant="primary"
-                                  className="!text-xs !border-0"
-                                  style={themePalette ? {
-                                    background: themePalette.gradient,
-                                    boxShadow: `0 4px 15px ${themePalette.primary}30`
-                                  } : {}}
-                                  disabled={isSubmittingComment || !(newCommentText[review._id] || "").trim()}
-                                >
-                                  {isSubmittingComment ? "Posting..." : "Post Comment"}
-                                </StyledButton>
                               </div>
-                            </div>
-                          )}
-
-                          {commentsIsLoading && (
-                            <IOSLoadingSpinner message="Loading comments..." themePalette={themePalette || undefined} />
-                          )}
-
-                          {commentsDataForActiveReview && commentsDataForActiveReview.length > 0 ? (
-                            <div className="space-y-4">
-                              {commentsDataForActiveReview.map((comment) => (
-                                <div 
-                                  key={comment._id} 
-                                  className="backdrop-blur-sm rounded-xl p-4 border"
-                                  style={themePalette ? {
-                                    backgroundColor: `${themePalette.dark}20`,
-                                    borderColor: `${themePalette.primary}05`
-                                  } : { backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)' }}
-                                >
-                                  <div className="flex items-start gap-3 mb-3">
-                                    {comment.userAvatarUrl ? (
-                                      <img 
-                                        src={comment.userAvatarUrl} 
-                                        alt={comment.userName} 
-                                        className="w-8 h-8 rounded-full object-cover" 
-                                      />
-                                    ) : (
-                                      <div 
-                                        className="w-8 h-8 rounded-full text-brand-surface flex items-center justify-center text-xs font-semibold"
-                                        style={themePalette ? {
-                                          backgroundColor: themePalette.accent
-                                        } : { backgroundColor: '#ECB091' }}
-                                      >
-                                        {comment.userName?.charAt(0).toUpperCase() || "U"}
+                        
+                        {/* Actions & Time */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-white/70 font-bold text-xs">
+                            {formatDistanceToNow(new Date(review._creationTime), { addSuffix: true })}
                                       </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
-                                        <h5 className="font-medium text-white text-sm">
-                                          {comment.userName}
-                                        </h5>
-                                        <p className="text-white/60 text-xs">
-                                          {formatDistanceToNow(new Date(comment._creationTime), { addSuffix: true })}
-                                        </p>
+                          {/* Delete Button - Only show for own reviews or admins */}
+                          {(review.userId === currentUserId || isAdmin) && (
+                            <button
+                              onClick={() => handleDeleteReview(review._id)}
+                              disabled={deletingReviewId === review._id}
+                              className="bg-red-600 border-2 border-white shadow-brutal hover:shadow-brutal-lg transition-all p-2 touch-target"
+                            >
+                              <span className="text-white font-black text-xs">
+                                {deletingReviewId === review._id ? "⏳" : "🗑"}
+                              </span>
+                            </button>
+                          )}
                                       </div>
                                     </div>
                                   </div>
-                                  <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap ml-11">
-                                    {comment.commentText}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : !commentsIsLoading && (
-                            <div className="text-center py-8">
-                              <div className="text-4xl mb-2">💬</div>
-                              <p className="text-white/60 text-sm">
-                                No comments yet. {isAuthenticated ? "Be the first to comment!" : "Log in to comment."}
+                    
+                    {/* Review Content */}
+                    {review.reviewText && (
+                      <div className="p-4 bg-white border-b-4 border-black">
+                        <p className="text-black font-medium leading-relaxed text-sm">
+                          {review.reviewText}
                               </p>
                             </div>
                           )}
 
-                          {commentsPaginationStatus === "CanLoadMore" && (
-                            <div className="text-center mt-6">
-                              <StyledButton
-                                onClick={() => commentsLoadMore(3)}
-                                variant="ghost"
-                                className="!text-xs !backdrop-blur-sm !border !text-white"
-                                style={themePalette ? {
-                                  backgroundColor: `${themePalette.primary}10`,
-                                  borderColor: `${themePalette.primary}20`
-                                } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
-                                disabled={commentsIsLoading}
-                              >
-                                {commentsIsLoading ? "Loading..." : "Load More Comments"}
-                              </StyledButton>
+                    {/* Review Actions */}
+                    <div className="bg-gray-100 p-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Upvote */}
+                        <button
+                          onClick={() => handleVote(review._id, "up")}
+                          className={`
+                            p-3 border-4 border-black shadow-brutal text-xs font-black uppercase touch-target transition-all
+                            ${review.currentUserVote === "up" 
+                              ? "bg-green-500 text-white shadow-brutal-lg" 
+                              : "bg-white text-black hover:bg-green-200 hover:shadow-brutal-lg"
+                            }
+                          `}
+                          disabled={!isAuthenticated || review.userId === currentUserId}
+                        >
+                          <div className="text-lg mb-1">👍</div>
+                          <div>{review.upvotes || 0}</div>
+                        </button>
+                        
+                        {/* Downvote */}
+                        <button
+                          onClick={() => handleVote(review._id, "down")}
+                          className={`
+                            p-3 border-4 border-black shadow-brutal text-xs font-black uppercase touch-target transition-all
+                            ${review.currentUserVote === "down" 
+                              ? "bg-red-500 text-white shadow-brutal-lg" 
+                              : "bg-white text-black hover:bg-red-200 hover:shadow-brutal-lg"
+                            }
+                          `}
+                          disabled={!isAuthenticated || review.userId === currentUserId}
+                        >
+                          <div className="text-lg mb-1">👎</div>
+                          <div>{review.downvotes || 0}</div>
+                        </button>
+                        
+                        {/* Comments */}
+                        <button
+                          onClick={() => handleToggleComments(review._id)}
+                          className="bg-brand-secondary-blue border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 text-xs font-black uppercase text-white touch-target"
+                        >
+                          <div className="text-lg mb-1">💬</div>
+                          <div>{review.commentCount || 0}</div>
+                        </button>
                             </div>
-                          )}
                         </div>
-                      )}
                     </div>
                   ))}
 
-                  {reviewsStatus === "CanLoadMore" && (
-                    <div className="text-center mt-8">
-                      <StyledButton
-                        onClick={() => reviewsLoadMore(3)}
-                        variant="secondary"
-                        className="!backdrop-blur-sm !border !text-white"
-                        style={themePalette ? {
-                          backgroundColor: `${themePalette.dark}30`,
-                          borderColor: `${themePalette.primary}20`
-                        } : { backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.2)' }}
-                        disabled={reviewsIsLoadingInitial}
-                      >
-                        {reviewsIsLoadingInitial ? "Loading..." : "Load More Reviews"}
-                      </StyledButton>
+                {/* Load More Reviews Button */}
+                {reviewsForDisplay.length > reviewsToShow && (
+                  <div className="bg-brand-primary-action border-4 border-black shadow-brutal-lg p-4 text-center mt-4">
+                    <div className="text-black font-black text-xl mb-2">⭐</div>
+                    <h3 className="text-black font-black uppercase text-base mb-2">MORE REVIEWS</h3>
+                    <p className="text-black/80 font-bold text-xs mb-3">
+                      + {reviewsForDisplay.length - reviewsToShow} Additional Reviews Available
+                    </p>
+                    <button 
+                      onClick={handleLoadMoreReviews}
+                      className="bg-black border-4 border-white shadow-brutal hover:shadow-brutal-lg transition-all p-4 w-full touch-target"
+                    >
+                      <span className="text-white font-black uppercase text-sm">
+                        📖 LOAD MORE REVIEWS
+                      </span>
+                    </button>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-8xl mb-4">📝</div>
-                  <h4 className="text-xl font-heading text-white mb-2">No Reviews Yet</h4>
-                  <p className="text-white/70 mb-6">
+              <div className="bg-gray-800 border-4 border-white shadow-brutal-lg p-8 text-center">
+                <div className="text-white font-black text-4xl mb-4">📝</div>
+                <h3 className="text-white font-black uppercase text-lg mb-2">NO REVIEWS YET</h3>
+                <p className="text-white/80 font-bold text-sm mb-4">
                     {isAuthenticated 
-                      ? "Be the first to share your thoughts about this anime!" 
+                    ? "Be the first to share your thoughts!" 
                       : "Log in to write the first review!"
                     }
                   </p>
                   {isAuthenticated && (
-                    <StyledButton
+                  <button
                       onClick={() => setShowReviewForm(true)}
-                      variant="primary"
-                      className="!border-0"
-                      style={themePalette ? {
-                        background: themePalette.gradient,
-                        boxShadow: `0 8px 32px ${themePalette.primary}30`
-                      } : {}}
-                    >
-                      Write the First Review
-                    </StyledButton>
+                    className="bg-brand-primary-action border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-4 touch-target"
+                  >
+                    <span className="text-black font-black uppercase">✍ WRITE FIRST REVIEW</span>
+                  </button>
                   )}
                 </div>
               )}
-            </div>
           </div>
         )}
 
-        {/* Similar Tab with Enhanced Theming */}
+        {/* Similar Tab */}
         {activeTab === "similar" && (
-          <div className="ios-scroll-section px-6 py-8">
-            <div 
-              className="section-card backdrop-blur-lg border rounded-3xl p-6"
-              style={sectionCardStyle}
-            >
-              <div className="section-card-header flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="section-card-icon p-2 rounded-full"
-                    style={themePalette ? {
-                      background: `linear-gradient(135deg, ${themePalette.secondary}30, ${themePalette.primary}30)`
-                    } : { background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3))' }}
-                  >
-                    🔍
+          <div className="p-6 space-y-6">
+            <div className="bg-black border-4 border-white shadow-brutal-lg p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="bg-brand-primary-action border-4 border-black shadow-brutal p-4">
+                  <h2 className="text-black font-black uppercase text-xl">🔍 SIMILAR ANIME</h2>
                   </div>
-                  <h2 className="section-card-title text-2xl font-heading text-white font-bold">Similar Anime</h2>
-                </div>
-                <StyledButton
+                <button
                   onClick={loadSimilarAnime}
-                  variant="primary"
-                  className="!text-sm !px-4 !py-2 !rounded-xl !border-0"
-                  style={themePalette ? {
-                    background: themePalette.gradient,
-                    boxShadow: `0 4px 15px ${themePalette.primary}30`
-                  } : {}}
+                  className="bg-brand-accent-peach border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 touch-target"
                   disabled={loadingSimilar}
                 >
-                  {loadingSimilar ? "Finding..." : "Find Similar"}
-                </StyledButton>
+                  <span className="text-black font-black uppercase text-sm">
+                    {loadingSimilar ? "FINDING..." : "FIND SIMILAR"}
+                  </span>
+                </button>
               </div>
               
-              {loadingSimilar && <IOSLoadingSpinner message="Finding similar anime..." themePalette={themePalette || undefined} />}
-              {similarAnimeError && <p className="text-red-400 text-center py-8">{similarAnimeError}</p>}
+              {loadingSimilar && (
+                <div className="bg-gray-600 border-4 border-black shadow-brutal p-8 text-center">
+                  <div className="text-white font-black text-4xl mb-4 animate-pulse">🔍</div>
+                  <h3 className="text-white font-black uppercase text-lg">FINDING SIMILAR ANIME...</h3>
+                </div>
+              )}
+              
+              {similarAnimeError && (
+                <div className="bg-red-500 border-4 border-black shadow-brutal p-6 text-center">
+                  <div className="text-white font-black text-4xl mb-4">❌</div>
+                  <p className="text-white font-bold">{similarAnimeError}</p>
+                </div>
+              )}
               
               {!loadingSimilar && !similarAnimeError && showSimilarAnime && similarAnime.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-                  {similarAnime.map((rec, idx) => (
+                <div className="grid grid-cols-2 gap-4">
+                  {similarAnime.slice(0, 6).map((rec, idx) => (
                     <div 
                       key={`similar-${idx}-${rec.title || idx}`} 
-                      className="group relative transform transition-all duration-500 hover:scale-105"
-                      style={{ animationDelay: `${idx * 100}ms` }}
+                      onClick={() => {
+                        if (rec._id && typeof rec._id === 'string') {
+                          // Convert string ID to proper Convex ID type
+                          navigateToDetail(rec._id as Id<"anime">);
+                        }
+                      }}
+                      className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all cursor-pointer touch-target"
                     >
-                      <div 
-                        className="absolute -inset-2 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={themePalette ? {
-                          background: `linear-gradient(135deg, ${themePalette.primary}30, ${themePalette.accent}30)`
-                        } : { background: 'linear-gradient(135deg, rgba(236, 176, 145, 0.3), rgba(255, 107, 53, 0.3))' }}
-                      ></div>
-                      <div 
-                        className="relative backdrop-blur-sm rounded-2xl overflow-hidden border group-hover:border-white/30 transition-all duration-300"
-                        style={themePalette ? {
-                          backgroundColor: `${themePalette.dark}20`,
-                          borderColor: `${themePalette.primary}10`
-                        } : { backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.1)' }}
-                      >
-                        <AnimeCard 
-                          anime={rec} 
-                          isRecommendation={true} 
-                          onViewDetails={navigateToDetail}
-                          className="w-full"
-                        />
-                        <div 
-                          className="p-3"
-                          style={themePalette ? {
-                            background: `linear-gradient(to top, ${themePalette.dark}80, transparent)`
-                          } : { background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}
-                        >
-                          <h4 className="text-sm font-medium text-white text-center truncate" title={rec.title}>
-                            {rec.title || "Unknown Title"}
-                          </h4>
+                      <div className="aspect-[3/4] bg-gray-200 border-b-4 border-black relative overflow-hidden">
+                        {rec.posterUrl ? (
+                          <img
+                            src={rec.posterUrl}
+                            alt={rec.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://placehold.co/300x400/ECB091/321D0B/png?text=${encodeURIComponent(rec.title?.substring(0, 10) || 'Anime')}&font=poppins`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-brand-accent-peach flex items-center justify-center">
+                            <span className="text-black font-black text-2xl">
+                              {rec.title?.charAt(0).toUpperCase() || "A"}
+                            </span>
                         </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-3">
+                        <h3 className="text-black font-black text-sm uppercase truncate">
+                          {rec.title || "Unknown Title"}
+                        </h3>
+                        {rec.year && (
+                          <p className="text-black/70 font-bold text-xs">{rec.year}</p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -3821,157 +3336,24 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
               )}
               
               {!loadingSimilar && !similarAnimeError && !showSimilarAnime && (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4 opacity-50">🎯</div>
-                  <h3 className="text-xl text-white/70 mb-2">Discover Similar Anime</h3>
-                  <p className="text-white/50 text-sm mb-6">
-                    Find anime with similar themes, genres, and storytelling.
+                <div className="bg-gray-600 border-4 border-black shadow-brutal p-8 text-center">
+                  <div className="text-white font-black text-4xl mb-4">🎯</div>
+                  <h3 className="text-white font-black uppercase text-lg mb-2">DISCOVER SIMILAR ANIME</h3>
+                  <p className="text-white/80 font-bold text-sm mb-4">
+                    Find anime with similar themes and storytelling
                   </p>
-                  <StyledButton
+                  <button
                     onClick={loadSimilarAnime}
-                    variant="primary"
-                    className="!border-0"
-                    style={themePalette ? {
-                      background: themePalette.gradient,
-                      boxShadow: `0 8px 32px ${themePalette.primary}30`
-                    } : {}}
-                    disabled={loadingSimilar}
+                    className="bg-brand-primary-action border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all p-3 touch-target"
                   >
-                    🔍 Find Similar Anime
-                  </StyledButton>
-                </div>
-              )}
-              
-              {!loadingSimilar && !similarAnimeError && showSimilarAnime && similarAnime.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4">🤔</div>
-                  <p className="text-white/70">No similar anime found. Try refreshing or check back later!</p>
+                    <span className="text-black font-black uppercase">🔍 FIND SIMILAR</span>
+                  </button>
                 </div>
               )}
             </div>
           </div>
         )}
       </div>
-
-      {/* Watchlist Notes Section with Enhanced Theming */}
-      {watchlistEntry && (
-        <div className="relative z-10 px-6 pb-8">
-          <div className="relative">
-            <div 
-              className="absolute inset-0 rounded-3xl blur-xl"
-              style={themePalette ? {
-                background: `linear-gradient(135deg, ${themePalette.accent}10, ${themePalette.secondary}10)`
-              } : { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(249, 115, 22, 0.1))' }}
-            ></div>
-            <div 
-              className="relative backdrop-blur-lg border rounded-3xl p-6 sm:p-8"
-              style={sectionCardStyle}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="p-2 rounded-full"
-                    style={themePalette ? {
-                      background: `linear-gradient(135deg, ${themePalette.accent}20, ${themePalette.secondary}20)`
-                    } : { background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.2))' }}
-                  >
-                    <span className="text-2xl">📝</span>
-                  </div>
-                  <h3 className="text-xl font-heading text-white font-bold">My Notes</h3>
-                </div>
-                <StyledButton
-                  onClick={() => setShowNotesInput(!showNotesInput)}
-                  variant="ghost"
-                  className="!text-sm !backdrop-blur-sm !border !text-white"
-                  style={themePalette ? {
-                    backgroundColor: `${themePalette.primary}10`,
-                    borderColor: `${themePalette.primary}20`
-                  } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
-                >
-                  {showNotesInput ? "Cancel" : watchlistEntry.notes ? "Edit Notes" : "Add Notes"}
-                </StyledButton>
-              </div>
-              
-              {showNotesInput ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={watchlistNotes}
-                    onChange={(e) => setWatchlistNotes(e.target.value)}
-                    rows={4}
-                    maxLength={500}
-                    placeholder="Your private thoughts about this anime..."
-                    className="w-full backdrop-blur-sm border rounded-2xl p-4 text-white placeholder-white/60 focus:outline-none transition-all duration-300 resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
-                    style={themePalette ? {
-                      backgroundColor: `${themePalette.dark}40`,
-                      borderColor: `${themePalette.primary}20`
-                    } : { 
-                      backgroundColor: 'rgba(0,0,0,0.4)', 
-                      borderColor: 'rgba(255,255,255,0.2)'
-                    }}
-                  />
-                  <div className="flex justify-between items-center">
-                    <p className="text-white/60 text-xs">
-                      {watchlistNotes.length}/500 characters
-                    </p>
-                    <div className="flex gap-3">
-                      <StyledButton
-                        onClick={() => {
-                          setWatchlistNotes(watchlistEntry.notes || "");
-                          setShowNotesInput(false);
-                        }}
-                        variant="ghost"
-                        className="!text-sm !backdrop-blur-sm !border !text-white"
-                        style={themePalette ? {
-                          backgroundColor: `${themePalette.primary}10`,
-                          borderColor: `${themePalette.primary}20`
-                        } : { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' }}
-                        disabled={isSavingNotes}
-                      >
-                        Cancel
-                      </StyledButton>
-                      <StyledButton
-                        onClick={handleSaveWatchlistNotes}
-                        variant="primary"
-                        className="!text-sm !border-0"
-                        style={themePalette ? {
-                          background: themePalette.gradient,
-                          boxShadow: `0 4px 15px ${themePalette.primary}30`
-                        } : {}}
-                        disabled={isSavingNotes}
-                      >
-                        {isSavingNotes ? "Saving..." : "Save Notes"}
-                      </StyledButton>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {watchlistEntry.notes ? (
-                    <div 
-                      className="backdrop-blur-sm rounded-2xl p-4 border"
-                      style={themePalette ? {
-                        backgroundColor: `${themePalette.dark}40`,
-                        borderColor: `${themePalette.primary}10`
-                      } : { backgroundColor: 'rgba(0,0,0,0.4)', borderColor: 'rgba(255,255,255,0.1)' }}
-                    >
-                      <p className="text-white/90 leading-relaxed whitespace-pre-wrap">
-                        {watchlistEntry.notes}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-4xl mb-2">💭</div>
-                      <p className="text-white/60 text-sm">
-                        No notes yet. Click "Add Notes" to record your thoughts!
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Episode Preview Modal */}
       <EnhancedEpisodePreviewModal
@@ -3992,9 +3374,92 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
           themePalette={themePalette || undefined}
         />
       )}
+
+
     </div>
   );
 }
+
+const SwipeableEpisodeTabs: React.FC<{
+  episodes: any[];
+  selectedIndex: number;
+  onEpisodeSelect: (index: number) => void;
+  themePalette?: ColorPalette;
+}> = ({ episodes, selectedIndex, onEpisodeSelect, themePalette }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to selected episode
+  useEffect(() => {
+    if (scrollContainerRef.current && selectedIndex >= 0) {
+      const container = scrollContainerRef.current;
+      const tabWidth = 60; // Width of each tab
+      const containerWidth = container.clientWidth;
+      const scrollPosition = (selectedIndex * tabWidth) - (containerWidth / 2) + (tabWidth / 2);
+      
+      container.scrollTo({
+        left: Math.max(0, scrollPosition),
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedIndex]);
+
+  if (!episodes || episodes.length === 0) return null;
+
+  return (
+    <div className="bg-black border-4 border-white shadow-brutal-lg">
+      <div className="bg-brand-primary-action border-b-4 border-black p-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-black font-black uppercase text-sm">📺 EPISODE SELECT</h3>
+          <div className="bg-black border-2 border-white px-2 py-1">
+            <span className="text-white font-black text-xs">{selectedIndex + 1}/{episodes.length}</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Swipeable Episode Number Tabs */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex overflow-x-auto scrollbar-hide p-3 gap-2"
+        style={{ 
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        {episodes.map((episode, index) => (
+          <button
+            key={index}
+            onClick={() => onEpisodeSelect(index)}
+            className={`
+              flex-shrink-0 w-14 h-14 border-3 border-black shadow-brutal transition-all duration-200 touch-target
+              ${index === selectedIndex 
+                ? 'bg-brand-accent-peach scale-110 shadow-brutal-lg' 
+                : 'bg-white hover:bg-gray-100 hover:shadow-brutal-lg'
+              }
+            `}
+            style={{ scrollSnapAlign: 'center' }}
+          >
+            <div className="w-full h-full flex flex-col items-center justify-center">
+              <span className={`
+                font-black text-xs leading-none
+                ${index === selectedIndex ? 'text-black' : 'text-black/80'}
+              `}>
+                EP
+              </span>
+              <span className={`
+                font-black text-lg leading-none
+                ${index === selectedIndex ? 'text-black' : 'text-black/80'}
+              `}>
+                {index + 1}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+      
+
+    </div>
+  );
+};
 
 const AddToCustomListModal: React.FC<{
   isOpen: boolean;

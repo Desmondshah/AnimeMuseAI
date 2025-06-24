@@ -44,7 +44,7 @@ export default function App() {
 
   // Dynamic header classes and styles based on device type
   const getHeaderStyles = () => {
-    const baseClasses = "z-50 bg-brand-surface/80 backdrop-blur-sm p-4 flex justify-between items-center border-b border-electric-blue/30";
+    const baseClasses = "z-50 bg-white border-b-4 border-black p-4 flex justify-between items-center brutal-shadow";
     
     if (isIPadDevice) {
       return {
@@ -69,13 +69,13 @@ export default function App() {
   const headerConfig = getHeaderStyles();
 
   return (
-    <div className="min-h-screen flex flex-col text-white">
+    <div className="min-h-screen flex flex-col bg-black text-white">
       <header 
         className={headerConfig.className}
         style={headerConfig.style}
       >
-        <h2 className="text-2xl font-orbitron text-neon-cyan">AniMuse</h2>
-        <div className="flex items-center gap-4">
+        <h2 className="text-2xl font-black uppercase tracking-tighter text-black">ANIMUSE</h2>
+        <div className="flex items-center gap-2">
           <Authenticated>
             <div className="relative">
               <NotificationsBell onTogglePanel={toggleNotificationsPanel} />
@@ -130,22 +130,23 @@ function Content({ onPhoneVerified }: ContentProps) {
   return (
     <div className="w-full">
       <Unauthenticated>
-        <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h1 className="text-5xl font-orbitron text-sakura-pink mb-4">Welcome to AniMuse</h1>
-          <p className="text-xl text-white">Sign in to discover your next favorite anime.</p>
-         </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
+        <div className="text-center mb-8">
+          <div className="bg-white text-black p-6 border-4 border-black brutal-shadow-lg mb-6 mx-4">
+            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-2">
+              WELCOME TO
+            </h1>
+            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none text-brand-primary-action">
+              ANIMUSE
+            </h1>
+            <div className="mt-4 h-2 bg-black"></div>
+            <p className="text-lg font-bold uppercase mt-2 tracking-wide">
+              SIGN IN TO DISCOVER ANIME
+            </p>
+          </div>
+        </div>
+        <div className="mx-4">
           <SignInForm />
-        </motion.div>
+        </div>
       </Unauthenticated>
 
       <Authenticated>

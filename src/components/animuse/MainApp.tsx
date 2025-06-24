@@ -858,685 +858,379 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
 };
 
   const renderDashboard = useCallback(() => (
-    <div className="relative min-h-screen">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-brand-primary-action/15 to-transparent rounded-full blur-3xl"
-          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 30, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute bottom-20 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl"
-          animate={{ rotate: shouldReduceAnimations ? 0 : -360 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 45, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute top-1/3 right-1/5 w-64 h-64 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl"
-          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 35, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute bottom-1/2 left-1/4 w-72 h-72 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl"
-          animate={{ rotate: shouldReduceAnimations ? 0 : -360 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 40, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute top-20 right-1/3 w-56 h-56 bg-gradient-to-bl from-cyan-400/8 to-transparent rounded-full blur-3xl"
-          animate={{ rotate: shouldReduceAnimations ? 0 : 360 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 50, repeat: shouldReduceAnimations ? 0 : Infinity, ease: "linear" }}
-        />
+    <div className="relative min-h-screen bg-black overflow-hidden">
+      {/* ARTISTIC BRUTALIST GRID OVERLAY */}
+      <div className="fixed inset-0 pointer-events-none opacity-10">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_49%,#fff_50%,#fff_51%,transparent_52%),linear-gradient(180deg,transparent_49%,#fff_50%,#fff_51%,transparent_52%)] bg-[length:20px_20px]"></div>
+        {/* ARTISTIC NOISE TEXTURE */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-30"></div>
         </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-12 md:max-w-5xl lg:max-w-6xl mx-auto">
-        {/* Hero Welcome Section */}
-         <motion.div
-          className="text-center space-y-6"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceAnimations ? 0 : 0.8 }}
-        >
-          <motion.div
-            className="inline-block group"
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: shouldReduceAnimations ? 0 : 0.6 }}
-          >
-            <h1 className="hero-title font-heading font-bold bg-gradient-to-r from-white via-brand-accent-gold via-brand-primary-action to-white bg-clip-text text-transparent animate-pulse">
-              Welcome, {userProfile?.name || "Explorer"}!
-            </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action via-brand-accent-gold to-transparent mt-4 animate-pulse group-hover:animate-none group-hover:opacity-100 opacity-80 transition-opacity duration-500"></div>
-           
-           </motion.div>
-          <motion.p
-            className="mobile-optimized-text text-white/80 max-w-2xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: shouldReduceAnimations ? 0 : 0.8, delay: shouldReduceAnimations ? 0 : 0.3 }}
-          >
-            Your personalized anime universe awaits. Let's discover something extraordinary together.
-         </motion.p>
-        </motion.div>
+      {/* ARTISTIC GEOMETRIC SHAPES */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-brand-primary-action to-red-600 transform rotate-45 -translate-x-16 -translate-y-16 opacity-80"></div>
+        <div className="absolute top-20 right-0 w-24 h-48 bg-gradient-to-l from-white to-gray-200 transform -translate-y-12 translate-x-12 opacity-90"></div>
+        <div className="absolute bottom-40 left-4 w-16 h-16 bg-gradient-to-tr from-brand-accent-gold to-yellow-400 opacity-85"></div>
+        <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-tl from-brand-primary-action to-pink-500 transform rotate-12 translate-x-20 translate-y-20 opacity-75"></div>
+        <div className="absolute top-1/3 left-1/4 w-8 h-64 bg-gradient-to-b from-white to-blue-200 transform rotate-12 opacity-60"></div>
+        {/* ARTISTIC FLOATING ELEMENTS */}
+        <div className="absolute top-1/2 right-1/3 w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full opacity-70 animate-pulse"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-20 h-20 bg-gradient-to-tr from-green-400 to-teal-400 transform rotate-45 opacity-60"></div>
+      </div>
 
+      {/* MAIN BRUTALIST CONTENT */}
+      <div className="relative z-10 px-4 py-8 space-y-8">
+        {/* ENHANCED BRUTALIST HERO SECTION */}
+        <div className="space-y-6">
+          {/* ARTISTIC TYPOGRAPHY BLOCK */}
+          <div className="relative bg-white text-black p-6 border-4 border-black shadow-[8px_8px_0px_0px_#FF6B35] mb-8 overflow-hidden">
+            {/* ARTISTIC BACKGROUND PATTERN */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-yellow-100/30 to-orange-100/20"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-brand-primary-action/10 to-transparent transform rotate-45"></div>
+            
+            <div className="relative z-10">
+              <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-2">
+                ANIME
+            </h1>
+              <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none text-transparent bg-gradient-to-r from-brand-primary-action to-red-600 bg-clip-text">
+                MUSE
+              </h1>
+              <div className="mt-4 h-2 bg-gradient-to-r from-black via-brand-primary-action to-black"></div>
+              <p className="text-lg font-bold uppercase mt-2 tracking-wide">
+                {userProfile?.name || "USER"} / DASHBOARD
+              </p>
+            </div>
+          </div>
+
+          {/* ARTISTIC STATS GRID */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative bg-gradient-to-br from-brand-primary-action to-red-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+              <div className="relative z-10">
+                <div className="text-2xl font-black">{fullWatchlist?.length || 0}</div>
+                <div className="text-sm font-bold uppercase">ANIME</div>
+              </div>
+            </div>
+            <div className="relative bg-white text-black p-4 border-4 border-black shadow-[4px_4px_0px_0px_#FF6B35] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-gray-100/50 to-blue-100/30"></div>
+              <div className="relative z-10">
+                <div className="text-2xl font-black">AI</div>
+                <div className="text-sm font-bold uppercase">READY</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ARTISTIC AI ASSISTANT CTA */}
+        <div className="mt-8">
+          <button
+            onClick={navigateToAIAssistant}
+            className="w-full relative bg-black text-white p-6 border-4 border-white shadow-[8px_8px_0px_0px_#B08968] active:shadow-[4px_4px_0px_0px_#B08968] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+          >
+            {/* ARTISTIC HOVER EFFECT */}
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-accent-gold/20 to-brand-primary-action/20 opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
+            
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="text-left">
+                <div className="text-2xl font-black uppercase tracking-tight">
+                  AI ASSISTANT
+                </div>
+                <div className="text-sm font-bold opacity-80 uppercase">
+                  GET RECOMMENDATIONS
+                </div>
+              </div>
+              <div className="text-4xl group-active:scale-110 transition-transform duration-75">🤖</div>
+            </div>
+          </button>
+        </div>
+
+        {/* ARTISTIC POPULAR ANIME CAROUSEL */}
         {loopedPopularAnime.length > 0 && (
-  <div className="mb-6">
+          <div className="mt-8">
+            <div className="relative bg-gradient-to-r from-brand-accent-gold to-yellow-500 text-black p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(0,0,0,0.1)_50%,transparent_60%)]"></div>
+              <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">POPULAR NOW</h2>
+            </div>
+            
+            {/* ENHANCED SWIPER CAROUSEL */}
+            <div className="relative">
     <Swiper
   modules={[EffectCoverflow]}
   effect="coverflow"
   centeredSlides={true}
   slidesPerView="auto"
-  spaceBetween={30}
+                spaceBetween={20}
   loop={true}
   grabCursor={true}
-  className="w-full"
   speed={400}
   resistance={true}
   resistanceRatio={0.85}
-  watchSlidesProgress={true}
   coverflowEffect={{ 
-    rotate: 0, 
+                  rotate: 20,
     stretch: 0,
-    depth: 150, 
-    modifier: 1.2, 
+                  depth: 100,
+                  modifier: 1.5,
     slideShadows: false,
     scale: 0.9
   }}
+                className="w-full"
   style={{
     overflow: 'visible',
-    padding: '0 10%',
+                  padding: '20px 0',
     willChange: 'transform',
   }}
 >
-      {loopedPopularAnime.map((a, i) => (
+                {loopedPopularAnime.slice(0, 8).map((anime, index) => (
         <SwiperSlide
-          key={`featured-${i}`}
-          className="popular-item w-[70vw] sm:w-[60vw] md:w-[45vw] lg:w-[35vw] xl:w-[28vw]"
+                    key={`artistic-${index}`}
+                    className="w-[280px] sm:w-[320px]"
           style={{
+                      height: 'auto',
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             willChange: 'transform',
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-          }}
-        >
-          <AnimeCard
-            anime={a}
-            isRecommendation
-            onViewDetails={handleAnimeCardClick}
-            className="w-full"
-          />
+                    }}
+                  >
+                    <div
+                      onClick={() => handleRecommendationClick(anime)}
+                      className="relative bg-white border-4 border-black shadow-[8px_8px_0px_0px_#FF6B35] cursor-pointer active:shadow-[4px_4px_0px_0px_#FF6B35] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+                    >
+                      {/* ARTISTIC CARD EFFECTS */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-orange-100/20 to-red-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      
+                      {anime.posterUrl ? (
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={anime.posterUrl}
+                            alt={anime.title}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {/* ARTISTIC OVERLAY */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-[3/4] bg-gradient-to-br from-brand-primary-action to-red-600 border-b-4 border-black flex items-center justify-center">
+                          <span className="text-6xl opacity-80">📺</span>
+                        </div>
+                      )}
+                      
+                      <div className="relative p-4 bg-gradient-to-t from-white to-gray-50">
+                        <h3 className="font-black text-sm uppercase leading-tight truncate mb-1">
+                          {anime.title}
+                        </h3>
+                        {anime.year && (
+                          <div className="inline-block bg-black text-white px-2 py-1 text-xs font-bold uppercase">
+                            {anime.year}
+                          </div>
+                        )}
+                        {anime.genres && anime.genres.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {anime.genres.slice(0, 2).map((genre, i) => (
+                              <span key={i} className="text-[10px] bg-gray-200 text-black px-2 py-1 font-bold uppercase rounded-none">
+                                {genre}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
         </SwiperSlide>
       ))}
     </Swiper>
+            </div>
   </div>
 )}
 
-
-        {/* AI Assistant CTA */}
-        <div className="flex justify-center">
-          <motion.div
-            className="relative group"
-            whileHover={shouldReduceAnimations ? undefined : { scale: 1.05, rotate: 2 }}
-            transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 300 }}
-          >
-            <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/50 to-brand-accent-gold/50 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
-            <div className="relative bg-black/40 backdrop-blur-sm border border-white/20 rounded-3xl p-1 group-hover:border-white/40 transition-all duration-300">
-              <StyledButton
-                onClick={navigateToAIAssistant}
-                variant="primary" 
-                className="!text-lg sm:!text-xl !px-8 sm:!px-12 !py-4 sm:!py-6 !bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action !transition-all !duration-500 !shadow-2xl hover:!shadow-brand-primary-action/25 !border-0"
-              >
-                <span className="flex items-center gap-3">
-                  <span className="text-2xl animate-bounce">🤖</span>
-                  <span className="font-heading">Talk to AniMuse AI</span>
-                  <span className="text-lg opacity-80">✨</span>
-                </span>
-              </StyledButton>
-            </div>
-          </motion.div>
+        {/* ENHANCED ARTISTIC STUDIO SECTION */}
+        <div className="mt-8">
+          <div className="relative bg-gradient-to-r from-black to-gray-900 text-white p-4 border-4 border-white shadow-[4px_4px_0px_0px_#B08968] mb-4 overflow-hidden">
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.05)_50%,transparent_60%)]"></div>
+            <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">LEGENDARY STUDIOS</h2>
         </div>
 
-        {/* Popular Anime Studios */}
-        <div className="flex justify-center mt-8">
-          <div className="max-w-lg">
-            {/* Top row - 3 studios */}
-            <div className="flex justify-center gap-4 mb-4">
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -2 }}
-                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+          <div className="grid grid-cols-1 gap-3">
+            <button
                 onClick={navigateToStudioGhibli}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-400/40 to-emerald-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-green-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-green-400/60 transition-all duration-300 shadow-lg">
-                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🌿 Studio Ghibli</span>
+              className="relative bg-gradient-to-r from-green-500 to-emerald-600 text-black p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] active:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.2)_50%,transparent_60%)] opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <span className="font-black uppercase text-lg">STUDIO GHIBLI</span>
+                <span className="text-2xl group-active:rotate-12 transition-transform duration-75">🌿</span>
                 </div>
-              </motion.div>
+            </button>
               
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: 1 }}
-                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+            <button
                 onClick={navigateToMadhouse}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-r from-red-400/40 to-orange-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-red-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-red-400/60 transition-all duration-300 shadow-lg">
-                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🏠 Madhouse</span>
+              className="relative bg-gradient-to-r from-red-500 to-rose-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] active:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.2)_50%,transparent_60%)] opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <span className="font-black uppercase text-lg">MADHOUSE</span>
+                <span className="text-2xl group-active:rotate-12 transition-transform duration-75">🏠</span>
                 </div>
-              </motion.div>
+            </button>
               
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -1 }}
-                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+            <button
                 onClick={navigateToMappa}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-400/40 to-pink-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-purple-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-purple-400/60 transition-all duration-300 shadow-lg">
-                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">⚡ MAPPA</span>
+              className="relative bg-gradient-to-r from-purple-500 to-violet-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] active:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.2)_50%,transparent_60%)] opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <span className="font-black uppercase text-lg">MAPPA</span>
+                <span className="text-2xl group-active:rotate-12 transition-transform duration-75">⚡</span>
                 </div>
-              </motion.div>
-            </div>
+            </button>
             
-            {/* Bottom row - 2 studios */}
-            <div className="flex justify-center gap-4">
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: 2 }}
-                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+            <div className="grid grid-cols-2 gap-3">
+              <button
                 onClick={navigateToBones}
+                className="relative bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] active:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-400/40 to-cyan-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-blue-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-blue-400/60 transition-all duration-300 shadow-lg">
-                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🦴 Bones</span>
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.2)_50%,transparent_60%)] opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+                <div className="relative z-10 text-center">
+                  <div className="font-black uppercase text-sm">BONES</div>
+                  <div className="text-xl group-active:scale-110 transition-transform duration-75">🦴</div>
                 </div>
-              </motion.div>
+              </button>
               
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={shouldReduceAnimations ? undefined : { scale: 1.1, rotate: -2 }}
-                transition={{ type: shouldReduceAnimations ? 'tween' : 'spring', stiffness: 400 }}
+              <button
                 onClick={navigateToKyotoAnimation}
+                className="relative bg-gradient-to-r from-yellow-500 to-amber-600 text-black p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] active:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-brand-accent-gold/40 to-yellow-600/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative bg-gradient-to-br from-black/60 via-black/40 to-yellow-900/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 group-hover:border-brand-accent-gold/60 transition-all duration-300 shadow-lg">
-                  <span className="text-xs text-white font-semibold tracking-wide drop-shadow-lg">🏛️ Kyoto Animation</span>
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(0,0,0,0.1)_50%,transparent_60%)] opacity-0 group-active:opacity-100 transition-opacity duration-150"></div>
+                <div className="relative z-10 text-center">
+                  <div className="font-black uppercase text-sm">KYOTO</div>
+                  <div className="text-xl group-active:scale-110 transition-transform duration-75">🏛️</div>
                 </div>
-              </motion.div>
-            </div>
-            
-            {/* Subtle subtitle */}
-            <div className="text-center mt-4">
-              <span className="text-xs text-white/40 italic">Legendary Animation Studios</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Personalized Recommendations Section */}
+        {/* ARTISTIC PERSONALIZED RECOMMENDATIONS CAROUSEL */}
         {userProfile?.onboardingCompleted &&
           forYouCategories.filter(cat => cat.id === "generalPersonalized").map((category) => (
-            <div key={category.id} className="space-y-8">
-              {/* Enhanced Section Header with Refresh Button */}
-              <div className="text-center space-y-4">
-                <div className="inline-block">
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                    <h2 className="section-title font-heading text-white font-bold whitespace-nowrap">
-                      {category.title}
-                    </h2>
-                    {/* Refresh Button */}
+            <div key={category.id} className="mt-8">
+              <div className="relative bg-gradient-to-r from-brand-primary-action to-red-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 flex items-center justify-between overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+                <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">FOR YOU</h2>
                     <button
                       onClick={refreshPersonalizedRecommendations}
                       disabled={category.isLoading}
-                      className="group flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full border border-white/20 hover:border-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={`Last updated: ${category.lastFetched ? new Date(category.lastFetched).toLocaleTimeString() : 'Never'}`}
-                    >
-                      <span className={`text-sm transition-transform duration-300 ${category.isLoading ? 'animate-spin' : 'group-hover:rotate-180'}`}>
-                        🔄
-                      </span>
-                      <span className="text-xs text-white/80 font-medium">
-                        {category.isLoading ? 'Updating...' : 'Refresh'}
-                      </span>
+                  className="relative z-10 bg-white text-black px-3 py-1 border-2 border-black font-bold text-xs uppercase disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5 transition-transform duration-75"
+                >
+                  {category.isLoading ? 'LOADING...' : 'REFRESH'}
                     </button>
-                  </div>
-                  <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent animate-pulse"></div>
-                </div>
-                {category.reason && (
-                  <div className="inline-flex items-center space-x-2 bg-black/30 backdrop-blur-sm rounded-full px-6 py-3 border border-white/10">
-                    <span className="text-white/70 text-sm italic">{category.reason}</span>
-                  </div>
-                )}
               </div>
 
-              {/* Loading State */}
-              {category.isLoading && (
-                <div className="flex justify-center py-16">
-                  <div className="relative">
-                    <div className="w-20 h-20 border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin"></div>
-                    <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
-                    <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
+              {category.isLoading ? (
+                <div className="relative bg-white border-4 border-black p-8 text-center overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-white"></div>
+                  <div className="relative z-10">
+                    <div className="text-2xl font-black text-black animate-pulse">LOADING...</div>
+                    <div className="mt-2 w-16 h-1 bg-brand-primary-action mx-auto animate-pulse"></div>
                   </div>
-                  <div className="ml-6 flex flex-col justify-center">
-                    <p className="text-xl text-white font-medium animate-pulse">Personalizing...</p>
-                    <p className="text-sm text-white/60">Crafting your perfect recommendations</p>
                   </div>
+              ) : category.error ? (
+                <div className="relative bg-gradient-to-r from-red-500 to-red-600 text-white border-4 border-black p-4 overflow-hidden">
+                  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+                  <div className="relative z-10">
+                    <div className="font-black uppercase">ERROR</div>
+                    <div className="text-sm">{category.error}</div>
                 </div>
-              )}
-
-              {/* Error State */}
-              {category.error && (
-                <div className="text-center">
-                  <div className="bg-red-900/20 backdrop-blur-sm border border-red-500/30 rounded-3xl p-8 max-w-md sm:max-w-lg md:max-w-xl mx-auto">
-                    <div className="text-6xl mb-4">⚠️</div>
-                    <h3 className="text-xl font-heading text-red-400 mb-2">Oops!</h3>
-                    <p className="text-red-300 text-sm mb-4">{category.error}</p>
-                    <StyledButton 
-                      onClick={refreshPersonalizedRecommendations}
-                      variant="secondary"
-                      className="!bg-red-500/20 !border-red-400 !text-red-300 hover:!bg-red-500/30"
-                    >
-                      Try Again
-                    </StyledButton>
                   </div>
-                </div>
-              )}
-
-              {/* Enhanced Recommendations Grid */}
-              {!category.isLoading && !category.error && category.recommendations.length > 0 && (
+              ) : category.recommendations.length > 0 ? (
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-                  
-                  <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8">
-                    <Carousel
-                      variant="shuffle"
-                      onItemClick={(i) =>
-                        handleRecommendationClick(
-                          category.recommendations[i]
-                        )
-                      }
-                    >
-  {category.recommendations.map((rec, index) => (
-    <motion.div
-      key={`${category.id}-${index}-${rec.title}`}
-      className="group flex-shrink-0 w-32 xs:w-36 sm:w-40 transform cursor-pointer"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ scale: 1.1, rotate: 1 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <div className="absolute -inset-3 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-3xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      
-      <div className="relative bg-black/30 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-        <div className="relative">
-          <AnimeCard 
-            anime={rec} 
-            isRecommendation={true} 
-            onViewDetails={handleAnimeCardClick}
-            className="w-full"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="bg-black/70 backdrop-blur-sm rounded-full p-3 border border-white/30">
-              <span className="text-white text-xl">👀</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-          <h4 
-  className="text-sm font-medium text-white text-center title-truncate-1 group-hover:text-brand-accent-gold transition-colors duration-300"
-  title={rec.title}
->
-  {truncateTitle(rec.title, 25)}
-</h4>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
-            <p className="text-xs text-white/60 text-center">Click to explore</p>
-            {rec.genres && rec.genres.length > 0 && (
-              <p className="text-xs text-brand-accent-gold text-center truncate mt-0.5" title={rec.genres.join(", ")}>
-                {rec.genres.slice(0, 2).join(", ")}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  ))}
-</Carousel>
-                    
-                    <div className="mt-4 text-center">
-                      <span className="text-xs text-white/50 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1">
-                        {category.recommendations.length} personalized recommendations
-                        {category.lastFetched && (
-                          <span className="ml-2 opacity-70">
-                            • Updated {new Date(category.lastFetched).toLocaleTimeString()}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!category.isLoading && !category.error && category.recommendations.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-12 border border-white/10 max-w-md sm:max-w-lg md:max-w-xl mx-auto">
-                    <div className="text-8xl mb-6 animate-bounce">🎯</div>
-                    <h3 className="text-2xl font-heading text-white mb-4">Getting Ready...</h3>
-                    <p className="text-white/80 text-base leading-relaxed mb-6">
-                      We're personalizing your feed! Check back soon or start exploring.
-                    </p>
-                    <div className="space-y-3">
-                      <p className="text-sm text-white/60">Meanwhile, you can:</p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        <StyledButton 
-                          onClick={navigateToAIAssistant} 
-                          variant="ghost"
-                          className="!text-xs !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+            <Swiper
+              slidesPerView="auto"
+                    spaceBetween={16}
+              grabCursor={true}
+              speed={300}
+                    resistance={true}
+                    resistanceRatio={0.85}
+              freeMode={true}
+              className="w-full"
+              style={{
+                overflow: 'visible',
+                      padding: '0 0 20px 0',
+                willChange: 'transform',
+              }}
+            >
+                    {category.recommendations.slice(0, 8).map((rec, index) => (
+                <SwiperSlide
+                        key={`rec-${index}`}
+                        className="w-[200px] sm:w-[220px]"
+                  style={{
+                          height: 'auto',
+                        }}
+                      >
+                        <div
+                          onClick={() => handleRecommendationClick(rec)}
+                          className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#B08968] cursor-pointer active:shadow-[2px_2px_0px_0px_#B08968] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
                         >
-                          🤖 Chat with AI
-                        </StyledButton>
-                        <StyledButton 
-                          onClick={navigateToBrowse} 
-                          variant="ghost"
-                          className="!text-xs !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-                        >
-                          🔍 Browse Anime
-                        </StyledButton>
-                        <StyledButton 
-                          onClick={refreshPersonalizedRecommendations} 
-                          variant="ghost"
-                          className="!text-xs !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
-                        >
-                          🔄 Refresh Recommendations
-                        </StyledButton>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-gold-100/20 to-yellow-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                          
+                          {rec.posterUrl ? (
+                            <div className="relative overflow-hidden">
+                              <img
+                                src={rec.posterUrl}
+                                alt={rec.title}
+                                className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </div>
-          ))
-        }
+                          ) : (
+                            <div className="w-full aspect-[3/4] bg-gradient-to-br from-brand-accent-gold to-yellow-500 border-b-4 border-black flex items-center justify-center">
+                              <span className="text-5xl opacity-80">🎭</span>
+          </div>
+        )}
 
-        {trendingAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🔥 Trending Now</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                          <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
+                            <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
+                              {rec.title}
+                            </h3>
+                            {rec.moodMatchScore && (
+                              <div className="inline-block bg-gradient-to-r from-black to-gray-800 text-white px-2 py-1 text-[10px] font-bold uppercase">
+                                {Math.round(rec.moodMatchScore)}/10
+          </div>
+        )}
             </div>
-            <Swiper
-              modules={[EffectCoverflow]}
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {trendingAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`trend-${i}`}
-                  className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
+                        </div>
                 </SwiperSlide>
               ))}
             </Swiper>
           </div>
-        )}
-
-        {topAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🏆 Top Ranked</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Swiper
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {topAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`top-${i}`}
-                  className="w-52 xs:w-60 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {bingeableAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">📺 Bingeable Series</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Swiper
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {bingeableAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`bingeable-${i}`}
-                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {retroClassicAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🎞️ Retro/Classic</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Swiper
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {retroClassicAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`retro-${i}`}
-                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {horrorAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">👻 Horror</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Swiper
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {horrorAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`horror-${i}`}
-                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {trueCrimeAnime.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-left">
-              <h2 className="text-base sm:text-lg font-heading text-white font-bold">🔍 True Crime</h2>
-              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-            </div>
-            <Swiper
-              slidesPerView="auto"
-              spaceBetween={20}
-              loop={true}
-              grabCursor={true}
-              speed={300}
-              resistance={false}
-              watchSlidesProgress={false}
-              freeMode={true}
-              className="w-full"
-              style={{
-                overflow: 'visible',
-                padding: '0 5%',
-                willChange: 'transform',
-                touchAction: 'pan-y pinch-zoom',
-              }}
-            >
-              {trueCrimeAnime.map((a, i) => (
-                <SwiperSlide
-                  key={`truecrime-${i}`}
-                  className="w-24 xs:w-28 sm:w-68 md:w-72 lg:w-88"
-                  style={{
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <AnimeCard anime={a} isRecommendation onViewDetails={handleAnimeCardClick} className="w-full" />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {/* Admin Section */}
-        {isUserAdmin && (
-          <div className="text-center">
-            <div className="relative inline-block group">
-              <div className="absolute -inset-4 bg-gradient-to-r from-brand-accent-gold/40 to-brand-primary-action/40 rounded-3xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              <div className="relative bg-black/40 backdrop-blur-sm border border-brand-accent-gold/30 rounded-3xl p-6 group-hover:border-brand-accent-gold/60 transition-all duration-300">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <span className="text-3xl animate-pulse">🛡️</span>
-                  <h3 className="text-xl font-heading text-brand-accent-gold">Admin Access</h3>
-                  <span className="text-3xl animate-pulse">⚡</span>
-                </div>
-                <p className="text-white/70 text-sm mb-4">Manage users, anime database, and system settings</p>
-                <StyledButton 
-                  onClick={navigateToAdminDashboard} 
-                  variant="secondary" 
-                  className="!border-brand-accent-gold !text-brand-accent-gold hover:!bg-brand-accent-gold hover:!text-brand-surface !transition-all !duration-300 !shadow-lg hover:!shadow-brand-accent-gold/25"
-                >
-                  🚀 Enter Admin Dashboard
-                </StyledButton>
-              </div>
+              ) : (
+                <div className="relative bg-gradient-to-r from-gray-300 to-gray-400 border-4 border-black p-8 text-center overflow-hidden">
+                  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(0,0,0,0.05)_50%,transparent_60%)]"></div>
+                  <div className="relative z-10">
+                    <div className="text-xl font-black text-black uppercase">NO RECOMMENDATIONS</div>
+                    <div className="text-sm font-bold text-black mt-2">Complete onboarding first</div>
             </div>
           </div>
         )}
+            </div>
+          ))}
 
+        {/* BOTTOM SPACER FOR MOBILE NAVIGATION */}
         <div className="h-24"></div>
       </div>
     </div>
-  ), [userProfile, forYouCategories, isUserAdmin, navigateToAIAssistant, handleRecommendationClick, navigateToAdminDashboard, navigateToBrowse, refreshPersonalizedRecommendations]);
+  ), [
+    userProfile,
+    fullWatchlist,
+    loopedPopularAnime,
+    navigateToAIAssistant,
+    handleAnimeCardClick,
+    navigateToStudioGhibli,
+    navigateToMadhouse,
+    navigateToMappa,
+    navigateToBones,
+    navigateToKyotoAnimation,
+    forYouCategories,
+    refreshPersonalizedRecommendations
+  ]);
 
   
   // --------------------------------------------------------------------------

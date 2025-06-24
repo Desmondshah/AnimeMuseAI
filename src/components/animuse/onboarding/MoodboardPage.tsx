@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import AnimeCard from "../AnimeCard";
 import { AnimeRecommendation } from "../../../../convex/types";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { EffectCoverflow, FreeMode, Navigation, Pagination } from 'swiper/modules';
 
 const HISTORY_KEY = "animuse-mood-rec-history";
 
@@ -682,397 +684,537 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
   // ============================================================================
 
   return (
-    <div className="relative min-h-screen">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-br from-brand-primary-action/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-32 right-16 w-96 h-96 bg-gradient-to-tr from-brand-accent-gold/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-brand-accent-peach/5 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
+    <div className="relative min-h-screen bg-black overflow-hidden">
+      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Harsh Grid Overlay */}
+        <div className="absolute inset-0 opacity-10"
+             style={{
+               backgroundImage: `
+                 linear-gradient(90deg, #FF6B35 1px, transparent 1px),
+                 linear-gradient(0deg, #FF6B35 1px, transparent 1px)
+               `,
+               backgroundSize: '40px 40px'
+             }}>
+        </div>
+        
+        {/* Brutal Geometric Shapes */}
+        <div className="absolute top-20 left-0 w-64 h-64 bg-brand-primary-action transform rotate-45 opacity-20"></div>
+        <div className="absolute bottom-32 right-0 w-96 h-32 bg-brand-accent-gold opacity-15"></div>
+        <div className="absolute top-1/3 right-16 w-32 h-96 bg-brand-accent-peach transform -rotate-12 opacity-10"></div>
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-brand-primary-action transform rotate-12 opacity-5"></div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 py-8 space-y-10 md:max-w-5xl lg:max-w-6xl mx-auto">
+      {/* MAIN BRUTAL CONTAINER */}
+      <div className="relative z-10 p-4 space-y-8">
         
-        {/* Enhanced Hero Section */}
-        <div className="text-center space-y-6">
-          <div className="inline-block">
-            <h1 className="hero-title font-heading text-white font-bold bg-gradient-to-r from-white via-brand-accent-gold to-white bg-clip-text text-transparent animate-pulse">
-              🎨 Enhanced Mood Discovery
+        {/* BRUTAL HERO SECTION */}
+        <div className="bg-black border-4 border-white shadow-brutal-lg p-6 mb-8">
+          <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
+            <h1 className="text-2xl md:text-4xl font-black text-black uppercase tracking-wider text-center">
+              MOOD DISCOVERY
             </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent mt-4 animate-pulse"></div>
           </div>
-          <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-            Create the perfect anime experience with our expanded mood system. Choose from {EXPANDED_MOOD_CUES.length} carefully crafted vibes across {Object.keys(MOOD_CATEGORIES).length} categories.
-          </p>
           
-          {/* Mode Toggle */}
+          <div className="bg-white border-4 border-black p-4 mb-4">
+            <p className="text-black font-bold text-center text-sm md:text-base uppercase">
+              {EXPANDED_MOOD_CUES.length} BRUTAL VIBES • {Object.keys(MOOD_CATEGORIES).length} CATEGORIES
+            </p>
+          </div>
+          
+          {/* BRUTAL MODE TOGGLE */}
           <div className="flex justify-center">
-            <div className="bg-black/30 backdrop-blur-sm rounded-full p-1 border border-white/20">
+            <div className="bg-brand-accent-gold border-4 border-black shadow-brutal p-1 flex">
               <button
                 onClick={() => setAdvancedMode(false)}
-                className={`px-4 py-2 rounded-full text-sm transition-all duration-200 ${
-                  !advancedMode ? 'bg-brand-primary-action text-white' : 'text-white/70 hover:text-white'
+                className={`px-4 py-2 border-2 border-black font-black text-sm uppercase transition-all ${
+                  !advancedMode 
+                    ? 'bg-black text-white shadow-brutal' 
+                    : 'bg-white text-black hover:bg-gray-200'
                 }`}
               >
-                Simple Mode
+                SIMPLE
               </button>
               <button
                 onClick={() => setAdvancedMode(true)}
-                className={`px-4 py-2 rounded-full text-sm transition-all duration-200 ${
-                  advancedMode ? 'bg-brand-primary-action text-white' : 'text-white/70 hover:text-white'
+                className={`px-4 py-2 border-2 border-black font-black text-sm uppercase transition-all ${
+                  advancedMode 
+                    ? 'bg-black text-white shadow-brutal' 
+                    : 'bg-white text-black hover:bg-gray-200'
                 }`}
               >
-                Advanced Mode
+                ADVANCED
               </button>
             </div>
           </div>
         </div>
 
-        {/* Quick Preset Selection */}
-        <div className="text-center space-y-4">
-          <h2 className="text-lg font-heading text-white/90">Quick Start Presets</h2>
-          <div className="flex flex-wrap gap-2 justify-center">
+        {/* BRUTAL PRESET SELECTION */}
+        <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg p-6">
+          <div className="bg-black border-4 border-white p-3 mb-4">
+            <h2 className="text-white font-black text-lg uppercase text-center">QUICK PRESETS</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {MOOD_PRESETS.map(preset => (
               <button
                 key={preset.id}
                 onClick={() => handlePresetSelect(preset)}
-                className="group bg-black/30 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 hover:bg-white/10 transition-all duration-200"
+                className="bg-white border-4 border-black shadow-brutal p-3 hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
                 title={preset.description}
               >
-                <span className="text-lg mr-2">{preset.emoji}</span>
-                <span className="text-sm text-white/80 group-hover:text-white">{preset.name}</span>
+                <div className="text-2xl mb-1">{preset.emoji}</div>
+                <div className="text-black font-bold text-xs uppercase">{preset.name}</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Search and Category Filters */}
+        {/* BRUTAL SEARCH AND FILTERS */}
         <div className="space-y-4">
-          <div className="flex justify-center">
-            <div className="relative max-w-md w-full">
+          {/* Search */}
+          <div className="bg-brand-primary-action border-4 border-black shadow-brutal-lg p-4">
+            <div className="relative">
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Search moods, themes, or styles..."
-                className="w-full px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-full text-white placeholder-white/50 focus:border-brand-primary-action focus:outline-none"
+                placeholder="SEARCH MOODS..."
+                className="w-full px-4 py-3 bg-white border-4 border-black text-black font-bold placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-brand-accent-gold text-sm uppercase"
               />
-              <span className="absolute right-3 top-2.5 text-white/40">🔍</span>
+              <span className="absolute right-4 top-3 text-black font-black">🔍</span>
             </div>
           </div>
           
-          <CategoryFilter 
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
+          {/* Category Filter */}
+          <div className="bg-white border-4 border-black shadow-brutal-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`p-2 border-4 border-black font-black text-xs uppercase transition-all touch-target ${
+                    selectedCategory === category
+                      ? 'bg-brand-accent-gold text-black shadow-brutal'
+                      : 'bg-brand-accent-peach text-black hover:bg-brand-accent-gold'
+                  }`}
+                >
+                  {category.replace("Emotional Tones", "EMOTIONAL").replace("Character Dynamics", "CHARACTER")}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Enhanced Mood Selector */}
-<div className="relative moodboard-container">
-  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-  <div className="relative bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-4 sm:p-6 md:p-8 mood-cues-section">
-    
-    {/* Section Header with Counter */}
-    <div className="flex items-center justify-between mb-6">
-      <h2 className="text-xl sm:text-2xl md:text-3xl font-heading text-white">
-        Craft Your Vibe
-        {selectedCategory !== "All" && (
-          <span className="text-sm ml-2 text-brand-accent-gold">({selectedCategory})</span>
-        )}
-      </h2>
-      <div className="bg-brand-primary-action/20 backdrop-blur-sm rounded-full px-3 py-1 border border-brand-primary-action/30">
-        <span className="text-sm text-brand-accent-gold font-medium">
-          {selectedMoodCues.length} selected
-        </span>
-      </div>
-    </div>
-    
-    {/* FIXED: Properly contained mood cues grid */}
-    <div className={`moodboard-vibes-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 ${
-      advancedMode ? 'advanced-mode' : ''
-    }`}>
-      {filteredCues.map(cue => {
-        const isSelected = selectedMoodCues.includes(cue.label);
-        const intensity = cueIntensities[cue.id] || cue.intensity || 3;
-        
-        return (
-          <div key={cue.id} className="mood-cue-wrapper">
-            <button
-              onClick={() => handleMoodCueToggle(cue.label)}
-              className={`w-full relative overflow-hidden rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-105 ${
-                isSelected 
-                  ? 'shadow-2xl shadow-brand-primary-action/50 scale-105' 
-                  : 'hover:shadow-xl hover:shadow-white/20'
-              }`}
-              title={`${cue.label}: ${cue.description}`}
-            >
-              {/* Background Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${cue.color} ${
-                isSelected ? 'opacity-80' : 'opacity-40'
-              } transition-opacity duration-300`}></div>
-              
-              {/* Selected Ring */}
-              {isSelected && (
-                <div className="absolute inset-0 ring-2 ring-white/60 rounded-2xl animate-pulse"></div>
-              )}
-              
-              {/* Content */}
-              <div className="relative z-10 text-center space-y-1">
-                <div className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl transition-transform duration-300 ${
-                  isSelected ? 'animate-bounce' : 'group-hover:animate-pulse'
-                }`}>
-                  {cue.emoji}
-                </div>
-                <div className={`text-xs sm:text-sm font-medium transition-colors duration-300 leading-tight ${
-                  isSelected ? 'text-white' : 'text-white/90'
-                }`}>
-                  {cue.label}
-                </div>
-                
-                {/* Category Badge */}
-                {selectedCategory === "All" && (
-                  <div className="text-xs text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {cue.category.replace("Emotional Tones", "Emotional").replace("Character Dynamics", "Character")}
-                  </div>
+        {/* BRUTAL MOOD SELECTOR */}
+        <div className="bg-black border-4 border-white shadow-brutal-lg p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="bg-brand-primary-action border-4 border-black p-3 flex-1 mr-4">
+              <h2 className="text-black font-black text-lg uppercase text-center">
+                CRAFT YOUR VIBE
+                {selectedCategory !== "All" && (
+                  <span className="block text-sm mt-1">({selectedCategory})</span>
                 )}
-              </div>
-              
-              {/* Hover Effect */}
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-            </button>
-            
-            {/* Advanced Mode: Intensity Slider - FIXED CONTAINER */}
-            {advancedMode && isSelected && (
-              <div className="intensity-slider-container">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/60 w-8 flex-shrink-0">Low</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={intensity}
-                    onChange={(e) => handleIntensityChange(cue.id, parseInt(e.target.value))}
-                    className="flex-1 h-1 bg-white/20 rounded-lg appearance-none slider intensity-slider"
-                    style={{
-                      background: `linear-gradient(to right, #FF6B35 0%, #FF6B35 ${(intensity - 1) * 25}%, rgba(255,255,255,0.2) ${(intensity - 1) * 25}%, rgba(255,255,255,0.2) 100%)`
-                    }}
-                    aria-label={`Intensity for ${cue.label}`}
-                  />
-                  <span className="text-xs text-white/60 w-8 flex-shrink-0">High</span>
-                </div>
-                <div className="intensity-stars">
-                  <span className="text-xs text-brand-accent-gold">{"★".repeat(intensity)}</span>
-                </div>
-              </div>
-            )}
+              </h2>
+            </div>
+            <div className="bg-brand-accent-gold border-4 border-black p-3 shadow-brutal">
+              <span className="text-black font-black text-sm uppercase">
+                {selectedMoodCues.length} SELECTED
+              </span>
+            </div>
           </div>
-        );
-      })}
-    </div>
+          
+                     {/* Mood Cues Grid - 2 Columns */}
+           <div className="grid grid-cols-2 gap-4">
+            {filteredCues.map(cue => {
+              const isSelected = selectedMoodCues.includes(cue.label);
+              const intensity = cueIntensities[cue.id] || cue.intensity || 3;
+              
+              return (
+                <div key={cue.id} className="space-y-2">
+                  <button
+                    onClick={() => handleMoodCueToggle(cue.label)}
+                    className={`w-full p-4 border-4 border-black transition-all touch-target ${
+                      isSelected 
+                        ? 'bg-brand-accent-gold shadow-brutal-lg transform -translate-y-1' 
+                        : 'bg-white hover:bg-brand-accent-peach shadow-brutal'
+                    } active:translate-x-1 active:translate-y-1 active:shadow-none`}
+                    title={`${cue.label}: ${cue.description}`}
+                  >
+                    {/* Selected Indicator */}
+                    {isSelected && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-black border-2 border-white rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-black">✓</span>
+                      </div>
+                    )}
+                    
+                    {/* Content */}
+                    <div className="text-center space-y-2">
+                      <div className="text-3xl">{cue.emoji}</div>
+                      <div className="text-black font-black text-xs uppercase leading-tight">
+                        {cue.label}
+                      </div>
+                      
+                      {/* Category Badge for "All" view */}
+                      {selectedCategory === "All" && (
+                        <div className="bg-black text-white text-xs font-bold px-2 py-1 uppercase">
+                          {cue.category.replace("Emotional Tones", "EMO").replace("Character Dynamics", "CHAR").substring(0, 8)}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  
+                  {/* Advanced Mode: Intensity Slider */}
+                  {advancedMode && isSelected && (
+                    <div className="bg-brand-accent-peach border-4 border-black p-2 shadow-brutal">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-black text-black uppercase w-8">LOW</span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          value={intensity}
+                          onChange={(e) => handleIntensityChange(cue.id, parseInt(e.target.value))}
+                          className="flex-1 h-2 bg-white border-2 border-black appearance-none slider-brutal"
+                          aria-label={`Intensity for ${cue.label}`}
+                        />
+                        <span className="text-xs font-black text-black uppercase w-8">HIGH</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-black font-black text-xs">{"★".repeat(intensity)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-    {/* No Results Message */}
-    {filteredCues.length === 0 && (
-      <div className="text-center py-8">
-        <div className="text-4xl mb-2">🔍</div>
-        <p className="text-white/70">No moods match your search.</p>
-        <button 
-          onClick={() => setSearchFilter("")}
-          className="text-brand-accent-gold hover:underline text-sm mt-2"
-        >
-          Clear search
-        </button>
-      </div>
-    )}
-  </div>
-</div>
+          {/* No Results */}
+          {filteredCues.length === 0 && (
+            <div className="text-center py-8">
+              <div className="bg-brand-accent-peach border-4 border-black p-6 shadow-brutal">
+                <div className="text-4xl mb-4">🔍</div>
+                <p className="text-black font-bold uppercase mb-4">NO MOODS MATCH</p>
+                <button 
+                  onClick={() => setSearchFilter("")}
+                  className="bg-brand-primary-action border-4 border-black text-black font-black px-4 py-2 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all"
+                >
+                  CLEAR SEARCH
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Selected Vibes Summary & Controls */}
+        {/* BRUTAL SELECTED VIBES SUMMARY */}
         {selectedMoodCues.length > 0 && (
           <div className="space-y-4">
             {/* Summary */}
-            <div className="text-center">
-              <div className="inline-flex flex-col items-center space-y-2 bg-black/30 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/20">
-                <span className="text-white/80 text-sm">Your Mood Combination:</span>
-                <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
-                  {selectedCueObjects.map((cue, index) => {
-                    const intensity = cueIntensities[cue.id] || cue.intensity || 3;
-                    return (
-                      <span key={cue.id} className="flex items-center gap-1 bg-brand-primary-action/20 rounded-full px-3 py-1 border border-brand-primary-action/30">
-                        <span>{cue.emoji}</span>
-                        <span className="text-brand-accent-gold font-medium text-sm">{cue.label}</span>
-                        {advancedMode && (
-                          <span className="text-xs text-white/60">{"★".repeat(intensity)}</span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
+            <div className="bg-brand-accent-gold border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-black border-4 border-white p-3 mb-4">
+                <span className="text-white font-black text-sm uppercase text-center block">YOUR MOOD COMBINATION</span>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {selectedCueObjects.map((cue, index) => {
+                  const intensity = cueIntensities[cue.id] || cue.intensity || 3;
+                  return (
+                    <div key={cue.id} className="bg-white border-4 border-black p-2 shadow-brutal">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-xl">{cue.emoji}</span>
+                        <span className="text-black font-black text-xs uppercase">{cue.label}</span>
+                      </div>
+                      {advancedMode && (
+                        <div className="text-center mt-1">
+                          <span className="text-xs text-black font-bold">{"★".repeat(intensity)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2 justify-center">
-              <StyledButton 
-                onClick={fetchMoodBoardRecommendations} 
-                variant="primary"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={fetchMoodBoardRecommendations}
                 disabled={isLoadingMoodBoard}
-                className="!bg-gradient-to-r !from-brand-primary-action !to-brand-accent-gold hover:!from-brand-accent-gold hover:!to-brand-primary-action"
+                className="bg-brand-primary-action border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target disabled:opacity-50"
               >
-                {isLoadingMoodBoard ? "✨ Crafting Magic..." : "🎯 Get Recommendations"}
-              </StyledButton>
+                {isLoadingMoodBoard ? "🔄 CRAFTING..." : "🎯 GET RECS"}
+              </button>
               
-              <StyledButton 
-                onClick={saveMoodboard} 
-                variant="ghost"
-                className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              <button
+                onClick={saveMoodboard}
+                className="bg-brand-accent-peach border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
               >
-                💾 Save Mood Board
-              </StyledButton>
+                💾 SAVE BOARD
+              </button>
               
-              <StyledButton 
-                onClick={() => onMoodCuesChange([])} 
-                variant="ghost"
-                className="!bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              <button
+                onClick={() => onMoodCuesChange([])}
+                className="bg-white border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-gray-200 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
               >
-                🗑️ Clear All
-              </StyledButton>
+                🗑️ CLEAR ALL
+              </button>
             </div>
           </div>
         )}
 
-        {/* Saved Mood Boards */}
+        {/* BRUTAL SAVED MOOD BOARDS */}
         {savedMoodboards.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-heading text-white text-center">Saved Mood Boards</h3>
-            <div className="flex flex-wrap gap-2 justify-center">
+          <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg p-6">
+            <div className="bg-black border-4 border-white p-3 mb-4">
+              <h3 className="text-white font-black text-lg uppercase text-center">SAVED BOARDS</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {savedMoodboards.map(moodboard => (
                 <button
                   key={moodboard.id}
                   onClick={() => loadMoodboard(moodboard)}
-                  className="bg-black/30 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 hover:bg-white/10 transition-all duration-200 group"
+                  className="bg-white border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
                 >
-                  <span className="text-sm text-white/80 group-hover:text-white">{moodboard.name}</span>
-                  <span className="text-xs text-white/50 ml-2">({moodboard.cues.length} vibes)</span>
+                  <div className="text-black font-bold text-xs uppercase text-center">
+                    {moodboard.name}
+                  </div>
+                  <div className="text-xs text-gray-600 text-center mt-1">
+                    ({moodboard.cues.length} VIBES)
+                  </div>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Loading State */}
+        {/* BRUTAL LOADING STATE */}
         {isLoadingMoodBoard && (
-          <div className="text-center py-16">
-            <LoadingSpinner message="Weaving your perfect anime tapestry..." className="text-white" />
+          <div className="bg-black border-4 border-white shadow-brutal-lg p-12">
+            <div className="text-center">
+              <div className="bg-brand-primary-action border-4 border-black p-6 shadow-brutal mb-4 animate-pulse">
+                <div className="text-4xl text-black mb-2">⚡</div>
+                <div className="text-black font-black uppercase">CRAFTING BRUTALITY...</div>
+              </div>
+              <LoadingSpinnerComponent message="WEAVING ANIME TAPESTRY..." className="text-white font-black" />
+            </div>
           </div>
         )}
         
-        {/* Enhanced Results Section */}
+        {/* BRUTAL RESULTS SECTION */}
         {!isLoadingMoodBoard && moodBoardRecommendations.length > 0 && (
           <div className="space-y-8">
-            <div className="text-center">
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-heading text-white mb-4">
-                Your Curated Collection
-              </h3>
-              <div className="inline-flex flex-col items-center space-y-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-2xl px-6 py-3 backdrop-blur-sm border border-white/10">
-                <span className="text-white/80 text-sm">Mood Blend:</span>
-                <span className="text-brand-accent-gold font-medium text-sm">
-                  {selectedCueObjects.map(cue => cue.emoji).join(" × ")} {selectedCueObjects.map(cue => cue.label).join(" × ")}
-                </span>
+            {/* Results Header */}
+            <div className="bg-brand-accent-gold border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-black border-4 border-white p-4 mb-4">
+                <h3 className="text-white font-black text-2xl uppercase text-center">
+                  CURATED COLLECTION
+                </h3>
+              </div>
+              
+              <div className="bg-white border-4 border-black p-3 shadow-brutal">
+                <div className="text-center">
+                  <span className="text-black font-bold text-sm uppercase block mb-2">MOOD BLEND:</span>
+                  <div className="flex flex-wrap justify-center gap-1">
+                    {selectedCueObjects.map(cue => (
+                      <span key={cue.id} className="text-lg">{cue.emoji}</span>
+                    ))}
+                  </div>
+                  <span className="text-black font-black text-xs uppercase">
+                    {selectedCueObjects.map(cue => cue.label).join(" × ")}
+                  </span>
+                </div>
               </div>
             </div>
             
-            <div className="moodboard-results-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 sm:gap-8 md:gap-10 gap-y-8 sm:gap-y-10 md:gap-y-12">
-              {moodBoardRecommendations.map((rec, index) => (
-                <div 
-                  key={`enhanced-mood-${index}-${rec.title}`} 
-                  className="group relative transform transition-all duration-300 hover:scale-105 hover:z-10 p-2 sm:p-3 md:p-4"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-brand-primary-action/30 to-brand-accent-gold/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
-                  <div className="relative bg-black/20 backdrop-blur-sm overflow-hidden border border-white/10 group-hover:border-white/30 transition-all duration-300">
-                    <AnimeCard 
-                      anime={rec} 
-                      isRecommendation={true} 
-                      onViewDetails={navigateToDetail}
-                      className="w-full"
-                    />
-                    <div className="p-1.5 sm:p-2 md:p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h4 
-                        className="text-xs sm:text-sm font-medium text-white text-center leading-tight mb-1"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: '1.2',
-                          maxHeight: '2.4em',
-                        }}
-                        title={rec.title}
-                      >
-                        {rec.title || "Unknown Title"}
-                      </h4>
-                      {rec.genres && rec.genres.length > 0 && (
-                        <p className="text-xs text-brand-accent-gold/80 text-center truncate">
-                          {rec.genres.slice(0, 2).join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                         {/* BRUTAL CAROUSEL SWIPERS */}
+             <div className="space-y-8">
+               {/* Coverflow Carousel for Featured Recommendations */}
+               <div className="bg-black border-4 border-white p-6 shadow-brutal-lg">
+                 <div className="bg-brand-primary-action border-4 border-black p-3 mb-6">
+                   <h4 className="text-black font-black text-lg uppercase text-center">FEATURED MOOD PICKS</h4>
+                 </div>
+                 
+                 <Swiper
+                   modules={[EffectCoverflow, Pagination, Navigation]}
+                   effect="coverflow"
+                   grabCursor={true}
+                   centeredSlides={true}
+                   slidesPerView="auto"
+                   coverflowEffect={{
+                     rotate: 50,
+                     stretch: 0,
+                     depth: 100,
+                     modifier: 1,
+                     slideShadows: false,
+                   }}
+                   pagination={{ 
+                     clickable: true,
+                     bulletClass: 'swiper-pagination-bullet brutal-bullet',
+                     bulletActiveClass: 'brutal-bullet-active'
+                   }}
+                   navigation={{
+                     nextEl: '.brutal-next-featured',
+                     prevEl: '.brutal-prev-featured',
+                   }}
+                   className="brutal-coverflow-swiper"
+                 >
+                   {moodBoardRecommendations.slice(0, 5).map((rec, index) => (
+                     <SwiperSlide key={`featured-${index}-${rec.title}`} className="brutal-swiper-slide">
+                       <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group">
+                         {/* Brutal Anime Card Container */}
+                         <div className="border-b-4 border-black">
+                           <AnimeCard 
+                             anime={rec} 
+                             isRecommendation={true} 
+                             onViewDetails={navigateToDetail}
+                             className="w-full border-none shadow-none"
+                           />
+                         </div>
+                         
+                         {/* Brutal Info Section */}
+                         <div className="p-3 bg-black">
+                           <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-2 line-clamp-2">
+                             {rec.title || "UNKNOWN TITLE"}
+                           </h4>
+                           {rec.genres && rec.genres.length > 0 && (
+                             <div className="bg-brand-accent-gold border-2 border-white px-2 py-1">
+                               <p className="text-black font-bold text-xs text-center uppercase">
+                                 {rec.genres.slice(0, 2).join(" • ")}
+                               </p>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </SwiperSlide>
+                   ))}
+                 </Swiper>
+                 
+                 {/* Brutal Navigation Buttons */}
+                 <div className="flex justify-center gap-4 mt-6">
+                   <button className="brutal-prev-featured bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target">
+                     <span className="text-black font-black text-xl">←</span>
+                   </button>
+                   <button className="brutal-next-featured bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target">
+                     <span className="text-black font-black text-xl">→</span>
+                   </button>
+                 </div>
+               </div>
+
+               {/* Free Mode Horizontal Scroll for All Recommendations */}
+               {moodBoardRecommendations.length > 5 && (
+                 <div className="bg-brand-accent-peach border-4 border-black p-6 shadow-brutal-lg">
+                   <div className="bg-black border-4 border-white p-3 mb-6">
+                     <h4 className="text-white font-black text-lg uppercase text-center">MORE BRUTAL PICKS</h4>
+                   </div>
+                   
+                   <Swiper
+                     modules={[FreeMode]}
+                     freeMode={{
+                       enabled: true,
+                       sticky: false,
+                       momentumRatio: 0.25,
+                       momentumVelocityRatio: 0.25,
+                     }}
+                     grabCursor={true}
+                     slidesPerView="auto"
+                     spaceBetween={16}
+                     resistance={true}
+                     resistanceRatio={0.85}
+                     className="brutal-freemode-swiper"
+                   >
+                     {moodBoardRecommendations.map((rec, index) => (
+                       <SwiperSlide key={`all-${index}-${rec.title}`} className="brutal-swiper-slide-small">
+                         <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group w-full">
+                           {/* Brutal Anime Card Container */}
+                           <div className="border-b-4 border-black">
+                             <AnimeCard 
+                               anime={rec} 
+                               isRecommendation={true} 
+                               onViewDetails={navigateToDetail}
+                               className="w-full border-none shadow-none"
+                             />
+                           </div>
+                           
+                           {/* Brutal Info Section */}
+                           <div className="p-2 bg-black">
+                             <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-1 line-clamp-2">
+                               {rec.title || "UNKNOWN TITLE"}
+                             </h4>
+                             {rec.genres && rec.genres.length > 0 && (
+                               <div className="bg-brand-accent-gold border-2 border-white px-1 py-0.5">
+                                 <p className="text-black font-bold text-xs text-center uppercase">
+                                   {rec.genres.slice(0, 1).join("")}
+                                 </p>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       </SwiperSlide>
+                     ))}
+                   </Swiper>
+                 </div>
+               )}
+             </div>
           </div>
         )}
         
-        {/* Enhanced Empty States */}
+        {/* BRUTAL EMPTY STATES */}
         {!isLoadingMoodBoard && selectedMoodCues.length > 0 && moodBoardRecommendations.length === 0 && (
-          <div className="text-center py-16">
-            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-8 border border-white/10 max-w-md mx-auto">
+          <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg p-8">
+            <div className="text-center">
               <div className="text-6xl mb-4">🎭</div>
-              <h3 className="text-xl font-heading text-white mb-2">Unique Combination!</h3>
-              <p className="text-white/70 text-sm mb-4">
-                Your selected vibes create a very specific mood. Try adjusting intensities, removing a few cues, or exploring our presets.
+              <div className="bg-black border-4 border-white p-4 mb-4">
+                <h3 className="text-white font-black text-xl uppercase">UNIQUE COMBINATION!</h3>
+              </div>
+              <p className="text-black font-bold text-sm uppercase mb-6">
+                YOUR VIBES CREATE A VERY SPECIFIC MOOD
               </p>
-              <div className="space-y-2">
-                <StyledButton 
-                  onClick={() => setAdvancedMode(true)} 
-                  variant="ghost"
-                  className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setAdvancedMode(true)}
+                  className="bg-brand-primary-action border-4 border-black text-black font-black py-3 px-4 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all touch-target"
                 >
-                  🎛️ Try Advanced Mode
-                </StyledButton>
-                <StyledButton 
-                  onClick={() => onMoodCuesChange(selectedMoodCues.slice(0, 3))} 
-                  variant="ghost"
-                  className="!text-sm !bg-white/10 !backdrop-blur-sm !border-white/20 hover:!bg-white/20 !text-white"
+                  🎛️ ADVANCED MODE
+                </button>
+                <button
+                  onClick={() => onMoodCuesChange(selectedMoodCues.slice(0, 3))}
+                  className="bg-white border-4 border-black text-black font-black py-3 px-4 uppercase shadow-brutal hover:bg-gray-200 transition-all touch-target"
                 >
-                  📉 Simplify Selection
-                </StyledButton>
+                  📉 SIMPLIFY
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {!isLoadingMoodBoard && selectedMoodCues.length === 0 && (
-          <div className="text-center py-16">
-            <div className="bg-black/30 backdrop-blur-sm rounded-3xl p-8 border border-white/10 max-w-lg sm:max-w-xl md:max-w-2xl mx-auto">
-              <div className="text-8xl mb-6 animate-bounce">🎨</div>
-              <h3 className="text-2xl font-heading text-white mb-4">Create Your Mood Canvas</h3>
-              <p className="text-white/80 text-lg leading-relaxed mb-6">
-                Select from {EXPANDED_MOOD_CUES.length} carefully crafted mood cues to discover anime that perfectly matches your current emotional state.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm text-white/60">Try a quick preset to get started:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
+          <div className="bg-black border-4 border-white shadow-brutal-lg p-8">
+            <div className="text-center">
+              <div className="text-8xl mb-6">🎨</div>
+              <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
+                <h3 className="text-black font-black text-2xl uppercase">CREATE MOOD CANVAS</h3>
+              </div>
+              <div className="bg-white border-4 border-black p-4 mb-6">
+                <p className="text-black font-bold uppercase">
+                  {EXPANDED_MOOD_CUES.length} BRUTAL VIBES AVAILABLE
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-brand-accent-gold border-4 border-black p-3">
+                  <p className="text-black font-black text-sm uppercase">TRY A QUICK PRESET:</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {MOOD_PRESETS.slice(0, 3).map(preset => (
                     <button
                       key={preset.id}
                       onClick={() => handlePresetSelect(preset)}
-                      className="text-xs bg-brand-primary-action/20 hover:bg-brand-primary-action/30 text-brand-accent-gold border border-brand-primary-action/30 rounded-full px-3 py-1 transition-colors"
+                      className="bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
                     >
-                      {preset.emoji} {preset.name}
+                      <div className="text-2xl mb-1">{preset.emoji}</div>
+                      <div className="text-black font-black text-xs uppercase">{preset.name}</div>
                     </button>
                   ))}
                 </div>

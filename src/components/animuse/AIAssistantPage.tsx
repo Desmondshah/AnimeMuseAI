@@ -1,4 +1,4 @@
-// src/components/animuse/AIAssistantPage.tsx - Fixed JSX Tag Issues
+// src/components/animuse/AIAssistantPage.tsx - BRUTALIST AESTHETIC and Mobile-First Design
 import React, { useState, FormEvent, useRef, useEffect, useCallback, memo } from "react";
 import { useAction, useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -90,40 +90,42 @@ const ExpandableText: React.FC<ExpandableTextProps> = ({
   );
 };
 
-// Artistic Loading Component with particle effects
-const ArtisticLoadingSpinner: React.FC<{ size?: string; message?: string }> = memo(({ 
+// BRUTALIST Loading Component
+const BrutalistLoadingSpinner: React.FC<{ size?: string; message?: string }> = memo(({ 
   size = "h-12 w-12", 
-  message = "AniMuse is thinking..." 
+  message = "ANIMUSE AI PROCESSING..." 
 }) => (
   <div className="flex flex-col items-center justify-center py-8">
     <div className="relative">
-      {/* Main spinning ring */}
-      <div className={`${size} border-4 border-transparent border-t-brand-primary-action border-r-brand-accent-gold rounded-full animate-spin`}></div>
+      {/* Main spinning square */}
+      <div className={`${size} border-4 border-black bg-brand-primary-action animate-spin`}></div>
       
-      {/* Inner counter-rotating ring */}
-      <div className="absolute top-1 left-1 h-10 w-10 border-4 border-transparent border-b-brand-accent-peach border-l-white/50 rounded-full animate-spin animate-reverse"></div>
+      {/* Inner counter-rotating square */}
+      <div className="absolute top-1 left-1 h-10 w-10 border-4 border-black bg-white animate-spin animate-reverse"></div>
       
       {/* Pulsing core */}
-      <div className="absolute top-3 left-3 h-6 w-6 bg-gradient-to-r from-brand-primary-action to-brand-accent-gold rounded-full animate-pulse"></div>
+      <div className="absolute top-3 left-3 h-6 w-6 bg-black animate-pulse"></div>
       
-      {/* Orbiting particles */}
+      {/* Orbiting squares */}
       <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-        <div className="absolute top-0 left-1/2 w-1 h-1 -ml-0.5 bg-brand-accent-gold rounded-full"></div>
-        <div className="absolute bottom-0 left-1/2 w-1 h-1 -ml-0.5 bg-brand-primary-action rounded-full"></div>
+        <div className="absolute top-0 left-1/2 w-2 h-2 -ml-1 bg-brand-accent-gold border border-black"></div>
+        <div className="absolute bottom-0 left-1/2 w-2 h-2 -ml-1 bg-brand-primary-action border border-black"></div>
       </div>
       <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
-        <div className="absolute top-1/2 left-0 w-1 h-1 -mt-0.5 bg-brand-accent-peach rounded-full"></div>
-        <div className="absolute top-1/2 right-0 w-1 h-1 -mt-0.5 bg-white/70 rounded-full"></div>
+        <div className="absolute top-1/2 left-0 w-2 h-2 -mt-1 bg-brand-accent-peach border border-black"></div>
+        <div className="absolute top-1/2 right-0 w-2 h-2 -mt-1 bg-white border border-black"></div>
       </div>
     </div>
     
     {message && (
       <div className="mt-4 text-center">
-        <p className="text-white/90 text-sm font-medium animate-pulse">{message}</p>
+        <div className="bg-black border-4 border-white px-4 py-2 shadow-brutal">
+          <p className="text-white text-sm font-black uppercase tracking-wider">{message}</p>
+        </div>
         <div className="flex justify-center mt-2 space-x-1">
-          <div className="w-2 h-2 bg-brand-primary-action rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-brand-accent-gold rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-brand-accent-peach rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-3 h-3 bg-brand-primary-action border-2 border-black animate-bounce"></div>
+          <div className="w-3 h-3 bg-brand-accent-gold border-2 border-black animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+          <div className="w-3 h-3 bg-brand-accent-peach border-2 border-black animate-bounce" style={{ animationDelay: '0.2s' }}></div>
         </div>
       </div>
     )}
@@ -159,41 +161,38 @@ const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string
   ></div>
 ));
 
-// Enhanced Mode Card Component
-const ModeCard: React.FC<{
+// BRUTALIST Mode Card Component
+const BrutalistModeCard: React.FC<{
   mode: { id: string; label: string; desc: string; icon: string; gradient: string };
   isActive: boolean;
   onClick: () => void;
   className?: string;
 }> = memo(({ mode, isActive, onClick, className }) => (
-  <div className={`group relative ${className || ''}`}>
-    {/* Glow effect */}
-    <div className={`absolute -inset-2 bg-gradient-to-r ${mode.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-60 transition-opacity duration-300 ${isActive ? 'opacity-40' : ''}`}></div>
-    
+  <div className={`${className || ''}`}>
     <button
       onClick={onClick}
-      className={`relative w-full p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
+      className={`relative w-full p-4 border-4 border-black transition-all duration-300 shadow-brutal active:scale-95 touch-target ${
         isActive 
-          ? `bg-gradient-to-br ${mode.gradient} border-white/30 shadow-2xl scale-105` 
-          : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-white/30 hover:bg-black/60'
+          ? 'bg-brand-primary-action text-black shadow-brutal-lg scale-105' 
+          : 'bg-white text-black hover:bg-gray-200'
       }`}
     >
-      {/* Animated background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent transform rotate-45"></div>
+      {/* Harsh background pattern */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 bg-grid-pattern"></div>
       </div>
       
       <div className="relative z-10 text-center space-y-2">
-        <div className={`mode-icon text-3xl transition-transform duration-300 ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>
+        <div className={`mode-icon text-3xl ${isActive ? 'animate-bounce' : ''}`}>
           {mode.icon}
         </div>
-        <div className="mode-label text-sm font-medium text-white/90">{mode.label}</div>
-        <div className="mode-desc text-xs text-white/60 leading-relaxed">{mode.desc}</div>
+        <div className="mode-label text-sm font-black uppercase tracking-wider">{mode.label}</div>
+        <div className="mode-desc text-xs font-bold uppercase">{mode.desc}</div>
       </div>
       
       {/* Selection indicator */}
       {isActive && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary-action rounded-full border-2 border-white animate-pulse"></div>
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-accent-gold border-4 border-black animate-pulse"></div>
       )}
     </button>
   </div>
@@ -650,215 +649,202 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* Enhanced Floating Background Elements */}
+    <div className="relative min-h-screen bg-white overflow-hidden">
+      {/* BRUTAL GEOMETRIC BACKGROUND */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Primary floating orbs */}
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-brand-primary-action/15 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-32 right-16 w-[500px] h-[500px] bg-gradient-to-tr from-brand-accent-gold/12 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/3 right-1/5 w-80 h-80 bg-gradient-to-l from-brand-accent-peach/10 to-transparent rounded-full blur-3xl animate-pulse delay-2000"></div>
-        <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/8 to-transparent rounded-full blur-3xl animate-pulse delay-3000"></div>
-
-        {/* Floating particles */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <FloatingParticle
-            key={i}
-            delay={i * 0.5}
-            size={Math.random() > 0.7 ? "w-3 h-3" : "w-2 h-2"}
-            color={
-              Math.random() > 0.6
-                ? "bg-brand-primary-action/20"
-                : Math.random() > 0.3
-                  ? "bg-brand-accent-gold/20"
-                  : "bg-brand-accent-peach/20"
-            }
-          />
-        ))}
-
-        {/* Animated grid pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)",
-              backgroundSize: "50px 50px",
-              animation: "float 20s ease-in-out infinite",
-            }}
-          ></div>
-        </div>
+        {/* Grid overlay */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+        
+        {/* Floating geometric shapes */}
+        <div className="absolute top-20 left-4 w-32 h-32 bg-black border-4 border-brand-primary-action transform rotate-45 opacity-20"></div>
+        <div className="absolute top-40 right-8 w-24 h-24 bg-brand-accent-gold border-4 border-black opacity-30"></div>
+        <div className="absolute bottom-32 left-8 w-40 h-20 bg-brand-primary-action border-4 border-black transform -rotate-12 opacity-25"></div>
+        <div className="absolute bottom-20 right-4 w-28 h-28 bg-black border-4 border-white transform rotate-12 opacity-20"></div>
+        <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-brand-accent-peach border-4 border-black transform -rotate-45 opacity-25"></div>
+        
+        {/* Diagonal stripes */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-black transform -skew-y-12 opacity-30"></div>
+        <div className="absolute bottom-0 right-0 w-full h-2 bg-brand-primary-action transform skew-y-12 opacity-30"></div>
+        
+        {/* Harsh corner elements */}
+        <div className="absolute top-0 left-0 w-8 h-8 bg-brand-accent-gold border-r-4 border-b-4 border-black"></div>
+        <div className="absolute top-0 right-0 w-8 h-8 bg-brand-accent-peach border-l-4 border-b-4 border-black"></div>
+        <div className="absolute bottom-0 left-0 w-8 h-8 bg-brand-primary-action border-r-4 border-t-4 border-black"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-8 bg-black border-l-4 border-t-4 border-white"></div>
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Hero Header */}
-        <div className="text-center py-8 px-4">
-          <div className="inline-block group">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-brand-primary-action via-brand-accent-gold to-brand-primary-action bg-clip-text text-transparent animate-pulse">
-                🤖 AniMuse AI
-              </span>
+      <div className="relative z-10 min-h-screen flex flex-col p-4">
+        {/* BRUTAL HERO HEADER */}
+        <div className="bg-black border-4 border-white shadow-brutal-lg p-6 mb-6">
+          <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
+            <h1 className="text-2xl md:text-4xl font-black text-black uppercase tracking-wider text-center">
+              🤖 ANIMUSE AI ASSISTANT
             </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-brand-primary-action to-transparent animate-pulse group-hover:animate-none transition-opacity duration-500"></div>
           </div>
-          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-4">
-            Your intelligent anime companion, ready to discover your next
-            obsession
-          </p>
+          
+          <div className="bg-white border-4 border-black p-4">
+            <p className="text-black font-bold text-center text-sm md:text-base uppercase">
+              YOUR INTELLIGENT ANIME COMPANION FOR DISCOVERY
+            </p>
+          </div>
         </div>
 
-        {/* AI Mode Selector */}
-        <div className="px-4 mb-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/20 via-transparent to-brand-accent-gold/20 rounded-3xl blur-xl"></div>
-              <div className="relative bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
-                <h2 className="text-xl sm:text-2xl font-heading text-white text-center mb-6">
-                  Choose Your AI Experience
-                </h2>
+        {/* BRUTAL AI MODE SELECTOR */}
+        <div className="mb-6">
+          <div className="bg-black border-4 border-white shadow-brutal-lg p-6">
+            <div className="bg-brand-accent-gold border-4 border-black p-4 mb-6">
+              <h2 className="text-xl font-black text-black uppercase tracking-wider text-center">
+                CHOOSE YOUR AI EXPERIENCE
+              </h2>
+            </div>
 
-                {/* Updated grid with CSS classes for mobile layout */}
-                <div className="ai-modes-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-                  {modeConfigs.map((mode, index) => (
-                    <ModeCard
-                      key={mode.id}
-                      mode={mode}
-                      isActive={aiMode === mode.id}
-                      onClick={() => {
-                        setAiMode(mode.id as AIMode);
-                        setPrompt("");
-                        setAnimeA("");
-                        setAnimeB("");
-                      }}
-                      className="ai-mode-card"
-                    />
-                  ))}
-                </div>
-              </div>
+            {/* 2-column grid for iPhone optimization */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {modeConfigs.map((mode, index) => (
+                <BrutalistModeCard
+                  key={mode.id}
+                  mode={mode}
+                  isActive={aiMode === mode.id}
+                  onClick={() => {
+                    setAiMode(mode.id as AIMode);
+                    setPrompt("");
+                    setAnimeA("");
+                    setAnimeB("");
+                  }}
+                  className="ai-mode-card"
+                />
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Mode-Specific Controls */}
-        <div className="px-4 mb-6">
-          <div className="max-w-4xl mx-auto">
-            {aiMode === "compare" && (
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-pink-400/20 rounded-2xl blur-lg"></div>
-                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-lg font-heading text-white mb-4 text-center">
-                    ⚖️ Compare Two Anime
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="First anime title"
-                      value={animeA}
-                      onChange={(e) => setAnimeA(e.target.value)}
-                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Second anime title"
-                      value={animeB}
-                      onChange={(e) => setAnimeB(e.target.value)}
-                      className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300"
-                    />
-                  </div>
+        {/* BRUTAL MODE-SPECIFIC CONTROLS */}
+        <div className="mb-6">
+          {aiMode === "compare" && (
+            <div className="bg-red-500 border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-white border-4 border-black p-4 mb-4">
+                <h3 className="text-lg font-black text-black uppercase tracking-wider text-center">
+                  ⚖️ COMPARE TWO ANIME
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-100 border-4 border-black p-1">
+                  <input
+                    type="text"
+                    placeholder="FIRST ANIME TITLE"
+                    value={animeA}
+                    onChange={(e) => setAnimeA(e.target.value)}
+                    className="w-full bg-gray-100 border-none outline-none p-3 text-black font-bold placeholder-gray-600 text-sm uppercase"
+                  />
+                </div>
+                <div className="bg-gray-100 border-4 border-black p-1">
+                  <input
+                    type="text"
+                    placeholder="SECOND ANIME TITLE"
+                    value={animeB}
+                    onChange={(e) => setAnimeB(e.target.value)}
+                    className="w-full bg-gray-100 border-none outline-none p-3 text-black font-bold placeholder-gray-600 text-sm uppercase"
+                  />
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {aiMode === "hidden_gems" && (
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-400/20 rounded-2xl blur-lg"></div>
-                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-lg font-heading text-white mb-4 text-center">
-                    💎 Hidden Gems Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-2">
-                        Surprise Level:
-                      </label>
-                      <div className="flex gap-3 justify-center">
-                        {(["mild", "moderate", "wild"] as const).map(
-                          (level) => (
-                            <button
-                              key={level}
-                              onClick={() => setSurpriseLevel(level)}
-                              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                surpriseLevel === level
-                                  ? "bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white shadow-lg"
-                                  : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"
-                              }`}
-                            >
-                              {level.charAt(0).toUpperCase() + level.slice(1)}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                    <label className="flex items-center justify-center space-x-3 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={avoidPopular}
-                        onChange={(e) => setAvoidPopular(e.target.checked)}
-                        className="w-5 h-5 rounded border-2 border-white/30 bg-transparent checked:bg-brand-primary-action checked:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 transition-all duration-200"
-                      />
-                      <span className="text-white/90 group-hover:text-white transition-colors">
-                        Avoid mainstream anime
-                      </span>
+          {aiMode === "hidden_gems" && (
+            <div className="bg-purple-500 border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-white border-4 border-black p-4 mb-4">
+                <h3 className="text-lg font-black text-black uppercase tracking-wider text-center">
+                  💎 HIDDEN GEMS SETTINGS
+                </h3>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="bg-gray-200 border-4 border-black p-3 mb-3">
+                    <label className="block text-sm font-black text-black uppercase">
+                      SURPRISE LEVEL:
                     </label>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {aiMode === "what_if" && (
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 to-fuchsia-400/20 rounded-2xl blur-lg"></div>
-                <div className="relative bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-lg font-heading text-white mb-4 text-center">
-                    🤔 What If Scenarios
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-white/90 mb-2">
-                        Scenario Type:
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {(["Character Choice", "World Rules", "Historical Event", "Power/Ability"] as const).map(
-                          (type) => (
-                            <button
-                              key={type}
-                              onClick={() => setPrompt(`What if ${type.toLowerCase()} changed? `)}
-                              className="px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-white/10 text-white/80 hover:bg-white/20 hover:text-white border border-white/10 hover:border-white/30"
-                            >
-                              {type}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-white/70 leading-relaxed">
-                        Explore hypothetical anime scenarios! Ask "What if..." questions about characters, worlds, or events to discover anime that explore similar concepts.
-                      </p>
-                    </div>
+                  <div className="flex gap-3 justify-center">
+                    {(["mild", "moderate", "wild"] as const).map(
+                      (level) => (
+                        <button
+                          key={level}
+                          onClick={() => setSurpriseLevel(level)}
+                          className={`px-4 py-2 border-4 border-black text-sm font-black uppercase transition-all duration-200 touch-target ${
+                            surpriseLevel === level
+                              ? "bg-brand-primary-action text-black shadow-brutal"
+                              : "bg-white text-black hover:bg-gray-200"
+                          }`}
+                        >
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
+                <label className="flex items-center justify-center space-x-3 cursor-pointer touch-target">
+                  <div className="bg-white border-4 border-black p-1">
+                    <input
+                      type="checkbox"
+                      checked={avoidPopular}
+                      onChange={(e) => setAvoidPopular(e.target.checked)}
+                      className="w-4 h-4 border-2 border-black bg-white checked:bg-brand-primary-action focus:outline-none"
+                    />
+                  </div>
+                  <span className="text-white font-black uppercase">
+                    AVOID MAINSTREAM ANIME
+                  </span>
+                </label>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {aiMode === "what_if" && (
+            <div className="bg-violet-500 border-4 border-black shadow-brutal-lg p-6">
+              <div className="bg-white border-4 border-black p-4 mb-4">
+                <h3 className="text-lg font-black text-black uppercase tracking-wider text-center">
+                  🤔 WHAT IF SCENARIOS
+                </h3>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="bg-gray-200 border-4 border-black p-3 mb-3">
+                    <label className="block text-sm font-black text-black uppercase">
+                      SCENARIO TYPE:
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["Character Choice", "World Rules", "Historical Event", "Power/Ability"] as const).map(
+                      (type) => (
+                        <button
+                          key={type}
+                          onClick={() => setPrompt(`What if ${type.toLowerCase()} changed? `)}
+                          className="px-3 py-2 border-4 border-black text-xs font-black uppercase transition-all duration-200 bg-white text-black hover:bg-gray-200 touch-target"
+                        >
+                          {type}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+                <div className="bg-yellow-400 border-4 border-black p-4">
+                  <p className="text-sm text-black font-bold text-center uppercase">
+                    EXPLORE HYPOTHETICAL ANIME SCENARIOS! ASK "WHAT IF..." QUESTIONS
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Chat Interface */}
-        <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-brand-surface p-4' : `flex-1 ${isMobile ? 'px-2 pb-24' : 'px-4 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
-          <div className={`${isFullscreen ? 'h-full flex flex-col' : `${isMobile ? 'max-w-full' : 'max-w-4xl'} mx-auto`}`}>
+
+
+        {/* BRUTAL CHAT INTERFACE */}
+        <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white p-4' : `flex-1 ${isMobile ? 'px-0 pb-24' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
+          <div className={`${isFullscreen ? 'h-full flex flex-col' : 'w-full mx-auto'}`}>
             <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
-              {!isMobile && !isFullscreen && <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-blue-500/10 rounded-3xl blur-xl"></div>}
-              <div className={`relative bg-black/30 backdrop-blur-xl border border-white/10 ${isFullscreen ? 'rounded-xl flex-1 flex flex-col min-h-0' : isMobile ? 'rounded-2xl' : 'rounded-3xl'} overflow-hidden`}>
+              <div className={`bg-black border-4 border-white shadow-brutal-lg ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'min-h-[500px]'} overflow-hidden`}>
                 {/* Chat Header with controls */}
                 <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
                   <div className="flex items-center gap-3">
@@ -902,7 +888,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
                 {!chatHistoryLoaded && (
                   <div className="text-center py-8">
-                    <ArtisticLoadingSpinner message="Loading your chat history..." />
+                    <BrutalistLoadingSpinner message="LOADING CHAT HISTORY..." />
                   </div>
                 )}
 
@@ -950,7 +936,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 >
                   {!chatHistoryLoaded && (
                     <div className="text-center py-8">
-                      <ArtisticLoadingSpinner message="Loading your chat history..." />
+                      <BrutalistLoadingSpinner message="LOADING CHAT HISTORY..." />
                     </div>
                   )}
 
@@ -1479,7 +1465,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                   {isLoading && (
                     <div className="flex justify-start">
                       <div className="max-w-xs">
-                        <ArtisticLoadingSpinner size="h-8 w-8" />
+                        <BrutalistLoadingSpinner size="h-8 w-8" />
                       </div>
                     </div>
                   )}
@@ -1510,7 +1496,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           }
                         >
                           {isLoading ? (
-                            <ArtisticLoadingSpinner size="h-5 w-5" message="" />
+                            <BrutalistLoadingSpinner size="h-5 w-5" message="" />
                           ) : (
                             <svg 
                               className="w-6 h-6 transform group-hover:translate-x-0.5 transition-transform duration-200" 
@@ -1554,7 +1540,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           }
                         >
                           {isLoading ? (
-                            <ArtisticLoadingSpinner size={isMobile ? "h-4 w-4" : "h-5 w-5"} message="" />
+                            <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-5 w-5"} message="" />
                           ) : (
                             <svg 
                               className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} transform group-hover:translate-x-0.5 transition-transform duration-200`} 
