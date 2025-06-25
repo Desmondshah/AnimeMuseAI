@@ -14,27 +14,83 @@ function normalizeTitle(title: string): string {
   return title
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]/gi, "");
+    // Remove common punctuation and special characters
+    .replace(/[^\w\s]/gi, " ")
+    // Replace multiple spaces with single space
+    .replace(/\s+/g, " ")
+    // Remove spaces entirely for final comparison
+    .replace(/\s/g, "");
 }
 
 async function findExistingAnimeByTitle(ctx: any, title: string): Promise<Doc<"anime"> | null> {
   const clean = normalizeTitle(title);
 
+  // First try exact match
   let existing = await ctx.db
     .query("anime")
     .withIndex("by_title", (q: any) => q.eq("title", title))
     .first();
 
   if (!existing) {
+    // Try search index
     const matches = await ctx.db
       .query("anime")
       .withSearchIndex("search_title", (q: any) => q.search("title", title))
       .take(50);
-    existing =
-      matches.find((a: any) => normalizeTitle(a.title) === clean) || null;
+    
+    existing = matches.find((a: any) => normalizeTitle(a.title) === clean) || null;
   }
 
   return existing;
+}
+
+// Enhanced function to find anime by multiple criteria (title variations, poster URL, etc.)
+async function findExistingAnimeByMultipleCriteria(ctx: any, animeData: {
+  title: string;
+  posterUrl?: string;
+  year?: number;
+  anilistId?: number;
+}): Promise<Doc<"anime"> | null> {
+  // First check by title
+  let existing = await findExistingAnimeByTitle(ctx, animeData.title);
+  if (existing) return existing;
+
+  // Check by AniList ID if available
+  if (animeData.anilistId) {
+    existing = await ctx.db
+      .query("anime")
+      .withIndex("by_anilistId", (q: any) => q.eq("anilistId", animeData.anilistId))
+      .first();
+    if (existing) return existing;
+  }
+
+  // Check by poster URL (same poster likely means same anime)
+  if (animeData.posterUrl && !animeData.posterUrl.includes('placehold.co')) {
+    existing = await ctx.db
+      .query("anime")
+      .filter((q: any) => q.eq(q.field("posterUrl"), animeData.posterUrl))
+      .first();
+    if (existing) return existing;
+  }
+
+  // Check by title + year combination for additional confidence
+  if (animeData.year) {
+    const allMatches = await ctx.db
+      .query("anime")
+      .withSearchIndex("search_title", (q: any) => q.search("title", animeData.title))
+      .take(100);
+    
+    const yearMatches = allMatches.filter((a: any) => 
+      a.year === animeData.year && 
+      Math.abs(normalizeTitle(a.title).length - normalizeTitle(animeData.title).length) <= 5
+    );
+    
+    if (yearMatches.length > 0) {
+      return yearMatches[0];
+    }
+  }
+
+  return null;
 }
 
 // Define types for better TypeScript support
@@ -1398,4 +1454,113 @@ export const checkAnimeExistsByExternalIds = internalQuery({
     
     return byTitle || null;
   }
+});
+
+// New function to add anime from recommendations with robust duplicate checking
+export const addAnimeFromRecommendation = internalMutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    posterUrl: v.string(),
+    genres: v.array(v.string()),
+    year: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    emotionalTags: v.optional(v.array(v.string())),
+    trailerUrl: v.optional(v.string()),
+    studios: v.optional(v.array(v.string())),
+    themes: v.optional(v.array(v.string())),
+    anilistId: v.optional(v.number()),
+    reasoning: v.optional(v.string()),
+    moodMatchScore: v.optional(v.number()),
+  },
+  returns: v.object({
+    animeId: v.id("anime"),
+    isNewlyAdded: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    // Enhanced duplicate checking with multiple criteria
+    const existing = await findExistingAnimeByMultipleCriteria(ctx, {
+      title: args.title,
+      posterUrl: args.posterUrl,
+      year: args.year,
+      anilistId: args.anilistId,
+    });
+
+    if (existing) {
+      console.log(`[Add Anime From Recommendation] Found existing anime: "${args.title}" (ID: ${existing._id})`);
+      return {
+        animeId: existing._id,
+        isNewlyAdded: false,
+        message: `Anime "${args.title}" already exists in database`,
+      };
+    }
+
+    console.log(`[Add Anime From Recommendation] Adding new anime: "${args.title}"`);
+    
+    // Add the anime to database
+    const animeId = await ctx.db.insert("anime", {
+      title: args.title,
+      description: args.description,
+      posterUrl: args.posterUrl,
+      genres: args.genres,
+      year: args.year,
+      rating: args.rating,
+      emotionalTags: args.emotionalTags || [],
+      trailerUrl: args.trailerUrl,
+      studios: args.studios || [],
+      themes: args.themes || [],
+      anilistId: args.anilistId,
+      // Add recommendation-specific metadata
+      addedFromRecommendation: true,
+      recommendationReasoning: args.reasoning,
+      recommendationScore: args.moodMatchScore,
+      addedAt: Date.now(),
+    });
+
+    // Schedule external data enrichment
+    ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
+      animeIdInOurDB: animeId,
+      titleToSearch: args.title,
+    });
+
+    return {
+      animeId,
+      isNewlyAdded: true,
+      message: `Successfully added "${args.title}" to database`,
+    };
+  },
+});
+
+// Public mutation for adding anime from frontend clicks
+export const addAnimeFromRecommendationPublic = mutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    posterUrl: v.string(),
+    genres: v.array(v.string()),
+    year: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    emotionalTags: v.optional(v.array(v.string())),
+    trailerUrl: v.optional(v.string()),
+    studios: v.optional(v.array(v.string())),
+    themes: v.optional(v.array(v.string())),
+    anilistId: v.optional(v.number()),
+    reasoning: v.optional(v.string()),
+    moodMatchScore: v.optional(v.number()),
+  },
+  returns: v.object({
+    animeId: v.id("anime"),
+    isNewlyAdded: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    // Require authentication for public access
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Authentication required to add anime");
+    }
+
+    return await ctx.runMutation(internal.anime.addAnimeFromRecommendation, args);
+  },
 });

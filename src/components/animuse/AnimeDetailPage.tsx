@@ -1835,6 +1835,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
   const [similarAnimeError, setSimilarAnimeError] = useState<string | null>(null);
   const [showSimilarAnime, setShowSimilarAnime] = useState(false);
   const getSimilarAnimeAction = useAction(api.ai.getSimilarAnimeRecommendationsFixed);
+  const addAnimeFromRecommendation = useMutation(api.anime.addAnimeFromRecommendationPublic);
   const userProfile = useQuery(api.users.getMyUserProfile, isAuthenticated ? {} : "skip");
   const myCustomLists = useQuery(api.users.getMyCustomLists, isAuthenticated ? {} : "skip");
   const addToCustomListMutation = useMutation(api.users.addAnimeToCustomList);
@@ -3295,10 +3296,43 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
                   {similarAnime.slice(0, 6).map((rec, idx) => (
                     <div 
                       key={`similar-${idx}-${rec.title || idx}`} 
-                      onClick={() => {
-                        if (rec._id && typeof rec._id === 'string') {
-                          // Convert string ID to proper Convex ID type
+                      onClick={async () => {
+                        if (rec._id) {
+                          // Navigate to the anime detail page using the ID (convert string back to Id)
                           navigateToDetail(rec._id as Id<"anime">);
+                        } else {
+                          // Add anime to database first, then navigate
+                          try {
+                            toast.loading("Adding anime to database...", { id: `add-${idx}` });
+                            
+                            const result = await addAnimeFromRecommendation({
+                              title: rec.title || "Unknown Title",
+                              description: rec.description || "No description available.",
+                              posterUrl: rec.posterUrl || "",
+                              genres: rec.genres || [],
+                              year: rec.year,
+                              rating: rec.rating,
+                              emotionalTags: rec.emotionalTags || [],
+                              trailerUrl: rec.trailerUrl,
+                              studios: rec.studios || [],
+                              themes: rec.themes || [],
+                              anilistId: rec.anilistId,
+                              reasoning: rec.reasoning,
+                              moodMatchScore: rec.moodMatchScore,
+                            });
+
+                            if (result.isNewlyAdded) {
+                              toast.success(`Added "${rec.title}" to database!`, { id: `add-${idx}` });
+                            } else {
+                              toast.success(`Found "${rec.title}" in database!`, { id: `add-${idx}` });
+                            }
+
+                            // Navigate to the newly added/found anime
+                            navigateToDetail(result.animeId);
+                          } catch (error: any) {
+                            console.error("Failed to add anime:", error);
+                            toast.error(`Failed to add "${rec.title}": ${error.message}`, { id: `add-${idx}` });
+                          }
                         }
                       }}
                       className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all cursor-pointer touch-target"

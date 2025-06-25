@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AnimeRecommendation } from "../../../convex/types";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import StyledButton from "./shared/StyledButton";
-import Carousel from "./shared/Carousel";
 import AnimeCard from "./AnimeCard";
 import { Id } from "../../../convex/_generated/dataModel";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
 
 // Hardcoded fallback data for Studio Ghibli - always available instantly
 const FALLBACK_GHIBLI_ANIME: AnimeRecommendation[] = [
@@ -114,6 +115,116 @@ interface CachedGhibliData {
   timestamp: number;
   version: string;
 }
+
+// Brutalist Carousel Component with Swiper
+const BrutalistCarousel: React.FC<{
+  children: React.ReactNode[];
+  title: string;
+  color: string;
+}> = ({ children, title, color }) => {
+  return (
+    <div className="relative mb-20">
+      {/* Brutalist Section Header */}
+      <div className="relative mb-8">
+        <div 
+          className="absolute inset-0 transform -skew-y-1 -translate-x-4"
+          style={{ backgroundColor: color }}
+        />
+        <div className="relative bg-black p-6 border-4 border-white transform skew-y-1 translate-x-4">
+          <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-wider">
+            {title}
+          </h2>
+          <div className="mt-2 w-full h-1 bg-white" />
+        </div>
+      </div>
+
+      {/* Brutalist Frame Container */}
+      <div className="relative border-8 border-black bg-gray-100 overflow-hidden">
+        {/* Double border system */}
+        <div className="absolute inset-4 border-4 border-white z-10 pointer-events-none" />
+        
+        {/* Geometric background shapes */}
+        <div className="absolute top-4 left-8 w-16 h-16 bg-black transform rotate-45 opacity-20" />
+        <div className="absolute bottom-8 right-12 w-12 h-12 bg-white transform -rotate-12 opacity-30" />
+        <div 
+          className="absolute top-1/2 left-1/4 w-8 h-8 transform -rotate-45 opacity-40"
+          style={{ backgroundColor: color }}
+        />
+
+        {/* Swiper Carousel */}
+        <div className="p-8">
+          <Swiper
+            modules={[FreeMode]}
+            freeMode={{
+              enabled: true,
+              sticky: false,
+              momentumRatio: 0.25,
+              momentumVelocityRatio: 0.25,
+            }}
+            grabCursor={true}
+            slidesPerView="auto"
+            spaceBetween={20}
+            resistance={true}
+            resistanceRatio={0.85}
+            className="w-full"
+            style={{
+              overflow: 'visible',
+              padding: '10px 0 20px 0',
+              willChange: 'transform',
+            }}
+          >
+            {children.map((child, index) => (
+              <SwiperSlide
+                key={`${title}-${index}`}
+                className="w-[220px] sm:w-[240px] flex-shrink-0"
+                style={{ height: 'auto' }}
+              >
+                {/* Geometric card frame */}
+                <div className="relative">
+                  {/* Main frame with random tilt */}
+                  <div 
+                    className="bg-black p-1 transition-transform duration-300 hover:scale-105"
+                    style={{ 
+                      transform: `rotate(${(index % 3 - 1) * 3}deg)` 
+                    }}
+                  >
+                    <div className="bg-white p-1">
+                      <div 
+                        className="p-1"
+                        style={{ backgroundColor: color }}
+                      >
+                        <div className="bg-white">
+                          {child}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Tilted shadow layer */}
+                  <div 
+                    className="absolute inset-0 -z-10 transform translate-x-2 translate-y-2 opacity-60"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 3 - 1) * 3}deg) translate(8px, 8px)`
+                    }}
+                  />
+                  
+                  {/* Additional angled accent */}
+                  <div 
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-black transform rotate-45 z-20"
+                    style={{ 
+                      transform: `rotate(${45 + (index % 2) * 90}deg)`
+                    }}
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [allGhibliAnime, setAllGhibliAnime] = useState<AnimeRecommendation[]>([]);
@@ -272,8 +383,6 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
     }
   }, [fetchStudioGhibliAnime, getCachedData, setCachedData, organizeAnimeIntoCategories, hasInitialData]);
 
-
-
   // Always show content immediately - no loading states
   useEffect(() => {
     // Check cache first
@@ -298,8 +407,6 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
     }
   }, [getCachedData, organizeAnimeIntoCategories, fetchGhibliData]);
 
-
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -308,238 +415,200 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900/20 via-black to-emerald-900/20">
-      {/* Floating particles effect */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 bg-green-400/20 rounded-full animate-ping"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          />
-        ))}
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Brutalist Background Pattern */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800" />
+        <div className="absolute inset-0 opacity-10">
+          {/* Concrete texture pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:20px_20px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_25%,rgba(255,255,255,0.05)_50%,transparent_50%,transparent_75%,rgba(255,255,255,0.05)_75%)] bg-[length:40px_40px]" />
+        </div>
+        
+        {/* Geometric Shapes */}
+        <div className="absolute top-10 left-10 w-32 h-32 bg-green-500 transform rotate-45 opacity-20" />
+        <div className="absolute top-40 right-20 w-24 h-24 bg-yellow-500 transform -rotate-12 opacity-15" />
+        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-red-500 transform rotate-12 opacity-15" />
+        <div className="absolute bottom-40 right-10 w-28 h-28 bg-blue-500 transform -rotate-45 opacity-20" />
       </div>
 
       <div className="relative z-10 px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
+        {/* Brutalist Header */}
+        <div className="mb-16">
+          <div className="absolute left-4 top-4 z-50">
             <StyledButton 
               onClick={onBack}
-              variant="ghost"
-              className="!absolute !left-4 !top-8 !bg-black/30 !backdrop-blur-sm !border-white/20 hover:!bg-black/50 !text-white"
+              className="bg-black border-4 border-white text-white hover:bg-white hover:text-black transition-colors font-black uppercase tracking-wider"
             >
-              ← Back
+              ← BACK
             </StyledButton>
           </div>
           
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="inline-block"
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center"
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 bg-clip-text text-transparent">
-                🌿 Studio Ghibli
-              </span>
-            </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse"></div>
-          </motion.div>
-          
-          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-6">
-            Discover the magical world of Studio Ghibli's breathtaking animated masterpieces
-          </p>
-          
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="text-sm text-green-400">
-              {allGhibliAnime.length} magical works found
+            {/* Brutalist Title */}
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-green-500 transform rotate-2 translate-x-4 translate-y-2" />
+              <div className="relative bg-black border-8 border-white p-8 transform -rotate-1">
+                <h1 className="text-6xl md:text-8xl font-black text-white uppercase tracking-wider leading-none">
+                  STUDIO
+                </h1>
+                <h1 className="text-6xl md:text-8xl font-black text-green-400 uppercase tracking-wider leading-none">
+                  GHIBLI
+                </h1>
+              </div>
             </div>
             
+            {/* Brutalist Subtitle */}
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-white transform -skew-x-12" />
+              <div className="relative bg-black border-4 border-white p-4 transform skew-x-12">
+                <p className="text-xl text-white font-bold uppercase tracking-wide">
+                  ANIMATED MASTERWORKS
+                </p>
+              </div>
+            </div>
 
-          </div>
+            {/* Stats */}
+            <div className="mt-8 flex justify-center space-x-8">
+              <div className="text-center">
+                <div className="text-3xl font-black text-green-400">{allGhibliAnime.length}</div>
+                <div className="text-sm text-white uppercase font-bold">FILMS</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-yellow-400">40+</div>
+                <div className="text-sm text-white uppercase font-bold">YEARS</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-red-400">∞</div>
+                <div className="text-sm text-white uppercase font-bold">MAGIC</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* Content Sections */}
-        <div className="max-w-7xl mx-auto space-y-16">
-          
+        <div className="max-w-7xl mx-auto">
           {/* Iconic Films */}
           {categories.films.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  🎬 Iconic Films
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-green-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 via-transparent to-emerald-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.films.map((anime, index) => (
-                      <motion.div
-                        key={`films-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-green-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistCarousel 
+              title="ICONIC FILMS"
+              color="#10b981"
+            >
+              {categories.films.map((anime, index) => (
+                <motion.div
+                  key={`films-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistCarousel>
           )}
 
           {/* Classic Era */}
           {categories.classics.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  🏛️ Classic Era
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-emerald-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-transparent to-green-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.classics.map((anime, index) => (
-                      <motion.div
-                        key={`classics-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistCarousel 
+              title="CLASSIC ERA"
+              color="#f59e0b"
+            >
+              {categories.classics.map((anime, index) => (
+                <motion.div
+                  key={`classics-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistCarousel>
           )}
 
           {/* Highest Rated */}
           {categories.highRated.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  ⭐ Highest Rated
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-yellow-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/10 via-transparent to-green-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.highRated.map((anime, index) => (
-                      <motion.div
-                        key={`rated-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-yellow-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                          {anime.rating && (
-                            <div className="absolute top-2 right-2 bg-yellow-500/90 text-black text-xs font-bold px-2 py-1 rounded-full pointer-events-none">
-                              {anime.rating.toFixed(1)}⭐
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistCarousel 
+              title="HIGHEST RATED"
+              color="#ef4444"
+            >
+              {categories.highRated.map((anime, index) => (
+                <motion.div
+                  key={`rated-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer relative"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                  {anime.rating && (
+                    <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-black px-2 py-1 border-2 border-black z-10">
+                      {anime.rating.toFixed(1)}★
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </BrutalistCarousel>
           )}
 
           {/* Recent Works */}
           {categories.recent.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  ✨ Recent Works
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-cyan-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/10 via-transparent to-green-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.recent.map((anime, index) => (
-                      <motion.div
-                        key={`recent-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-cyan-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistCarousel 
+              title="RECENT WORKS"
+              color="#8b5cf6"
+            >
+              {categories.recent.map((anime, index) => (
+                <motion.div
+                  key={`recent-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistCarousel>
           )}
-
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-20 mb-8">
-          <p className="text-white/60 text-sm">
-            Experience the magic and wonder of Studio Ghibli's timeless stories
-          </p>
+        {/* Brutalist Footer */}
+        <div className="mt-20 text-center">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-white transform rotate-1" />
+            <div className="relative bg-black border-4 border-white p-6 transform -rotate-1">
+              <p className="text-white font-bold uppercase tracking-wide">
+                EXPERIENCE THE MAGIC
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -28,4 +28,5 @@ export interface AnimeRecommendation {
   recommendationMode?: 'simple' | 'advanced';
   _id?: string; // For database navigation
   foundInDatabase?: boolean;
+  anilistId?: number; // For duplicate detection
 }

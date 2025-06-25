@@ -55,6 +55,11 @@ const applicationTables = {
         timestamp: v.number(),
         fieldsEdited: v.array(v.string()),
     })),
+    // Recommendation tracking fields
+    addedFromRecommendation: v.optional(v.boolean()),
+    recommendationReasoning: v.optional(v.string()),
+    recommendationScore: v.optional(v.number()),
+    addedAt: v.optional(v.number()),
     // Episode and streaming data
     streamingEpisodes: v.optional(v.array(v.object({
       title: v.optional(v.string()),
@@ -193,6 +198,8 @@ const applicationTables = {
   .index("by_year_averageUserRating", ["year", "averageUserRating"])
   .index("by_reviewCount", ["reviewCount"])
   .index("by_airingStatus", ["airingStatus"])
+  .index("by_anilistId", ["anilistId"])
+  .index("by_addedFromRecommendation", ["addedFromRecommendation"])
   .searchIndex("search_title", { searchField: "title", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_description", { searchField: "description", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_genres", { searchField: "genres" })

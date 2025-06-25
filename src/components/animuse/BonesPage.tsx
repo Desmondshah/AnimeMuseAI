@@ -3,9 +3,11 @@ import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { AnimeRecommendation } from "../../../convex/types";
+import { motion } from "framer-motion";
 import AnimeCard from "./AnimeCard";
-import Carousel from "./shared/Carousel";
-import { ArrowLeft } from "lucide-react";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
+import StyledButton from "./shared/StyledButton";
 
 // Hardcoded fallback data for Studio Bones - covers all categories instantly
 const FALLBACK_BONES_ANIME: AnimeRecommendation[] = [
@@ -197,6 +199,215 @@ interface BonesCategories {
   supernatural: AnimeRecommendation[];
 }
 
+// Brutalist Bones Carousel Component
+const BrutalistBonesCarousel: React.FC<{
+  children: React.ReactNode[];
+  title: string;
+  color: string;
+  accent?: string;
+  icon?: string;
+}> = ({ children, title, color, accent = '#000', icon = '🦴' }) => {
+  return (
+    <div className="relative mb-20">
+      {/* Skeletal Header */}
+      <div className="relative mb-8">
+        {/* Bone pattern background */}
+        <div className="absolute inset-0 opacity-15">
+          <div className="grid grid-cols-8 grid-rows-3 h-full w-full gap-2">
+            {Array.from({ length: 24 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="border-2 border-gray-400" 
+                style={{ 
+                  backgroundColor: i % 3 === 0 ? color : 'transparent',
+                  opacity: Math.random() * 0.6 + 0.3,
+                  transform: `rotate(${(i % 4 - 2) * 15}deg) scale(${0.7 + Math.random() * 0.6})`
+                }} 
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Main header structure */}
+        <div className="relative">
+          <div 
+            className="absolute inset-0 transform skew-x-6 translate-x-4 translate-y-2"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="absolute inset-0 transform -skew-x-3 -translate-x-2 translate-y-4 opacity-70"
+            style={{ backgroundColor: accent }}
+          />
+          <div className="relative bg-black p-6 border-6 border-white transform -skew-x-2 -translate-x-1">
+            <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-widest transform skew-x-2">
+              {icon} {title}
+            </h2>
+            <div className="flex mt-3 space-x-2">
+              <div className="h-2 w-20 bg-white" />
+              <div className="h-2 w-12" style={{ backgroundColor: color }} />
+              <div className="h-2 w-6" style={{ backgroundColor: accent }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Skeletal corner elements */}
+        <div 
+          className="absolute -top-3 -left-3 w-12 h-4 border-4 border-white transform rotate-12"
+          style={{ backgroundColor: color }}
+        />
+        <div 
+          className="absolute -top-3 -right-3 w-12 h-4 border-4 border-white transform -rotate-12"
+          style={{ backgroundColor: accent }}
+        />
+        <div 
+          className="absolute -bottom-3 -left-3 w-4 h-12 border-4 border-white transform rotate-45"
+          style={{ backgroundColor: accent }}
+        />
+        <div 
+          className="absolute -bottom-3 -right-3 w-4 h-12 border-4 border-white transform -rotate-45"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+
+      {/* Brutalist Frame Container */}
+      <div className="relative overflow-hidden">
+        {/* Triple-layered frame system */}
+        <div className="absolute inset-0 border-6 border-white z-10 pointer-events-none" />
+        <div 
+          className="absolute inset-3 border-4 z-10 pointer-events-none"
+          style={{ borderColor: color }}
+        />
+        <div 
+          className="absolute inset-5 border-2 z-10 pointer-events-none opacity-60"
+          style={{ borderColor: accent }}
+        />
+
+        {/* Skeletal pattern background */}
+        <div 
+          className="absolute inset-0 opacity-10" 
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, ${color} 2px, transparent 2px),
+              linear-gradient(-45deg, ${color} 2px, transparent 2px),
+              linear-gradient(90deg, ${accent} 1px, transparent 1px),
+              linear-gradient(0deg, ${accent} 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px, 40px 40px, 20px 20px, 20px 20px'
+          }}
+        />
+
+        {/* Bone-like decorative stripes */}
+        <div className="absolute top-0 left-0 w-full h-6 bg-gradient-to-r from-transparent via-gray-300 to-transparent opacity-20 z-10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-20 z-10 pointer-events-none" />
+
+        {/* Swiper Carousel */}
+        <div className="p-8 bg-gray-100">
+          <Swiper
+            modules={[FreeMode]}
+            freeMode={{
+              enabled: true,
+              sticky: false,
+              momentumRatio: 0.25,
+              momentumVelocityRatio: 0.25,
+            }}
+            grabCursor={true}
+            slidesPerView="auto"
+            spaceBetween={20}
+            resistance={true}
+            resistanceRatio={0.85}
+            className="w-full"
+            style={{
+              overflow: 'visible',
+              padding: '10px 0 20px 0',
+              willChange: 'transform',
+            }}
+          >
+            {children.map((child, index) => (
+              <SwiperSlide
+                key={`${title}-${index}`}
+                className="w-[220px] sm:w-[240px] flex-shrink-0"
+                style={{ height: 'auto' }}
+              >
+                {/* Skeletal card frame */}
+                <div className="relative">
+                  {/* Main frame with bone-like tilt */}
+                  <div 
+                    className="bg-black p-2 transition-all duration-300 hover:scale-105 hover:rotate-1"
+                    style={{ 
+                      transform: `rotate(${(index % 6 - 2.5) * 2}deg)` 
+                    }}
+                  >
+                    <div 
+                      className="p-2"
+                      style={{ backgroundColor: color }}
+                    >
+                      <div className="bg-white p-1">
+                        <div className="bg-gray-200 p-1">
+                          <div className="bg-white">
+                            {child}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Bone-like corner joints */}
+                  <div 
+                    className="absolute -top-2 -left-2 w-8 h-2 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 3) * 30}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -top-2 -right-2 w-8 h-2 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${-(index % 3) * 30}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -left-2 w-2 h-8 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${(index % 4) * 45}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -bottom-2 -right-2 w-2 h-8 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${-(index % 4) * 45}deg)`
+                    }}
+                  />
+                  
+                  {/* Layered bone-like shadows */}
+                  <div 
+                    className="absolute inset-0 -z-10"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 6 - 2.5) * 2}deg) translate(8px, 8px)`,
+                      opacity: 0.7
+                    }}
+                  />
+                  <div 
+                    className="absolute inset-0 -z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${(index % 6 - 2.5) * 2}deg) translate(16px, 16px)`,
+                      opacity: 0.4
+                    }}
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [categories, setCategories] = useState<BonesCategories>({
     legendary: [],
@@ -207,8 +418,6 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchBonesAnimeAction = useAction(api.externalApis.fetchBonesAnime);
-
-
 
   // Organize anime into categories
   const organizeAnimeIntoCategories = useCallback((animes: AnimeRecommendation[]): BonesCategories => {
@@ -309,138 +518,203 @@ const BonesPage: React.FC<BonesPageProps> = ({ onViewAnimeDetail, onBack }) => {
     fetchBonesData();
   }, [fetchBonesData, organizeAnimeIntoCategories]);
 
-
-
   const totalAnime = categories.legendary.length + categories.action.length + 
                    categories.recent.length + categories.supernatural.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-800 to-blue-700 text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} />
-            <span>Back</span>
-          </button>
-        </div>
+    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+      {/* Skeletal grid background */}
+      <div 
+        className="fixed inset-0 opacity-5" 
+        style={{
+          backgroundImage: `
+            linear-gradient(90deg, #ffffff 1px, transparent 1px),
+            linear-gradient(0deg, #ffffff 1px, transparent 1px),
+            linear-gradient(45deg, #cccccc 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px, 60px 60px, 30px 30px'
+        }}
+      />
 
-        {/* Studio Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-silver-300 bg-clip-text text-transparent mb-4">
-            Studio Bones
-          </h1>
-        </div>
+      {/* Floating bone particles */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-1 bg-gray-300 animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 4}s`,
+              transform: `rotate(${Math.random() * 360}deg)`
+            }}
+          />
+        ))}
+      </div>
 
-        {/* Error Banner */}
-        {error && categories.legendary.length > 0 && (
-          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-8">
-            <p className="text-red-300 text-center">
-              ⚠️ Some data may be outdated. Using cached results. {error}
-            </p>
+      <div className="relative z-10 px-4 py-8">
+        {/* Brutalist Header */}
+        <div className="text-center mb-16">
+          <div className="absolute left-4 top-4 z-50">
+            <StyledButton 
+              onClick={onBack}
+              className="bg-black border-4 border-white text-white hover:bg-white hover:text-black transition-colors font-black uppercase tracking-wider"
+            >
+              ← BACK
+            </StyledButton>
           </div>
-        )}
-
-        {/* Categories */}
-        <div className="space-y-12">
-          {/* Legendary Series */}
-          {categories.legendary.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-1 h-8 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full"></div>
-                <h2 className="text-2xl font-bold text-yellow-300">Legendary Masterpieces</h2>
+          
+          {/* Massive BONES title */}
+          <div className="relative mb-8">
+            {/* Skeletal background shapes */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-80 h-20 bg-gray-300 opacity-20 transform rotate-6" />
+              <div className="absolute w-72 h-16 bg-gray-400 opacity-20 transform -rotate-3" />
+              <div className="absolute w-64 h-12 bg-white opacity-15 transform rotate-1" />
+            </div>
+            
+            {/* Main title */}
+            <div className="relative">
+              <div className="absolute inset-0 transform translate-x-3 translate-y-3">
+                <h1 className="text-6xl md:text-8xl font-black text-gray-400 uppercase tracking-widest opacity-60">
+                  BONES
+                </h1>
               </div>
-              <Carousel>
-                {categories.legendary.map((anime, index) => (
-                  <div key={`legendary-${index}`} className="flex-shrink-0 w-48">
-                    <AnimeCard
-                      anime={anime}
-                      onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
-                      className="h-full"
-                    />
-                  </div>
-                ))}
-              </Carousel>
-            </section>
+              <div className="absolute inset-0 transform -translate-x-2 -translate-y-2">
+                <h1 className="text-6xl md:text-8xl font-black text-gray-600 uppercase tracking-widest opacity-60">
+                  BONES
+                </h1>
+              </div>
+              <h1 className="relative text-6xl md:text-8xl font-black text-white uppercase tracking-widest">
+                BONES
+              </h1>
+            </div>
+          </div>
+          
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-black border-6 border-white p-6 transform -skew-x-3">
+              <p className="text-lg text-white font-bold uppercase tracking-wide transform skew-x-3">
+                SKELETAL PRECISION • ANIMATED EXCELLENCE • STRUCTURAL MASTERY
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto">
+          {/* Legendary Masterpieces */}
+          {categories.legendary.length > 0 && (
+            <BrutalistBonesCarousel 
+              title="LEGENDARY BONES"
+              color="#fbbf24"
+              accent="#f59e0b"
+              icon="🏆"
+            >
+              {categories.legendary.map((anime, index) => (
+                <motion.div
+                  key={`legendary-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistBonesCarousel>
           )}
 
           {/* Action & Adventure */}
           {categories.action.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-red-600 rounded-full"></div>
-                <h2 className="text-2xl font-bold text-red-300">Action & Adventure</h2>
-              </div>
-              <Carousel>
-                {categories.action.map((anime, index) => (
-                  <div key={`action-${index}`} className="flex-shrink-0 w-48">
-                    <AnimeCard
-                      anime={anime}
-                      onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
-                      className="h-full"
-                    />
-                  </div>
-                ))}
-              </Carousel>
-            </section>
+            <BrutalistBonesCarousel 
+              title="ACTION SKELETON"
+              color="#dc2626"
+              accent="#991b1b"
+              icon="⚔️"
+            >
+              {categories.action.map((anime, index) => (
+                <motion.div
+                  key={`action-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistBonesCarousel>
           )}
 
           {/* Recent Works */}
           {categories.recent.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-1 h-8 bg-gradient-to-b from-green-400 to-green-600 rounded-full"></div>
-                <h2 className="text-2xl font-bold text-green-300">Recent Works</h2>
-              </div>
-              <Carousel>
-                {categories.recent.map((anime, index) => (
-                  <div key={`recent-${index}`} className="flex-shrink-0 w-48">
-                    <AnimeCard
-                      anime={anime}
-                      onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
-                      className="h-full"
-                    />
-                  </div>
-                ))}
-              </Carousel>
-            </section>
+            <BrutalistBonesCarousel 
+              title="FRESH MARROW"
+              color="#059669"
+              accent="#047857"
+              icon="🆕"
+            >
+              {categories.recent.map((anime, index) => (
+                <motion.div
+                  key={`recent-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistBonesCarousel>
           )}
 
           {/* Supernatural & Fantasy */}
           {categories.supernatural.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-1 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full"></div>
-                <h2 className="text-2xl font-bold text-purple-300">Supernatural & Fantasy</h2>
-              </div>
-              <Carousel>
-                {categories.supernatural.map((anime, index) => (
-                  <div key={`supernatural-${index}`} className="flex-shrink-0 w-48">
-                    <AnimeCard
-                      anime={anime}
-                      onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
-                      className="h-full"
-                    />
-                  </div>
-                ))}
-              </Carousel>
-            </section>
+            <BrutalistBonesCarousel 
+              title="SPIRIT BONES"
+              color="#7c3aed"
+              accent="#5b21b6"
+              icon="👻"
+            >
+              {categories.supernatural.map((anime, index) => (
+                <motion.div
+                  key={`supernatural-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    onViewDetails={() => anime._id && onViewAnimeDetail(anime._id as Id<"anime">)}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistBonesCarousel>
           )}
         </div>
 
-        {/* Empty State */}
-        {totalAnime === 0 && (
-          <div className="text-center py-20">
-            <div className="text-blue-400 text-6xl mb-4">🎬</div>
-            <h2 className="text-2xl font-bold text-blue-300 mb-2">No Bones Anime Found</h2>
-            <p className="text-blue-200 mb-6">
-              We couldn't find any Studio Bones anime at the moment.
+        {/* Brutalist Footer */}
+        <div className="text-center mt-20 mb-8">
+          <div className="bg-white border-6 border-black p-4 transform skew-x-2 max-w-2xl mx-auto">
+            <p className="text-black font-black uppercase tracking-wider transform -skew-x-2">
+              STUDIO BONES - STRUCTURAL ANIMATION SINCE 1998
             </p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

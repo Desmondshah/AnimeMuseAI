@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AnimeRecommendation } from "../../../convex/types";
 import { motion } from "framer-motion";
+import AnimeCard from './AnimeCard';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode } from 'swiper/modules';
 import StyledButton from "./shared/StyledButton";
-import Carousel from "./shared/Carousel";
-import AnimeCard from "./AnimeCard";
 import { Id } from "../../../convex/_generated/dataModel";
 
 // Hardcoded fallback data for MAPPA - always available instantly
@@ -114,6 +115,207 @@ interface CachedMappaData {
   timestamp: number;
   version: string;
 }
+
+// Brutalist MAPPA Carousel Component
+const BrutalistMappaCarousel: React.FC<{
+  children: React.ReactNode[];
+  title: string;
+  color: string;
+  accent?: string;
+  icon?: string;
+}> = ({ children, title, color, accent = '#000', icon = '⚡' }) => {
+  return (
+    <div className="relative mb-20">
+      {/* Tech-Brutalist Header */}
+      <div className="relative mb-8">
+        {/* Glitch effect background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="grid grid-cols-16 grid-rows-4 h-full w-full gap-px">
+            {Array.from({ length: 64 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="border border-cyan-400" 
+                style={{ 
+                  backgroundColor: i % 5 === 0 ? color : 'transparent',
+                  opacity: Math.random() * 0.8 + 0.2,
+                  transform: `scale(${0.8 + Math.random() * 0.4})`
+                }} 
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Main header structure */}
+        <div className="relative">
+          <div 
+            className="absolute inset-0 transform skew-x-12 translate-x-6 translate-y-1"
+            style={{ backgroundColor: color }}
+          />
+          <div 
+            className="absolute inset-0 transform -skew-x-6 -translate-x-3 translate-y-3 opacity-70"
+            style={{ backgroundColor: accent }}
+          />
+          <div className="relative bg-black p-6 border-4 border-white transform -skew-x-3 -translate-x-1">
+            <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-widest transform skew-x-3">
+              {icon} {title}
+            </h2>
+            <div className="flex mt-3 space-x-1">
+              <div className="h-1 w-16 bg-white" />
+              <div className="h-1 w-8" style={{ backgroundColor: color }} />
+              <div className="h-1 w-4" style={{ backgroundColor: accent }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Electric corner accents */}
+        <div 
+          className="absolute -top-2 -left-2 w-8 h-8 border-4 border-white transform rotate-45"
+          style={{ backgroundColor: color }}
+        />
+        <div 
+          className="absolute -top-2 -right-2 w-8 h-8 border-4 border-white transform -rotate-45"
+          style={{ backgroundColor: accent }}
+        />
+      </div>
+
+      {/* Tech-Brutalist Frame Container */}
+      <div className="relative overflow-hidden">
+        {/* Multi-layered frame system */}
+        <div className="absolute inset-0 border-8 border-white z-10 pointer-events-none" />
+        <div 
+          className="absolute inset-4 border-4 z-10 pointer-events-none"
+          style={{ borderColor: color }}
+        />
+        <div 
+          className="absolute inset-6 border-2 z-10 pointer-events-none opacity-60"
+          style={{ borderColor: accent }}
+        />
+
+        {/* Electric circuit pattern */}
+        <div 
+          className="absolute inset-0 opacity-15" 
+          style={{
+            backgroundImage: `
+              linear-gradient(90deg, ${color} 2px, transparent 2px),
+              linear-gradient(0deg, ${color} 2px, transparent 2px),
+              linear-gradient(45deg, ${accent} 1px, transparent 1px),
+              linear-gradient(-45deg, ${accent} 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px, 30px 30px, 15px 15px, 15px 15px'
+          }}
+        />
+
+        {/* Glitch stripes */}
+        <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-30 z-10 pointer-events-none animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-full h-4 bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-30 z-10 pointer-events-none animate-pulse" />
+
+        {/* Swiper Carousel */}
+        <div className="p-8 bg-gray-900">
+          <Swiper
+            modules={[FreeMode]}
+            freeMode={{
+              enabled: true,
+              sticky: false,
+              momentumRatio: 0.25,
+              momentumVelocityRatio: 0.25,
+            }}
+            grabCursor={true}
+            slidesPerView="auto"
+            spaceBetween={20}
+            resistance={true}
+            resistanceRatio={0.85}
+            className="w-full"
+            style={{
+              overflow: 'visible',
+              padding: '10px 0 20px 0',
+              willChange: 'transform',
+            }}
+          >
+            {children.map((child, index) => (
+              <SwiperSlide
+                key={`${title}-${index}`}
+                className="w-[220px] sm:w-[240px] flex-shrink-0"
+                style={{ height: 'auto' }}
+              >
+                {/* Tech-brutalist card frame */}
+                <div className="relative">
+                  {/* Main frame with electric tilt */}
+                  <div 
+                    className="bg-black p-1 transition-all duration-300 hover:scale-105 hover:rotate-1"
+                    style={{ 
+                      transform: `rotate(${(index % 5 - 2) * 1.5}deg)` 
+                    }}
+                  >
+                    <div 
+                      className="p-1"
+                      style={{ backgroundColor: color }}
+                    >
+                      <div className="bg-white p-1">
+                        <div className="bg-gray-900 p-1">
+                          <div className="bg-white">
+                            {child}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Electric corner nodes */}
+                  <div 
+                    className="absolute -top-1 -left-1 w-4 h-4 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 4) * 90}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -top-1 -right-1 w-4 h-4 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${(index % 4 + 1) * 90}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -bottom-1 -left-1 w-4 h-4 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${(index % 4 + 2) * 90}deg)`
+                    }}
+                  />
+                  <div 
+                    className="absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white z-20"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 4 + 3) * 90}deg)`
+                    }}
+                  />
+                  
+                  {/* Layered electric shadows */}
+                  <div 
+                    className="absolute inset-0 -z-10"
+                    style={{ 
+                      backgroundColor: color,
+                      transform: `rotate(${(index % 5 - 2) * 1.5}deg) translate(6px, 6px)`,
+                      opacity: 0.8
+                    }}
+                  />
+                  <div 
+                    className="absolute inset-0 -z-20"
+                    style={{ 
+                      backgroundColor: accent,
+                      transform: `rotate(${(index % 5 - 2) * 1.5}deg) translate(12px, 12px)`,
+                      opacity: 0.5
+                    }}
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [allMappaAnime, setAllMappaAnime] = useState<AnimeRecommendation[]>([]);
@@ -320,245 +522,202 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900/20 via-black to-purple-900/20">
-      {/* Floating particles effect */}
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Electric grid background */}
+      <div 
+        className="fixed inset-0 opacity-5" 
+        style={{
+          backgroundImage: `
+            linear-gradient(90deg, #00ffff 1px, transparent 1px),
+            linear-gradient(0deg, #00ffff 1px, transparent 1px),
+            linear-gradient(45deg, #ff00ff 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px, 50px 50px, 25px 25px'
+        }}
+      />
+
+      {/* Glitch particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(15)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-red-400/20 rounded-full animate-ping"
+            className="absolute w-1 h-1 bg-cyan-400 animate-ping"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
+              animationDelay: `${Math.random() * 2}s`,
+              animationDuration: `${1 + Math.random() * 2}s`,
+              boxShadow: '0 0 6px currentColor'
             }}
           />
         ))}
       </div>
 
       <div className="relative z-10 px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
+        {/* Brutalist Header */}
+        <div className="text-center mb-16">
+          <div className="absolute left-4 top-4 z-50">
             <StyledButton 
               onClick={onBack}
-              variant="ghost"
-              className="!absolute !left-4 !top-8 !bg-black/30 !backdrop-blur-sm !border-white/20 hover:!bg-black/50 !text-white"
+              className="bg-black border-4 border-white text-white hover:bg-white hover:text-black transition-colors font-black uppercase tracking-wider"
             >
-              ← Back
+              ← BACK
             </StyledButton>
           </div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="inline-block"
-          >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-4">
-              <span className="bg-gradient-to-r from-red-400 via-purple-500 to-red-600 bg-clip-text text-transparent">
-                ⚡ MAPPA
-              </span>
-            </h1>
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-red-400 to-transparent animate-pulse"></div>
-          </motion.div>
+          {/* Massive MAPPA title */}
+          <div className="relative mb-8">
+            {/* Background geometric shapes */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-96 h-32 bg-cyan-400 opacity-20 transform rotate-12" />
+              <div className="absolute w-80 h-28 bg-purple-400 opacity-20 transform -rotate-6" />
+              <div className="absolute w-72 h-24 bg-white opacity-10 transform rotate-3" />
+            </div>
+            
+            {/* Main title */}
+            <div className="relative">
+              <div className="absolute inset-0 transform translate-x-2 translate-y-2">
+                <h1 className="text-6xl md:text-8xl font-black text-cyan-400 uppercase tracking-widest opacity-60">
+                  MAPPA
+                </h1>
+              </div>
+              <div className="absolute inset-0 transform -translate-x-1 -translate-y-1">
+                <h1 className="text-6xl md:text-8xl font-black text-purple-400 uppercase tracking-widest opacity-60">
+                  MAPPA
+                </h1>
+              </div>
+              <h1 className="relative text-6xl md:text-8xl font-black text-white uppercase tracking-widest">
+                MAPPA
+              </h1>
+            </div>
+          </div>
           
-          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed mt-6">
-            Experience the cutting-edge animation and storytelling that defines modern anime excellence
-          </p>
-          
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="text-sm text-red-400">
-              {allMappaAnime.length} modern masterpieces found
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-black border-4 border-white p-6 transform -skew-x-2">
+              <p className="text-lg text-white font-bold uppercase tracking-wide transform skew-x-2">
+                CUTTING-EDGE ANIMATION • MODERN MASTERPIECES • TECHNICAL EXCELLENCE
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Content Sections */}
-        <div className="max-w-7xl mx-auto space-y-16">
-          
+        <div className="max-w-7xl mx-auto">
           {/* Legendary Works */}
           {categories.legendary.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  🏆 Legendary MAPPA Works
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-red-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-400/10 via-transparent to-purple-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.legendary.map((anime, index) => (
-                      <motion.div
-                        key={`legendary-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-red-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistMappaCarousel 
+              title="LEGENDARY WORKS"
+              color="#00ffff"
+              accent="#ff00ff"
+              icon="🏆"
+            >
+              {categories.legendary.map((anime, index) => (
+                <motion.div
+                  key={`legendary-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistMappaCarousel>
           )}
 
           {/* Action & Supernatural */}
           {categories.action.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  ⚔️ Action & Supernatural
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-purple-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 via-transparent to-red-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.action.map((anime, index) => (
-                      <motion.div
-                        key={`action-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistMappaCarousel 
+              title="ACTION ARSENAL"
+              color="#ff4444"
+              accent="#ffaa00"
+              icon="⚔️"
+            >
+              {categories.action.map((anime, index) => (
+                <motion.div
+                  key={`action-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistMappaCarousel>
           )}
 
           {/* Recent Productions */}
           {categories.recent.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  🆕 Recent MAPPA Productions
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-blue-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 via-transparent to-red-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.recent.map((anime, index) => (
-                      <motion.div
-                        key={`recent-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
+            <BrutalistMappaCarousel 
+              title="RECENT TECH"
+              color="#44ff44"
+              accent="#00ffaa"
+              icon="🆕"
+            >
+              {categories.recent.map((anime, index) => (
+                <motion.div
+                  key={`recent-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistMappaCarousel>
           )}
 
           {/* Mature & Psychological */}
           {categories.mature.length > 0 && (
-            <section>
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-heading text-white mb-2 flex items-center gap-3">
-                  🧠 Mature & Psychological
-                </h2>
-                <div className="h-0.5 w-24 bg-gradient-to-r from-orange-400 to-transparent"></div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-400/10 via-transparent to-red-600/10 rounded-3xl blur-xl"></div>
-                <div className="relative bg-black/20 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-                  <Carousel variant="default">
-                    {categories.mature.map((anime, index) => (
-                      <motion.div
-                        key={`mature-${index}`}
-                        className="group flex-shrink-0 w-48 sm:w-52 transform cursor-pointer"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        <div className="relative">
-                          <AnimeCard 
-                            anime={anime} 
-                            isRecommendation={true} 
-                            onViewDetails={onViewAnimeDetail}
-                            className="w-full"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-orange-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </Carousel>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Fallback content if no anime loaded */}
-          {!isLoading && allMappaAnime.length === 0 && !error && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🎬</div>
-              <h3 className="text-2xl font-bold text-white mb-4">No MAPPA anime loaded</h3>
-              <p className="text-white/60 mb-6">This might be a temporary issue. Please try refreshing.</p>
-              <StyledButton onClick={handleRefresh} variant="primary">
-                Refresh Data
-              </StyledButton>
-            </div>
+            <BrutalistMappaCarousel 
+              title="MIND MATRIX"
+              color="#aa44ff"
+              accent="#ff44aa"
+              icon="🧠"
+            >
+              {categories.mature.map((anime, index) => (
+                <motion.div
+                  key={`mature-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="cursor-pointer"
+                >
+                  <AnimeCard 
+                    anime={anime} 
+                    isRecommendation={true} 
+                    onViewDetails={onViewAnimeDetail}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </BrutalistMappaCarousel>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Brutalist Footer */}
         <div className="text-center mt-20 mb-8">
-          <p className="text-white/60 text-sm">
-            MAPPA - Pushing the boundaries of animation since 2011
-          </p>
-          <p className="text-white/40 text-xs mt-1">
-            From Attack on Titan's final seasons to Jujutsu Kaisen's stunning battles
-          </p>
+          <div className="bg-white border-4 border-black p-4 transform skew-x-3 max-w-2xl mx-auto">
+            <p className="text-black font-black uppercase tracking-wider transform -skew-x-3">
+              MAPPA STUDIO - REDEFINING ANIME SINCE 2011
+            </p>
+          </div>
         </div>
       </div>
     </div>
