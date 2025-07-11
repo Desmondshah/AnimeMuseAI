@@ -4,7 +4,7 @@ import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 
 interface BatchImportAnimeProps {
   onSuccess?: () => void;

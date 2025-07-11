@@ -3,7 +3,7 @@ import React, { useState, useEffect, FormEvent, memo } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
-import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations, useAdminLayoutOptimization } from "../../hooks/useMobileOptimizations";
 import AutoRefreshProtectionManager from "./AutoRefreshProtectionManager";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";

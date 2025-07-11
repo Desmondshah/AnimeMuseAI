@@ -10,7 +10,7 @@ import ReviewForm from "./onboarding/ReviewForm";
 import AnimeCard from "./AnimeCard";
 import { AnimeRecommendation } from "../../../convex/types";
 import { formatDistanceToNow } from 'date-fns';
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedEpisodesTab } from "./EnhancedEpisodesTab";
 

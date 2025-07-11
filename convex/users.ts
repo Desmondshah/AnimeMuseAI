@@ -86,6 +86,7 @@ export const checkVerificationStatus = query({
     identifier: v.optional(v.string()),
     emailFromAuth: v.optional(v.string()),
     isAnonymous: v.optional(v.boolean()),
+    verificationType: v.optional(v.union(v.literal("email"), v.literal("phone"))),
   }),
   handler: async (ctx): Promise<{
     isAuthenticated: boolean;
@@ -95,6 +96,7 @@ export const checkVerificationStatus = query({
     identifier?: string;
     emailFromAuth?: string;
     isAnonymous?: boolean;
+    verificationType?: "email" | "phone";
   }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -106,7 +108,7 @@ export const checkVerificationStatus = query({
     if (userAuthRecord?.isAnonymous) {
       return {
         isAuthenticated: true,
-        isVerified: true, // Anonymous users bypass phone verification for app access
+        isVerified: true, // Anonymous users bypass verification for app access
         isAnonymous: true,
         identifier: "Anonymous User",
         emailFromAuth: userAuthRecord?.email,
@@ -117,22 +119,37 @@ export const checkVerificationStatus = query({
       .withIndex("by_userId", q => q.eq("userId", userId as Id<"users">))
       .unique();
 
-    const isVerified = userProfile?.phoneNumberVerified || false;
-    const identifier = userProfile?.phoneNumber || userAuthRecord?.email;
+    // Check both email and phone verification
+    const isEmailVerified = userProfile?.emailVerified || false;
+    const isPhoneVerified = userProfile?.phoneNumberVerified || false;
+    const isVerified = isEmailVerified || isPhoneVerified;
 
-    const pendingVerification = await ctx.db.query("phoneVerifications")
+    const identifier = userProfile?.email || userProfile?.phoneNumber || userAuthRecord?.email;
+
+    // Check for pending email verification
+    const pendingEmailVerification = await ctx.db.query("emailVerifications")
       .withIndex("by_userId", q => q.eq("userId", userId as Id<"users">))
       .filter(q => q.gt(q.field("expiresAt"), Date.now()))
       .first();
 
+    // Check for pending phone verification
+    const pendingPhoneVerification = await ctx.db.query("phoneVerifications")
+      .withIndex("by_userId", q => q.eq("userId", userId as Id<"users">))
+      .filter(q => q.gt(q.field("expiresAt"), Date.now()))
+      .first();
+
+    const hasPendingVerification = !!(pendingEmailVerification || pendingPhoneVerification);
+    const pendingVerification = pendingEmailVerification || pendingPhoneVerification;
+
     return {
       isAuthenticated: true,
       isVerified,
-      hasPendingVerification: !!pendingVerification,
+      hasPendingVerification,
       pendingVerificationExpiresAt: pendingVerification?.expiresAt,
       identifier: identifier,
       emailFromAuth: userAuthRecord?.email,
       isAnonymous: false,
+      verificationType: pendingEmailVerification ? "email" : "phone",
     };
   },
 });

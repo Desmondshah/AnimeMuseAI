@@ -2,7 +2,7 @@
 import React, { useState, memo, useMemo, useEffect } from "react";
 import { usePaginatedQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import StyledButton from "../animuse/shared/StyledButton";
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";

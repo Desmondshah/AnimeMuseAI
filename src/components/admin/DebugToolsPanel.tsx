@@ -4,7 +4,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import StyledButton from "../animuse/shared/StyledButton";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 
 interface DebugToolsPanelProps {}
 

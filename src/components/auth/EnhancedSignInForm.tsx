@@ -8,6 +8,7 @@ import { validatePasswordStrength, validateEmail } from "../../../convex/authSec
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { PasswordReset } from "./PasswordReset";
+import { useAuth0Google } from "../../hooks/useAuth0Google";
 
 // Brutalist Geometric Shape Component
 const BrutalistShape: React.FC<{ 
@@ -96,6 +97,7 @@ interface PasswordStrength {
 
 export function EnhancedSignInForm() {
   const { signIn } = useAuthActions();
+  const { signInWithGoogle, signUpWithGoogle, isLoading: googleLoading } = useAuth0Google();
   const [view, setView] = useState<"auth" | "passwordReset">("auth");
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [submitting, setSubmitting] = useState(false);
@@ -548,6 +550,29 @@ export function EnhancedSignInForm() {
                 <div className="flex-grow h-1 bg-black"></div>
               </div>
 
+              {/* Google Sign In */}
+              <div className="relative mb-6">
+                <div className="absolute -inset-2 bg-blue-500 transform rotate-2"></div>
+                <div className="absolute -inset-1 bg-black transform -rotate-1"></div>
+                <button
+                  type="button"
+                  onClick={flow === "signIn" ? signInWithGoogle : signUpWithGoogle}
+                  disabled={submitting || googleLoading}
+                  className="relative w-full bg-white hover:bg-gray-100 border-4 border-black text-black font-black text-xl py-6 px-8 uppercase tracking-wider shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform hover:translate-x-1 hover:translate-y-1 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting || googleLoading ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <BrutalistLoader />
+                      CONNECTING...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="text-2xl">🔐</span>
+                      GOOGLE SIGN {flow === "signIn" ? "IN" : "UP"}
+                    </span>
+                  )}
+                </button>
+              </div>
               {/* Anonymous Sign In */}
               <div className="relative">
                 <div className="absolute -inset-2 bg-purple-500 transform -rotate-2"></div>

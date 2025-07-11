@@ -26,6 +26,7 @@ import type * as autoRefresh from "../autoRefresh.js";
 import type * as characterEnrichment from "../characterEnrichment.js";
 import type * as characterMigration from "../characterMigration.js";
 import type * as crons from "../crons.js";
+import type * as emailVerification from "../emailVerification.js";
 import type * as externalApis from "../externalApis.js";
 import type * as http from "../http.js";
 import type * as migrations_migrateCharacterEnrichment from "../migrations/migrateCharacterEnrichment.js";
@@ -43,16 +44,6 @@ import type * as testData from "../testData.js";
 import type * as twilioSender from "../twilioSender.js";
 import type * as types from "../types.js";
 import type * as useAnimeDetailMobileOptimizations from "../useAnimeDetailMobileOptimizations.js";
-import type * as useGPUAcceleration from "../useGPUAcceleration.js";
-import type * as useIOSHardwareOptimization from "../useIOSHardwareOptimization.js";
-import type * as useMobileOptimizations from "../useMobileOptimizations.js";
-import type * as useMoodBoardAnalytics from "../useMoodBoardAnalytics.js";
-import type * as useMoodBoardPerformance from "../useMoodBoardPerformance.js";
-import type * as useMoodBoardState from "../useMoodBoardState.js";
-import type * as usePersistentChatHistory from "../usePersistentChatHistory.js";
-import type * as useRafInterval from "../useRafInterval.js";
-import type * as useTheme from "../useTheme.js";
-import type * as useWebWorkerPool from "../useWebWorkerPool.js";
 import type * as users from "../users.js";
 
 /**
@@ -77,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   characterEnrichment: typeof characterEnrichment;
   characterMigration: typeof characterMigration;
   crons: typeof crons;
+  emailVerification: typeof emailVerification;
   externalApis: typeof externalApis;
   http: typeof http;
   "migrations/migrateCharacterEnrichment": typeof migrations_migrateCharacterEnrichment;
@@ -94,16 +86,6 @@ declare const fullApi: ApiFromModules<{
   twilioSender: typeof twilioSender;
   types: typeof types;
   useAnimeDetailMobileOptimizations: typeof useAnimeDetailMobileOptimizations;
-  useGPUAcceleration: typeof useGPUAcceleration;
-  useIOSHardwareOptimization: typeof useIOSHardwareOptimization;
-  useMobileOptimizations: typeof useMobileOptimizations;
-  useMoodBoardAnalytics: typeof useMoodBoardAnalytics;
-  useMoodBoardPerformance: typeof useMoodBoardPerformance;
-  useMoodBoardState: typeof useMoodBoardState;
-  usePersistentChatHistory: typeof usePersistentChatHistory;
-  useRafInterval: typeof useRafInterval;
-  useTheme: typeof useTheme;
-  useWebWorkerPool: typeof useWebWorkerPool;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

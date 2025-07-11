@@ -5,9 +5,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { toast } from "sonner";
 import { AnimeRecommendation } from "../../../convex/types";
-import { useIOSHardwareOptimization } from "../../../convex/useIOSHardwareOptimization";
-import { useGPUAcceleration } from "../../../convex/useGPUAcceleration";
-import { useWebWorkerPool } from "../../../convex/useWebWorkerPool";
+import { useIOSHardwareOptimization } from "../../hooks/useIOSHardwareOptimization";
+import { useGPUAcceleration } from "../../hooks/useGPUAcceleration";
+import { useWebWorkerPool } from "../../hooks/useWebWorkerPool";
 import { useInView } from "react-intersection-observer";
 
 interface EnhancedAnimeCardProps {

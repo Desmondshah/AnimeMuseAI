@@ -1,6 +1,6 @@
 // src/components/debug/PerformanceMonitor.tsx - Real-time Performance Debugging
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { useMobileOptimizations } from '../../../../convex/useMobileOptimizations';
+import { useMobileOptimizations } from '../../../hooks/useMobileOptimizations';
 
 interface PerformanceData {
   fps: number;

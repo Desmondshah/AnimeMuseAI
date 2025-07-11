@@ -7,17 +7,17 @@ import { EnhancedSignInForm } from "./components/auth/EnhancedSignInForm";
 import { Toaster } from "sonner";
 const OnboardingFlow = lazy(() => import("./components/animuse/onboarding/OnboardingFlow"));
 const MainApp = lazy(() => import("./components/animuse/MainApp"));
-const PhoneVerificationPrompt = lazy(() => import("./components/animuse/onboarding/PhoneVerificationPrompt"));
+const VerificationPrompt = lazy(() => import("./components/auth/VerificationPrompt"));
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./components/animuse/shared/PageTransition";
-import { useMobileOptimizations } from "../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "./hooks/useMobileOptimizations";
 
 import NotificationsBell from "./components/animuse/onboarding/NotificationsBell"; // Adjust path if needed
 const NotificationsPanel = lazy(() => import("./components/animuse/onboarding/NotificationsPanel"));
 
 export default function App() {
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
-  // Key to help React differentiate states if PhoneVerificationPrompt needs a full reset
+  // Key to help React differentiate states if VerificationPrompt needs a full reset
   const [verificationFlowKey, setVerificationFlowKey] = useState(0);
 
   // Get iPad detection for conditional header styling
@@ -27,7 +27,7 @@ export default function App() {
     setIsNotificationsPanelOpen(prev => !prev);
   };
 
-  // This function is called by PhoneVerificationPrompt upon successful verification
+  // This function is called by VerificationPrompt upon successful verification
   const handleVerified = () => {
     // Incrementing the key will cause the Content component (or its children)
     // to re-evaluate or re-mount, helping to pick up the new verification status.
@@ -169,11 +169,11 @@ function Content({ onPhoneVerified }: ContentProps) {
             }
           }
 
-          // Case 2: Non-Anonymous User - Needs Phone Verification
+          // Case 2: Non-Anonymous User - Needs Email/Phone Verification
           if (!verificationStatus.isVerified) {
             return (
               <Suspense fallback={<div className="p-6 text-white">Verifying...</div>}>
-                <PhoneVerificationPrompt
+                <VerificationPrompt
                   onVerified={onPhoneVerified}
                   userIdForLog={loggedInUser?._id.toString()}
                 />

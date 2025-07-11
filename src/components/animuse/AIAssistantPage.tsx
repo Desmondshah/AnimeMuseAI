@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { AnimeRecommendation } from "../../../convex/types";
 import AnimeCard from "./AnimeCard";
-import { usePersistentChatHistory } from '../../../convex/usePersistentChatHistory.ts';
-import { useMobileOptimizations } from '../../../convex/useMobileOptimizations.ts';
+import { usePersistentChatHistory } from '../../hooks/usePersistentChatHistory';
+import { useMobileOptimizations } from '../../hooks/useMobileOptimizations';
 
 // Enhanced types
 type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };

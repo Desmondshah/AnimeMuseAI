@@ -3,7 +3,7 @@ import React, { useState, memo, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc } from "../../../convex/_generated/dataModel";
-import { useMobileOptimizations, useAdminLayoutOptimization } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations, useAdminLayoutOptimization } from "../../hooks/useMobileOptimizations";
 import StyledButton from "../animuse/shared/StyledButton";
 
 // BRUTALIST loading component

@@ -4,7 +4,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import React, { useState, FormEvent, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import StyledButton from "./components/animuse/shared/StyledButton";
-import { useAnimationOptimization, useParticleOptimization, useBackgroundOptimization } from "../convex/useMobileOptimizations";
+import { useAnimationOptimization, useParticleOptimization, useBackgroundOptimization } from "./hooks/useMobileOptimizations";
 
 // Brutalist Geometric Shape Component
 const BrutalistShape: React.FC<{ 

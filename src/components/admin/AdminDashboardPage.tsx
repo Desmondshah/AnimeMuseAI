@@ -4,7 +4,7 @@ import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
 import EnhancedAnimeManagementPage from "./EnhancedAnimeManagementPage";
 import ReviewModerationPage from "./ReviewModerationPage";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 
 interface AdminDashboardPageProps {
   onNavigateBack: () => void;

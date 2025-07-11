@@ -6,7 +6,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import StyledButton from "../animuse/shared/StyledButton";
 import { toast } from "sonner";
 import { format } from 'date-fns';
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 
 // BRUTALIST Loading Component
 const BrutalistLoadingSpinner: React.FC<{ message?: string }> = memo(({ message }) => {

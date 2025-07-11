@@ -9,6 +9,8 @@ const applicationTables = {
     name: v.optional(v.string()),
     phoneNumber: v.optional(v.string()),
     phoneNumberVerified: v.optional(v.boolean()),
+    email: v.optional(v.string()),
+    emailVerified: v.optional(v.boolean()),
     verifiedAt: v.optional(v.number()),
     moods: v.optional(v.array(v.string())),
     genres: v.optional(v.array(v.string())),
@@ -28,7 +30,8 @@ const applicationTables = {
     animationsEnabled: v.optional(v.boolean()), // User toggle for animated UI
   })
   .index("by_userId", ["userId"])
-  .index("by_phoneNumber", ["phoneNumber"]),
+  .index("by_phoneNumber", ["phoneNumber"])
+  .index("by_email", ["email"]),
 
   anime: defineTable({
     title: v.string(),
@@ -286,6 +289,18 @@ const applicationTables = {
   })
   .index("by_userId", ["userId"])
   .index("by_phoneNumber_expiresAt", ["phoneNumber", "expiresAt"])
+  .index("by_expiresAt", ["expiresAt"]),
+
+  emailVerifications: defineTable({
+    email: v.string(),
+    userId: v.id("users"),
+    hashedCode: v.string(),
+    expiresAt: v.number(),
+    attempts: v.optional(v.number()),
+    requestedAt: v.optional(v.number()),
+  })
+  .index("by_userId", ["userId"])
+  .index("by_email_expiresAt", ["email", "expiresAt"])
   .index("by_expiresAt", ["expiresAt"]),
 
   aiInteractionFeedback: defineTable({

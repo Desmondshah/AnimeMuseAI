@@ -3,7 +3,7 @@ import React, { useState, memo, useMemo } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import { toast } from "sonner";
 
 interface ChangeHistoryPanelProps {

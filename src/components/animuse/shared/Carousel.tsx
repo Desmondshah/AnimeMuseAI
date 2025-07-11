@@ -16,8 +16,8 @@ import {
   PanInfo,
   useTransform,
 } from "framer-motion";
-import { useRafInterval } from "../../../../convex/useRafInterval";
-import { useMobileOptimizations } from "../../../../convex/useMobileOptimizations";
+import { useRafInterval } from "../../../hooks/useRafInterval";
+import { useMobileOptimizations } from "../../../hooks/useMobileOptimizations";
 
 interface CarouselProps {
   children: React.ReactNode[];

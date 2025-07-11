@@ -26,7 +26,7 @@ import KyotoAnimationPage from "./KyotoAnimationPage";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./shared/PageTransition";
 import Carousel from "./shared/Carousel";
-import { useMobileOptimizations } from "../../../convex/useMobileOptimizations";
+import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow } from "swiper/modules";
 
