@@ -1,4 +1,4 @@
-// src/components/animuse/AIAssistantPage.tsx - BRUTALIST AESTHETIC and Mobile-First Design
+// src/components/animuse/AIAssistantPage.tsx - BRUTALIST MINIMALIST AI CHAT
 import React, { useState, FormEvent, useRef, useEffect, useCallback, memo } from "react";
 import { useAction, useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -11,13 +11,12 @@ import AnimeCard from "./AnimeCard";
 import { usePersistentChatHistory } from '../../../convex/usePersistentChatHistory.ts';
 import { useMobileOptimizations } from '../../../convex/useMobileOptimizations.ts';
 
-
 // Enhanced types
 type RecommendationResult = { recommendations: AnimeRecommendation[]; error?: string; };
 type AnalysisResult = { analysis: any; error?: string; };
 type GuideResult = { guide: any; error?: string; };
-type WhatIfResult = { analysis: any; error?: string; }; // ADD THIS LINE
-type AIActionResult = RecommendationResult | AnalysisResult | GuideResult | WhatIfResult; // UPDATE THIS LINE
+type WhatIfResult = { analysis: any; error?: string; };
+type AIActionResult = RecommendationResult | AnalysisResult | GuideResult | WhatIfResult;
 
 function isRecommendationResult(result: AIActionResult): result is RecommendationResult {
   return 'recommendations' in result;
@@ -40,14 +39,15 @@ function isWhatIfResult(result: AIActionResult): result is WhatIfResult {
           result.analysis.characterImpact ||
           result.analysis.creativePossibilities);
 }
+
 interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "analysis" | "guide" | "what_if"; // Added "what_if" type
+  type: "user" | "ai" | "error" | "analysis" | "guide" | "what_if";
   content: string;
   recommendations?: AnimeRecommendation[];
   analysis?: any;
   guide?: any;
-  whatIfAnalysis?: any; // ADD THIS LINE - this was missing
+  whatIfAnalysis?: any;
   feedback?: "up" | "down" | null;
   rawAiResponse?: any[];
   rawAiText?: string;
@@ -78,55 +78,31 @@ const ExpandableText: React.FC<ExpandableTextProps> = ({
   }
 
   return (
-    <p className={className}>
+    <div className={className}>
       {isExpanded ? text : `${text.substring(0, maxLength)}...`}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="ml-2 text-brand-accent-gold hover:text-brand-primary-action text-xs font-medium underline"
+        className="ml-2 bg-black text-white px-2 py-1 text-xs font-mono border-2 border-white hover:bg-white hover:text-black"
       >
-        {isExpanded ? 'Show less' : 'Show more'}
+        {isExpanded ? '[LESS]' : '[MORE]'}
       </button>
-    </p>
+    </div>
   );
 };
 
-// BRUTALIST Loading Component
+// BRUTALIST MINIMAL Loading Component
 const BrutalistLoadingSpinner: React.FC<{ size?: string; message?: string }> = memo(({ 
-  size = "h-12 w-12", 
-  message = "ANIMUSE AI PROCESSING..." 
+  size = "h-8 w-8", 
+  message = "PROCESSING..." 
 }) => (
-  <div className="flex flex-col items-center justify-center py-8">
+  <div className="flex flex-col items-center justify-center py-4">
     <div className="relative">
-      {/* Main spinning square */}
-      <div className={`${size} border-4 border-black bg-brand-primary-action animate-spin`}></div>
-      
-      {/* Inner counter-rotating square */}
-      <div className="absolute top-1 left-1 h-10 w-10 border-4 border-black bg-white animate-spin animate-reverse"></div>
-      
-      {/* Pulsing core */}
-      <div className="absolute top-3 left-3 h-6 w-6 bg-black animate-pulse"></div>
-      
-      {/* Orbiting squares */}
-      <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-        <div className="absolute top-0 left-1/2 w-2 h-2 -ml-1 bg-brand-accent-gold border border-black"></div>
-        <div className="absolute bottom-0 left-1/2 w-2 h-2 -ml-1 bg-brand-primary-action border border-black"></div>
+      <div className={`${size} bg-black border-4 border-white animate-pulse`}></div>
+      <div className="absolute inset-0 bg-white border-4 border-black animate-ping"></div>
       </div>
-      <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
-        <div className="absolute top-1/2 left-0 w-2 h-2 -mt-1 bg-brand-accent-peach border border-black"></div>
-        <div className="absolute top-1/2 right-0 w-2 h-2 -mt-1 bg-white border border-black"></div>
-      </div>
-    </div>
-    
     {message && (
-      <div className="mt-4 text-center">
-        <div className="bg-black border-4 border-white px-4 py-2 shadow-brutal">
-          <p className="text-white text-sm font-black uppercase tracking-wider">{message}</p>
-        </div>
-        <div className="flex justify-center mt-2 space-x-1">
-          <div className="w-3 h-3 bg-brand-primary-action border-2 border-black animate-bounce"></div>
-          <div className="w-3 h-3 bg-brand-accent-gold border-2 border-black animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-3 h-3 bg-brand-accent-peach border-2 border-black animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+      <div className="mt-2 bg-black text-white px-3 py-1 font-mono text-xs border-2 border-white">
+        {message}
       </div>
     )}
   </div>
@@ -171,29 +147,19 @@ const BrutalistModeCard: React.FC<{
   <div className={`${className || ''}`}>
     <button
       onClick={onClick}
-      className={`relative w-full p-4 border-4 border-black transition-all duration-300 shadow-brutal active:scale-95 touch-target ${
+      className={`w-full p-4 border-4 font-mono text-left transition-colors ${
         isActive 
-          ? 'bg-brand-primary-action text-black shadow-brutal-lg scale-105' 
-          : 'bg-white text-black hover:bg-gray-200'
+          ? 'bg-black text-white border-white' 
+          : 'bg-white text-black border-black hover:bg-black hover:text-white hover:border-white'
       }`}
     >
-      {/* Harsh background pattern */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-grid-pattern"></div>
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{mode.icon}</span>
+        <div>
+          <div className="font-bold text-sm uppercase">{mode.label}</div>
+          <div className="text-xs opacity-80">{mode.desc}</div>
       </div>
-      
-      <div className="relative z-10 text-center space-y-2">
-        <div className={`mode-icon text-3xl ${isActive ? 'animate-bounce' : ''}`}>
-          {mode.icon}
         </div>
-        <div className="mode-label text-sm font-black uppercase tracking-wider">{mode.label}</div>
-        <div className="mode-desc text-xs font-bold uppercase">{mode.desc}</div>
-      </div>
-      
-      {/* Selection indicator */}
-      {isActive && (
-        <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-accent-gold border-4 border-black animate-pulse"></div>
-      )}
     </button>
   </div>
 ));
@@ -841,234 +807,198 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
 
         {/* BRUTAL CHAT INTERFACE */}
-        <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white p-4' : `flex-1 ${isMobile ? 'px-0 pb-24' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
+        <div className={`${isFullscreen ? 'fixed inset-0 z-[9999] bg-white p-2 sm:p-4' : `flex-1 ${isMobile ? 'px-0 pb-20' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
           <div className={`${isFullscreen ? 'h-full flex flex-col' : 'w-full mx-auto'}`}>
             <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
-              <div className={`bg-black border-4 border-white shadow-brutal-lg ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'min-h-[500px]'} overflow-hidden`}>
+              <div className={`bg-white border-4 border-black ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : isMobile ? 'min-h-[400px]' : 'min-h-[500px]'} overflow-hidden`}>
                 {/* Chat Header with controls */}
-                <div className="sticky top-0 bg-black/60 backdrop-blur-sm border-b border-white/10 p-3 flex justify-between items-center z-10">
-                  <div className="flex items-center gap-3">
+                <div className={`${isFullscreen ? 'sticky' : 'sticky'} top-0 bg-black text-white border-b-4 border-black ${isMobile ? 'p-2' : 'p-3'} flex justify-between items-center z-[9998] flex-shrink-0`}>
+                  <div className="flex items-center">
                     {chatHistory.length > 0 && chatHistoryLoaded ? (
-                      <span className="text-sm text-white/70">Chat History</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono uppercase font-bold`}>
+                        {isMobile ? 'HISTORY' : 'CHAT HISTORY'}
+                      </span>
                     ) : (
-                      <span className="text-sm text-white/70">AniMuse Chat</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono uppercase font-bold`}>
+                        {isMobile ? 'AI' : 'ANIMUSE AI'}
+                      </span>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
                     {/* Fullscreen toggle button */}
                     <button
                       onClick={() => setIsFullscreen(!isFullscreen)}
-                      className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 touch-manipulation"
+                      className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-2 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-colors`}
                       title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                     >
-                      {isFullscreen ? (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zM17 4a1 1 0 00-1-1h-4a1 1 0 000 2h1.586l-2.293 2.293a1 1 0 001.414 1.414L15 6.414V8a1 1 0 002 0V4zM17 16a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 13.586V12a1 1 0 012 0v4zM3 16a1 1 0 001 1h4a1 1 0 000-2H6.414l2.293-2.293a1 1 0 00-1.414-1.414L5 13.586V12a1 1 0 00-2 0v4z"/>
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zM16 4a1 1 0 00-1-1h-4a1 1 0 000 2h1.586l-2.293 2.293a1 1 0 001.414 1.414L15 6.414V8a1 1 0 002 0V4zM4 16a1 1 0 001-1v-4a1 1 0 00-2 0v1.586l-2.293-2.293a1 1 0 00-1.414 1.414L2.586 14H1a1 1 0 000 2h4zM16 12a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 15.586V13a1 1 0 011-1z"/>
-                        </svg>
-                      )}
+                      {isFullscreen ? (isMobile ? "[EXIT]" : "[EXIT FULL]") : (isMobile ? "[F]" : "[FULL]")}
                     </button>
                     
                     {/* Clear chat button */}
                     {chatHistory.length > 0 && chatHistoryLoaded && (
-                      <StyledButton
+                      <button
                         onClick={clearChatHistory}
-                        variant="ghost"
-                        className="!text-xs !bg-red-500/20 !border-red-500/30 !text-red-300 hover:!bg-red-500/30 hover:!text-red-100 !px-3 !py-1"
+                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-2 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-colors`}
                       >
-                        🗑️ {isFullscreen ? "Clear" : "Start New Chat"}
-                      </StyledButton>
+                        {isFullscreen ? (isMobile ? "[CLEAR]" : "[CLEAR CHAT]") : (isMobile ? "[C]" : "[CLEAR]")}
+                      </button>
                     )}
                   </div>
                 </div>
 
                 {!chatHistoryLoaded && (
                   <div className="text-center py-8">
-                    <BrutalistLoadingSpinner message="LOADING CHAT HISTORY..." />
+                    <BrutalistLoadingSpinner message="LOADING..." />
                   </div>
                 )}
 
                 {chatHistory.length === 0 &&
                   !isLoading &&
                   chatHistoryLoaded && (
-                    <div className="text-center py-8">
-                      <div className="text-6xl mb-4 animate-bounce">✨</div>
-                      <h3 className="text-xl font-heading text-white mb-4">
-                        Ready to discover amazing anime?
+                    <div className={`text-center ${isMobile ? 'py-4 px-2' : 'py-8 px-4'}`}>
+                      <div className={`bg-black text-white ${isMobile ? 'p-3' : 'p-4'} border-4 border-black mb-4 font-mono`}>
+                        <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-bold mb-2 uppercase`}>
+                          {isMobile ? 'AI READY' : 'ANIMUSE AI READY'}
                       </h3>
-                      <p className="text-white/70 mb-6">
-                        Try these {aiMode} prompts to get started:
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          TYPE A PROMPT TO BEGIN
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                      </div>
+                      <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-1 sm:grid-cols-2 gap-3'} max-w-2xl mx-auto`}>
                         {getModeExamples()
-                          .slice(0, 4)
+                          .slice(0, isMobile ? 3 : 4)
                           .map((example, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleSubmit(example)}
-                              className="group relative overflow-hidden bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-left hover:border-white/30 hover:bg-black/60 transition-all duration-300 transform hover:scale-105"
+                              className={`bg-white text-black border-2 border-black ${isMobile ? 'p-2' : 'p-3'} font-mono text-left hover:bg-black hover:text-white transition-colors ${isMobile ? 'text-xs' : 'text-sm'} touch-target`}
                             >
-                              <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-action/10 to-brand-accent-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              <p className="relative text-sm text-white/80 group-hover:text-white transition-colors">
-                                "{example}"
-                              </p>
+                              {isMobile && example.length > 40 ? `${example.substring(0, 40)}...` : example}
                             </button>
                           ))}
                       </div>
                     </div>
                   )}
 
-                <motion.div
+                <div
                   ref={chatContainerRef}
-                  className={`${isFullscreen ? 'flex-1 min-h-0' : isMobile ? 'h-80' : 'h-96'} overflow-y-auto ${isMobile ? 'p-3 space-y-4' : 'p-6 space-y-6'} custom-scrollbar`}
+                  className={`${isFullscreen ? 'flex-1 min-h-0' : isMobile ? 'h-72' : 'h-96'} overflow-y-auto ${isMobile ? 'p-2 space-y-2' : 'p-6 space-y-4'} bg-white`}
                   style={{ 
                     scrollbarWidth: "thin",
-                    // Ensure proper scrolling on iOS
                     WebkitOverflowScrolling: "touch"
                   }}
-                  variants={listVariants}
-                  initial="hidden"
-                  animate="visible"
                 >
                   {!chatHistoryLoaded && (
                     <div className="text-center py-8">
-                      <BrutalistLoadingSpinner message="LOADING CHAT HISTORY..." />
+                      <BrutalistLoadingSpinner message="LOADING..." />
                     </div>
                   )}
 
                   {/* Chat Messages */}
                   {chatHistory.map((msg) => (
-                    <motion.div
+                    <div
                       key={msg.id}
                       className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
-                      variants={itemVariants}
                     >
                       <div
-                        className={`${isMobile ? 'max-w-[92%]' : 'max-w-[85%]'} ${
-                          msg.type === "user" ? "order-2" : "order-1"
-                        }`}
+                        className={`${isMobile ? 'max-w-[95%]' : 'max-w-[80%]'}`}
                       >
                         <div
-                          className={`relative ${isMobile ? 'p-3' : 'p-4'} ${isMobile ? 'rounded-xl' : 'rounded-2xl'} shadow-lg ${
+                          className={`${isMobile ? 'p-2' : 'p-4'} border-4 font-mono ${
                             msg.type === "user"
-                              ? `bg-gradient-to-r from-brand-primary-action to-brand-accent-gold text-white ${isMobile ? 'rounded-br-md ml-2' : 'rounded-br-none ml-4'}`
+                              ? `bg-black text-white border-black ${isMobile ? 'ml-4' : 'ml-8'}`
                               : msg.type === "error"
-                                ? `bg-red-900/20 text-red-400 border border-red-500/20 ${isMobile ? 'rounded-bl-md mr-2' : 'rounded-bl-none mr-4'} backdrop-blur-sm`
-                                : `bg-black/40 backdrop-blur-sm text-white border border-white/10 ${isMobile ? 'rounded-bl-md mr-2' : 'rounded-bl-none mr-4'}`
+                                ? `bg-red-500 text-white border-red-500 ${isMobile ? 'mr-4' : 'mr-8'}`
+                                : `bg-white text-black border-black ${isMobile ? 'mr-4' : 'mr-8'}`
                           }`}
                         >
                           {/* Message content */}
-                          <p className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-sm' : 'text-sm'}`}>
+                          <div className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {msg.content}
-                          </p>
+                          </div>
 
                           {/* Enhanced Content Display */}
                           {msg.type === "ai" &&
                             msg.recommendations &&
                             msg.recommendations.length > 0 && (
-                              <motion.div
-                                className="mt-4 space-y-4"
-                                variants={listVariants}
-                                initial="hidden"
-                                animate="visible"
-                              >
+                              <div className={`${isMobile ? 'mt-2' : 'mt-4'} space-y-2 border-t-2 border-black ${isMobile ? 'pt-2' : 'pt-4'}`}>
                                 {msg.recommendations.map((animeRec, idx) => (
-                                  <motion.div
+                                  <div
                                     key={`${msg.id}-rec-${idx}`}
-                                    className="relative group"
-                                    variants={itemVariants}
+                                    className={`bg-white border-2 border-black ${isMobile ? 'p-2' : 'p-3'}`}
                                   >
-                                    <div className="absolute -inset-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                    <div className={`relative bg-black/60 backdrop-blur-sm rounded-xl ${isMobile ? 'p-2' : 'p-3 sm:p-4'} border border-white/10 group-hover:border-white/30 transition-all duration-300`}>
-                                      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-col sm:flex-row gap-4'}`}>
-                                        {/* Optimized poster container for mobile */}
-                                        <div className={`${isMobile ? 'w-16 h-20 mx-auto' : 'w-20 h-28 sm:w-16 sm:h-24'} flex-shrink-0 rounded-lg overflow-hidden`}>
-                                          <AnimeCard
-                                            anime={animeRec}
-                                            onViewDetails={navigateToDetail}
-                                            isRecommendation={true}
-                                            className="w-full h-full"
-                                          />
-                                        </div>
-                                        <div className={`flex-1 ${isMobile ? 'space-y-1' : 'space-y-2'} min-w-0`}>
-                                          <h4 className={`font-heading ${isMobile ? 'text-base' : 'text-lg'} text-brand-primary-action font-semibold truncate ${isMobile ? 'text-center' : ''}`}>
-                                            {animeRec.title}
+                                    <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2'}`}>
+                                      <h4 className={`font-mono font-bold ${isMobile ? 'text-xs' : 'text-sm'} uppercase`}>
+                                        {isMobile && animeRec.title.length > 25 
+                                          ? `${animeRec.title.substring(0, 25)}...` 
+                                          : animeRec.title}
                                           </h4>
                                           {animeRec.year && (
-                                            <p className={`text-xs text-white/70 ${isMobile ? 'text-center' : ''}`}>
-                                              {animeRec.year}
+                                        <p className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono`}>
+                                          YEAR: {animeRec.year}
                                             </p>
                                           )}
                                           {animeRec.description && (
                                             <ExpandableText
                                               text={animeRec.description}
-                                              maxLength={isMobile ? 100 : 200}
-                                              className={`${isMobile ? 'text-xs' : 'text-sm'} text-white/85 leading-relaxed ${isMobile ? 'text-center' : ''}`}
+                                          maxLength={isMobile ? 60 : 200}
+                                          className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono leading-relaxed`}
                                             />
                                           )}
                                           {animeRec.reasoning && (
                                             <ExpandableText
-                                              text={`💡 ${animeRec.reasoning}`}
-                                              maxLength={isMobile ? 80 : 150}
-                                              className={`${isMobile ? 'text-xs' : 'text-sm'} italic text-brand-accent-gold leading-relaxed ${isMobile ? 'text-center' : ''}`}
+                                          text={`REASON: ${animeRec.reasoning}`}
+                                          maxLength={isMobile ? 50 : 150}
+                                          className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono leading-relaxed`}
                                             />
                                           )}
                                           {animeRec.genres &&
                                             animeRec.genres.length > 0 && (
-                                              <div className="flex flex-wrap gap-1">
+                                          <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-1'}`}>
                                                 {animeRec.genres
-                                                  .slice(0, 4)
+                                              .slice(0, isMobile ? 3 : 4)
                                                   .map((g: string) => (
                                                     <span
                                                       key={g}
-                                                      className="text-xs bg-brand-accent-gold/20 text-brand-accent-gold font-medium px-2 py-1 rounded-full"
+                                                  className={`${isMobile ? 'text-xs' : 'text-xs'} bg-black text-white ${isMobile ? 'px-1 py-0.5' : 'px-2 py-1'} font-mono border border-black`}
                                                     >
-                                                      {g}
+                                                  {isMobile && g.length > 8 ? `${g.substring(0, 8)}...` : g}
                                                     </span>
                                                   ))}
                                               </div>
                                             )}
-                                          <div className={`flex ${isMobile ? 'flex-col gap-1' : 'flex-wrap gap-2'} pt-2`}>
-                                            <StyledButton
+                                      <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-2'} pt-2`}>
+                                        <button
                                               onClick={() =>
                                                 handleAiRecommendationAddToWatchlist(
                                                   animeRec,
                                                   "Plan to Watch"
                                                 )
                                               }
-                                              variant="primary_small"
                                               disabled={
                                                 !isAuthenticated || isLoading
                                               }
-                                              className={isMobile ? '!text-xs !py-1 !px-2' : ''}
+                                          className={`bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 border-black hover:bg-white hover:text-black disabled:opacity-50 touch-target`}
                                             >
-                                              📚 {isMobile ? 'Add' : 'Add to Watchlist'}
-                                            </StyledButton>
+                                          [ADD TO WATCHLIST]
+                                        </button>
                                             {animeRec.trailerUrl && (
                                               <a
                                                 href={animeRec.trailerUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                               >
-                                                <StyledButton 
-                                                  variant="secondary_small"
-                                                  className={isMobile ? '!text-xs !py-1 !px-2' : ''}
-                                                >
-                                                  🎥 Trailer
-                                                </StyledButton>
+                                            <button className={`bg-white text-black ${isMobile ? 'px-2 py-1 w-full' : 'px-3 py-1'} text-xs font-mono border-2 border-black hover:bg-black hover:text-white touch-target`}>
+                                              [WATCH TRAILER]
+                                            </button>
                                               </a>
                                             )}
                                           </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </motion.div>
                                 ))}
-                              </motion.div>
+                              </div>
                             )}
 
                           {/* Analysis Results Display */}
@@ -1422,70 +1352,68 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     </div>
   </div>
 )}
-
                           
 
                           {/* Feedback buttons */}
                           {(msg.type === "ai" ||
   msg.type === "analysis" ||
   msg.type === "guide" ||
-  msg.type === "what_if" ||  // ADD THIS LINE
+                            msg.type === "what_if" ||
   msg.type === "error") && (
-  <div className="mt-3 flex justify-end gap-2">
+                            <div className={`${isMobile ? 'mt-2' : 'mt-3'} flex justify-end ${isMobile ? 'gap-1' : 'gap-2'} border-t-2 border-black ${isMobile ? 'pt-2' : 'pt-2'}`}>
                               <button
                                 onClick={() => handleFeedback(msg.id, "up")}
-                                className={`p-2 rounded-full text-sm transition-all duration-200 ${
+                                className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 transition-colors touch-target ${
                                   msg.feedback === "up"
-                                    ? "bg-brand-primary-action text-white shadow-lg"
-                                    : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                                    ? "bg-black text-white border-black"
+                                    : "bg-white text-black border-black hover:bg-black hover:text-white"
                                 }`}
                                 disabled={!isAuthenticated || isLoading}
                               >
-                                👍
+                                {isMobile ? "[+]" : "[GOOD]"}
                               </button>
                               <button
                                 onClick={() => handleFeedback(msg.id, "down")}
-                                className={`p-2 rounded-full text-sm transition-all duration-200 ${
+                                className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 transition-colors touch-target ${
                                   msg.feedback === "down"
-                                    ? "bg-red-500 text-white shadow-lg"
-                                    : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                                    ? "bg-red-500 text-white border-red-500"
+                                    : "bg-white text-black border-black hover:bg-red-500 hover:text-white hover:border-red-500"
                                 }`}
                                 disabled={!isAuthenticated || isLoading}
                               >
-                                👎
+                                {isMobile ? "[-]" : "[BAD]"}
                               </button>
                             </div>
                           )}
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
 
                   {/* Loading indicator */}
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="max-w-xs">
-                        <BrutalistLoadingSpinner size="h-8 w-8" />
+                      <div className={`bg-white text-black border-4 border-black ${isMobile ? 'p-2 mr-4' : 'p-4 mr-8'}`}>
+                        <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-6 w-6"} />
                       </div>
                     </div>
                   )}
-                </motion.div>
+                </div>
 
                 {/* Input Area */}
-                <div className={`${isFullscreen ? 'flex-shrink-0' : ''} border-t border-white/10 bg-black/20 backdrop-blur-sm ${isMobile ? 'p-2' : 'p-4'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-6' : 'pb-4'}`}>
+                <div className={`${isFullscreen ? 'flex-shrink-0' : ''} border-t-4 border-black bg-black text-white ${isMobile ? 'p-2' : 'p-4'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-6' : 'pb-4'}`}>
                   <form
                     onSubmit={handleSubmit}
-                    className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-end`}
+                    className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-3 items-center'}`}
                   >
                     {aiMode === "compare" || aiMode === "hidden_gems" ? (
                       <div className="flex-1 relative">
-                        <div className="w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 pr-14 text-center text-sm text-white/60 italic">
-                          Use controls above and hit Send ✨
+                        <div className={`w-full bg-white text-black border-4 border-white ${isMobile ? 'px-3 py-2' : 'px-4 py-3'} text-center ${isMobile ? 'text-xs' : 'text-sm'} font-mono`}>
+                          {isMobile ? "USE CONTROLS ABOVE" : "USE CONTROLS ABOVE AND HIT SEND"}
                         </div>
-                        {/* Send button for special modes */}
                         <button
                           type="submit"
-                          className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 text-brand-primary-action hover:text-brand-accent-gold transition-all duration-300 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed group`}
+                          className={`${isMobile ? 'absolute right-2 top-1/2 -translate-y-1/2' : 'absolute right-2 top-1/2 -translate-y-1/2'} bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 border-white hover:bg-white hover:text-black disabled:opacity-50 touch-target`}
                           disabled={
                             isLoading ||
                             authIsLoading ||
@@ -1495,43 +1423,32 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                               : false)
                           }
                         >
-                          {isLoading ? (
-                            <BrutalistLoadingSpinner size="h-5 w-5" message="" />
-                          ) : (
-                            <svg 
-                              className="w-6 h-6 transform group-hover:translate-x-0.5 transition-transform duration-200" 
-                              fill="currentColor" 
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
-                            </svg>
-                          )}
+                          {isLoading ? "..." : "[SEND]"}
                         </button>
                       </div>
                     ) : (
-                      <div className="flex-1 relative">
+                      <>
                         <input
                           type="text"
                           value={prompt}
                           onChange={(e) => setPrompt(e.target.value)}
                           placeholder={
                             aiMode === "franchise"
-                              ? (isMobile ? "Franchise name..." : "Enter franchise name...")
-                              : (isMobile ? "Ask AniMuse..." : "Ask AniMuse anything...")
+                              ? (isMobile ? "FRANCHISE" : "FRANCHISE NAME")
+                              : (isMobile ? "MESSAGE" : "TYPE MESSAGE")
                           }
-                          className={`w-full bg-black/40 backdrop-blur-sm border border-white/20 ${isMobile ? 'rounded-lg px-3 py-2' : 'rounded-xl px-4 py-3'} ${isMobile ? 'pr-12' : 'pr-14'} text-white placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 text-base touch-manipulation`}
+                          className={`${isMobile ? 'w-full' : 'flex-1'} bg-white text-black border-4 border-white ${isMobile ? 'px-3 py-2' : 'px-4 py-3'} font-mono ${isMobile ? 'text-sm' : 'text-sm'} placeholder-gray-500 focus:outline-none touch-target`}
                           disabled={
                             isLoading || authIsLoading || !isAuthenticated
                           }
                           style={{
-                            fontSize: "16px", // Prevent iOS zoom
-                            minHeight: isMobile ? "44px" : "auto", // iOS minimum touch target
+                            fontSize: "16px",
+                            minHeight: isMobile ? "44px" : "auto",
                           }}
                         />
-                        {/* Send button inside input */}
                         <button
                           type="submit"
-                          className={`absolute ${isMobile ? 'right-2' : 'right-3'} top-1/2 -translate-y-1/2 p-2 text-brand-primary-action hover:text-brand-accent-gold transition-all duration-300 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed group`}
+                          className={`bg-white text-black ${isMobile ? 'w-full px-3 py-2' : 'px-4 py-3'} ${isMobile ? 'text-sm' : 'text-sm'} font-mono border-4 border-white hover:bg-black hover:text-white hover:border-white disabled:opacity-50 touch-target`}
                           disabled={
                             isLoading ||
                             authIsLoading ||
@@ -1539,27 +1456,15 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                             !prompt.trim()
                           }
                         >
-                          {isLoading ? (
-                            <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-5 w-5"} message="" />
-                          ) : (
-                            <svg 
-                              className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} transform group-hover:translate-x-0.5 transition-transform duration-200`} 
-                              fill="currentColor" 
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
-                            </svg>
-                          )}
+                          {isLoading ? "PROCESSING..." : (isMobile ? "[SEND MESSAGE]" : "[SEND]")}
                         </button>
-                      </div>
+                      </>
                     )}
-
-                    {/* Remove the separate send button */}
                   </form>
 
                   {!isAuthenticated && !authIsLoading && (
-                    <p className="text-xs text-brand-accent-gold mt-2 text-center">
-                      Please log in to chat with AniMuse AI ✨
+                    <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-white mt-2 text-center font-mono`}>
+                      {isMobile ? "LOGIN TO CHAT" : "LOG IN TO CHAT"}
                     </p>
                   )}
                 </div>
@@ -1592,6 +1497,35 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           overflow: hidden;
         }
 
+                 /* Fullscreen chat optimizations */
+         .z-\\[9999\\] {
+           z-index: 9999 !important;
+           position: fixed !important;
+         }
+         
+         .z-\\[9998\\] {
+           z-index: 9998 !important;
+         }
+
+         /* Ensure fullscreen mode covers everything */
+         .fixed.inset-0 {
+           top: 0 !important;
+           left: 0 !important;
+           right: 0 !important;
+           bottom: 0 !important;
+           width: 100vw !important;
+           height: 100vh !important;
+           overflow: hidden !important;
+         }
+
+         /* Fullscreen header positioning */
+         .fixed.inset-0 .sticky.top-0 {
+           position: sticky !important;
+           top: 0 !important;
+           z-index: 9998 !important;
+           background: black !important;
+         }
+
         /* iPhone specific optimizations */
         @media (max-width: 414px) {
           .custom-scrollbar {
@@ -1611,6 +1545,21 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
             background: rgba(255, 107, 53, 0.5);
             border-radius: 4px;
           }
+
+                     /* Fullscreen mobile specific */
+           .fixed.inset-0 {
+             height: 100vh !important;
+             height: 100dvh !important; /* Dynamic viewport height for mobile */
+           }
+           
+           /* Ensure fullscreen header is visible on mobile */
+           .fixed.inset-0 .sticky.top-0 {
+             position: sticky !important;
+             top: 0 !important;
+             z-index: 9998 !important;
+             background: black !important;
+             border-bottom: 4px solid black !important;
+           }
         }
 
         /* Enhanced scrollbar for all devices */

@@ -477,7 +477,7 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
     }
   }, [fetchMappaAnime, getCachedData, setCachedData, organizeAnimeIntoCategories, hasInitialData]);
 
-  // Always show content immediately - no loading states
+  // Only show database data - no fallback content to prevent flickering
   useEffect(() => {
     // Check cache first
     const cachedData = getCachedData();
@@ -489,14 +489,9 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
       setError(null);
       setHasInitialData(true);
     } else {
-      // No cache - show fallback data immediately, then fetch in background
-      console.log('[MAPPA] No cache found, showing fallback data...');
-      setAllMappaAnime(FALLBACK_MAPPA_ANIME);
-      organizeAnimeIntoCategories(FALLBACK_MAPPA_ANIME);
-      setError(null);
-      setHasInitialData(true);
-      
-      // Fetch real data in background without showing loading
+      // No cache - fetch data and show loading state
+      console.log('[MAPPA] No cache found, fetching from database...');
+      setHasInitialData(false);
       fetchMappaData(false);
     }
   }, [getCachedData, organizeAnimeIntoCategories, fetchMappaData]);
@@ -602,17 +597,38 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
         </div>
 
         <div className="max-w-7xl mx-auto">
-          {/* Legendary Works */}
-          {categories.legendary.length > 0 && (
-            <BrutalistMappaCarousel 
-              title="LEGENDARY WORKS"
-              color="#00ffff"
-              accent="#ff00ff"
-              icon="🏆"
-            >
-              {categories.legendary.map((anime, index) => (
-                <motion.div
-                  key={`legendary-${index}`}
+          {/* Show loading state if no initial data */}
+          {!hasInitialData && isLoading && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
+              <div className="relative">
+                <div className="w-32 h-32 border-8 border-white border-t-cyan-400 rounded-full animate-spin" />
+                <div className="absolute inset-0 w-32 h-32 border-8 border-transparent border-r-pink-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-black text-white uppercase tracking-widest">
+                  LOADING MAPPA MASTERWORKS
+                </h3>
+                <p className="text-cyan-400 font-bold uppercase tracking-wide mt-2">
+                  Fetching from database...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Show content when data is available */}
+          {hasInitialData && (
+            <>
+              {/* Legendary Works */}
+              {categories.legendary.length > 0 && (
+                <BrutalistMappaCarousel 
+                  title="LEGENDARY WORKS"
+                  color="#00ffff"
+                  accent="#ff00ff"
+                  icon="🏆"
+                >
+                  {categories.legendary.map((anime, index) => (
+                    <motion.div
+                      key={`legendary-${index}`}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
@@ -708,6 +724,8 @@ const MappaPage: React.FC<MappaPageProps> = ({ onViewAnimeDetail, onBack }) => {
                 </motion.div>
               ))}
             </BrutalistMappaCarousel>
+          )}
+            </>
           )}
         </div>
 

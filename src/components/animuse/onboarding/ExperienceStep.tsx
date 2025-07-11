@@ -1,55 +1,55 @@
-// src/components/animuse/onboarding/ExperienceStep.tsx - Mobile-Optimized Version
+// src/components/animuse/onboarding/ExperienceStep.tsx - Brutalist UI Version
 import React, { useState, useEffect } from "react";
 import StyledButton from "../shared/StyledButton";
 
 const EXPERIENCE_LEVELS = [
   {
     id: "newbie",
-    label: "Newbie",
-    shortLabel: "Just starting!",
-    emoji: "🌱",
-    color: "from-green-400 to-emerald-500",
-    description: "Ready to explore the amazing world of anime",
+    label: "NEWBIE",
+    symbol: "▲",
+    color: "#00FF00",
+    description: "JUST STARTING",
     level: 1,
-    badge: "Seedling Explorer",
-    traits: ["Curious", "Open-minded", "Fresh perspective"],
-    recommendation: "We'll start with accessible, popular series!"
+    badge: "SEEDLING",
+    traits: ["CURIOUS", "FRESH", "OPEN"],
+    recommendation: "ACCESSIBLE SERIES FOR BEGINNERS",
+    accent: "#88FF88"
   },
   {
     id: "casual",
-    label: "Casual Viewer",
-    shortLabel: "Entertainment fan",
-    emoji: "🎭",
-    color: "from-blue-400 to-cyan-500",
-    description: "Enjoying anime as entertainment",
+    label: "CASUAL",
+    symbol: "■",
+    color: "#0088FF",
+    description: "ENTERTAINMENT FAN",
     level: 2,
-    badge: "Casual Enthusiast", 
-    traits: ["Selective", "Balanced", "Mainstream taste"],
-    recommendation: "Mix of popular hits and hidden gems!"
+    badge: "ENTHUSIAST", 
+    traits: ["SELECTIVE", "BALANCED", "MAINSTREAM"],
+    recommendation: "POPULAR HITS + HIDDEN GEMS",
+    accent: "#88AAFF"
   },
   {
     id: "seasoned",
-    label: "Seasoned Fan",
-    shortLabel: "Genre expert",
-    emoji: "⚡",
-    color: "from-purple-500 to-indigo-600",
-    description: "Deep appreciation for the medium",
+    label: "SEASONED",
+    symbol: "⚡",
+    color: "#8800FF",
+    description: "GENRE EXPERT",
     level: 3,
-    badge: "Anime Veteran",
-    traits: ["Knowledgeable", "Analytical", "Genre-aware"],
-    recommendation: "Diverse genres and deeper storytelling!"
+    badge: "VETERAN",
+    traits: ["ANALYTICAL", "DIVERSE", "INFORMED"],
+    recommendation: "COMPLEX NARRATIVES + VARIETY",
+    accent: "#AA88FF"
   },
   {
     id: "legend",
-    label: "Otaku Legend",
-    shortLabel: "Culture expert",
-    emoji: "👑",
-    color: "from-yellow-400 to-orange-500",
-    description: "Living and breathing anime culture",
+    label: "LEGEND",
+    symbol: "★",
+    color: "#FFAA00",
+    description: "CULTURE MASTER",
     level: 4,
-    badge: "Master Otaku",
-    traits: ["Expert", "Passionate", "Culture-immersed"],
-    recommendation: "Obscure classics and avant-garde series!"
+    badge: "OTAKU",
+    traits: ["EXPERT", "PASSIONATE", "IMMERSED"],
+    recommendation: "OBSCURE CLASSICS + AVANT-GARDE",
+    accent: "#FFFF88"
   }
 ];
 
@@ -58,237 +58,10 @@ interface ExperienceStepProps {
   updateData: (data: { experienceLevel: string }) => void;
 }
 
-// Mobile-optimized experience card
-const ExperienceCard: React.FC<{
-  experience: typeof EXPERIENCE_LEVELS[0]; // Make sure EXPERIENCE_LEVELS is defined
-  isSelected: boolean;
-  onSelect: () => void;
-  index: number; // Assuming index is still passed for potential animation delays if any
-  isMobile: boolean;
-}> = ({ experience, isSelected, onSelect, index, isMobile }) => {
-  const [isHovered, setIsHovered] = useState(false); // For desktop hover state
-
-  // --- MOBILE CARD IMPLEMENTATION ---
-  if (isMobile) {
-    return (
-      <div className="w-full">
-        {/* Visual indicator for selection (e.g., glow), does not affect layout/interaction layer */}
-        {isSelected && (
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-brand-primary-action/40 to-brand-accent-gold/40 rounded-2xl blur-sm pointer-events-none"></div>
-        )}
-        <button
-          onClick={onSelect}
-          className={`
-            relative w-full p-4 rounded-2xl border transition-all duration-200
-            focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-offset-2 focus:ring-offset-brand-background 
-            /* --- Z-INDEX STRATEGY FOR MOBILE --- */
-            ${isSelected
-              ? 'z-0' // Selected card is at base interactive layer
-              : 'z-10 active:z-20 active:scale-105' // Non-selected is above selected; active non-selected is highest & scales
-            }
-            /* --- STYLING BASED ON SELECTION --- */
-            ${isSelected
-              ? `bg-gradient-to-r ${experience.color} bg-opacity-20 border-white/40 text-white`
-              : 'bg-black/40 border-white/20 text-white/90 hover:bg-black/50' // Subtle hover for non-selected
-            }
-          `}
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {/* Main content row (Emoji, Label, Badge, Level) */}
-          <div className="flex items-center gap-3">
-            <div className={`text-3xl flex-shrink-0 ${isSelected && !isHovered ? 'animate-pulse' : ''}`}>
-              {experience.emoji}
-            </div>
-            <div className="flex-1 text-left">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-heading font-bold text-base">
-                    {experience.label}
-                  </h4>
-                  <p className="text-xs text-white/70 mt-0.5">
-                    {experience.badge}
-                  </p>
-                </div>
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r ${experience.color} flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                  Lv.{experience.level}
-                </div>
-              </div>
-              <p className="text-xs text-white/80 mt-2 leading-relaxed">
-                {experience.description}
-              </p>
-            </div>
-          </div>
-
-          {/* Expandable section for traits and recommendation (only if selected) */}
-          {isSelected && (
-            <div className="mt-3 pt-3 border-t border-white/20 space-y-2 animate-fade-in">
-              <div className="flex flex-wrap gap-1">
-                {experience.traits.map((trait) => (
-                  <span
-                    key={trait}
-                    className="text-xs px-2 py-0.5 rounded-full bg-white/20 border border-white/30 text-white"
-                  >
-                    {trait}
-                  </span>
-                ))}
-              </div>
-              <p className="text-xs text-white/90 italic">
-                💡 {experience.recommendation}
-              </p>
-            </div>
-          )}
-
-          {/* Selection Indicator Icon */}
-          {isSelected && (
-            <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white rounded-full border-2 border-current flex items-center justify-center shadow-lg pointer-events-none">
-              <svg className="w-3 h-3 text-current" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-              </svg>
-            </div>
-          )}
-        </button>
-      </div>
-    );
-  }
-
-  // --- DESKTOP CARD IMPLEMENTATION ---
-  return (
-    <div className="group relative w-full">
-      {/* Desktop glow effect (visual only, pointer-events-none) */}
-      <div className={`absolute -inset-2 bg-gradient-to-r ${experience.color} rounded-3xl blur-xl transition-all duration-300 pointer-events-none ${
-        (isSelected && !isHovered) // Persistent but subtle glow for selected
-          ? 'opacity-50'
-          : isHovered // Stronger glow on hover
-          ? 'opacity-40 scale-105' // Match hover scale for glow
-          : 'opacity-0'
-      }`}></div>
-      
-      {/* Selection ring for selected items (visual cue without scaling, pointer-events-none) */}
-      {isSelected && !isHovered && (
-        <div className="absolute -inset-1 bg-gradient-to-r from-white/40 to-white/20 rounded-3xl pointer-events-none"></div>
-      )}
-      
-      <button
-        onClick={onSelect}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`
-          relative w-full p-6 rounded-3xl border transition-all duration-300 transform 
-          focus:outline-none focus:ring-2 focus:ring-brand-primary-action focus:ring-offset-2 focus:ring-offset-brand-background
-          /* --- Z-INDEX STRATEGY FOR DESKTOP --- */
-          ${isSelected
-            ? 'z-0' // Selected card: base interactive layer
-            : 'z-10 hover:z-20 hover:scale-105' // Non-selected: above selected; hovered non-selected is highest & scales
-          }
-          /* --- STYLING BASED ON SELECTION --- */
-          ${isSelected 
-            ? `bg-gradient-to-br ${experience.color} border-white/30 text-white shadow-xl`
-            : 'bg-black/40 backdrop-blur-sm border-white/20 hover:border-white/40 hover:bg-black/60 text-white/90'
-          }
-        `}
-      >
-        {/* Desktop card content (Emoji, Label, Badge, Level, Description, Traits, Recommendation) */}
-        <div className="relative z-10 space-y-4"> {/* Ensure content is above potential pseudo-elements if any */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <div className={`text-4xl flex-shrink-0 transition-transform duration-300 ${
-                isSelected && !isHovered ? 'animate-bounce' : '' 
-              }`}>
-                {experience.emoji}
-              </div>
-              <div className="text-left min-w-0 flex-1">
-                <h4 className="font-heading font-bold text-lg">
-                  {experience.label}
-                </h4>
-                <p className="text-xs opacity-80">{experience.badge}</p>
-              </div>
-            </div>
-            <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${experience.color} flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0`}>
-              <span className="text-sm">{experience.level}</span>
-            </div>
-          </div>
-          <p className="text-sm leading-relaxed opacity-80">
-            {experience.description}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {experience.traits.map((trait) => (
-              <span
-                key={trait}
-                className={`text-xs px-2 py-1 rounded-full border transition-all duration-300 ${
-                  isSelected 
-                    ? 'bg-white/20 border-white/40 text-white' 
-                    : 'bg-white/10 border-white/20 text-white/80'
-                }`}
-              >
-                {trait}
-              </span>
-            ))}
-          </div>
-          {isSelected && (
-            <div className="pt-3 border-t border-white/20 animate-fade-in">
-              <p className="text-xs opacity-80 italic leading-relaxed">
-                💡 {experience.recommendation}
-              </p>
-            </div>
-          )}
-        </div>
-        
-        {/* Selection Indicator Icon */}
-        {isSelected && (
-          <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full border-4 border-current flex items-center justify-center shadow-lg pointer-events-none">
-            <svg className="w-4 h-4 text-current" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-            </svg>
-          </div>
-        )}
-      </button>
-    </div>
-  );
-};
-
-// Level Progress Bar Component
-const LevelProgressBar: React.FC<{ currentLevel: number; maxLevel: number }> = ({ 
-  currentLevel, 
-  maxLevel 
-}) => {
-  return (
-    <div className="relative w-full h-2 sm:h-3 bg-black/40 rounded-full overflow-hidden backdrop-blur-sm border border-white/20">
-      <div
-        className="h-full bg-gradient-to-r from-brand-primary-action via-brand-accent-gold to-brand-accent-peach transition-all duration-1000 ease-out"
-        style={{ width: `${(currentLevel / maxLevel) * 100}%` }}
-      />
-      
-      {/* Level markers */}
-      <div className="hidden xs:block">
-        {Array.from({ length: maxLevel }, (_, i) => (
-          <div
-            key={i}
-            className={`absolute top-0 bottom-0 w-0.5 ${
-              i < currentLevel ? 'bg-white/60' : 'bg-white/20'
-            }`}
-            style={{ left: `${((i + 1) / maxLevel) * 100}%` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export default function ExperienceStep({ data, updateData }: ExperienceStepProps) {
   const [selectedExperience, setSelectedExperience] = useState<typeof EXPERIENCE_LEVELS[0] | null>(
     EXPERIENCE_LEVELS.find(exp => exp.label === data.experienceLevel) || null
   );
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 640);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const handleSelect = (experience: typeof EXPERIENCE_LEVELS[0]) => {
     setSelectedExperience(experience);
@@ -296,152 +69,205 @@ export default function ExperienceStep({ data, updateData }: ExperienceStepProps
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-2 sm:px-4">
-      {/* Simplified background for mobile */}
-      {!isMobile && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-8 left-12 w-24 h-24 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-xl opacity-60"></div>
-          <div className="absolute bottom-12 right-16 w-32 h-32 bg-gradient-to-tl from-brand-accent-gold/15 to-transparent rounded-full blur-xl opacity-60"></div>
+    <div className="brutalist-container min-h-screen bg-black text-white font-mono relative overflow-hidden">
+      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
+        <div className="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
+        <div className="absolute bottom-0 left-0 w-full h-2 bg-purple-500"></div>
+        <div className="absolute top-0 left-0 w-2 h-full bg-orange-500"></div>
+        
+        {/* HARSH DIAGONAL LINES */}
+        <div className="absolute top-1/4 left-0 w-full h-1 bg-white transform rotate-3 opacity-20"></div>
+        <div className="absolute top-3/4 left-0 w-full h-1 bg-green-500 transform -rotate-3 opacity-30"></div>
+        
+        {/* STARK GEOMETRIC SHAPES */}
+        <div className="absolute top-16 right-16 w-24 h-24 bg-blue-500 transform rotate-45"></div>
+        <div className="absolute bottom-20 left-8 w-20 h-20 bg-purple-500"></div>
+        <div className="absolute top-1/2 right-1/6 w-10 h-28 bg-orange-500"></div>
+      </div>
+
+      {/* BRUTAL HEADER */}
+      <div className="relative z-10 text-center pt-8 pb-6 border-b-4 border-white">
+        <div className="bg-black border-4 border-white inline-block p-6 transform -rotate-1 shadow-[8px_8px_0px_0px_#00FF00]">
+          <h1 className="text-4xl md:text-6xl font-black tracking-wider mb-2">
+            EXPERIENCE
+          </h1>
+          <div className="w-full h-2 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500"></div>
+          <h2 className="text-xl md:text-2xl font-bold mt-2 text-orange-400">
+            WHAT'S YOUR LEVEL?
+          </h2>
         </div>
-      )}
-
-      <div className="relative z-10 space-y-4 sm:space-y-6 md:space-y-8">
-        {/* Header Section - Mobile Optimized */}
-        <div className="text-center space-y-3 sm:space-y-4">
-          <div className="relative inline-block">
-            <div className={`relative ${isMobile ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'} border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6`}>
-              <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
-                <span className="text-xl sm:text-2xl md:text-3xl">🎯</span>
-                <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold">
-                  <span className="bg-gradient-to-r from-brand-primary-action to-brand-accent-gold bg-clip-text text-transparent">
-                    {isMobile ? "Experience Level" : "Your Anime Experience"}
-                  </span>
-                </h3>
-                <span className="text-xl sm:text-2xl md:text-3xl">⚡</span>
-              </div>
-              <p className="text-white/80 text-xs sm:text-sm md:text-base leading-relaxed">
-                {isMobile 
-                  ? "How deep is your anime journey?"
-                  : "Help us understand your anime journey so far."
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Indicator - Mobile Optimized */}
-          {selectedExperience && (
-            <div className="max-w-xs sm:max-w-md mx-auto space-y-2 sm:space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs sm:text-sm text-white/80">Experience Level</span>
-                <span className="text-xs sm:text-sm font-bold text-brand-accent-gold">
-                  Level {selectedExperience.level}/4
-                </span>
-              </div>
-              <LevelProgressBar currentLevel={selectedExperience.level} maxLevel={4} />
-              <p className="text-xs text-white/60">
-                {selectedExperience.badge} Status
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Experience Cards - Different layouts for mobile/desktop */}
-        <div className={isMobile ? 'space-y-3' : 'grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6'}>
-          {EXPERIENCE_LEVELS.map((experience, index) => (
-            <ExperienceCard
-              key={experience.id}
-              experience={experience}
-              isSelected={selectedExperience?.id === experience.id}
-              onSelect={() => handleSelect(experience)}
-              index={index}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
-
-        {/* Selected Experience Summary - Mobile Optimized */}
-        {selectedExperience && !isMobile && (
-          <div className="relative animate-fade-in">
-            <div className={`absolute -inset-3 bg-gradient-to-r ${selectedExperience.color} rounded-3xl blur-xl opacity-40`}></div>
-            <div className={`relative bg-gradient-to-r ${selectedExperience.color} bg-opacity-20 backdrop-blur-sm border border-white/30 rounded-3xl p-6`}>
-              <div className="text-center space-y-4">
-                <div className="flex items-center justify-center space-x-3">
-                  <span className="text-4xl">{selectedExperience.emoji}</span>
-                  <div>
-                    <h4 className="text-xl font-heading text-white font-bold">
-                      {selectedExperience.badge}
-                    </h4>
-                    <p className="text-white/80 text-sm">Level {selectedExperience.level} Anime Fan</p>
-                  </div>
-                  <span className="text-4xl">🎊</span>
-                </div>
-                
-                <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                  <h5 className="text-lg font-heading text-brand-accent-gold mb-2">
-                    Personalization Strategy
-                  </h5>
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    {selectedExperience.recommendation}
-                  </p>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {selectedExperience.traits.map((trait) => (
-                    <span
-                      key={trait}
-                      className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1 text-white text-xs font-medium"
-                    >
-                      ✨ {trait}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick comparison on mobile */}
-        {isMobile && (
-          <div className="mt-6 p-4 bg-black/40 rounded-2xl border border-white/10">
-            <h5 className="text-sm font-heading text-white/80 mb-3 text-center">Quick Level Guide</h5>
-            <div className="space-y-2">
-              {EXPERIENCE_LEVELS.map((exp) => (
-                <div 
-                  key={exp.id}
-                  className={`flex items-center gap-2 text-xs ${
-                    selectedExperience?.id === exp.id 
-                      ? 'text-brand-accent-gold' 
-                      : 'text-white/60'
-                  }`}
-                >
-                  <span>{exp.emoji}</span>
-                  <span className="font-medium">Lv.{exp.level}</span>
-                  <span>-</span>
-                  <span>{exp.shortLabel}</span>
-                </div>
-              ))}
-            </div>
+        
+        {/* LEVEL INDICATOR - BRUTAL STYLE */}
+        {selectedExperience && (
+          <div className="mt-6 inline-block bg-orange-400 text-black font-black text-xl p-4 border-4 border-white transform rotate-1 shadow-[4px_4px_0px_0px_#000000]">
+            LEVEL [{selectedExperience.level}/4] - {selectedExperience.badge}
           </div>
         )}
       </div>
 
-      {/* Custom CSS */}
+      {/* EXPERIENCE CARDS - BRUTALIST LAYOUT */}
+      <div className="relative z-10 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-96 overflow-y-auto brutalist-scrollbar">
+          {EXPERIENCE_LEVELS.map((experience, index) => {
+            const isSelected = selectedExperience?.id === experience.id;
+            
+            return (
+              <button
+                key={experience.id}
+                onClick={() => handleSelect(experience)}
+                className={`brutal-experience-card group relative border-4 p-6 font-black uppercase tracking-wide transform transition-all duration-100 ${
+                  isSelected 
+                    ? `bg-white text-black border-black shadow-[8px_8px_0px_0px_${experience.color}] -translate-x-1 -translate-y-1`
+                    : `bg-black text-white border-white hover:shadow-[6px_6px_0px_0px_${experience.color}] hover:-translate-x-1 hover:-translate-y-1`
+                }`}
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                }}
+              >
+                {/* LEVEL BADGE */}
+                <div className={`absolute -top-3 -right-3 w-12 h-12 border-4 border-black font-black text-lg flex items-center justify-center ${
+                  isSelected ? 'bg-black text-white' : 'bg-white text-black'
+                }`}>
+                  {experience.level}
+                </div>
+
+                {/* BRUTAL SYMBOL */}
+                <div 
+                  className={`text-5xl mb-4 font-black ${isSelected ? 'text-black' : 'text-white'}`}
+                  style={{ color: isSelected ? experience.color : experience.accent }}
+                >
+                  {experience.symbol}
+                </div>
+                
+                {/* EXPERIENCE LABEL */}
+                <div className="text-xl font-black leading-tight mb-2">
+                  {experience.label}
+                </div>
+                
+                {/* DESCRIPTION */}
+                <div className="text-sm font-bold mb-4">
+                  {experience.description}
+                </div>
+
+                {/* BADGE */}
+                <div 
+                  className={`text-xs font-black p-2 border-2 mb-4 ${
+                    isSelected ? 'border-black bg-black text-white' : 'border-white bg-white text-black'
+                  }`}
+                >
+                  {experience.badge}
+                </div>
+                
+                {/* TRAITS - VISIBLE ON SELECT */}
+                <div className={`transition-all duration-200 ${
+                  isSelected ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-40'
+                }`}>
+                  <div className="text-xs font-bold mb-2">TRAITS:</div>
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {experience.traits.map((trait) => (
+                      <span 
+                        key={trait} 
+                        className={`text-xs font-bold px-2 py-1 border ${
+                          isSelected ? 'border-black bg-black text-white' : 'border-white bg-white text-black'
+                        }`}
+                      >
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-xs font-bold">
+                    → {experience.recommendation}
+                  </div>
+                </div>
+                
+                {/* SELECTION INDICATOR */}
+                {isSelected && (
+                  <div 
+                    className="absolute -top-2 -left-2 w-8 h-8 border-4 border-white font-black text-sm flex items-center justify-center bg-black text-white"
+                  >
+                    ✓
+                  </div>
+                )}
+                
+                {/* CORNER ACCENT */}
+                <div 
+                  className="absolute bottom-0 right-0 w-6 h-6"
+                  style={{ backgroundColor: isSelected ? experience.accent : experience.color }}
+                ></div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SELECTION FEEDBACK - BRUTAL */}
+      {selectedExperience && (
+        <div className="relative z-10 p-6">
+          <div className="max-w-2xl mx-auto bg-green-500 text-black border-4 border-black p-6 transform -rotate-1 shadow-[12px_12px_0px_0px_#000000]">
+            <div className="text-center">
+              <div className="text-4xl font-black mb-3">
+                {selectedExperience.symbol} LEVEL {selectedExperience.level} CONFIRMED
+              </div>
+              <div className="text-lg font-bold uppercase tracking-wide mb-4">
+                {selectedExperience.badge} STATUS ACTIVATED
+              </div>
+              <div className="bg-black text-white p-4 font-bold text-sm border-4 border-white">
+                STRATEGY: {selectedExperience.recommendation}
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center mt-4">
+                {selectedExperience.traits.map((trait) => (
+                  <span key={trait} className="text-xs bg-black text-white font-bold px-3 py-2 border-2 border-white">
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BRUTAL CSS STYLES */}
       <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        .brutalist-container {
+          font-family: 'Courier New', monospace;
         }
         
-        .animate-fade-in {
-          animation: fade-in 0.4s ease-out forwards;
+        .brutal-experience-card {
+          clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
         }
-
-        /* Touch feedback for mobile */
-        @media (hover: none) and (pointer: coarse) {
-          button:active {
-            transform: scale(0.98) !important;
-            opacity: 0.9 !important;
-          }
+        
+        .brutalist-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-track {
+          background: #000;
+          border: 2px solid #fff;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb {
+          background: #fff;
+          border: 1px solid #000;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #00ff00;
+        }
+        
+        @keyframes brutal-pulse {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          50% { transform: scale(1.02) rotate(0.5deg); }
+        }
+        
+        .brutal-experience-card:hover {
+          animation: brutal-pulse 0.4s ease-in-out;
+        }
+        
+        /* Disable smooth scrolling for brutal feel */
+        * {
+          scroll-behavior: auto !important;
         }
       `}</style>
     </div>

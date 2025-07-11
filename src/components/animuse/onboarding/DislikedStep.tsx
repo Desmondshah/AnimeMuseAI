@@ -1,30 +1,30 @@
-// src/components/animuse/onboarding/DislikedStep.tsx - Mobile-Optimized Version
+// src/components/animuse/onboarding/DislikedStep.tsx - Brutalist UI Version
 import React, { useState, useEffect } from "react";
 import StyledButton from "../shared/StyledButton";
 
 const DISLIKED_GENRES_OPTIONS = [
-  { id: "action", label: "Action", emoji: "⚔️", color: "from-red-500 to-orange-500", description: "Too intense battles" },
-  { id: "adventure", label: "Adventure", emoji: "🗺️", color: "from-green-500 to-teal-500", description: "Long journeys" },
-  { id: "comedy", label: "Comedy", emoji: "😂", color: "from-yellow-400 to-orange-400", description: "Not funny to me" },
-  { id: "drama", label: "Drama", emoji: "🎭", color: "from-purple-500 to-pink-500", description: "Too emotional" },
-  { id: "ecchi", label: "Ecchi", emoji: "😳", color: "from-pink-500 to-red-400", description: "Suggestive content" },
-  { id: "fantasy", label: "Fantasy", emoji: "🧙‍♂️", color: "from-purple-600 to-indigo-600", description: "Not into magic" },
-  { id: "harem", label: "Harem", emoji: "👥", color: "from-pink-400 to-rose-400", description: "Multiple love interests" },
-  { id: "horror", label: "Horror", emoji: "👻", color: "from-gray-800 to-red-900", description: "Too scary" },
-  { id: "isekai", label: "Isekai", emoji: "🌍", color: "from-blue-500 to-purple-500", description: "Another world trope" },
-  { id: "josei", label: "Josei", emoji: "👩", color: "from-pink-400 to-rose-400", description: "Adult women focus" },
-  { id: "mecha", label: "Mecha", emoji: "🤖", color: "from-gray-500 to-blue-600", description: "Giant robots" },
-  { id: "mystery", label: "Mystery", emoji: "🔍", color: "from-indigo-600 to-purple-700", description: "Confusing plots" },
-  { id: "psychological", label: "Psychological", emoji: "🧠", color: "from-purple-700 to-indigo-800", description: "Mind games" },
-  { id: "romance", label: "Romance", emoji: "💕", color: "from-pink-500 to-red-400", description: "Love stories" },
-  { id: "sciFi", label: "Sci-Fi", emoji: "🚀", color: "from-cyan-500 to-blue-600", description: "Futuristic tech" },
-  { id: "seinen", label: "Seinen", emoji: "👨", color: "from-blue-600 to-indigo-600", description: "Adult men focus" },
-  { id: "shojo", label: "Shojo", emoji: "🌸", color: "from-pink-300 to-rose-400", description: "Young girls focus" },
-  { id: "shonen", label: "Shonen", emoji: "💪", color: "from-orange-500 to-red-500", description: "Young boys focus" },
-  { id: "sliceOfLife", label: "Slice of Life", emoji: "☕", color: "from-green-400 to-teal-400", description: "Slow paced" },
-  { id: "sports", label: "Sports", emoji: "⚽", color: "from-emerald-500 to-green-600", description: "Athletic focus" },
-  { id: "supernatural", label: "Supernatural", emoji: "👁️", color: "from-purple-800 to-indigo-900", description: "Paranormal elements" },
-  { id: "thriller", label: "Thriller", emoji: "⚡", color: "from-red-600 to-orange-700", description: "Too suspenseful" },
+  { id: "action", label: "ACTION", emoji: "⚔", color: "#FF0000", description: "BATTLES TOO INTENSE" },
+  { id: "adventure", label: "ADVENTURE", emoji: "🗺", color: "#00FF00", description: "JOURNEYS TOO LONG" },
+  { id: "comedy", label: "COMEDY", emoji: "😂", color: "#FFFF00", description: "NOT FUNNY TO ME" },
+  { id: "drama", label: "DRAMA", emoji: "🎭", color: "#FF00FF", description: "TOO EMOTIONAL" },
+  { id: "ecchi", label: "ECCHI", emoji: "😳", color: "#FF69B4", description: "SUGGESTIVE CONTENT" },
+  { id: "fantasy", label: "FANTASY", emoji: "🧙", color: "#800080", description: "NO MAGIC INTEREST" },
+  { id: "harem", label: "HAREM", emoji: "👥", color: "#FFC0CB", description: "MULTIPLE LOVE INTERESTS" },
+  { id: "horror", label: "HORROR", emoji: "👻", color: "#000000", description: "TOO SCARY FOR ME" },
+  { id: "isekai", label: "ISEKAI", emoji: "🌍", color: "#0066FF", description: "ANOTHER WORLD TROPE" },
+  { id: "josei", label: "JOSEI", emoji: "👩", color: "#FF1493", description: "ADULT WOMEN FOCUS" },
+  { id: "mecha", label: "MECHA", emoji: "🤖", color: "#808080", description: "GIANT ROBOTS" },
+  { id: "mystery", label: "MYSTERY", emoji: "🔍", color: "#4B0082", description: "CONFUSING PLOTS" },
+  { id: "psychological", label: "PSYCHOLOGICAL", emoji: "🧠", color: "#301934", description: "MIND GAMES" },
+  { id: "romance", label: "ROMANCE", emoji: "💕", color: "#DC143C", description: "LOVE STORIES" },
+  { id: "sciFi", label: "SCI-FI", emoji: "🚀", color: "#00FFFF", description: "FUTURISTIC TECH" },
+  { id: "seinen", label: "SEINEN", emoji: "👨", color: "#191970", description: "ADULT MEN FOCUS" },
+  { id: "shojo", label: "SHOJO", emoji: "🌸", color: "#FFB6C1", description: "YOUNG GIRLS FOCUS" },
+  { id: "shonen", label: "SHONEN", emoji: "💪", color: "#FF4500", description: "YOUNG BOYS FOCUS" },
+  { id: "sliceOfLife", label: "SLICE OF LIFE", emoji: "☕", color: "#32CD32", description: "TOO SLOW PACED" },
+  { id: "sports", label: "SPORTS", emoji: "⚽", color: "#228B22", description: "ATHLETIC FOCUS" },
+  { id: "supernatural", label: "SUPERNATURAL", emoji: "👁", color: "#2F1B69", description: "PARANORMAL ELEMENTS" },
+  { id: "thriller", label: "THRILLER", emoji: "⚡", color: "#B22222", description: "TOO SUSPENSEFUL" },
 ];
 
 interface DislikedStepProps {
@@ -33,9 +33,9 @@ interface DislikedStepProps {
 }
 
 export default function DislikedStep({ data, updateData }: DislikedStepProps) {
-  const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
-  const [showOptional, setShowOptional] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [glitchEffect, setGlitchEffect] = useState(false);
+  const [resetFlash, setResetFlash] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -44,7 +44,17 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    
+    // Periodic glitch effect
+    const glitchInterval = setInterval(() => {
+      setGlitchEffect(true);
+      setTimeout(() => setGlitchEffect(false), 200);
+    }, 8000);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      clearInterval(glitchInterval);
+    };
   }, []);
 
   const toggleDislikedGenre = (genre: string) => {
@@ -54,237 +64,303 @@ export default function DislikedStep({ data, updateData }: DislikedStepProps) {
     updateData({ ...data, dislikedGenres: newDislikedGenres });
   };
 
+  const handleReset = () => {
+    setResetFlash(true);
+    updateData({ 
+      dislikedGenres: [], 
+      dislikedTags: [] 
+    });
+    setTimeout(() => setResetFlash(false), 500);
+  };
+
+  const handleAcceptAll = () => {
+    updateData({ 
+      dislikedGenres: [], 
+      dislikedTags: data.dislikedTags || [] 
+    });
+  };
+
+  const handleSelectAll = () => {
+    const allGenres = DISLIKED_GENRES_OPTIONS.map(genre => genre.label);
+    updateData({ 
+      ...data, 
+      dislikedGenres: allGenres 
+    });
+  };
+
   const selectedCount = data.dislikedGenres.length;
 
   return (
-    <div className="relative min-h-[400px] space-y-4 sm:space-y-6">
-      {/* Simplified floating background for mobile */}
-      {!isMobile && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-4 left-8 w-20 h-20 bg-gradient-to-br from-red-500/15 to-transparent rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-6 right-12 w-24 h-24 bg-gradient-to-tl from-orange-500/10 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
+    <div className="brutalist-container w-full min-h-screen bg-black text-white overflow-hidden">
+      {/* Brutalist Grid Background */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="grid grid-cols-8 gap-0 h-full">
+          {Array.from({ length: 64 }).map((_, i) => (
+            <div 
+              key={i} 
+              className="border border-white/10"
+              style={{ 
+                animationDelay: `${i * 0.1}s`,
+                animation: Math.random() > 0.8 ? 'flash 3s infinite' : 'none'
+              }}
+            />
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Header Section - Mobile Optimized */}
-      <div className="step-header-section text-center space-y-3 sm:space-y-4">
-        <div className="relative inline-block">
-          <div className={`relative ${isMobile ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'} border border-red-500/20 rounded-2xl p-4 sm:p-6`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
-              <span className="text-2xl sm:text-3xl">🚫</span>
-              <h3 className="step-title text-xl sm:text-2xl md:text-3xl font-heading font-bold">
-                <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
-                  {isMobile ? "Genres to Avoid?" : "Any Genres to Avoid?"}
-                </span>
-              </h3>
-              <span className="text-2xl sm:text-3xl">⚠️</span>
-            </div>
-            <p className="step-subtitle text-white/80 text-sm sm:text-base leading-relaxed">
-              {isMobile 
-                ? "Help us filter out what you don't enjoy"
-                : "Knowing what you *don't* like is just as important for filtering your recommendations."
-              }
+      {/* Main Content */}
+      <div className="relative z-10 p-4 sm:p-8">
+        {/* Brutalist Header */}
+        <div className="mb-8 sm:mb-12">
+          <div className={`brutalist-header ${glitchEffect ? 'glitch' : ''}`}>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter leading-none mb-4">
+              <span className="block text-red-500">REJECT</span>
+              <span className="block text-white -mt-2">GENRES</span>
+            </h1>
+            <div className="brutalist-line bg-white h-1 w-32 mb-4"></div>
+            <p className="text-lg sm:text-xl font-bold text-white/80 max-w-lg">
+              FILTER OUT WHAT YOU DON'T WANT TO SEE
             </p>
           </div>
-        </div>
 
-        {/* Skip Option / Counter - Mobile Layout */}
-        <div className="flex flex-col items-center gap-3">
-          {selectedCount === 0 ? (
-            <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-green-500/20 to-emerald-400/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-green-500/20">
-              <span className="text-base sm:text-lg">😊</span>
-              <span className="text-white font-medium text-xs sm:text-sm">
-                {isMobile ? "Open to most!" : "I'm open to most genres!"}
+          {/* Status Counter */}
+          <div className="mt-6 inline-block">
+            <div className="brutalist-counter bg-red-500 text-black px-6 py-3 transform -skew-x-12">
+              <span className="font-black text-xl transform skew-x-12 block">
+                {selectedCount === 0 ? "OPEN TO ALL" : `${selectedCount} REJECTED`}
               </span>
             </div>
-          ) : (
-            <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-red-500/20">
-              <span className="text-base sm:text-lg">🛡️</span>
-              <span className="text-white font-medium text-xs sm:text-sm">
-                {selectedCount} to avoid
-              </span>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Disliked Genres Grid - Mobile Optimized */}
-      <div className={`genre-selection-grid ${isMobile ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 lg:grid-cols-4 gap-3'} ${!isMobile && 'max-h-[280px] overflow-y-auto custom-scrollbar pr-2'}`}>
-        {DISLIKED_GENRES_OPTIONS.map((genre, index) => {
-          const isSelected = data.dislikedGenres.includes(genre.label);
-          const isHovered = hoveredGenre === genre.id;
-          
-          return (
-            <div
-              key={genre.id}
-              className="relative group"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              {/* Selection Glow with warning colors - Hidden on mobile */}
-              {!isMobile && (
-                <div className={`absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-md transition-all duration-300 ${
-                  isSelected ? 'opacity-60 scale-105' : isHovered ? 'opacity-20' : 'opacity-0'
-                }`}></div>
-              )}
-              
-              {/* Genre Card */}
-              <button
-                onClick={() => toggleDislikedGenre(genre.label)}
-                onMouseEnter={() => !isMobile && setHoveredGenre(genre.id)}
-                onMouseLeave={() => !isMobile && setHoveredGenre(null)}
-                className={`genre-card relative w-full p-3 rounded-xl border transition-all duration-200 ${
-                  isSelected 
-                    ? isMobile
-                      ? 'selected bg-gradient-to-br from-red-500/20 to-orange-500/20 border-red-500 text-white'
-                      : 'bg-gradient-to-br from-red-500/80 to-orange-500/80 border-red-300/50 text-white shadow-xl scale-102'
-                    : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-red-300/30 hover:bg-black/60 text-white/90'
-                } ${!isMobile && 'transform hover:scale-105'}`}
+        {/* Brutalist Genre Grid */}
+        <div className={`genre-grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'} grid gap-4 mb-12`}>
+          {DISLIKED_GENRES_OPTIONS.map((genre, index) => {
+            const isSelected = data.dislikedGenres.includes(genre.label);
+            
+            return (
+              <div
+                key={genre.id}
+                className="brutalist-genre-card group"
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <div className="theme-card-content relative z-10 text-center space-y-1">
-                  {/* Emoji with Animation */}
-                  <div className={`genre-emoji text-2xl ${!isMobile && 'transition-transform duration-300'} ${
-                    isSelected && !isMobile ? 'animate-bounce' : ''
-                  }`}>
-                    {isSelected ? '🚫' : genre.emoji}
-                  </div>
-                  
-                  {/* Label */}
-                  <div className="genre-label font-medium text-xs">
-                    {genre.label}
-                  </div>
-                  
-                  {/* Description - Hidden on mobile */}
-                  {!isMobile && (
-                    <div className={`genre-description text-xs leading-tight transition-all duration-300 ${
-                      isSelected || isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0'
-                    }`}>
-                      {genre.description}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Selection Indicator with X */}
-                {isSelected && (
-                  <div className="selection-indicator absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-red-500 flex items-center justify-center animate-pulse">
-                    <svg className="w-2.5 h-2.5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Quick Skip Button - Mobile Friendly */}
-      {selectedCount === 0 && (
-        <div className="text-center">
-          <div className="relative inline-block group">
-            <button
-              onClick={() => updateData({ ...data, dislikedGenres: [] })}
-              className={`relative ${isMobile ? 'bg-green-500/20' : 'bg-gradient-to-r from-green-500/20 to-emerald-400/20'} hover:from-green-500/30 hover:to-emerald-400/30 backdrop-blur-sm border border-green-500/30 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 text-white transition-all duration-300`}
-            >
-              <div className="flex items-center space-x-2">
-                <span className="text-base sm:text-lg">✨</span>
-                <span className="font-medium text-sm sm:text-base">{isMobile ? "Skip this!" : "I'm open to everything!"}</span>
-                <span className="text-base sm:text-lg">🌟</span>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Feedback Messages - Mobile Optimized */}
-      {selectedCount > 0 && selectedCount <= 3 && (
-        <div className="feedback-message relative animate-fade-in">
-          <div className={`relative ${isMobile ? 'bg-blue-500/20' : 'bg-gradient-to-r from-blue-500/10 to-indigo-400/10 backdrop-blur-sm'} border border-blue-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
-              <span className="text-xl sm:text-2xl">👍</span>
-              <div className="text-center">
-                <p className="text-white font-medium text-xs sm:text-sm">
-                  {isMobile ? "We'll filter these out!" : "Good choices! We'll make sure to filter out these genres from your recommendations."}
-                </p>
-              </div>
-              <span className="text-xl sm:text-2xl">🎯</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedCount > 3 && !isMobile && (
-        <div className="feedback-message relative animate-fade-in">
-          <div className="relative bg-gradient-to-r from-yellow-500/10 to-orange-400/10 backdrop-blur-sm border border-yellow-500/20 rounded-2xl p-4">
-            <div className="flex items-center justify-center space-x-3">
-              <span className="text-2xl">⚠️</span>
-              <div className="text-center">
-                <p className="text-white font-medium text-sm">
-                  That's quite a few genres to avoid! Make sure you still have plenty of options left to explore.
-                </p>
-              </div>
-              <span className="text-2xl">🤔</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Optional: Additional Filters - Mobile Optimized */}
-      <div className="text-center">
-        <button
-          onClick={() => setShowOptional(!showOptional)}
-          className="text-white/60 hover:text-white text-xs sm:text-sm underline decoration-1 underline-offset-2 transition-colors duration-200"
-        >
-          {showOptional ? 'Hide' : 'Show'} {isMobile ? 'more' : 'additional content'} filters
-        </button>
-        
-        {showOptional && (
-          <div className={`mt-4 p-3 sm:p-4 ${isMobile ? 'bg-black/40' : 'bg-black/20 backdrop-blur-sm'} border border-white/10 rounded-xl sm:rounded-2xl`}>
-            <p className="text-white/80 text-xs sm:text-sm mb-3">{isMobile ? "Avoid:" : "Specific content you'd rather avoid:"}</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {['Excessive Violence', 'Fan Service', 'Dark Themes', 'Complex Plots', 'Long Series'].map((tag) => (
                 <button
-                  key={tag}
-                  onClick={() => {
-                    const currentTags = data.dislikedTags || [];
-                    const newTags = currentTags.includes(tag) 
-                      ? currentTags.filter(t => t !== tag)
-                      : [...currentTags, tag];
-                    updateData({ ...data, dislikedTags: newTags });
+                  onClick={() => toggleDislikedGenre(genre.label)}
+                  className={`
+                    w-full h-24 sm:h-32 border-4 border-white transition-all duration-200 transform
+                    ${isSelected 
+                      ? 'bg-red-500 text-black border-red-500 scale-95' 
+                      : 'bg-black text-white hover:bg-white hover:text-black hover:scale-105'
+                    }
+                    active:scale-90
+                  `}
+                  style={{
+                    clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))'
                   }}
-                  className={`text-xs px-2.5 sm:px-3 py-1 rounded-full border transition-all duration-200 ${
-                    (data.dislikedTags || []).includes(tag)
-                      ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                      : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
-                  }`}
                 >
-                  {(data.dislikedTags || []).includes(tag) ? '🚫 ' : ''}{isMobile && tag.length > 12 ? tag.substring(0, 12) + '...' : tag}
+                  <div className="brutalist-content h-full flex flex-col justify-center items-center p-2">
+                    {/* Emoji */}
+                    <div className="text-2xl sm:text-3xl mb-1">
+                      {isSelected ? '✖' : genre.emoji}
+                    </div>
+                    
+                    {/* Label */}
+                    <div className="font-black text-xs sm:text-sm text-center leading-tight">
+                      {genre.label}
+                    </div>
+                    
+                    {/* Selected indicator */}
+                    {isSelected && (
+                      <div className="absolute top-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-t-[20px] border-t-black" />
+                    )}
+                  </div>
                 </button>
-              ))}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {selectedCount === 0 && (
+            <button
+              onClick={handleAcceptAll}
+              className="brutalist-button bg-green-500 text-black border-4 border-green-500 px-8 py-4 font-black text-lg transform hover:scale-105 active:scale-95 transition-transform"
+              style={{
+                clipPath: 'polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)'
+              }}
+            >
+              ACCEPT ALL GENRES
+            </button>
+          )}
+          
+          {selectedCount > 0 && selectedCount < DISLIKED_GENRES_OPTIONS.length && (
+            <button
+              onClick={handleSelectAll}
+              className="brutalist-button bg-red-500 text-white border-4 border-red-500 px-8 py-4 font-black text-lg transform hover:scale-105 active:scale-95 transition-transform"
+              style={{
+                clipPath: 'polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)'
+              }}
+            >
+              REJECT ALL
+            </button>
+          )}
+          
+          <button
+            onClick={handleReset}
+            className={`brutalist-button bg-white text-black border-4 border-white px-8 py-4 font-black text-lg transform hover:scale-105 active:scale-95 transition-transform ${resetFlash ? 'reset-flash' : ''}`}
+            style={{
+              clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))'
+            }}
+          >
+            RESET SELECTION
+          </button>
+        </div>
+
+        {/* Feedback Messages */}
+        {selectedCount > 0 && (
+          <div className="mt-8 text-center">
+            <div className="brutalist-message bg-yellow-500 text-black px-6 py-3 inline-block transform -skew-x-6">
+              <span className="font-black transform skew-x-6 block">
+                {selectedCount > 5 
+                  ? "MANY RESTRICTIONS APPLIED" 
+                  : "FILTERS ACTIVATED"
+                }
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Custom CSS */}
+      {/* Brutalist CSS */}
       <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+        
+        .brutalist-container {
+          font-family: 'JetBrains Mono', 'Courier New', monospace;
+          position: relative;
         }
         
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
+        .brutalist-header {
+          position: relative;
         }
         
-        .scale-102 {
-          transform: scale(1.02);
+        .brutalist-line {
+          animation: expand 0.5s ease-out;
         }
-
-        /* Touch feedback for mobile */
+        
+        .brutalist-counter {
+          position: relative;
+          box-shadow: 5px 5px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .brutalist-genre-card {
+          position: relative;
+          animation: slideInUp 0.6s ease-out forwards;
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        
+        .brutalist-content {
+          position: relative;
+        }
+        
+        .brutalist-button {
+          position: relative;
+          box-shadow: 5px 5px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .brutalist-message {
+          box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .glitch {
+          animation: glitch 0.2s ease-in-out;
+        }
+        
+        .reset-flash {
+          animation: resetPulse 0.5s ease-out;
+        }
+        
+        @keyframes slideInUp {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes expand {
+          from { width: 0; }
+          to { width: 8rem; }
+        }
+        
+        @keyframes flash {
+          0%, 100% { background-color: transparent; }
+          50% { background-color: rgba(255, 0, 0, 0.1); }
+        }
+        
+        @keyframes glitch {
+          0% { transform: translateX(0); }
+          20% { transform: translateX(-2px); }
+          40% { transform: translateX(2px); }
+          60% { transform: translateX(-1px); }
+          80% { transform: translateX(1px); }
+          100% { transform: translateX(0); }
+        }
+        
+        @keyframes resetPulse {
+          0% { 
+            background-color: white; 
+            transform: scale(1);
+          }
+          50% { 
+            background-color: #ff0000; 
+            color: white;
+            transform: scale(1.05);
+          }
+          100% { 
+            background-color: white; 
+            color: black;
+            transform: scale(1);
+          }
+        }
+        
+        /* Mobile touch feedback */
         @media (hover: none) and (pointer: coarse) {
-          .genre-card:active {
-            transform: scale(0.98) !important;
-            opacity: 0.9 !important;
+          .brutalist-genre-card button:active {
+            transform: scale(0.9) !important;
+          }
+          
+          .brutalist-button:active {
+            transform: scale(0.95) !important;
+          }
+        }
+        
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+          .brutalist-container {
+            background: #000000;
+          }
+          
+          .brutalist-genre-card button {
+            border-width: 6px;
+          }
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .brutalist-genre-card {
+            animation: none;
+            opacity: 1;
+            transform: none;
+          }
+          
+          .glitch {
+            animation: none;
+          }
+          
+          * {
+            transition: none !important;
           }
         }
       `}</style>

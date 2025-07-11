@@ -1,28 +1,38 @@
-
 {
   "compilerOptions": {
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": true, // <--- MODIFIED/ADDED
+    "emitDeclarationOnly": true,
     "outDir": "./dist/node",
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "noErrorTruncation": false,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true, // This option now has its condition met
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    // "noEmit": false, // This is effectively replaced by emitDeclarationOnly: true
+
+    /* Node.js specific */
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
 
     /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "convex/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

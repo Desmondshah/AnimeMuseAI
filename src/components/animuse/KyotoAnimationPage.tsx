@@ -325,6 +325,7 @@ const BrutalistKyotoCarousel: React.FC<{
 const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDetail, onBack }) => {
   const [allKyotoAnimationAnime, setAllKyotoAnimationAnime] = useState<AnimeRecommendation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchKyotoAnimationAnime = useAction(api.externalApis.fetchKyotoAnimationAnime);
 
@@ -381,34 +382,36 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
 
       const anime = result.animes || [];
       
-      // If we got real data from database, use it; otherwise keep fallback
+      // Use database data or show empty state if no data
+      setAllKyotoAnimationAnime(anime);
+      organizeAnimeIntoCategories(anime);
+      setError(null);
+      
       if (anime.length > 0) {
-        setAllKyotoAnimationAnime(anime);
-        organizeAnimeIntoCategories(anime);
-        setError(null);
         console.log(`[KyoAni] Successfully loaded ${anime.length} anime from database`);
       } else {
-        console.log('[KyoAni] No anime found in database, using fallback data');
+        console.log('[KyoAni] No anime found in database');
       }
 
     } catch (err: any) {
       console.error('[KyoAni] Fetch error:', err);
-      setError(err.message || 'Using fallback data due to fetch error');
+      setError(err.message || 'Failed to fetch KyoAni anime');
+    } finally {
+      setIsLoading(false);
     }
   }, [fetchKyotoAnimationAnime, organizeAnimeIntoCategories]);
 
-  // Initialize with fallback data immediately, then fetch from database
+  // Only show database data - no fallback content to prevent flickering
   useEffect(() => {
-    // Show fallback data instantly
-    console.log('[KyoAni] Loading page with instant fallback data...');
-    setAllKyotoAnimationAnime(FALLBACK_KYOANI_ANIME);
-    organizeAnimeIntoCategories(FALLBACK_KYOANI_ANIME);
+    // Don't show fallback data, only show loading state
+    console.log('[KyoAni] Loading page - fetching from database...');
+    setIsLoading(true);
     
-    // Then fetch real data from database in background
+    // Fetch real data from database
     fetchKyotoAnimationData().catch(err => {
-      console.error('[KyoAni] Background fetch failed:', err);
+      console.error('[KyoAni] Fetch failed:', err);
     });
-  }, [fetchKyotoAnimationData, organizeAnimeIntoCategories]);
+  }, [fetchKyotoAnimationData]);
 
   return (
     <div className="min-h-screen bg-gray-800 relative overflow-hidden">
@@ -502,19 +505,40 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
         </div>
 
         <div className="max-w-7xl mx-auto">
-          {/* Legendary Masterpieces */}
-          {categories.legendary.length > 0 && (
-            <BrutalistKyotoCarousel 
-              title="LEGENDARY TEMPLE"
-              color="#8b5cf6"
-              accent="#a855f7"
-              icon="🏆"
-            >
-              {categories.legendary.map((anime, index) => (
-                <motion.div
-                  key={`legendary-${index}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
+          {/* Show loading state while fetching data */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
+              <div className="relative">
+                <div className="w-32 h-32 border-8 border-white border-t-purple-400 rounded-full animate-spin" />
+                <div className="absolute inset-0 w-32 h-32 border-8 border-transparent border-r-violet-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-black text-white uppercase tracking-widest">
+                  LOADING KYOTO MASTERWORKS
+                </h3>
+                <p className="text-purple-400 font-bold uppercase tracking-wide mt-2">
+                  Fetching from database...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Show content when data is available and not loading */}
+          {!isLoading && (
+            <>
+              {/* Legendary Masterpieces */}
+              {categories.legendary.length > 0 && (
+                <BrutalistKyotoCarousel 
+                  title="LEGENDARY TEMPLE"
+                  color="#8b5cf6"
+                  accent="#a855f7"
+                  icon="🏆"
+                >
+                  {categories.legendary.map((anime, index) => (
+                    <motion.div
+                      key={`legendary-${index}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
                   className="cursor-pointer"
                 >
@@ -604,6 +628,8 @@ const KyotoAnimationPage: React.FC<KyotoAnimationPageProps> = ({ onViewAnimeDeta
                 </motion.div>
               ))}
             </BrutalistKyotoCarousel>
+          )}
+            </>
           )}
         </div>
 

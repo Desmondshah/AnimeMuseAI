@@ -1,400 +1,260 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface WelcomeStepProps {
   data: { name: string };
   updateData: (data: { name: string }) => void;
 }
 
-// Floating Particle Component
-const FloatingParticle: React.FC<{ index: number }> = ({ index }) => {
-  return (
-    <motion.div
-      className="absolute w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
-      initial={{ 
-        scale: 0, 
-        x: Math.random() * 300, 
-        y: Math.random() * 400,
-        opacity: 0
-      }}
-      animate={{
-        scale: [0, 1, 0.5, 1, 0],
-        x: [
-          Math.random() * 300, 
-          Math.random() * 300, 
-          Math.random() * 300
-        ],
-        y: [
-          Math.random() * 400, 
-          Math.random() * 400, 
-          Math.random() * 400
-        ],
-        opacity: [0, 1, 0.7, 1, 0]
-      }}
-      transition={{
-        duration: 4 + Math.random() * 2,
-        repeat: Infinity,
-        delay: index * 0.3,
-        ease: "easeInOut"
-      }}
-    />
-  );
+// Brutalist Geometric Shape Component
+const BrutalistShape: React.FC<{ 
+  type: 'square' | 'triangle' | 'circle' | 'rectangle';
+  size: 'small' | 'medium' | 'large';
+  position: { x: number; y: number };
+  color: string;
+  rotation?: number;
+}> = ({ type, size, position, color, rotation = 0 }) => {
+  const sizeMap = {
+    small: 'w-6 h-6',
+    medium: 'w-12 h-12', 
+    large: 'w-20 h-20'
+  };
+
+  const getShape = () => {
+    switch (type) {
+      case 'triangle':
+        return (
+          <div 
+            className={`${sizeMap[size]} ${color}`}
+            style={{
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              transform: `rotate(${rotation}deg)`,
+              position: 'absolute',
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+            }}
+          />
+        );
+      case 'circle':
+        return (
+          <div 
+            className={`${sizeMap[size]} ${color} rounded-full`}
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              position: 'absolute',
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+            }}
+          />
+        );
+      case 'rectangle':
+        return (
+          <div 
+            className={`${sizeMap[size]} ${color} w-24 h-8`}
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              position: 'absolute',
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+            }}
+          />
+        );
+      default:
+        return (
+          <div 
+            className={`${sizeMap[size]} ${color}`}
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              position: 'absolute',
+              left: `${position.x}%`,
+              top: `${position.y}%`,
+            }}
+          />
+        );
+    }
+  };
+
+  return getShape();
 };
 
 export default function WelcomeStep({ data, updateData }: WelcomeStepProps) {
   const [isFocused, setIsFocused] = useState(false);
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: 20, 
-      scale: 0.8 
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 12
-      }
-    }
-  };
-
-  const iconVariants = {
-    hidden: { 
-      opacity: 0, 
-      scale: 0, 
-      rotate: 180 
-    },
-    visible: (i: number) => ({
-      opacity: 1,
-      scale: 1,
-      rotate: 0,
-      transition: {
-        type: "spring",
-        stiffness: 200,
-        damping: 15,
-        delay: i * 0.1
-      }
-    }),
-    hover: {
-      scale: 1.2,
-      rotate: 15,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 10
-      }
-    }
-  };
-
-  const greetingVariants = {
-    hidden: {
-      opacity: 0,
-      scale: 0,
-      rotate: 180,
-      y: 50
-    },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      rotate: 0,
-      y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 200,
-        damping: 15,
-        duration: 0.6
-      }
-    },
-    exit: {
-      opacity: 0,
-      scale: 0,
-      rotate: -180,
-      transition: {
-        duration: 0.3
-      }
-    }
-  };
-
-  const celebrationVariants = {
-    hidden: { opacity: 0, scale: 0 },
-    visible: (i: number) => ({
-      opacity: [0, 1, 0],
-      scale: [0, 1, 0],
-      x: [0, (i - 4) * 30, (i - 4) * 60],
-      y: [0, -20, -40],
-      transition: {
-        duration: 1.5,
-        ease: "easeOut",
-        delay: i * 0.1
-      }
-    })
-  };
-
-  const icons = ['👋', '✨', '🎌'];
+  // Brutalist geometric shapes
+  const brutalistShapes = [
+    { type: 'square' as const, size: 'large' as const, position: { x: 5, y: 10 }, color: 'bg-yellow-400', rotation: 45 },
+    { type: 'triangle' as const, size: 'medium' as const, position: { x: 85, y: 15 }, color: 'bg-red-500', rotation: 0 },
+    { type: 'circle' as const, size: 'small' as const, position: { x: 10, y: 80 }, color: 'bg-blue-600', rotation: 0 },
+    { type: 'rectangle' as const, size: 'medium' as const, position: { x: 80, y: 75 }, color: 'bg-green-500', rotation: 30 },
+    { type: 'square' as const, size: 'small' as const, position: { x: 50, y: 5 }, color: 'bg-purple-600', rotation: 0 },
+    { type: 'triangle' as const, size: 'large' as const, position: { x: 90, y: 50 }, color: 'bg-orange-500', rotation: 180 },
+    { type: 'circle' as const, size: 'medium' as const, position: { x: 3, y: 40 }, color: 'bg-pink-500', rotation: 0 },
+  ];
 
   return (
-    <motion.div 
-      className="relative min-h-[400px] flex flex-col items-center justify-center space-y-8 p-6 overflow-hidden"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      
-      {/* Floating Particles Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <FloatingParticle key={i} index={i} />
+    <div className="relative min-h-[500px] bg-white overflow-hidden">
+      {/* Brutalist Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Geometric Shapes */}
+        {brutalistShapes.map((shape, index) => (
+          <BrutalistShape
+            key={index}
+            type={shape.type}
+            size={shape.size}
+            position={shape.position}
+            color={shape.color}
+            rotation={shape.rotation}
+          />
         ))}
+
+        {/* Bold Typography Background */}
+        <div className="absolute top-10 left-5 transform -rotate-12 opacity-15">
+          <span className="text-6xl md:text-8xl font-black text-black">WELCOME</span>
+        </div>
+        <div className="absolute bottom-10 right-5 transform rotate-12 opacity-15">
+          <span className="text-6xl md:text-8xl font-black text-black">HERO</span>
+        </div>
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '30px 30px'
+        }}></div>
+
+        {/* Bold Stripes */}
+        <div className="absolute top-0 left-1/5 w-1 h-full bg-black opacity-20 transform rotate-12"></div>
+        <div className="absolute top-0 right-1/4 w-2 h-full bg-red-500 opacity-25 transform -rotate-6"></div>
       </div>
 
-      {/* Main Container */}
-      <motion.div 
-        className="relative z-10 text-center space-y-8 max-w-md w-full"
-        variants={containerVariants}
-      >
-        
-        {/* Animated Icons */}
-        <motion.div 
-          className="flex items-center justify-center space-x-6 mb-8"
-          variants={itemVariants}
-        >
-          {icons.map((icon, index) => (
-            <motion.div
-              key={index}
-              className="text-5xl cursor-pointer select-none"
-              variants={iconVariants}
-              custom={index}
-              whileHover="hover"
-              whileTap={{ scale: 0.9 }}
-            >
-              {icon}
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Epic Header */}
-        <motion.h3 
-          className="text-3xl sm:text-4xl font-bold text-white"
-          variants={itemVariants}
-          whileHover={{ 
-            scale: 1.05,
-            transition: { type: "spring", stiffness: 300 }
-          }}
-        >
-          <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-yellow-400 bg-clip-text text-transparent">
-            Welcome to AniMuse!
-          </span>
-        </motion.h3>
-        
-        {/* Description */}
-        <motion.div 
-          className="relative"
-          variants={itemVariants}
-          whileHover={{ scale: 1.02 }}
-        >
-          <motion.div 
-            className="absolute -inset-4 bg-gradient-to-r from-pink-500/30 to-blue-500/30 rounded-3xl blur-xl opacity-60"
-            animate={{
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, 0]
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <div className="relative bg-black/40 backdrop-blur-lg border border-white/20 rounded-3xl p-6 shadow-2xl">
-            <p className="text-white/90 text-lg leading-relaxed">
-              Let's get to know you to create your perfect anime journey.
-              <br />
-              <motion.span 
-                className="text-yellow-400 font-semibold text-xl"
-                animate={{ 
-                  textShadow: [
-                    "0 0 0px rgba(251, 191, 36, 0)",
-                    "0 0 10px rgba(251, 191, 36, 0.5)",
-                    "0 0 0px rgba(251, 191, 36, 0)"
-                  ]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                What should we call you?
-              </motion.span>
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Epic Input Field */}
-        <motion.div 
-          className="relative"
-          variants={itemVariants}
-        >
-          <motion.div
-            className="absolute -inset-3 bg-gradient-to-r from-blue-500/50 to-purple-500/50 rounded-3xl blur-xl"
-            animate={{ 
-              opacity: isFocused ? 1 : 0,
-              scale: isFocused ? 1.1 : 1
-            }}
-            transition={{ duration: 0.3 }}
-          />
-          
-          <motion.div 
-            className="relative group"
-            animate={{
-              scale: isFocused ? 1.02 : 1,
-              boxShadow: isFocused 
-                ? "0 0 30px rgba(59, 130, 246, 0.5)" 
-                : "0 0 0px rgba(59, 130, 246, 0)"
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 20
-            }}
-          >
-            <motion.div 
-              className="absolute inset-y-0 left-5 flex items-center pointer-events-none"
-              animate={{
-                scale: data.name ? [1, 1.2, 1] : 1
-              }}
-              transition={{
-                duration: 0.5,
-                repeat: data.name ? Infinity : 0,
-                repeatType: "reverse"
-              }}
-            >
-              <div className="text-3xl">
-                {data.name ? '😊' : '👤'}
-              </div>
-            </motion.div>
+      {/* Main Content */}
+      <div className="relative z-10 flex items-center justify-center min-h-[500px] px-4 py-8">
+        <div className="w-full max-w-lg">
+          {/* Brutalist Welcome Card */}
+          <div className="relative">
+            {/* Bold Border Frame */}
+            <div className="absolute -inset-6 bg-black transform rotate-2"></div>
+            <div className="absolute -inset-4 bg-yellow-400 transform -rotate-1"></div>
             
-            <input
-              type="text"
-              placeholder="Your Nickname"
-              value={data.name}
-              onChange={(e) => updateData({ name: e.target.value })}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              className="w-full bg-black/50 backdrop-blur-lg border-2 border-white/30 rounded-3xl pl-20 pr-8 py-5 text-white text-center text-xl font-medium placeholder-white/60 focus:border-blue-400 focus:outline-none transition-all duration-300 shadow-2xl"
-              style={{ fontSize: "16px" }}
-            />
-          </motion.div>
-        </motion.div>
-
-        {/* Dynamic Greeting with Celebration */}
-        <AnimatePresence>
-          {data.name && (
-            <motion.div 
-              className="relative"
-              variants={greetingVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-            >
-              {/* Celebration Particles */}
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-2 h-2 bg-gradient-to-r from-yellow-400 to-pink-400 rounded-full top-1/2 left-1/2"
-                    variants={celebrationVariants}
-                    custom={i}
-                    initial="hidden"
-                    animate="visible"
-                  />
-                ))}
-              </div>
+            {/* Main Container */}
+            <div className="relative bg-white border-8 border-black p-8 transform rotate-0 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
               
-              <motion.div 
-                className="absolute -inset-4 bg-gradient-to-r from-green-500/40 to-emerald-400/40 rounded-3xl blur-xl opacity-80"
-                animate={{
-                  scale: [1, 1.05, 1],
-                  opacity: [0.8, 1, 0.8]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-              <div className="relative bg-gradient-to-r from-green-500/30 to-emerald-400/30 backdrop-blur-lg border-2 border-green-400/50 rounded-3xl p-6 shadow-2xl">
-                <motion.div 
-                  className="flex items-center justify-center space-x-4"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <motion.span 
-                    className="text-3xl"
-                    animate={{ 
-                      rotate: [0, 15, -15, 0],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    🎉
-                  </motion.span>
-                  <p className="text-white font-semibold text-xl">
-                    Amazing to meet you,{' '}
-                    <motion.span 
-                      className="text-yellow-400 font-bold text-2xl"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ 
-                        delay: 0.5,
-                        type: "spring",
-                        stiffness: 200
-                      }}
-                    >
-                      {data.name}
-                    </motion.span>!
-                  </p>
-                  <motion.span 
-                    className="text-3xl"
-                    animate={{ 
-                      rotate: [0, -15, 15, 0],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: 0.5
-                    }}
-                  >
-                    ✨
-                  </motion.span>
-                </motion.div>
+              {/* Brutalist Header */}
+              <div className="text-center mb-8">
+                <div className="relative mb-6">
+                  <div className="absolute -inset-3 bg-red-500 transform rotate-3"></div>
+                  <div className="relative bg-white border-4 border-black p-6 text-center">
+                    <div className="flex justify-center space-x-4 mb-4">
+                      <div className="w-8 h-8 bg-blue-500 border-2 border-black transform rotate-45"></div>
+                      <div className="w-8 h-8 bg-yellow-400 border-2 border-black rounded-full"></div>
+                      <div className="w-8 h-8 bg-green-500 border-2 border-black" style={{clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)'}}></div>
+                    </div>
+                    <span className="text-xl md:text-2xl font-black text-black uppercase tracking-wider">
+                      WELCOME!
+                    </span>
+                  </div>
+                </div>
+                
+
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
+
+              {/* Brutalist Description */}
+              <div className="relative mb-8">
+                <div className="absolute -inset-2 bg-purple-500 transform rotate-1"></div>
+                <div className="relative bg-white border-4 border-black p-6">
+                  <p className="text-black font-bold text-lg text-center leading-tight uppercase tracking-wide">
+                    TELL US YOUR NAME
+                  </p>
+                </div>
+              </div>
+
+              {/* Brutalist Input Field */}
+              <div className="relative mb-8">
+                <div className="absolute -inset-2 bg-blue-500 transform -rotate-1"></div>
+                <div className="relative bg-white border-4 border-black">
+                  <label className="block bg-black text-white text-xs font-bold px-3 py-2 uppercase tracking-widest">
+                    YOUR NAME
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="TYPE HERE..."
+                      value={data.name}
+                      onChange={(e) => updateData({ name: e.target.value })}
+                      onFocus={() => setIsFocused(true)}
+                      onBlur={() => setIsFocused(false)}
+                      className={`w-full bg-white border-0 px-6 py-6 text-black placeholder-gray-500 font-mono text-xl font-bold uppercase tracking-wider focus:outline-none focus:ring-0 ${isFocused ? 'bg-yellow-100' : ''}`}
+                      style={{ fontSize: "16px" }}
+                    />
+                    {data.name && (
+                      <div className="absolute inset-y-0 right-4 flex items-center">
+                        <div className="w-6 h-6 bg-green-500 border-2 border-black rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-black">✓</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Greeting */}
+              {data.name && (
+                <div className="relative">
+                  <div className="absolute -inset-3 bg-green-500 transform rotate-2"></div>
+                  <div className="absolute -inset-2 bg-black transform -rotate-1"></div>
+                  <div className="relative bg-yellow-400 border-4 border-black p-6 text-center">
+                    <div className="flex items-center justify-center space-x-3 mb-3">
+                      <div className="w-4 h-4 bg-red-500 border-2 border-black"></div>
+                      <div className="w-4 h-4 bg-blue-500 border-2 border-black rounded-full"></div>
+                      <div className="w-4 h-4 bg-green-500 border-2 border-black" style={{clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)'}}></div>
+                    </div>
+                    <p className="text-black font-black text-xl uppercase tracking-wider">
+                      HELLO{' '}
+                      <span className="text-red-500 text-2xl">{data.name.toUpperCase()}</span>!
+                    </p>
+                    <div className="mt-3 flex justify-center">
+                      <div className="bg-black text-white px-4 py-2 text-sm font-bold uppercase tracking-wide">
+                        READY FOR ADVENTURE?
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Brutalist Custom CSS */}
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap');
+        
+        .font-brutal {
+          font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+          font-weight: 900;
+          letter-spacing: 0.1em;
+        }
+
+        .text-shadow-brutal {
+          text-shadow: 3px 3px 0px rgba(0,0,0,1);
+        }
+
+        .brutalist-input:focus {
+          animation: brutalist-focus 0.3s ease-in-out;
+        }
+
+        @keyframes brutalist-focus {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.02);
+          }
+        }
+      `}</style>
+    </div>
   );
 }

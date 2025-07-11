@@ -383,7 +383,7 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
     }
   }, [fetchStudioGhibliAnime, getCachedData, setCachedData, organizeAnimeIntoCategories, hasInitialData]);
 
-  // Always show content immediately - no loading states
+  // Only show database data - no fallback content to prevent flickering
   useEffect(() => {
     // Check cache first
     const cachedData = getCachedData();
@@ -395,14 +395,9 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
       setError(null);
       setHasInitialData(true);
     } else {
-      // No cache - show fallback data immediately, then fetch in background
-      console.log('[Studio Ghibli] No cache found, showing fallback data...');
-      setAllGhibliAnime(FALLBACK_GHIBLI_ANIME);
-      organizeAnimeIntoCategories(FALLBACK_GHIBLI_ANIME);
-      setError(null);
-      setHasInitialData(true);
-      
-      // Fetch real data in background without showing loading
+      // No cache - fetch data and show loading state
+      console.log('[Studio Ghibli] No cache found, fetching from database...');
+      setHasInitialData(false);
       fetchGhibliData(false);
     }
   }, [getCachedData, organizeAnimeIntoCategories, fetchGhibliData]);
@@ -493,36 +488,57 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
 
         {/* Content Sections */}
         <div className="max-w-7xl mx-auto">
-          {/* Iconic Films */}
-          {categories.films.length > 0 && (
-            <BrutalistCarousel 
-              title="ICONIC FILMS"
-              color="#10b981"
-            >
-              {categories.films.map((anime, index) => (
-                <motion.div
-                  key={`films-${index}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="cursor-pointer"
-                >
-                  <AnimeCard 
-                    anime={anime} 
-                    isRecommendation={true} 
-                    onViewDetails={onViewAnimeDetail}
-                    className="w-full h-full"
-                  />
-                </motion.div>
-              ))}
-            </BrutalistCarousel>
+          {/* Show loading state if no initial data */}
+          {!hasInitialData && isLoading && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
+              <div className="relative">
+                <div className="w-32 h-32 border-8 border-white border-t-green-400 rounded-full animate-spin" />
+                <div className="absolute inset-0 w-32 h-32 border-8 border-transparent border-r-yellow-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-black text-white uppercase tracking-widest">
+                  LOADING GHIBLI MASTERWORKS
+                </h3>
+                <p className="text-green-400 font-bold uppercase tracking-wide mt-2">
+                  Fetching from database...
+                </p>
+              </div>
+            </div>
           )}
 
-          {/* Classic Era */}
-          {categories.classics.length > 0 && (
-            <BrutalistCarousel 
-              title="CLASSIC ERA"
-              color="#f59e0b"
+          {/* Show content when data is available */}
+          {hasInitialData && (
+            <>
+              {/* Iconic Films */}
+              {categories.films.length > 0 && (
+                <BrutalistCarousel 
+                  title="ICONIC FILMS"
+                  color="#10b981"
+                >
+                  {categories.films.map((anime, index) => (
+                    <motion.div
+                      key={`films-${index}`}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="cursor-pointer"
+                    >
+                      <AnimeCard 
+                        anime={anime} 
+                        isRecommendation={true} 
+                        onViewDetails={onViewAnimeDetail}
+                        className="w-full h-full"
+                      />
+                    </motion.div>
+                  ))}
+                </BrutalistCarousel>
+              )}
+
+              {/* Classic Era */}
+              {categories.classics.length > 0 && (
+                <BrutalistCarousel 
+                  title="CLASSIC ERA"
+                  color="#f59e0b"
             >
               {categories.classics.map((anime, index) => (
                 <motion.div
@@ -596,6 +612,8 @@ const StudioGhibliPage: React.FC<StudioGhibliPageProps> = ({ onViewAnimeDetail, 
                 </motion.div>
               ))}
             </BrutalistCarousel>
+          )}
+            </>
           )}
         </div>
 

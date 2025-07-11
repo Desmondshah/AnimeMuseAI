@@ -1,17 +1,17 @@
-// src/components/animuse/onboarding/MoodStep.tsx - Mobile-Optimized Version
+// src/components/animuse/onboarding/MoodStep.tsx - Brutalist UI Version
 import React, { useState, useEffect } from "react";
 import StyledButton from "../shared/StyledButton";
 
 const MOODS_OPTIONS = [
-  { id: "happy", label: "Happy", emoji: "😊", color: "from-yellow-400 to-orange-400", description: "Uplifting & joyful" },
-  { id: "sad", label: "Sad", emoji: "😢", color: "from-blue-400 to-indigo-500", description: "Emotional & touching" },
-  { id: "chill", label: "Chill", emoji: "😌", color: "from-green-400 to-teal-400", description: "Relaxed & peaceful" },
-  { id: "dark", label: "Dark", emoji: "🌑", color: "from-gray-600 to-black", description: "Intense & mysterious" },
-  { id: "excited", label: "Excited", emoji: "🤩", color: "from-pink-400 to-red-400", description: "Thrilling & energetic" },
-  { id: "nostalgic", label: "Nostalgic", emoji: "⏳", color: "from-purple-400 to-pink-400", description: "Wistful & reflective" },
-  { id: "thoughtProvoking", label: "Thought-Provoking", emoji: "🤔", color: "from-indigo-400 to-purple-500", description: "Deep & meaningful" },
-  { id: "intense", label: "Intense", emoji: "🔥", color: "from-red-500 to-orange-600", description: "Powerful & gripping" },
-  { id: "mysterious", label: "Mysterious", emoji: "🕵️", color: "from-purple-600 to-indigo-700", description: "Enigmatic & intriguing" },
+  { id: "happy", label: "HAPPY", symbol: "▲", color: "#FFFF00", description: "UPLIFTING VIBES", accent: "#FF8800" },
+  { id: "sad", label: "SAD", symbol: "▼", color: "#0088FF", description: "EMOTIONAL DEPTH", accent: "#88AAFF" },
+  { id: "chill", label: "CHILL", symbol: "━", color: "#00AA44", description: "RELAXED MOOD", accent: "#88FF88" },
+  { id: "dark", label: "DARK", symbol: "■", color: "#000000", description: "INTENSE SHADOW", accent: "#444444" },
+  { id: "excited", label: "EXCITED", symbol: "★", color: "#FF0088", description: "HIGH ENERGY", accent: "#FFAA00" },
+  { id: "nostalgic", label: "NOSTALGIC", symbol: "◐", color: "#8844AA", description: "WISTFUL MEMORY", accent: "#FFAAFF" },
+  { id: "thoughtProvoking", label: "DEEP", symbol: "◆", color: "#444488", description: "MIND-BENDING", accent: "#AAAAFF" },
+  { id: "intense", label: "INTENSE", symbol: "⚡", color: "#FF2200", description: "POWERFUL FORCE", accent: "#FFAA44" },
+  { id: "mysterious", label: "MYSTERY", symbol: "?", color: "#662244", description: "ENIGMATIC", accent: "#AA66AA" },
 ];
 
 interface MoodStepProps {
@@ -43,166 +43,165 @@ export default function MoodStep({ data, updateData }: MoodStepProps) {
   const selectedCount = data.moods.length;
 
   return (
-    <div className="relative min-h-[400px] space-y-4 sm:space-y-8">
-      {/* Simplified floating background for mobile */}
-      {!isMobile && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-4 left-8 w-20 h-20 bg-gradient-to-br from-brand-accent-gold/20 to-transparent rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-6 right-12 w-24 h-24 bg-gradient-to-tl from-brand-primary-action/15 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
-        </div>
-      )}
+    <div className="brutalist-container min-h-screen bg-black text-white font-mono relative overflow-hidden">
+      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
+        <div className="absolute top-0 right-0 w-2 h-full bg-red-500"></div>
+        <div className="absolute bottom-0 left-0 w-full h-2 bg-cyan-400"></div>
+        <div className="absolute top-0 left-0 w-2 h-full bg-green-500"></div>
+        
+        {/* HARSH DIAGONAL LINES */}
+        <div className="absolute top-1/3 left-0 w-full h-1 bg-white transform rotate-6 opacity-20"></div>
+        <div className="absolute top-2/3 left-0 w-full h-1 bg-yellow-400 transform -rotate-6 opacity-30"></div>
+        
+        {/* STARK GEOMETRIC SHAPES */}
+        <div className="absolute top-12 right-12 w-20 h-20 bg-red-500 transform rotate-45"></div>
+        <div className="absolute bottom-16 left-6 w-16 h-16 bg-blue-500"></div>
+        <div className="absolute top-1/2 right-1/5 w-8 h-24 bg-yellow-400"></div>
+      </div>
 
-      {/* Header Section - Mobile Optimized */}
-      <div className="step-header-section text-center space-y-3 sm:space-y-4">
-        <div className="relative inline-block">
-          <div className={`relative ${isMobile ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'} border border-white/10 rounded-2xl p-4 sm:p-6`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
-              <span className="text-2xl sm:text-3xl">😌</span>
-              <h3 className="step-title text-xl sm:text-2xl md:text-3xl font-heading font-bold">
-                <span className="bg-gradient-to-r from-brand-primary-action to-brand-accent-gold bg-clip-text text-transparent">
-                  {isMobile ? "Your Vibe?" : "What's your current vibe?"}
-                </span>
-              </h3>
-              <span className="text-2xl sm:text-3xl">✨</span>
-            </div>
-            <p className="step-subtitle text-white/80 text-sm sm:text-base leading-relaxed">
-              {isMobile 
-                ? "Pick moods that match your feeling"
-                : "Select one or more moods that match how you're feeling right now."
-              }
-            </p>
-          </div>
+      {/* BRUTAL HEADER */}
+      <div className="relative z-10 text-center pt-8 pb-6 border-b-4 border-white">
+        <div className="bg-black border-4 border-white inline-block p-6 transform -rotate-1 shadow-[8px_8px_0px_0px_#FFFF00]">
+          <h1 className="text-4xl md:text-6xl font-black tracking-wider mb-2">
+            MOOD
+          </h1>
+          <div className="w-full h-2 bg-gradient-to-r from-yellow-400 via-red-500 to-blue-500"></div>
+          <h2 className="text-xl md:text-2xl font-bold mt-2 text-cyan-400">
+            WHAT'S YOUR VIBE?
+          </h2>
         </div>
-
-        {/* Selection Counter - Mobile Friendly */}
+        
+        {/* SELECTION COUNTER - BRUTAL STYLE */}
         {selectedCount > 0 && (
-          <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-white/10 animate-fade-in">
-            <span className="text-base sm:text-lg">🎯</span>
-            <span className="text-white font-medium text-xs sm:text-sm">
-              {selectedCount} mood{selectedCount > 1 ? 's' : ''} selected
-            </span>
+          <div className="mt-6 inline-block bg-yellow-400 text-black font-black text-xl p-4 border-4 border-white transform rotate-1 shadow-[4px_4px_0px_0px_#000000]">
+            [{selectedCount}] SELECTED
           </div>
         )}
       </div>
 
-      {/* Mood Grid - Mobile Optimized */}
-      <div className={`mood-selection-grid ${isMobile ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-4'} ${!isMobile && 'max-h-[300px] overflow-y-auto custom-scrollbar pr-2'}`}>
-        {MOODS_OPTIONS.map((mood, index) => {
-          const isSelected = data.moods.includes(mood.label);
-          const isHovered = hoveredMood === mood.id;
-          
-          return (
-            <div
-              key={mood.id}
-              className="relative group"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              {/* Selection Glow - Hidden on mobile */}
-              {!isMobile && (
-                <div className={`absolute -inset-2 bg-gradient-to-r ${mood.color} rounded-2xl blur-lg transition-all duration-300 ${
-                  isSelected ? 'opacity-60 scale-105' : isHovered ? 'opacity-30' : 'opacity-0'
-                }`}></div>
-              )}
-              
-              {/* Mood Card */}
+      {/* MOOD GRID - BRUTALIST LAYOUT */}
+      <div className="relative z-10 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto brutalist-scrollbar">
+          {MOODS_OPTIONS.map((mood, index) => {
+            const isSelected = data.moods.includes(mood.label);
+            
+            return (
               <button
+                key={mood.id}
                 onClick={() => toggleMood(mood.label)}
-                onMouseEnter={() => !isMobile && setHoveredMood(mood.id)}
-                onMouseLeave={() => !isMobile && setHoveredMood(null)}
-                className={`mood-card relative w-full p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 ${
+                className={`brutal-mood-card group relative border-4 p-4 font-black uppercase tracking-wide transform transition-all duration-100 ${
                   isSelected 
-                    ? isMobile
-                      ? 'selected bg-gradient-to-br from-brand-primary-action/20 to-brand-accent-gold/20 border-brand-primary-action text-white'
-                      : `bg-gradient-to-br ${mood.color} border-white/30 text-white shadow-2xl scale-105`
-                    : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-white/30 hover:bg-black/60 text-white/90'
-                } ${!isMobile && 'transform hover:scale-105'}`}
+                    ? `bg-white text-black border-black shadow-[6px_6px_0px_0px_${mood.color}] -translate-x-1 -translate-y-1`
+                    : `bg-black text-white border-white hover:shadow-[4px_4px_0px_0px_${mood.color}] hover:-translate-x-1 hover:-translate-y-1`
+                }`}
+                style={{
+                  animationDelay: `${index * 0.03}s`,
+                }}
               >
-                <div className="theme-card-content relative z-10 text-center space-y-1 sm:space-y-2">
-                  {/* Emoji */}
-                  <div className={`mood-emoji text-2xl sm:text-3xl ${!isMobile && 'transition-transform duration-300'} ${
-                    isSelected && !isMobile ? 'animate-bounce' : ''
-                  }`}>
-                    {mood.emoji}
-                  </div>
-                  
-                  {/* Label */}
-                  <div className="mood-label font-medium text-xs sm:text-sm">
-                    {mood.label}
-                  </div>
-                  
-                  {/* Description - Hidden on mobile */}
-                  {!isMobile && (
-                    <div className={`mood-description text-xs leading-relaxed transition-opacity duration-300 ${
-                      isSelected || isHovered ? 'opacity-100' : 'opacity-70'
-                    }`}>
-                      {mood.description}
-                    </div>
-                  )}
+                {/* BRUTAL SYMBOL */}
+                <div 
+                  className={`text-4xl mb-3 font-black ${isSelected ? 'text-black' : 'text-white'}`}
+                  style={{ color: isSelected ? mood.color : mood.accent }}
+                >
+                  {mood.symbol}
                 </div>
                 
-                {/* Selection Indicator */}
+                {/* MOOD LABEL */}
+                <div className="text-sm font-black leading-tight mb-2">
+                  {mood.label}
+                </div>
+                
+                {/* DESCRIPTION - VISIBLE ON HOVER/SELECT */}
+                <div className={`text-xs font-bold transition-all duration-200 ${
+                  isSelected ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-10'
+                }`}>
+                  {mood.description}
+                </div>
+                
+                {/* SELECTION INDICATOR */}
                 {isSelected && (
-                  <div className="selection-indicator absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full border-2 border-current flex items-center justify-center animate-pulse">
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-current" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                    </svg>
+                  <div 
+                    className="absolute -top-2 -right-2 w-6 h-6 border-4 border-black font-black text-xs flex items-center justify-center"
+                    style={{ backgroundColor: mood.accent }}
+                  >
+                    ✓
                   </div>
                 )}
+                
+                {/* CORNER ACCENT */}
+                <div 
+                  className="absolute bottom-0 right-0 w-4 h-4"
+                  style={{ backgroundColor: isSelected ? mood.accent : mood.color }}
+                ></div>
               </button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Mood Combination Feedback - Mobile Friendly */}
+      {/* MOOD COMBINATION FEEDBACK - BRUTAL */}
       {selectedCount > 1 && (
-        <div className="feedback-message relative animate-fade-in">
-          {!isMobile && (
-            <div className="absolute -inset-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-lg opacity-60"></div>
-          )}
-          <div className={`relative ${isMobile ? 'bg-purple-500/20' : 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 backdrop-blur-sm'} border border-purple-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
-              <span className="text-xl sm:text-2xl">🎭</span>
-              <div className="text-center">
-                <p className="text-white font-medium text-xs sm:text-sm">
-                  {isMobile 
-                    ? "Great combo!"
-                    : "Great combo! Your mood blend will help us find the perfect anime atmosphere."
-                  }
-                </p>
-                {!isMobile && (
-                  <div className="flex flex-wrap gap-1 justify-center mt-2">
-                    {data.moods.map((mood) => (
-                      <span key={mood} className="text-xs bg-white/20 text-white rounded-full px-2 py-1">
-                        {mood}
-                      </span>
-                    ))}
-                  </div>
-                )}
+        <div className="relative z-10 p-6">
+          <div className="max-w-md mx-auto bg-cyan-400 text-black border-4 border-black p-4 transform -rotate-1 shadow-[8px_8px_0px_0px_#000000]">
+            <div className="text-center">
+              <div className="text-3xl font-black mb-2">MOOD BLEND!</div>
+              <div className="text-sm font-bold uppercase tracking-wide">
+                {selectedCount} VIBES COMBINED
               </div>
-              <span className="text-xl sm:text-2xl">✨</span>
+              <div className="flex flex-wrap gap-1 justify-center mt-2">
+                {data.moods.map((mood) => (
+                  <span key={mood} className="text-xs bg-black text-white font-bold px-2 py-1 border border-white">
+                    {mood}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Custom CSS */}
+      {/* BRUTAL CSS STYLES */}
       <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        .brutalist-container {
+          font-family: 'Courier New', monospace;
         }
         
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
+        .brutal-mood-card {
+          clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
         }
-
-        /* Touch feedback for mobile */
-        @media (hover: none) and (pointer: coarse) {
-          .mood-card:active {
-            transform: scale(0.98) !important;
-            opacity: 0.9 !important;
-          }
+        
+        .brutalist-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-track {
+          background: #000;
+          border: 2px solid #fff;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb {
+          background: #fff;
+          border: 1px solid #000;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #ffff00;
+        }
+        
+        @keyframes brutal-pulse {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          50% { transform: scale(1.05) rotate(1deg); }
+        }
+        
+        .brutal-mood-card:hover {
+          animation: brutal-pulse 0.3s ease-in-out;
+        }
+        
+        /* Disable smooth scrolling for brutal feel */
+        * {
+          scroll-behavior: auto !important;
         }
       `}</style>
     </div>

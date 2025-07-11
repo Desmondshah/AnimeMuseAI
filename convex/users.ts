@@ -447,3 +447,44 @@ export const scheduledCleanupExpiredPhoneVerifications = internalAction({
     return result;
   },
 });
+
+export const createUserProfile = mutation({
+  args: {
+    name: v.string(),
+    favoriteGenres: v.optional(v.array(v.string())),
+    mood: v.optional(v.string()),
+    experience: v.optional(v.string()),
+    favoriteAnime: v.optional(v.array(v.string())),
+    dislikedGenres: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("User not authenticated.");
+    }
+
+    // Check if user profile already exists
+    const existingProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .unique();
+
+    if (existingProfile) {
+      throw new Error("User profile already exists.");
+    }
+
+    // Create new user profile
+    const profileId = await ctx.db.insert("userProfiles", {
+      userId: userId as Id<"users">,
+      name: args.name,
+      genres: args.favoriteGenres || [],
+      moods: args.mood ? [args.mood] : [],
+      experienceLevel: args.experience,
+      favoriteAnimes: args.favoriteAnime || [],
+      dislikedGenres: args.dislikedGenres || [],
+      onboardingCompleted: true,
+    });
+
+    return profileId;
+  },
+});

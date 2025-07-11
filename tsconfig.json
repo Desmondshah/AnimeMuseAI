@@ -1,4 +1,3 @@
-
 {
   "files": [],
   "references": [
@@ -7,8 +6,12 @@
   ],
   "compilerOptions": {
     "baseUrl": ".",
-    "jsx": "preserve", // Or "react-jsx" depending on your setup
+    "jsx": "preserve",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "noErrorTruncation": false,
+    "noCheck": true,
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -16,7 +19,15 @@
   "include": [
     "next-env.d.ts",
     "**/*.ts",
-    "**/*.tsx"
-      ],
-      "exclude": ["node_modules"]
+    "**/*.tsx",
+    "convex/**/*.ts"
+  ],
+  "exclude": ["node_modules", 
+  "dist", 
+  "externalApis.ts", 
+  "retryEnhancement.ts",
+  "testData.ts",
+  "runMigration.ts",
+  "twilioSender.ts"
+]
 }

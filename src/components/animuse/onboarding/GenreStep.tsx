@@ -1,28 +1,28 @@
-// src/components/animuse/onboarding/GenreStep.tsx - Mobile-Optimized Version
+// src/components/animuse/onboarding/GenreStep.tsx - Brutalist UI Version
 import React, { useState, useEffect } from "react";
 import StyledButton from "../shared/StyledButton";
 
 const GENRES_OPTIONS = [
-  { id: "action", label: "Action", emoji: "⚔️", color: "from-red-500 to-orange-500", description: "High-energy battles" },
-  { id: "adventure", label: "Adventure", emoji: "🗺️", color: "from-green-500 to-teal-500", description: "Epic journeys" },
-  { id: "comedy", label: "Comedy", emoji: "😂", color: "from-yellow-400 to-orange-400", description: "Laugh-out-loud fun" },
-  { id: "drama", label: "Drama", emoji: "🎭", color: "from-purple-500 to-pink-500", description: "Emotional stories" },
-  { id: "fantasy", label: "Fantasy", emoji: "🧙‍♂️", color: "from-purple-600 to-indigo-600", description: "Magical worlds" },
-  { id: "horror", label: "Horror", emoji: "👻", color: "from-gray-800 to-red-900", description: "Spine-chilling tales" },
-  { id: "isekai", label: "Isekai", emoji: "🌍", color: "from-blue-500 to-purple-500", description: "Another world" },
-  { id: "josei", label: "Josei", emoji: "👩", color: "from-pink-400 to-rose-400", description: "Adult women stories" },
-  { id: "mecha", label: "Mecha", emoji: "🤖", color: "from-gray-500 to-blue-600", description: "Giant robots" },
-  { id: "mystery", label: "Mystery", emoji: "🔍", color: "from-indigo-600 to-purple-700", description: "Puzzles & secrets" },
-  { id: "psychological", label: "Psychological", emoji: "🧠", color: "from-purple-700 to-indigo-800", description: "Mind-bending" },
-  { id: "romance", label: "Romance", emoji: "💕", color: "from-pink-500 to-red-400", description: "Love stories" },
-  { id: "sciFi", label: "Sci-Fi", emoji: "🚀", color: "from-cyan-500 to-blue-600", description: "Futuristic tech" },
-  { id: "seinen", label: "Seinen", emoji: "👨", color: "from-blue-600 to-indigo-600", description: "Adult men stories" },
-  { id: "shojo", label: "Shojo", emoji: "🌸", color: "from-pink-300 to-rose-400", description: "Young girls stories" },
-  { id: "shonen", label: "Shonen", emoji: "💪", color: "from-orange-500 to-red-500", description: "Young boys stories" },
-  { id: "sliceOfLife", label: "Slice of Life", emoji: "☕", color: "from-green-400 to-teal-400", description: "Everyday moments" },
-  { id: "sports", label: "Sports", emoji: "⚽", color: "from-emerald-500 to-green-600", description: "Athletic competition" },
-  { id: "supernatural", label: "Supernatural", emoji: "👁️", color: "from-purple-800 to-indigo-900", description: "Beyond reality" },
-  { id: "thriller", label: "Thriller", emoji: "⚡", color: "from-red-600 to-orange-700", description: "Edge-of-seat suspense" },
+  { id: "action", label: "ACTION", symbol: "▲", color: "#FF0000", description: "HIGH-ENERGY BATTLES", accent: "#FFFF00" },
+  { id: "adventure", label: "ADVENTURE", symbol: "●", color: "#00FF00", description: "EPIC JOURNEYS", accent: "#FF8800" },
+  { id: "comedy", label: "COMEDY", symbol: "◆", color: "#FFFF00", description: "LAUGH-OUT-LOUD", accent: "#FF0088" },
+  { id: "drama", label: "DRAMA", symbol: "■", color: "#FF00FF", description: "EMOTIONAL STORIES", accent: "#00FFFF" },
+  { id: "fantasy", label: "FANTASY", symbol: "★", color: "#8800FF", description: "MAGICAL WORLDS", accent: "#FFFF00" },
+  { id: "horror", label: "HORROR", symbol: "▼", color: "#000000", description: "SPINE-CHILLING", accent: "#FF0000" },
+  { id: "isekai", label: "ISEKAI", symbol: "◯", color: "#0088FF", description: "ANOTHER WORLD", accent: "#FF88FF" },
+  { id: "josei", label: "JOSEI", symbol: "▪", color: "#FF8888", description: "ADULT WOMEN", accent: "#88FF88" },
+  { id: "mecha", label: "MECHA", symbol: "▣", color: "#888888", description: "GIANT ROBOTS", accent: "#FFFF88" },
+  { id: "mystery", label: "MYSTERY", symbol: "?", color: "#440088", description: "PUZZLES & SECRETS", accent: "#88FFFF" },
+  { id: "psychological", label: "PSYCH", symbol: "◈", color: "#660044", description: "MIND-BENDING", accent: "#FFAA00" },
+  { id: "romance", label: "ROMANCE", symbol: "♥", color: "#FF4488", description: "LOVE STORIES", accent: "#88FF44" },
+  { id: "sciFi", label: "SCI-FI", symbol: "▲", color: "#00AAFF", description: "FUTURISTIC TECH", accent: "#FF8800" },
+  { id: "seinen", label: "SEINEN", symbol: "■", color: "#004488", description: "ADULT MEN", accent: "#88FF00" },
+  { id: "shojo", label: "SHOJO", symbol: "✦", color: "#FF88AA", description: "YOUNG GIRLS", accent: "#88AAFF" },
+  { id: "shonen", label: "SHONEN", symbol: "▲", color: "#FF4400", description: "YOUNG BOYS", accent: "#FFFF00" },
+  { id: "sliceOfLife", label: "SLICE", symbol: "━", color: "#44AA44", description: "EVERYDAY", accent: "#FFAA44" },
+  { id: "sports", label: "SPORTS", symbol: "○", color: "#00AA44", description: "ATHLETIC", accent: "#FF4444" },
+  { id: "supernatural", label: "SUPER", symbol: "◐", color: "#220044", description: "BEYOND REALITY", accent: "#AAFF44" },
+  { id: "thriller", label: "THRILLER", symbol: "⚡", color: "#AA2200", description: "SUSPENSE", accent: "#44AAFF" },
 ];
 
 interface GenreStepProps {
@@ -60,208 +60,202 @@ export default function GenreStep({ data, updateData }: GenreStepProps) {
   const selectedCount = data.genres.length;
 
   return (
-    <div className="relative min-h-[400px] space-y-4 sm:space-y-6">
-      {/* Simplified floating background for mobile */}
-      {!isMobile && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-4 left-8 w-24 h-24 bg-gradient-to-br from-brand-primary-action/20 to-transparent rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-6 right-12 w-32 h-32 bg-gradient-to-tl from-brand-accent-gold/15 to-transparent rounded-full blur-xl animate-pulse delay-1000"></div>
-        </div>
-      )}
+    <div className="brutalist-container min-h-screen bg-black text-white font-mono relative overflow-hidden">
+      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+        <div className="absolute top-0 right-0 w-2 h-full bg-yellow-400"></div>
+        <div className="absolute bottom-0 left-0 w-full h-2 bg-cyan-400"></div>
+        <div className="absolute top-0 left-0 w-2 h-full bg-magenta-500"></div>
+        
+        {/* HARSH DIAGONAL LINES */}
+        <div className="absolute top-1/4 left-0 w-full h-1 bg-white transform rotate-12 opacity-20"></div>
+        <div className="absolute top-3/4 left-0 w-full h-1 bg-red-500 transform -rotate-12 opacity-30"></div>
+        
+        {/* STARK GEOMETRIC SHAPES */}
+        <div className="absolute top-10 right-10 w-16 h-16 bg-yellow-400 transform rotate-45"></div>
+        <div className="absolute bottom-20 left-8 w-12 h-12 bg-cyan-400"></div>
+        <div className="absolute top-1/2 right-1/4 w-6 h-20 bg-magenta-500"></div>
+      </div>
 
-      {/* Header Section - Mobile Optimized */}
-      <div className="step-header-section text-center space-y-3 sm:space-y-4">
-        <div className="relative inline-block">
-          <div className={`relative ${isMobile ? 'bg-black/60' : 'bg-black/30 backdrop-blur-sm'} border border-white/10 rounded-2xl p-4 sm:p-6`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
-              <span className="text-2xl sm:text-3xl">🎭</span>
-              <h3 className="step-title text-xl sm:text-2xl md:text-3xl font-heading font-bold">
-                <span className="bg-gradient-to-r from-brand-primary-action to-brand-accent-gold bg-clip-text text-transparent">
-                  {isMobile ? "Pick Genres" : "Favorite Genres?"}
-                </span>
-              </h3>
-              <span className="text-2xl sm:text-3xl">✨</span>
-            </div>
-            <p className="step-subtitle text-white/80 text-sm sm:text-base leading-relaxed">
-              {isMobile 
-                ? "Select your favorite story types"
-                : "Pick your most-loved story types for spot-on recommendations!"
-              }
-            </p>
+      {/* BRUTAL HEADER */}
+      <div className="relative z-10 text-center pt-8 pb-6 border-b-4 border-white">
+        <div className="bg-black border-4 border-white inline-block p-6 transform -rotate-1 shadow-[8px_8px_0px_0px_#FF0000]">
+          <h1 className="text-4xl md:text-6xl font-black tracking-wider mb-2">
+            GENRE
+          </h1>
+          <div className="w-full h-2 bg-gradient-to-r from-red-500 via-yellow-400 to-cyan-400"></div>
+          <h2 className="text-xl md:text-2xl font-bold mt-2 text-yellow-400">
+            SELECT YOUR POISON
+          </h2>
+        </div>
+        
+        {/* SELECTION COUNTER - BRUTAL STYLE */}
+        {selectedCount > 0 && (
+          <div className="mt-6 inline-block bg-red-500 text-black font-black text-xl p-4 border-4 border-white transform rotate-1 shadow-[4px_4px_0px_0px_#000000]">
+            [{selectedCount}] SELECTED
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Stats & Search - Mobile Layout */}
-        <div className="flex flex-col items-center gap-3">
-          {/* Selection Counter */}
-          {selectedCount > 0 && (
-            <div className="selection-counter inline-flex items-center space-x-2 bg-gradient-to-r from-brand-primary-action/20 to-brand-accent-gold/20 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 border border-white/10 animate-fade-in">
-              <span className="text-base sm:text-lg">📊</span>
-              <span className="text-white font-medium text-xs sm:text-sm">
-                {selectedCount} genre{selectedCount > 1 ? 's' : ''} selected
-              </span>
-            </div>
-          )}
-
-          {/* Search Filter - Full width on mobile */}
-          <div className="relative w-full max-w-xs">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Search genres..."
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="search-filter-input bg-black/40 backdrop-blur-sm border border-white/20 rounded-full pl-10 pr-4 py-2 text-white text-sm placeholder-white/60 focus:border-brand-primary-action focus:ring-2 focus:ring-brand-primary-action/50 focus:outline-none transition-all duration-300 w-full"
-            />
+      {/* SEARCH BAR - BRUTAL */}
+      <div className="relative z-10 p-6 border-b-2 border-gray-600">
+        <div className="max-w-md mx-auto relative">
+          <input
+            type="text"
+            placeholder="SEARCH GENRES..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="w-full bg-black border-4 border-white text-white text-xl font-bold p-4 placeholder-gray-400 focus:border-yellow-400 focus:outline-none uppercase tracking-widest shadow-[4px_4px_0px_0px_#FF0000]"
+          />
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-2xl text-yellow-400">
+            ▶
           </div>
         </div>
       </div>
 
-      {/* Genre Grid - Mobile Optimized */}
-      <div className={`genre-selection-grid ${isMobile ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 lg:grid-cols-4 gap-3'} ${!isMobile && 'max-h-[300px] overflow-y-auto custom-scrollbar pr-2'}`}>
-        {filteredGenres.map((genre, index) => {
-          const isSelected = data.genres.includes(genre.label);
-          const isHovered = hoveredGenre === genre.id;
-          
-          return (
-            <div
-              key={genre.id}
-              className="relative group"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              {/* Selection Glow - Hidden on mobile */}
-              {!isMobile && (
-                <div className={`absolute -inset-1 bg-gradient-to-r ${genre.color} rounded-2xl blur-md transition-all duration-300 ${
-                  isSelected ? 'opacity-60 scale-105' : isHovered ? 'opacity-30' : 'opacity-0'
-                }`}></div>
-              )}
-              
-              {/* Genre Card */}
+      {/* GENRE GRID - BRUTALIST LAYOUT */}
+      <div className="relative z-10 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 max-h-96 overflow-y-auto brutalist-scrollbar">
+          {filteredGenres.map((genre, index) => {
+            const isSelected = data.genres.includes(genre.label);
+            
+            return (
               <button
+                key={genre.id}
                 onClick={() => toggleGenre(genre.label)}
-                onMouseEnter={() => !isMobile && setHoveredGenre(genre.id)}
-                onMouseLeave={() => !isMobile && setHoveredGenre(null)}
-                className={`genre-card relative w-full p-3 rounded-xl border transition-all duration-200 ${
+                className={`brutal-genre-card group relative border-4 p-4 font-black uppercase tracking-wide transform transition-all duration-100 ${
                   isSelected 
-                    ? isMobile
-                      ? 'selected bg-gradient-to-br from-brand-primary-action/20 to-brand-accent-gold/20 border-brand-primary-action text-white'
-                      : `bg-gradient-to-br ${genre.color} border-white/30 text-white shadow-xl scale-102`
-                    : 'bg-black/40 backdrop-blur-sm border-white/10 hover:border-white/30 hover:bg-black/60 text-white/90'
-                } ${!isMobile && 'transform hover:scale-105'}`}
+                    ? `bg-white text-black border-black shadow-[6px_6px_0px_0px_${genre.color}] -translate-x-1 -translate-y-1`
+                    : `bg-black text-white border-white hover:shadow-[4px_4px_0px_0px_${genre.color}] hover:-translate-x-1 hover:-translate-y-1`
+                }`}
+                style={{
+                  animationDelay: `${index * 0.02}s`,
+                }}
               >
-                <div className="theme-card-content relative z-10 text-center space-y-1">
-                  {/* Emoji */}
-                  <div className={`genre-emoji text-2xl ${!isMobile && 'transition-transform duration-300'} ${
-                    isSelected && !isMobile ? 'animate-bounce' : ''
-                  }`}>
-                    {genre.emoji}
-                  </div>
-                  
-                  {/* Label */}
-                  <div className="genre-label font-medium text-xs">
-                    {genre.label}
-                  </div>
-                  
-                  {/* Description - Hidden on mobile */}
-                  {!isMobile && (
-                    <div className={`genre-description text-xs leading-tight transition-all duration-300 ${
-                      isSelected || isHovered ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0'
-                    }`}>
-                      {genre.description}
-                    </div>
-                  )}
+                {/* BRUTAL SYMBOL */}
+                <div 
+                  className={`text-3xl mb-2 font-black ${isSelected ? 'text-black' : 'text-white'}`}
+                  style={{ color: isSelected ? genre.color : genre.accent }}
+                >
+                  {genre.symbol}
                 </div>
                 
-                {/* Selection Indicator */}
+                {/* GENRE LABEL */}
+                <div className="text-sm font-black leading-tight mb-1">
+                  {genre.label}
+                </div>
+                
+                {/* DESCRIPTION - VISIBLE ON HOVER/SELECT */}
+                <div className={`text-xs font-bold transition-all duration-200 ${
+                  isSelected ? 'opacity-100 max-h-10' : 'opacity-0 max-h-0 group-hover:opacity-100 group-hover:max-h-10'
+                }`}>
+                  {genre.description}
+                </div>
+                
+                {/* SELECTION INDICATOR */}
                 {isSelected && (
-                  <div className="selection-indicator absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-current flex items-center justify-center animate-pulse">
-                    <svg className="w-2.5 h-2.5 text-current" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                    </svg>
+                  <div 
+                    className="absolute -top-2 -right-2 w-6 h-6 border-4 border-black font-black text-xs flex items-center justify-center"
+                    style={{ backgroundColor: genre.accent }}
+                  >
+                    ✓
                   </div>
                 )}
+                
+                {/* CORNER ACCENT */}
+                <div 
+                  className="absolute bottom-0 right-0 w-3 h-3"
+                  style={{ backgroundColor: isSelected ? genre.accent : genre.color }}
+                ></div>
               </button>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Quick Selection Helpers - Mobile Optimized */}
+      {/* QUICK PRESETS - BRUTAL STYLE */}
       {selectedCount === 0 && (
-        <div className="text-center space-y-3">
-          <p className="text-white/60 text-xs sm:text-sm">{isMobile ? "Try these combos:" : "Not sure where to start? Try these popular combinations:"}</p>
-          <div className="quick-selection-presets flex flex-wrap gap-2 justify-center">
-            {[
-              { label: isMobile ? "Action" : "Action Fan", genres: ["Action", "Adventure", "Shonen"] },
-              { label: isMobile ? "Drama" : "Drama Lover", genres: ["Drama", "Romance", "Slice of Life"] },
-              { label: isMobile ? "Fantasy" : "Fantasy Explorer", genres: ["Fantasy", "Isekai", "Adventure"] },
-              { label: isMobile ? "All!" : "Everything!", genres: ["Action", "Adventure", "Comedy", "Drama", "Fantasy"] }
-            ].map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => updateData({ genres: preset.genres })}
-                className="preset-button bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded-full transition-colors duration-200 border border-white/20 hover:border-white/40"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Genre Diversity Feedback - Mobile Friendly */}
-      {selectedCount >= 3 && (
-        <div className="feedback-message relative animate-fade-in">
-          {!isMobile && (
-            <div className="absolute -inset-2 bg-gradient-to-r from-green-500/20 to-emerald-400/20 rounded-2xl blur-lg opacity-60"></div>
-          )}
-          <div className={`relative ${isMobile ? 'bg-green-500/20' : 'bg-gradient-to-r from-green-500/10 to-emerald-400/10 backdrop-blur-sm'} border border-green-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4`}>
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
-              <span className="text-xl sm:text-2xl">🎯</span>
-              <div className="text-center">
-                <p className="text-white font-medium text-xs sm:text-sm">
-                  {isMobile 
-                    ? "Great diversity!"
-                    : "Perfect! Your diverse genre selection will help us find amazing recommendations."
-                  }
-                </p>
-                {isMobile && selectedCount > 5 && (
-                  <p className="text-xs text-white/70 mt-1">
-                    {selectedCount} genres selected
-                  </p>
-                )}
-              </div>
-              <span className="text-xl sm:text-2xl">🌟</span>
+        <div className="relative z-10 p-6 border-t-4 border-red-500">
+          <div className="text-center">
+            <h3 className="text-2xl font-black mb-4 text-yellow-400 tracking-widest">
+              QUICK SELECTION
+            </h3>
+            <div className="flex flex-wrap gap-4 justify-center">
+              {[
+                { label: "ACTION PACK", genres: ["ACTION", "ADVENTURE", "SHONEN"], color: "#FF0000" },
+                { label: "FEEL ZONE", genres: ["DRAMA", "ROMANCE", "SLICE"], color: "#FF00FF" },
+                { label: "WEIRD STUFF", genres: ["FANTASY", "ISEKAI", "SUPER"], color: "#00FF00" },
+                { label: "EVERYTHING", genres: ["ACTION", "DRAMA", "COMEDY", "FANTASY", "ROMANCE"], color: "#FFFF00" }
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  onClick={() => updateData({ genres: preset.genres })}
+                  className="bg-black text-white border-4 border-white px-6 py-3 font-black text-sm uppercase tracking-wide hover:bg-white hover:text-black transition-all duration-100 shadow-[4px_4px_0px_0px_#000000] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
+                  style={{ borderColor: preset.color }}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Custom CSS */}
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
-        }
-        
-        .scale-102 {
-          transform: scale(1.02);
-        }
+      {/* FEEDBACK MESSAGE - BRUTAL */}
+      {selectedCount >= 3 && (
+        <div className="relative z-10 p-6">
+          <div className="max-w-md mx-auto bg-green-500 text-black border-4 border-black p-4 transform -rotate-1 shadow-[8px_8px_0px_0px_#000000]">
+            <div className="text-center">
+              <div className="text-3xl font-black mb-2">EXCELLENT!</div>
+              <div className="text-sm font-bold uppercase tracking-wide">
+                {selectedCount} GENRES LOCKED AND LOADED
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        /* Touch feedback for mobile */
-        @media (hover: none) and (pointer: coarse) {
-          .genre-card:active {
-            transform: scale(0.98) !important;
-            opacity: 0.9 !important;
-          }
+      {/* BRUTAL CSS STYLES */}
+      <style jsx>{`
+        .brutalist-container {
+          font-family: 'Courier New', monospace;
+        }
+        
+        .brutal-genre-card {
+          clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-track {
+          background: #000;
+          border: 2px solid #fff;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb {
+          background: #fff;
+          border: 1px solid #000;
+        }
+        
+        .brutalist-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #ff0000;
+        }
+        
+        @keyframes brutal-pulse {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          50% { transform: scale(1.05) rotate(1deg); }
+        }
+        
+        .brutal-genre-card:hover {
+          animation: brutal-pulse 0.3s ease-in-out;
+        }
+        
+        /* Disable smooth scrolling for brutal feel */
+        * {
+          scroll-behavior: auto !important;
         }
       `}</style>
     </div>
