@@ -500,6 +500,95 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
   const userProfile = useQuery(api.users.getMyUserProfile);
   const getRecommendationsByMoodTheme = useAction(api.ai.getEnhancedRecommendationsByMoodTheme);
   const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
+  // Helper function to map mood cues to database filters
+  const getMoodBasedFilters = useMemo(() => {
+    if (selectedMoodCues.length === 0) return undefined;
+    
+    const filters: any = {};
+    
+    // Map mood cues to likely genres - made more comprehensive and forgiving
+    const genreMapping: Record<string, string[]> = {
+      "Action Packed": ["Action", "Adventure", "Shounen", "Military", "Mecha"],
+      "Dark & Gritty": ["Drama", "Thriller", "Psychological", "Horror", "Seinen", "Mature"],
+      "Comedic": ["Comedy", "Slice of Life", "Parody", "Gag Humor"],
+      "Romantic": ["Romance", "Drama", "Shoujo", "Josei"],
+      "Heartwarming": ["Slice of Life", "Family", "Comedy", "Feel-good", "Wholesome"],
+      "Fantasy & Magical": ["Fantasy", "Magic", "Supernatural", "Isekai", "Adventure"],
+      "Supernatural": ["Supernatural", "Mystery", "Thriller", "Horror", "Occult"],
+      "Epic Adventure": ["Adventure", "Action", "Fantasy", "Shounen", "Epic"],
+      "Mind-Bending": ["Psychological", "Mystery", "Sci-Fi", "Thriller", "Complex"],
+      "Coming of Age": ["Drama", "Slice of Life", "School", "Youth", "Growing Up"],
+      "Inspiring": ["Sports", "Drama", "Slice of Life", "Motivational", "Uplifting"],
+      "Melancholic": ["Drama", "Slice of Life", "Sad", "Emotional", "Bittersweet"],
+      "Chill Vibes": ["Slice of Life", "Relaxing", "Calm", "Peaceful", "Iyashikei"],
+      "Intense": ["Action", "Thriller", "Suspense", "High Stakes"],
+      "Mysterious": ["Mystery", "Supernatural", "Thriller", "Detective"]
+    };
+    
+    // Collect all relevant genres
+    const relevantGenres = new Set<string>();
+    selectedMoodCues.forEach(cue => {
+      const mappedGenres = genreMapping[cue];
+      if (mappedGenres) {
+        mappedGenres.forEach(genre => relevantGenres.add(genre));
+      }
+    });
+    
+    // Always include some broad categories to increase chances of matches
+    if (relevantGenres.size > 0) {
+      filters.genres = Array.from(relevantGenres);
+    } else {
+      // Fallback: use very broad categories
+      filters.genres = ["Action", "Drama", "Comedy", "Romance", "Adventure"];
+    }
+    
+    // Map mood cues to emotional tags - more flexible
+    const emotionalMapping: Record<string, string[]> = {
+      "Dark & Gritty": ["dark", "mature", "serious", "gritty", "intense"],
+      "Heartwarming": ["heartwarming", "wholesome", "feel-good", "warm", "touching"],
+      "Inspiring": ["motivational", "uplifting", "inspiring", "heroic", "triumphant"],
+      "Melancholic": ["sad", "bittersweet", "emotional", "melancholy", "tragic"],
+      "Chill Vibes": ["relaxing", "peaceful", "calm", "soothing", "gentle"],
+      "Comedic": ["funny", "humorous", "lighthearted", "amusing", "entertaining"],
+      "Romantic": ["romantic", "love", "passion", "tender", "sweet"],
+      "Action Packed": ["exciting", "thrilling", "intense", "fast-paced", "dynamic"],
+      "Fantasy & Magical": ["magical", "fantastical", "mystical", "enchanting", "otherworldly"],
+      "Supernatural": ["eerie", "mysterious", "supernatural", "paranormal", "spooky"]
+    };
+    
+    const emotionalTags = new Set<string>();
+    selectedMoodCues.forEach(cue => {
+      const mappedTags = emotionalMapping[cue];
+      if (mappedTags) {
+        mappedTags.forEach(tag => emotionalTags.add(tag));
+      }
+    });
+    
+    if (emotionalTags.size > 0) {
+      filters.emotionalTags = Array.from(emotionalTags);
+    }
+    
+    console.log('[MoodboardPage] Generated filters for mood cues:', selectedMoodCues, '→', filters);
+    
+    return filters;
+  }, [selectedMoodCues]);
+
+  const getFilteredAnime = useQuery(api.anime.getFilteredAnime, 
+    selectedMoodCues.length > 0 ? {
+      paginationOpts: { numItems: 12, cursor: null }, // Get more results
+      searchTerm: "",
+      filters: getMoodBasedFilters
+    } : "skip"
+  );
+
+  // Fallback query for when filtered results are empty
+  const getFallbackAnime = useQuery(api.anime.getFilteredAnime, 
+    selectedMoodCues.length > 0 && (!getFilteredAnime?.page || getFilteredAnime.page.length === 0) ? {
+      paginationOpts: { numItems: 8, cursor: null },
+      searchTerm: "",
+      filters: undefined // No filters - get any anime
+    } : "skip"
+  );
   // Removed debug action - moved to admin dashboard
 
   // ============================================================================
@@ -686,28 +775,126 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
         const weight = intensity >= 4 ? "strong" : intensity >= 3 ? "moderate" : "light";
         return `${weight} ${cueLabel}`;
       });
+
+      // HYBRID APPROACH: Mix database anime with AI recommendations
+      const hybridRecommendations: AnimeRecommendation[] = [];
       
-      const result = await getRecommendationsByMoodTheme({
-        selectedCues: enhancedCues,
-        userProfile: profileForAI,
-        count: 10,
-        previousTitles: getHistoryTitles(), 
-        messageId: `enhanced-mood-${Date.now()}`
-      });
+      // DEBUG: Log database query results
+      console.log('[MoodboardPage] Database query filters:', getMoodBasedFilters);
+      console.log('[MoodboardPage] Filtered results:', getFilteredAnime);
+      console.log('[MoodboardPage] Fallback results:', getFallbackAnime);
       
-      if (result.error && result.error !== "OpenAI API key not configured.") {
-        toast.error(`Mood board error: ${result.error.substring(0,100)}`);
+      // 1. Try filtered database anime first
+      let databaseAnime: any[] = [];
+      let usingFilteredResults = false;
+      
+      if (getFilteredAnime?.page && getFilteredAnime.page.length > 0) {
+        databaseAnime = getFilteredAnime.page;
+        usingFilteredResults = true;
+        console.log(`[MoodboardPage] Using ${databaseAnime.length} filtered database anime`);
+      } else if (getFallbackAnime?.page && getFallbackAnime.page.length > 0) {
+        databaseAnime = getFallbackAnime.page;
+        usingFilteredResults = false;
+        console.log(`[MoodboardPage] Using ${databaseAnime.length} fallback database anime (no filtered matches)`);
       } else {
-        const recs = result.recommendations || [];
-        onRecommendationsChange(recs);
-        addHistoryTitles(recs.map((r: { title: string }) => r.title));
+        console.log('[MoodboardPage] No database anime found at all - will use more AI recommendations');
       }
+      
+      // Add database anime to recommendations (limit to 6 to save room for AI)
+      if (databaseAnime.length > 0) {
+        const dbAnime = databaseAnime.slice(0, 6).map((anime: any) => ({
+          title: anime.title,
+          description: anime.description || "No description available.",
+          posterUrl: anime.posterUrl || "",
+          genres: anime.genres || [],
+          year: anime.year,
+          rating: anime.rating,
+          reasoning: `Found in database - ${usingFilteredResults 
+            ? `matches your ${selectedMoodCues.join(" & ")} mood preferences`
+            : `popular anime similar to ${selectedMoodCues.join(" & ")} vibes`}`,
+          emotionalTags: anime.emotionalTags || [],
+          studios: anime.studios || [],
+          themes: anime.themes || [],
+          moodMatchScore: usingFilteredResults ? 0.8 : 0.6,
+          _id: anime._id,
+          foundInDatabase: true,
+          isEnhancedMoodRecommendation: true,
+          recommendationMode: 'simple' as const
+        }));
+        
+        hybridRecommendations.push(...dbAnime);
+        console.log(`[MoodboardPage] Added ${dbAnime.length} database anime to recommendations`);
+      }
+      
+      // 2. Get AI-generated recommendations to fill the rest
+      // More AI recommendations if no database results found
+      const aiCount = databaseAnime.length > 0 ? 4 : 8; // 4 if we have DB results, 8 if not
+      
+      try {
+        const aiResult = await getRecommendationsByMoodTheme({
+          selectedCues: enhancedCues,
+          userProfile: profileForAI,
+          count: aiCount,
+          previousTitles: [
+            ...getHistoryTitles(),
+            ...hybridRecommendations.map(r => r.title) // Avoid duplicates
+          ], 
+          messageId: `hybrid-mood-${Date.now()}`
+        });
+        
+        if (aiResult.recommendations && aiResult.recommendations.length > 0) {
+          const aiRecommendations = aiResult.recommendations.map((rec: any) => ({
+            ...rec,
+            reasoning: `AI-curated for ${selectedMoodCues.join(" & ")} mood - ${rec.reasoning}`,
+            isEnhancedMoodRecommendation: true,
+            recommendationMode: 'advanced' as const,
+            foundInDatabase: false
+          }));
+          
+          hybridRecommendations.push(...aiRecommendations);
+          console.log(`[MoodboardPage] Added ${aiRecommendations.length} AI recommendations`);
+        }
+      } catch (aiError: any) {
+        console.warn('[MoodboardPage] AI recommendations failed:', aiError.message);
+        if (hybridRecommendations.length === 0) {
+          toast.error('Unable to generate recommendations. Please try again.');
+        } else {
+          toast.info('Using database recommendations only');
+        }
+      }
+      
+      // 3. Shuffle the combined results for better variety
+      const shuffledRecommendations = hybridRecommendations
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 10); // Limit to 10 total recommendations
+      
+      if (shuffledRecommendations.length === 0) {
+        toast.info(`No matches found for ${selectedMoodCues.join(" & ")} mood combination. Try different vibes!`);
+      } else {
+        const dbCount = shuffledRecommendations.filter(r => r.foundInDatabase).length;
+        const aiCount = shuffledRecommendations.filter(r => !r.foundInDatabase).length;
+        console.log(`[MoodboardPage] Final hybrid results: ${dbCount} database + ${aiCount} AI recommendations`);
+        
+        // Show appropriate message based on what we found
+        if (dbCount === 0) {
+          toast.info(`No database matches for ${selectedMoodCues.join(" & ")} - showing AI curated recommendations`);
+        } else if (aiCount === 0) {
+          toast.success(`Found ${dbCount} database matches for your mood!`);
+        } else {
+          toast.success(`Hybrid collection: ${dbCount} database + ${aiCount} AI curated anime`);
+        }
+      }
+      
+      onRecommendationsChange(shuffledRecommendations);
+      addHistoryTitles(shuffledRecommendations.map(r => r.title));
+      
     } catch (e: any) {
+      console.error('[MoodboardPage] Error in hybrid fetch:', e);
       toast.error(`Error fetching mood board: ${e.message}`);
     } finally {
       onLoadingChange(false);
     }
-  }, [selectedMoodCues, cueIntensities, userProfile, getRecommendationsByMoodTheme, onRecommendationsChange, onLoadingChange]);
+  }, [selectedMoodCues, cueIntensities, userProfile, getRecommendationsByMoodTheme, getFilteredAnime, getFallbackAnime, onRecommendationsChange, onLoadingChange, getMoodBasedFilters]);
 
   // Auto-fetch when mood cues change
   useEffect(() => {
@@ -1493,8 +1680,22 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
             <div className="bg-brand-accent-gold border-4 border-black shadow-brutal-lg p-6">
               <div className="bg-black border-4 border-white p-4 mb-4">
                 <h3 className="text-white font-black text-2xl uppercase text-center">
-                  CURATED COLLECTION
+                  HYBRID COLLECTION
                 </h3>
+                <div className="mt-2 text-center">
+                  <div className="inline-flex gap-4">
+                    <div className="bg-green-500 border-2 border-white px-2 py-1">
+                      <span className="text-white text-xs font-bold">
+                        📚 {moodBoardRecommendations.filter(r => r.foundInDatabase).length} DATABASE
+                      </span>
+                    </div>
+                    <div className="bg-purple-500 border-2 border-white px-2 py-1">
+                      <span className="text-white text-xs font-bold">
+                        🤖 {moodBoardRecommendations.filter(r => !r.foundInDatabase).length} AI CURATED
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <div className="bg-white border-4 border-black p-3 shadow-brutal">
@@ -1544,6 +1745,19 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                        
                        {/* Brutal Info Section */}
                        <div className="p-3 bg-black" style={{ pointerEvents: 'auto' }}>
+                         {/* Source Indicator */}
+                         <div className="mb-2 flex justify-center">
+                           {rec.foundInDatabase ? (
+                             <div className="bg-green-500 border-2 border-white px-2 py-1 text-center">
+                               <span className="text-white text-xs font-black uppercase">📚 DATABASE</span>
+                             </div>
+                           ) : (
+                             <div className="bg-purple-500 border-2 border-white px-2 py-1 text-center">
+                               <span className="text-white text-xs font-black uppercase">🤖 AI CURATED</span>
+                             </div>
+                           )}
+                         </div>
+                         
                          <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-2 line-clamp-2">
                            {rec.title || "UNKNOWN TITLE"}
                          </h4>
