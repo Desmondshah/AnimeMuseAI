@@ -984,7 +984,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                 {loopedPopularAnime.slice(0, 8).map((anime, index) => (
         <SwiperSlide
                     key={`artistic-${index}`}
-                    className="w-[280px] sm:w-[320px]"
+                    className="w-[220px] sm:w-[260px]"
           style={{
                       height: 'auto',
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',

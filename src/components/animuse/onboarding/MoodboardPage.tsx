@@ -10,6 +10,9 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCoverflow, FreeMode, Navigation, Pagination } from 'swiper/modules';
 
+// Import custom brutalist styles
+import './MoodboardBrutalist.css';
+
 const HISTORY_KEY = "animuse-mood-rec-history";
 
 function getHistoryTitles(): string[] {
@@ -688,324 +691,762 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      {/* ADVANCED BRUTAL GEOMETRIC BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none">
-        {/* Harsh Grid Overlay */}
-        <div className="absolute inset-0 opacity-10"
+        {/* Multi-Layer Grid System */}
+        <div className="absolute inset-0 opacity-5"
              style={{
                backgroundImage: `
-                 linear-gradient(90deg, #FF6B35 1px, transparent 1px),
-                 linear-gradient(0deg, #FF6B35 1px, transparent 1px)
+                 linear-gradient(90deg, #FF6B35 2px, transparent 2px),
+                 linear-gradient(0deg, #FF6B35 2px, transparent 2px),
+                 linear-gradient(45deg, #FFD93D 1px, transparent 1px),
+                 linear-gradient(-45deg, #FFD93D 1px, transparent 1px)
                `,
-               backgroundSize: '40px 40px'
+               backgroundSize: '60px 60px, 60px 60px, 120px 120px, 120px 120px'
              }}>
         </div>
         
-        {/* Brutal Geometric Shapes */}
-        <div className="absolute top-20 left-0 w-64 h-64 bg-brand-primary-action transform rotate-45 opacity-20"></div>
-        <div className="absolute bottom-32 right-0 w-96 h-32 bg-brand-accent-gold opacity-15"></div>
-        <div className="absolute top-1/3 right-16 w-32 h-96 bg-brand-accent-peach transform -rotate-12 opacity-10"></div>
-        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-brand-primary-action transform rotate-12 opacity-5"></div>
+        {/* Dynamic Brutalist Architecture */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          {/* Primary Monuments */}
+          <div className="absolute top-20 -left-32 w-96 h-96 bg-brand-primary-action transform rotate-45 opacity-15 
+                          border-8 border-brand-accent-gold/20 shadow-[0_0_100px_rgba(255,107,53,0.3)]"></div>
+          <div className="absolute bottom-20 -right-40 w-[32rem] h-48 bg-brand-accent-gold transform -rotate-12 opacity-20
+                          border-8 border-brand-primary-action/30 shadow-[0_0_120px_rgba(255,217,61,0.4)]"></div>
+          <div className="absolute top-1/3 right-8 w-24 h-[40rem] bg-brand-accent-peach transform rotate-6 opacity-12
+                          border-6 border-white/20 shadow-[0_0_80px_rgba(255,183,152,0.2)]"></div>
+          
+          {/* Secondary Structures */}
+          <div className="absolute top-1/2 left-8 w-64 h-64 bg-brand-primary-action/60 transform -rotate-30 opacity-8
+                          border-4 border-brand-accent-gold/40 clip-path-triangle"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-brand-accent-gold/40 transform rotate-12 opacity-6
+                          border-6 border-brand-accent-peach/30 rounded-full"></div>
+          
+          {/* Micro Details */}
+          <div className="absolute top-32 right-1/4 w-16 h-16 bg-brand-accent-gold border-4 border-black transform rotate-45 opacity-30"></div>
+          <div className="absolute bottom-48 left-1/5 w-12 h-32 bg-brand-primary-action border-2 border-white transform -rotate-12 opacity-25"></div>
+          <div className="absolute top-2/3 right-1/3 w-20 h-20 bg-brand-accent-peach border-3 border-brand-primary-action 
+                          transform rotate-60 opacity-20 rounded-full"></div>
+        </div>
+        
+        {/* Noise Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.02] mix-blend-multiply"
+             style={{
+               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+             }}>
+        </div>
       </div>
 
       {/* MAIN BRUTAL CONTAINER */}
-      <div className="relative z-10 p-4 space-y-8">
+      <div className="relative z-10 p-3 md:p-6 space-y-6 md:space-y-12">
         
-        {/* BRUTAL HERO SECTION */}
-        <div className="bg-black border-4 border-white shadow-brutal-lg p-6 mb-8">
-          <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
-            <h1 className="text-2xl md:text-4xl font-black text-black uppercase tracking-wider text-center">
-              MOOD DISCOVERY
-            </h1>
-          </div>
-          
-          <div className="bg-white border-4 border-black p-4 mb-4">
-            <p className="text-black font-bold text-center text-sm md:text-base uppercase">
-              {EXPANDED_MOOD_CUES.length} BRUTAL VIBES • {Object.keys(MOOD_CATEGORIES).length} CATEGORIES
-            </p>
-          </div>
-          
-          {/* BRUTAL MODE TOGGLE */}
-          <div className="flex justify-center">
-            <div className="bg-brand-accent-gold border-4 border-black shadow-brutal p-1 flex">
-              <button
-                onClick={() => setAdvancedMode(false)}
-                className={`px-4 py-2 border-2 border-black font-black text-sm uppercase transition-all ${
-                  !advancedMode 
-                    ? 'bg-black text-white shadow-brutal' 
-                    : 'bg-white text-black hover:bg-gray-200'
-                }`}
-              >
-                SIMPLE
-              </button>
-              <button
-                onClick={() => setAdvancedMode(true)}
-                className={`px-4 py-2 border-2 border-black font-black text-sm uppercase transition-all ${
-                  advancedMode 
-                    ? 'bg-black text-white shadow-brutal' 
-                    : 'bg-white text-black hover:bg-gray-200'
-                }`}
-              >
-                ADVANCED
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* BRUTAL PRESET SELECTION */}
-        <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg p-6">
-          <div className="bg-black border-4 border-white p-3 mb-4">
-            <h2 className="text-white font-black text-lg uppercase text-center">QUICK PRESETS</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {MOOD_PRESETS.map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => handlePresetSelect(preset)}
-                className="bg-white border-4 border-black shadow-brutal p-3 hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
-                title={preset.description}
-              >
-                <div className="text-2xl mb-1">{preset.emoji}</div>
-                <div className="text-black font-bold text-xs uppercase">{preset.name}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* BRUTAL SEARCH AND FILTERS */}
-        <div className="space-y-4">
-          {/* Search */}
-          <div className="bg-brand-primary-action border-4 border-black shadow-brutal-lg p-4">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="SEARCH MOODS..."
-                className="w-full px-4 py-3 bg-white border-4 border-black text-black font-bold placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-brand-accent-gold text-sm uppercase"
-              />
-              <span className="absolute right-4 top-3 text-black font-black">🔍</span>
-            </div>
-          </div>
-          
-          {/* Category Filter */}
-          <div className="bg-white border-4 border-black shadow-brutal-lg p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`p-2 border-4 border-black font-black text-xs uppercase transition-all touch-target ${
-                    selectedCategory === category
-                      ? 'bg-brand-accent-gold text-black shadow-brutal'
-                      : 'bg-brand-accent-peach text-black hover:bg-brand-accent-gold'
-                  }`}
-                >
-                  {category.replace("Emotional Tones", "EMOTIONAL").replace("Character Dynamics", "CHARACTER")}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* BRUTAL MOOD SELECTOR */}
-        <div className="bg-black border-4 border-white shadow-brutal-lg p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="bg-brand-primary-action border-4 border-black p-3 flex-1 mr-4">
-              <h2 className="text-black font-black text-lg uppercase text-center">
-                CRAFT YOUR VIBE
-                {selectedCategory !== "All" && (
-                  <span className="block text-sm mt-1">({selectedCategory})</span>
-                )}
-              </h2>
-            </div>
-            <div className="bg-brand-accent-gold border-4 border-black p-3 shadow-brutal">
-              <span className="text-black font-black text-sm uppercase">
-                {selectedMoodCues.length} SELECTED
-              </span>
-            </div>
-          </div>
-          
-                     {/* Mood Cues Grid - 2 Columns */}
-           <div className="grid grid-cols-2 gap-4">
-            {filteredCues.map(cue => {
-              const isSelected = selectedMoodCues.includes(cue.label);
-              const intensity = cueIntensities[cue.id] || cue.intensity || 3;
+        {/* REVOLUTIONARY HERO SECTION */}
+        <div className="relative overflow-hidden">
+          {/* Main Hero Block */}
+          <div className="bg-gradient-to-br from-black via-gray-900 to-black border-8 border-white 
+                          shadow-[0_0_0_4px_#000,0_0_0_8px_#FF6B35,0_20px_40px_rgba(0,0,0,0.8)] 
+                          transform hover:scale-[1.02] transition-all duration-500 p-8 md:p-12">
+            
+            {/* Floating Header Element */}
+            <div className="relative mb-8">
+              <div className="absolute -top-6 -left-6 w-24 h-24 bg-brand-accent-gold border-4 border-black 
+                              transform rotate-45 opacity-60 animate-pulse"></div>
+              <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-brand-primary-action border-4 border-white 
+                              transform -rotate-12 opacity-40"></div>
               
-              return (
-                <div key={cue.id} className="space-y-2">
+              <div className="relative bg-brand-primary-action border-6 border-black 
+                              shadow-[inset_0_0_0_4px_#FFD93D,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.6)] 
+                              p-6 md:p-8 transform hover:translate-y-[-4px] transition-all duration-300">
+                <h1 className="text-3xl md:text-6xl lg:text-7xl font-black text-black uppercase tracking-[0.2em] 
+                               text-center leading-none relative">
+                  <span className="block text-shadow-brutal">MOOD</span>
+                  <span className="block text-shadow-brutal transform scale-110 origin-center">ARCHITECT</span>
+                  
+                  {/* Decorative Elements */}
+                  <div className="absolute -top-2 -left-2 w-4 h-4 bg-black border-2 border-brand-accent-gold"></div>
+                  <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-brand-accent-gold border-2 border-black transform rotate-45"></div>
+                </h1>
+              </div>
+            </div>
+            
+            {/* Stats Banner */}
+            <div className="relative mb-8">
+              <div className="bg-white border-6 border-black 
+                              shadow-[0_0_0_2px_#FF6B35,0_0_0_6px_#000,0_8px_16px_rgba(0,0,0,0.4)] 
+                              p-4 md:p-6 transform skew-x-[-2deg]">
+                <div className="transform skew-x-[2deg]">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+                    <div className="text-center">
+                      <span className="block text-4xl md:text-5xl font-black text-brand-primary-action">
+                        {EXPANDED_MOOD_CUES.length}
+                      </span>
+                      <span className="block text-xs md:text-sm font-bold text-black uppercase tracking-wider">
+                        VIBES
+                      </span>
+                    </div>
+                    
+                    <div className="hidden md:block w-2 h-16 bg-brand-primary-action transform rotate-12"></div>
+                    
+                    <div className="text-center">
+                      <span className="block text-4xl md:text-5xl font-black text-brand-accent-gold">
+                        {Object.keys(MOOD_CATEGORIES).length}
+                      </span>
+                      <span className="block text-xs md:text-sm font-bold text-black uppercase tracking-wider">
+                        CATEGORIES
+                      </span>
+                    </div>
+                    
+                    <div className="hidden md:block w-2 h-16 bg-brand-accent-gold transform -rotate-12"></div>
+                    
+                    <div className="text-center">
+                      <span className="block text-4xl md:text-5xl font-black text-brand-accent-peach">
+                        ∞
+                      </span>
+                      <span className="block text-xs md:text-sm font-bold text-black uppercase tracking-wider">
+                        COMBINATIONS
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Enhanced Mode Toggle */}
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute -inset-2 bg-brand-accent-gold border-4 border-black transform rotate-1"></div>
+                <div className="relative bg-black border-6 border-brand-accent-gold 
+                                shadow-[0_0_0_2px_#000,0_8px_16px_rgba(0,0,0,0.5)] 
+                                p-2 flex transform hover:rotate-0 transition-all duration-300">
                   <button
-                    onClick={() => handleMoodCueToggle(cue.label)}
-                    className={`w-full p-4 border-4 border-black transition-all touch-target ${
-                      isSelected 
-                        ? 'bg-brand-accent-gold shadow-brutal-lg transform -translate-y-1' 
-                        : 'bg-white hover:bg-brand-accent-peach shadow-brutal'
-                    } active:translate-x-1 active:translate-y-1 active:shadow-none`}
-                    title={`${cue.label}: ${cue.description}`}
+                    onClick={() => setAdvancedMode(false)}
+                    className={`relative px-6 py-3 border-4 border-brand-accent-gold font-black text-sm uppercase 
+                               tracking-wider transition-all duration-300 transform hover:scale-105 ${
+                      !advancedMode 
+                        ? 'bg-brand-primary-action text-black shadow-[inset_0_0_0_2px_#FFD93D]' 
+                        : 'bg-white text-black hover:bg-brand-accent-peach'
+                    }`}
                   >
-                    {/* Selected Indicator */}
-                    {isSelected && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-black border-2 border-white rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-black">✓</span>
+                    <span className="relative z-10">SIMPLE</span>
+                    {!advancedMode && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent-gold border border-black transform rotate-45"></div>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setAdvancedMode(true)}
+                    className={`relative px-6 py-3 border-4 border-brand-accent-gold font-black text-sm uppercase 
+                               tracking-wider transition-all duration-300 transform hover:scale-105 ${
+                      advancedMode 
+                        ? 'bg-brand-primary-action text-black shadow-[inset_0_0_0_2px_#FFD93D]' 
+                        : 'bg-white text-black hover:bg-brand-accent-peach'
+                    }`}
+                  >
+                    <span className="relative z-10">ADVANCED</span>
+                    {advancedMode && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent-gold border border-black transform rotate-45"></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ARTISTIC PRESET GALLERY */}
+        <div className="relative">
+          {/* Floating Title */}
+          <div className="absolute -top-8 left-8 z-20">
+            <div className="bg-brand-accent-peach border-4 border-black 
+                            shadow-[0_0_0_2px_#FF6B35,0_8px_16px_rgba(0,0,0,0.6)] 
+                            px-6 py-2 transform -rotate-2 hover:rotate-0 transition-all duration-300">
+              <span className="text-black font-black text-sm uppercase tracking-wider">QUICK START</span>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-brand-accent-peach via-brand-accent-gold to-brand-accent-peach 
+                          border-8 border-black shadow-[0_0_0_4px_#FF6B35,0_20px_40px_rgba(0,0,0,0.7)] 
+                          p-8 md:p-12 transform hover:scale-[1.01] transition-all duration-500">
+            
+            {/* Header with Decorative Elements */}
+            <div className="relative mb-8">
+              <div className="absolute -top-4 left-0 w-full h-2 bg-black"></div>
+              <div className="absolute -bottom-4 right-0 w-3/4 h-2 bg-brand-primary-action"></div>
+              
+              <div className="bg-black border-6 border-white 
+                              shadow-[inset_0_0_0_4px_#FFD93D,0_8px_0_#FF6B35] 
+                              p-4 md:p-6 text-center">
+                <h2 className="text-white font-black text-xl md:text-3xl uppercase tracking-[0.15em] 
+                               text-shadow-[2px_2px_0_#FF6B35,4px_4px_0_#000]">
+                  PRESET ARSENAL
+                </h2>
+                <div className="mt-2 text-brand-accent-gold font-bold text-xs md:text-sm uppercase">
+                  CURATED MOOD COMBINATIONS
+                </div>
+              </div>
+            </div>
+            
+            {/* Compact Horizontal Preset Scroller */}
+            <div className="relative">
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-track-black scrollbar-thumb-brand-accent-gold">
+                {MOOD_PRESETS.map((preset, index) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handlePresetSelect(preset)}
+                    className="group relative bg-white border-4 border-black flex-shrink-0 w-48
+                              shadow-[0_0_0_2px_#FF6B35,0_6px_0_#000,0_10px_15px_rgba(0,0,0,0.4)] 
+                              p-4 hover:bg-brand-accent-gold transition-all duration-300 
+                              transform hover:translate-y-[-2px] hover:scale-105
+                              touch-target"
+                    title={preset.description}
+                  >
+                    {/* Compact Content */}
+                    <div className="text-center space-y-2">
+                      <div className="text-2xl transform group-hover:scale-110 transition-all duration-300">
+                        {preset.emoji}
+                      </div>
+                      <div className="text-black font-black text-xs uppercase leading-tight tracking-wider">
+                        {preset.name}
+                      </div>
+                      <div className="bg-black text-white text-xs font-bold px-2 py-1 uppercase">
+                        {preset.cues.length} VIBES
+                      </div>
+                    </div>
+                    
+                    {/* Corner Decoration */}
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-primary-action border border-black 
+                                    transform rotate-45 group-hover:rotate-90 transition-all duration-300"></div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ADVANCED SEARCH & FILTER SYSTEM */}
+        <div className="space-y-6">
+          {/* Search Interface */}
+          <div className="relative">
+            <div className="absolute -top-6 right-8 z-20">
+              <div className="bg-brand-primary-action border-4 border-black 
+                              shadow-[0_0_0_2px_#FFD93D,0_6px_12px_rgba(0,0,0,0.5)] 
+                              px-4 py-2 transform rotate-2 hover:rotate-0 transition-all duration-300">
+                <span className="text-black font-black text-xs uppercase">SEARCH ENGINE</span>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-brand-primary-action via-brand-accent-gold to-brand-primary-action 
+                            border-8 border-black shadow-[0_0_0_4px_#000,0_16px_32px_rgba(0,0,0,0.6)] 
+                            p-6 md:p-8">
+              
+              <div className="relative group">
+                {/* Search Input Container */}
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-black transform rotate-1 group-focus-within:rotate-0 transition-all duration-300"></div>
+                  <div className="relative bg-white border-6 border-black 
+                                  shadow-[inset_0_0_0_2px_#FF6B35,0_0_0_4px_#000] 
+                                  focus-within:shadow-[inset_0_0_0_2px_#FFD93D,0_0_0_4px_#FF6B35]">
+                    <input
+                      type="text"
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      placeholder="SEARCH MOOD UNIVERSE..."
+                      className="w-full px-6 py-4 bg-transparent text-black font-bold placeholder-black/50 
+                                focus:outline-none text-base md:text-lg uppercase tracking-wider
+                                focus:placeholder-black/70 transition-all duration-300"
+                    />
+                    
+                    {/* Search Icon */}
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <div className="bg-black text-white p-2 border-2 border-brand-accent-gold 
+                                      transform group-focus-within:scale-110 transition-all duration-300">
+                        <span className="font-black text-lg">🔍</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Search Results Count */}
+                {searchFilter && (
+                  <div className="mt-4 text-center">
+                    <div className="bg-black text-white border-4 border-brand-accent-gold 
+                                    px-4 py-2 inline-block transform hover:scale-105 transition-all duration-300">
+                      <span className="font-black text-xs uppercase">
+                        {filteredCues.length} MATCHES FOUND
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Category Filter Matrix */}
+          <div className="relative">
+            <div className="absolute -top-6 left-8 z-20">
+              <div className="bg-white border-4 border-black 
+                              shadow-[0_0_0_2px_#FF6B35,0_6px_12px_rgba(0,0,0,0.5)] 
+                              px-4 py-2 transform -rotate-2 hover:rotate-0 transition-all duration-300">
+                <span className="text-black font-black text-xs uppercase">CATEGORY MATRIX</span>
+              </div>
+            </div>
+            
+            <div className="bg-white border-8 border-black 
+                            shadow-[0_0_0_4px_#FF6B35,0_20px_40px_rgba(0,0,0,0.7)] 
+                            p-6 md:p-8">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {categories.map((category, index) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`group relative p-4 border-4 border-black font-black text-xs md:text-sm uppercase 
+                               tracking-wider transition-all duration-300 transform hover:scale-105 touch-target ${
+                      selectedCategory === category
+                        ? 'bg-brand-accent-gold text-black shadow-[0_0_0_2px_#FF6B35,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.4)] translate-y-[-4px]'
+                        : 'bg-brand-accent-peach text-black hover:bg-brand-accent-gold shadow-[0_4px_0_#000,0_8px_16px_rgba(0,0,0,0.3)]'
+                    }`}
+                  >
+                    {/* Active Indicator */}
+                    {selectedCategory === category && (
+                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-brand-primary-action border-2 border-black 
+                                      transform rotate-45 animate-pulse"></div>
+                    )}
+                    
+                    {/* Category Text */}
+                    <span className="relative z-10">
+                      {category.replace("Emotional Tones", "EMOTIONAL").replace("Character Dynamics", "CHARACTER")}
+                    </span>
+                    
+                    {/* Hover Effect */}
+                    <div className="absolute inset-0 bg-brand-primary-action/20 opacity-0 group-hover:opacity-100 
+                                    transition-all duration-300 border-4 border-transparent"></div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ARTISTIC MOOD LABORATORY */}
+        <div className="relative">
+          {/* Laboratory Title */}
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-black border-4 border-brand-accent-gold 
+                            shadow-[0_0_0_2px_#FF6B35,0_8px_16px_rgba(0,0,0,0.6)] 
+                            px-8 py-3 transform hover:scale-105 transition-all duration-300">
+              <span className="text-white font-black text-sm uppercase tracking-wider">MOOD LABORATORY</span>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-black via-gray-900 to-black border-8 border-white 
+                          shadow-[0_0_0_4px_#000,0_0_0_8px_#FF6B35,0_24px_48px_rgba(0,0,0,0.8)] 
+                          p-8 md:p-12">
+            
+            {/* Lab Header */}
+            <div className="relative mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex-1 mr-4">
+                  <div className="bg-brand-primary-action border-6 border-black 
+                                  shadow-[inset_0_0_0_4px_#FFD93D,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.5)] 
+                                  p-4 md:p-6 transform hover:translate-y-[-2px] transition-all duration-300">
+                    <h2 className="text-black font-black text-lg md:text-2xl uppercase text-center leading-none">
+                      <span className="block">CRAFT YOUR</span>
+                      <span className="block text-2xl md:text-3xl">VIBE MATRIX</span>
+                      {selectedCategory !== "All" && (
+                        <span className="block text-sm mt-2 text-black/80">
+                          [{selectedCategory.toUpperCase()}]
+                        </span>
+                      )}
+                    </h2>
+                  </div>
+                </div>
+                
+                {/* Selection Counter */}
+                <div className="relative">
+                  <div className="absolute -inset-2 bg-brand-accent-gold border-4 border-black transform rotate-3"></div>
+                  <div className="relative bg-black border-6 border-brand-accent-gold 
+                                  shadow-[0_0_0_2px_#000,0_8px_16px_rgba(0,0,0,0.4)] 
+                                  p-4 text-center transform hover:rotate-0 transition-all duration-300">
+                    <div className="text-brand-accent-gold font-black text-2xl md:text-3xl">
+                      {selectedMoodCues.length}
+                    </div>
+                    <div className="text-white font-bold text-xs uppercase tracking-wider">
+                      SELECTED
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Compact Mood Grid - Auto Layout */}
+            <div className="flex flex-wrap gap-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-black scrollbar-thumb-brand-accent-gold">
+              {filteredCues.map((cue, index) => {
+                const isSelected = selectedMoodCues.includes(cue.label);
+                const intensity = cueIntensities[cue.id] || cue.intensity || 3;
+                
+                return (
+                  <div key={cue.id} className="flex flex-col gap-2">
+                    <button
+                      onClick={() => handleMoodCueToggle(cue.label)}
+                      className={`group relative w-40 p-3 border-4 border-black transition-all duration-300 touch-target ${
+                        isSelected 
+                          ? 'bg-brand-accent-gold shadow-[0_0_0_2px_#FF6B35,0_6px_0_#000,0_10px_15px_rgba(0,0,0,0.6)] transform translate-y-[-4px] scale-105' 
+                          : 'bg-white hover:bg-brand-accent-peach shadow-[0_3px_0_#000,0_6px_12px_rgba(0,0,0,0.4)] hover:shadow-[0_4px_0_#000,0_8px_16px_rgba(0,0,0,0.5)] hover:translate-y-[-1px]'
+                      }`}
+                      title={`${cue.label}: ${cue.description}`}
+                    >
+                      {/* Selection Indicator */}
+                      {isSelected && (
+                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-brand-primary-action border-2 border-white 
+                                        rounded-full flex items-center justify-center z-10">
+                          <span className="text-white text-xs font-black">✓</span>
+                        </div>
+                      )}
+                      
+                      {/* Compact Content */}
+                      <div className="text-center space-y-1">
+                        <div className="text-2xl transform group-hover:scale-110 transition-all duration-300">
+                          {cue.emoji}
+                        </div>
+                        <div className="text-black font-black text-xs uppercase leading-tight">
+                          {cue.label}
+                        </div>
+                        
+                        {/* Category Badge for "All" view - Smaller */}
+                        {selectedCategory === "All" && (
+                          <div className="bg-black text-white text-xs font-bold px-1 py-0.5 uppercase text-center">
+                            {cue.category.replace("Emotional Tones", "EMO").replace("Character Dynamics", "CHAR").substring(0, 4)}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    
+                    {/* Compact Advanced Mode: Intensity Control */}
+                    {advancedMode && isSelected && (
+                      <div className="bg-brand-accent-peach border-2 border-black p-2 w-40">
+                        <div className="text-center mb-1">
+                          <div className="bg-black text-white text-xs font-bold px-1 py-0.5 uppercase">
+                            INTENSITY
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <input
+                            type="range"
+                            min="1"
+                            max="5"
+                            value={intensity}
+                            onChange={(e) => handleIntensityChange(cue.id, parseInt(e.target.value))}
+                            className="w-full h-2 bg-white border-2 border-black appearance-none cursor-pointer"
+                            style={{
+                              background: `linear-gradient(to right, #FF6B35 0%, #FF6B35 ${(intensity - 1) * 25}%, #ffffff ${(intensity - 1) * 25}%, #ffffff 100%)`
+                            }}
+                            aria-label={`Intensity for ${cue.label}`}
+                          />
+                          <div className="text-center">
+                            <span className="text-black font-bold text-xs">
+                              {"★".repeat(intensity)}{"☆".repeat(5 - intensity)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* No Results State */}
+            {filteredCues.length === 0 && (
+              <div className="text-center py-12">
+                <div className="bg-brand-accent-peach border-6 border-black 
+                                shadow-[0_0_0_4px_#FF6B35,0_16px_32px_rgba(0,0,0,0.6)] 
+                                p-8 md:p-12 transform hover:scale-105 transition-all duration-300">
+                  
+                  <div className="text-6xl md:text-8xl mb-6">🔍</div>
+                  
+                  <div className="bg-black border-4 border-white p-4 mb-6">
+                    <h3 className="text-white font-black text-xl md:text-2xl uppercase">
+                      NO VIBES DISCOVERED
+                    </h3>
+                  </div>
+                  
+                  <p className="text-black font-bold text-sm md:text-base uppercase mb-8">
+                    YOUR SEARCH PARAMETERS ARE TOO SPECIFIC
+                  </p>
+                  
+                  <button 
+                    onClick={() => setSearchFilter("")}
+                    className="bg-brand-primary-action border-6 border-black text-black font-black 
+                              px-6 py-4 uppercase shadow-[0_0_0_2px_#FFD93D,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.4)] 
+                              hover:bg-brand-accent-gold hover:translate-y-[-4px] transition-all duration-300"
+                  >
+                    🎯 RESET SEARCH
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ARTISTIC VIBE SYNTHESIS */}
+        {selectedMoodCues.length > 0 && (
+          <div className="space-y-8">
+            {/* Vibe Matrix Display */}
+            <div className="relative">
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-20">
+                <div className="bg-brand-accent-gold border-4 border-black 
+                                shadow-[0_0_0_2px_#FF6B35,0_8px_16px_rgba(0,0,0,0.6)] 
+                                px-6 py-3 transform hover:scale-105 transition-all duration-300">
+                  <span className="text-black font-black text-sm uppercase tracking-wider">VIBE SYNTHESIS</span>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-brand-accent-gold via-brand-accent-peach to-brand-accent-gold 
+                              border-8 border-black shadow-[0_0_0_4px_#FF6B35,0_24px_48px_rgba(0,0,0,0.8)] 
+                              p-8 md:p-12">
+                
+                {/* Matrix Header */}
+                <div className="relative mb-8">
+                  <div className="bg-black border-6 border-white 
+                                  shadow-[inset_0_0_0_4px_#FFD93D,0_8px_0_#FF6B35] 
+                                  p-4 md:p-6 text-center">
+                    <h3 className="text-white font-black text-xl md:text-3xl uppercase tracking-[0.15em] 
+                                   text-shadow-[2px_2px_0_#FF6B35,4px_4px_0_#000]">
+                      YOUR MOOD MATRIX
+                    </h3>
+                    <div className="mt-2 text-brand-accent-gold font-bold text-sm uppercase">
+                      {selectedMoodCues.length} VIBES SYNTHESIZED
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Enhanced Vibe Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {selectedCueObjects.map((cue, index) => {
+                    const intensity = cueIntensities[cue.id] || cue.intensity || 3;
+                    return (
+                      <div key={cue.id} className="group relative bg-white border-6 border-black 
+                                                   shadow-[0_0_0_2px_#FF6B35,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.4)] 
+                                                   p-4 md:p-6 hover:bg-brand-accent-peach 
+                                                   transform hover:translate-y-[-4px] hover:scale-105 
+                                                   transition-all duration-300">
+                        
+                        {/* Index Number */}
+                        <div className="absolute -top-3 -left-3 w-8 h-8 bg-brand-primary-action border-3 border-black 
+                                        rounded-full flex items-center justify-center z-10">
+                          <span className="text-black text-sm font-black">{index + 1}</span>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="text-center space-y-3">
+                          <div className="text-3xl md:text-4xl transform group-hover:scale-110 transition-all duration-300">
+                            {cue.emoji}
+                          </div>
+                          <div className="text-black font-black text-sm md:text-base uppercase leading-tight">
+                            {cue.label}
+                          </div>
+                          
+                          {/* Intensity Display for Advanced Mode */}
+                          {advancedMode && (
+                            <div className="space-y-2">
+                              <div className="bg-black text-brand-accent-gold border-2 border-brand-accent-gold 
+                                              px-3 py-1 text-xs font-bold uppercase inline-block">
+                                INTENSITY: {intensity}/5
+                              </div>
+                              <div className="text-center">
+                                <span className="text-black font-black text-lg">
+                                  {"★".repeat(intensity)}{"☆".repeat(5 - intensity)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Hover Decoration */}
+                        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-brand-accent-gold border-2 border-black 
+                                        transform rotate-45 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Command Center */}
+            <div className="relative">
+              <div className="absolute -top-8 right-8 z-20">
+                <div className="bg-brand-primary-action border-4 border-black 
+                                shadow-[0_0_0_2px_#FFD93D,0_8px_16px_rgba(0,0,0,0.6)] 
+                                px-6 py-3 transform rotate-2 hover:rotate-0 transition-all duration-300">
+                  <span className="text-black font-black text-sm uppercase tracking-wider">COMMAND CENTER</span>
+                </div>
+              </div>
+              
+              <div className="bg-black border-8 border-white 
+                              shadow-[0_0_0_4px_#FF6B35,0_24px_48px_rgba(0,0,0,0.8)] 
+                              p-8 md:p-12">
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Generate Button */}
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem(HISTORY_KEY);
+                      fetchMoodBoardRecommendations();
+                    }}
+                    disabled={isLoadingMoodBoard}
+                    className="group relative bg-brand-primary-action border-6 border-black text-black font-black 
+                              py-6 px-8 uppercase tracking-wider shadow-[0_0_0_2px_#FFD93D,0_12px_0_#000,0_16px_24px_rgba(0,0,0,0.6)] 
+                              hover:bg-brand-accent-gold hover:translate-y-[-8px] 
+                              active:translate-y-0 active:shadow-[0_0_0_2px_#FFD93D,0_4px_0_#000,0_8px_12px_rgba(0,0,0,0.4)]
+                              transition-all duration-300 touch-target disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {/* Loading Animation */}
+                    {isLoadingMoodBoard && (
+                      <div className="absolute inset-0 bg-brand-accent-gold/50 border-6 border-transparent 
+                                      flex items-center justify-center">
+                        <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
                       </div>
                     )}
                     
-                    {/* Content */}
-                    <div className="text-center space-y-2">
-                      <div className="text-3xl">{cue.emoji}</div>
-                      <div className="text-black font-black text-xs uppercase leading-tight">
-                        {cue.label}
+                    <div className="relative z-10 text-center">
+                      <div className="text-2xl md:text-3xl mb-2">
+                        {isLoadingMoodBoard ? "🔄" : "🎯"}
                       </div>
-                      
-                      {/* Category Badge for "All" view */}
-                      {selectedCategory === "All" && (
-                        <div className="bg-black text-white text-xs font-bold px-2 py-1 uppercase">
-                          {cue.category.replace("Emotional Tones", "EMO").replace("Character Dynamics", "CHAR").substring(0, 8)}
-                        </div>
-                      )}
+                      <div className="text-sm md:text-base">
+                        {isLoadingMoodBoard ? "CRAFTING..." : "FRESH RECS"}
+                      </div>
                     </div>
+                    
+                    {/* Corner Decoration */}
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-accent-gold border-2 border-black 
+                                    transform rotate-45 group-hover:rotate-90 transition-all duration-300"></div>
                   </button>
                   
-                  {/* Advanced Mode: Intensity Slider */}
-                  {advancedMode && isSelected && (
-                    <div className="bg-brand-accent-peach border-4 border-black p-2 shadow-brutal">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-black text-black uppercase w-8">LOW</span>
-                        <input
-                          type="range"
-                          min="1"
-                          max="5"
-                          value={intensity}
-                          onChange={(e) => handleIntensityChange(cue.id, parseInt(e.target.value))}
-                          className="flex-1 h-2 bg-white border-2 border-black appearance-none slider-brutal"
-                          aria-label={`Intensity for ${cue.label}`}
-                        />
-                        <span className="text-xs font-black text-black uppercase w-8">HIGH</span>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-black font-black text-xs">{"★".repeat(intensity)}</span>
-                      </div>
+                  {/* Save Button */}
+                  <button
+                    onClick={saveMoodboard}
+                    className="group relative bg-brand-accent-peach border-6 border-black text-black font-black 
+                              py-6 px-8 uppercase tracking-wider shadow-[0_0_0_2px_#FF6B35,0_12px_0_#000,0_16px_24px_rgba(0,0,0,0.6)] 
+                              hover:bg-brand-accent-gold hover:translate-y-[-8px] 
+                              active:translate-y-0 active:shadow-[0_0_0_2px_#FF6B35,0_4px_0_#000,0_8px_12px_rgba(0,0,0,0.4)]
+                              transition-all duration-300 touch-target"
+                  >
+                    <div className="relative z-10 text-center">
+                      <div className="text-2xl md:text-3xl mb-2">💾</div>
+                      <div className="text-sm md:text-base">SAVE BOARD</div>
                     </div>
-                  )}
+                    
+                    <div className="absolute -top-2 -left-2 w-6 h-6 bg-brand-primary-action border-2 border-black 
+                                    transform rotate-45 group-hover:rotate-90 transition-all duration-300"></div>
+                  </button>
+                  
+                  {/* Clear Button */}
+                  <button
+                    onClick={() => onMoodCuesChange([])}
+                    className="group relative bg-white border-6 border-black text-black font-black 
+                              py-6 px-8 uppercase tracking-wider shadow-[0_0_0_2px_#666,0_12px_0_#000,0_16px_24px_rgba(0,0,0,0.6)] 
+                              hover:bg-gray-200 hover:translate-y-[-8px] 
+                              active:translate-y-0 active:shadow-[0_0_0_2px_#666,0_4px_0_#000,0_8px_12px_rgba(0,0,0,0.4)]
+                              transition-all duration-300 touch-target"
+                  >
+                    <div className="relative z-10 text-center">
+                      <div className="text-2xl md:text-3xl mb-2">🗑️</div>
+                      <div className="text-sm md:text-base">CLEAR ALL</div>
+                    </div>
+                    
+                    <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-red-500 border-2 border-black 
+                                    transform rotate-45 group-hover:rotate-90 transition-all duration-300"></div>
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* No Results */}
-          {filteredCues.length === 0 && (
-            <div className="text-center py-8">
-              <div className="bg-brand-accent-peach border-4 border-black p-6 shadow-brutal">
-                <div className="text-4xl mb-4">🔍</div>
-                <p className="text-black font-bold uppercase mb-4">NO MOODS MATCH</p>
-                <button 
-                  onClick={() => setSearchFilter("")}
-                  className="bg-brand-primary-action border-4 border-black text-black font-black px-4 py-2 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all"
-                >
-                  CLEAR SEARCH
-                </button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* BRUTAL SELECTED VIBES SUMMARY */}
-        {selectedMoodCues.length > 0 && (
-          <div className="space-y-4">
-            {/* Summary */}
-            <div className="bg-brand-accent-gold border-4 border-black shadow-brutal-lg p-6">
-              <div className="bg-black border-4 border-white p-3 mb-4">
-                <span className="text-white font-black text-sm uppercase text-center block">YOUR MOOD COMBINATION</span>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {selectedCueObjects.map((cue, index) => {
-                  const intensity = cueIntensities[cue.id] || cue.intensity || 3;
-                  return (
-                    <div key={cue.id} className="bg-white border-4 border-black p-2 shadow-brutal">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="text-xl">{cue.emoji}</span>
-                        <span className="text-black font-black text-xs uppercase">{cue.label}</span>
-                      </div>
-                      {advancedMode && (
-                        <div className="text-center mt-1">
-                          <span className="text-xs text-black font-bold">{"★".repeat(intensity)}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                onClick={() => {
-                  // Clear cache and fetch fresh recommendations
-                  localStorage.removeItem(HISTORY_KEY);
-                  fetchMoodBoardRecommendations();
-                }}
-                disabled={isLoadingMoodBoard}
-                className="bg-brand-primary-action border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target disabled:opacity-50"
-              >
-                {isLoadingMoodBoard ? "🔄 CRAFTING..." : "🎯 FRESH RECS"}
-              </button>
-              
-              <button
-                onClick={saveMoodboard}
-                className="bg-brand-accent-peach border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
-              >
-                💾 SAVE BOARD
-              </button>
-              
-              <button
-                onClick={() => onMoodCuesChange([])}
-                className="bg-white border-4 border-black text-black font-black py-4 px-6 uppercase shadow-brutal hover:bg-gray-200 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
-              >
-                🗑️ CLEAR ALL
-              </button>
-            </div>
-
           </div>
         )}
 
-        {/* BRUTAL SAVED MOOD BOARDS */}
+        {/* ARCHIVE GALLERY */}
         {savedMoodboards.length > 0 && (
-          <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg p-6">
-            <div className="bg-black border-4 border-white p-3 mb-4">
-              <h3 className="text-white font-black text-lg uppercase text-center">SAVED BOARDS</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {savedMoodboards.map(moodboard => (
-                <button
-                  key={moodboard.id}
-                  onClick={() => loadMoodboard(moodboard)}
-                  className="bg-white border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
-                >
-                  <div className="text-black font-bold text-xs uppercase text-center">
-                    {moodboard.name}
-                  </div>
-                  <div className="text-xs text-gray-600 text-center mt-1">
-                    ({moodboard.cues.length} VIBES)
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* BRUTAL LOADING STATE */}
-        {isLoadingMoodBoard && (
-          <div className="bg-black border-4 border-white shadow-brutal-lg p-12">
-            <div className="text-center">
-              <div className="bg-brand-primary-action border-4 border-black p-6 shadow-brutal mb-4 animate-pulse">
-                <div className="text-4xl text-black mb-2">⚡</div>
-                <div className="text-black font-black uppercase">CRAFTING BRUTALITY...</div>
+          <div className="relative">
+            <div className="absolute -top-8 left-8 z-20">
+              <div className="bg-brand-accent-peach border-4 border-black 
+                              shadow-[0_0_0_2px_#FF6B35,0_8px_16px_rgba(0,0,0,0.6)] 
+                              px-6 py-3 transform -rotate-2 hover:rotate-0 transition-all duration-300">
+                <span className="text-black font-black text-sm uppercase tracking-wider">MOOD ARCHIVE</span>
               </div>
-              <LoadingSpinnerComponent message="WEAVING ANIME TAPESTRY..." className="text-white font-black" />
+            </div>
+            
+            <div className="bg-gradient-to-br from-brand-accent-peach via-brand-accent-gold to-brand-accent-peach 
+                            border-8 border-black shadow-[0_0_0_4px_#FF6B35,0_20px_40px_rgba(0,0,0,0.7)] 
+                            p-8 md:p-12">
+              
+              {/* Archive Header */}
+              <div className="relative mb-8">
+                <div className="bg-black border-6 border-white 
+                                shadow-[inset_0_0_0_4px_#FFD93D,0_8px_0_#FF6B35] 
+                                p-4 md:p-6 text-center">
+                  <h3 className="text-white font-black text-xl md:text-2xl uppercase tracking-[0.15em]">
+                    SAVED COLLECTIONS
+                  </h3>
+                  <div className="mt-2 text-brand-accent-gold font-bold text-sm uppercase">
+                    {savedMoodboards.length} ARCHIVED BOARDS
+                  </div>
+                </div>
+              </div>
+              
+              {/* Archive Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedMoodboards.map((moodboard, index) => (
+                  <button
+                    key={moodboard.id}
+                    onClick={() => loadMoodboard(moodboard)}
+                    className="group relative bg-white border-6 border-black 
+                              shadow-[0_0_0_2px_#FF6B35,0_8px_0_#000,0_12px_20px_rgba(0,0,0,0.4)] 
+                              p-6 hover:bg-brand-accent-gold 
+                              transform hover:translate-y-[-4px] hover:scale-105 
+                              active:translate-y-0 active:scale-100 
+                              transition-all duration-300 touch-target"
+                  >
+                    {/* Archive Number */}
+                    <div className="absolute -top-3 -left-3 w-8 h-8 bg-brand-primary-action border-3 border-black 
+                                    rounded-full flex items-center justify-center z-10">
+                      <span className="text-black text-sm font-black">{index + 1}</span>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="text-center space-y-4">
+                      <div className="text-3xl mb-2">📁</div>
+                      
+                      <div className="text-black font-black text-sm md:text-base uppercase leading-tight">
+                        {moodboard.name}
+                      </div>
+                      
+                      <div className="bg-black text-white border-2 border-brand-accent-gold 
+                                      px-3 py-1 text-xs font-bold uppercase inline-block">
+                        {moodboard.cues.length} VIBES
+                      </div>
+                      
+                      {/* Cue Preview */}
+                      <div className="flex flex-wrap justify-center gap-1 mt-2">
+                        {moodboard.cues.slice(0, 4).map(cueLabel => {
+                          const cue = EXPANDED_MOOD_CUES.find(c => c.label === cueLabel);
+                          return cue ? (
+                            <span key={cue.id} className="text-lg">{cue.emoji}</span>
+                          ) : null;
+                        })}
+                        {moodboard.cues.length > 4 && (
+                          <span className="text-black/60 text-sm font-bold">+{moodboard.cues.length - 4}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Hover Decorations */}
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-accent-gold border-2 border-black 
+                                    transform rotate-45 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                    <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-brand-primary-action border-2 border-black 
+                                    transform rotate-45 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1036,134 +1477,52 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
               </div>
             </div>
             
-                         {/* BRUTAL CAROUSEL SWIPERS */}
-             <div className="space-y-8">
-               {/* Coverflow Carousel for Featured Recommendations */}
-               <div className="bg-black border-4 border-white p-6 shadow-brutal-lg">
-                 <div className="bg-brand-primary-action border-4 border-black p-3 mb-6">
-                   <h4 className="text-black font-black text-lg uppercase text-center">FEATURED MOOD PICKS</h4>
-                 </div>
-                 
-                 <Swiper
-                   modules={[EffectCoverflow, Pagination, Navigation]}
-                   effect="coverflow"
-                   grabCursor={true}
-                   centeredSlides={true}
-                   slidesPerView="auto"
-                   coverflowEffect={{
-                     rotate: 50,
-                     stretch: 0,
-                     depth: 100,
-                     modifier: 1,
-                     slideShadows: false,
-                   }}
-                   pagination={{ 
-                     clickable: true,
-                     bulletClass: 'swiper-pagination-bullet brutal-bullet',
-                     bulletActiveClass: 'brutal-bullet-active'
-                   }}
-                   navigation={{
-                     nextEl: '.brutal-next-featured',
-                     prevEl: '.brutal-prev-featured',
-                   }}
-                   className="brutal-coverflow-swiper"
-                 >
-                   {moodBoardRecommendations.slice(0, 5).map((rec, index) => (
-                     <SwiperSlide key={`featured-${index}-${rec.title}`} className="brutal-swiper-slide">
-                       <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group">
-                         {/* Brutal Anime Card Container */}
-                         <div className="border-b-4 border-black">
-                           <AnimeCard 
-                             anime={rec} 
-                             isRecommendation={true} 
-                             onViewDetails={navigateToDetail}
-                             className="w-full border-none shadow-none"
-                           />
-                         </div>
-                         
-                         {/* Brutal Info Section */}
-                         <div className="p-3 bg-black">
-                           <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-2 line-clamp-2">
-                             {rec.title || "UNKNOWN TITLE"}
-                           </h4>
-                           {rec.genres && rec.genres.length > 0 && (
-                             <div className="bg-brand-accent-gold border-2 border-white px-2 py-1">
-                               <p className="text-black font-bold text-xs text-center uppercase">
-                                 {rec.genres.slice(0, 2).join(" • ")}
-                               </p>
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     </SwiperSlide>
-                   ))}
-                 </Swiper>
-                 
-                 {/* Brutal Navigation Buttons */}
-                 <div className="flex justify-center gap-4 mt-6">
-                   <button className="brutal-prev-featured bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target">
-                     <span className="text-black font-black text-xl">←</span>
-                   </button>
-                   <button className="brutal-next-featured bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target">
-                     <span className="text-black font-black text-xl">→</span>
-                   </button>
-                 </div>
+                         {/* BRUTAL CAROUSEL SWIPER */}
+             <div className="bg-black border-4 border-white p-4 md:p-6 shadow-brutal-lg">
+               <div className="bg-brand-primary-action border-4 border-black p-3 mb-6">
+                 <h4 className="text-black font-black text-lg uppercase text-center">FEATURED MOOD PICKS</h4>
                </div>
-
-               {/* Free Mode Horizontal Scroll for All Recommendations */}
-               {moodBoardRecommendations.length > 5 && (
-                 <div className="bg-brand-accent-peach border-4 border-black p-6 shadow-brutal-lg">
-                   <div className="bg-black border-4 border-white p-3 mb-6">
-                     <h4 className="text-white font-black text-lg uppercase text-center">MORE BRUTAL PICKS</h4>
-                   </div>
-                   
-                   <Swiper
-                     modules={[FreeMode]}
-                     freeMode={{
-                       enabled: true,
-                       sticky: false,
-                       momentumRatio: 0.25,
-                       momentumVelocityRatio: 0.25,
-                     }}
-                     grabCursor={true}
-                     slidesPerView="auto"
-                     spaceBetween={16}
-                     resistance={true}
-                     resistanceRatio={0.85}
-                     className="brutal-freemode-swiper"
-                   >
-                     {moodBoardRecommendations.map((rec, index) => (
-                       <SwiperSlide key={`all-${index}-${rec.title}`} className="brutal-swiper-slide-small">
-                         <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group w-full">
-                           {/* Brutal Anime Card Container */}
-                           <div className="border-b-4 border-black">
-                             <AnimeCard 
-                               anime={rec} 
-                               isRecommendation={true} 
-                               onViewDetails={navigateToDetail}
-                               className="w-full border-none shadow-none"
-                             />
+               
+               <Swiper
+                 slidesPerView="auto"
+                 spaceBetween={16}
+                 grabCursor={true}
+                 allowTouchMove={true}
+                 touchStartPreventDefault={false}
+                 className="w-full"
+                 style={{ overflow: 'visible' }}
+               >
+                 {moodBoardRecommendations.map((rec, index) => (
+                   <SwiperSlide key={`featured-${index}-${rec.title}`} className="!w-[250px]" style={{ pointerEvents: 'auto' }}>
+                     <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group"
+                          style={{ touchAction: 'pan-y pinch-zoom' }}>
+                       {/* Brutal Anime Card Container */}
+                       <div className="border-b-4 border-black" style={{ pointerEvents: 'none' }}>
+                         <AnimeCard 
+                           anime={rec} 
+                           isRecommendation={true} 
+                           onViewDetails={navigateToDetail}
+                           className="w-full border-none shadow-none"
+                         />
+                       </div>
+                       
+                       {/* Brutal Info Section */}
+                       <div className="p-3 bg-black" style={{ pointerEvents: 'none' }}>
+                         <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-2 line-clamp-2">
+                           {rec.title || "UNKNOWN TITLE"}
+                         </h4>
+                         {rec.genres && rec.genres.length > 0 && (
+                           <div className="bg-brand-accent-gold border-2 border-white px-2 py-1">
+                             <p className="text-black font-bold text-xs text-center uppercase">
+                               {rec.genres.slice(0, 2).join(" • ")}
+                             </p>
                            </div>
-                           
-                           {/* Brutal Info Section */}
-                           <div className="p-2 bg-black">
-                             <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-1 line-clamp-2">
-                               {rec.title || "UNKNOWN TITLE"}
-                             </h4>
-                             {rec.genres && rec.genres.length > 0 && (
-                               <div className="bg-brand-accent-gold border-2 border-white px-1 py-0.5">
-                                 <p className="text-black font-bold text-xs text-center uppercase">
-                                   {rec.genres.slice(0, 1).join("")}
-                                 </p>
-                               </div>
-                             )}
-                           </div>
-                         </div>
-                       </SwiperSlide>
-                     ))}
-                   </Swiper>
-                 </div>
-               )}
+                         )}
+                       </div>
+                     </div>
+                   </SwiperSlide>
+                 ))}
+               </Swiper>
              </div>
           </div>
         )}
@@ -1192,40 +1551,6 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                 >
                   📉 SIMPLIFY
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!isLoadingMoodBoard && selectedMoodCues.length === 0 && (
-          <div className="bg-black border-4 border-white shadow-brutal-lg p-8">
-            <div className="text-center">
-              <div className="text-8xl mb-6">🎨</div>
-              <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
-                <h3 className="text-black font-black text-2xl uppercase">CREATE MOOD CANVAS</h3>
-              </div>
-              <div className="bg-white border-4 border-black p-4 mb-6">
-                <p className="text-black font-bold uppercase">
-                  {EXPANDED_MOOD_CUES.length} BRUTAL VIBES AVAILABLE
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-brand-accent-gold border-4 border-black p-3">
-                  <p className="text-black font-black text-sm uppercase">TRY A QUICK PRESET:</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {MOOD_PRESETS.slice(0, 3).map(preset => (
-                    <button
-                      key={preset.id}
-                      onClick={() => handlePresetSelect(preset)}
-                      className="bg-brand-accent-peach border-4 border-black p-3 shadow-brutal hover:bg-brand-accent-gold transition-all active:translate-x-1 active:translate-y-1 active:shadow-none touch-target"
-                    >
-                      <div className="text-2xl mb-1">{preset.emoji}</div>
-                      <div className="text-black font-black text-xs uppercase">{preset.name}</div>
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
