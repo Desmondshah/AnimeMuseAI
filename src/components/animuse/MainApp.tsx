@@ -1108,6 +1108,290 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           </div>
         </div>
 
+        {/* TRENDING ANIME SECTION */}
+        {trendingAnime.length > 0 && (
+          <div className="mt-8">
+            <div className="relative bg-gradient-to-r from-pink-500 to-rose-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+              <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">🔥 TRENDING NOW</h2>
+            </div>
+            
+            <div className="relative">
+              <Swiper
+                slidesPerView="auto"
+                spaceBetween={16}
+                grabCursor={true}
+                speed={300}
+                resistance={true}
+                resistanceRatio={0.85}
+                freeMode={true}
+                className="w-full"
+                style={{
+                  overflow: 'visible',
+                  padding: '0 0 20px 0',
+                  willChange: 'transform',
+                }}
+              >
+                {trendingAnime.slice(0, 8).map((anime, index) => (
+                  <SwiperSlide
+                    key={`trending-${index}`}
+                    className="w-[200px] sm:w-[220px]"
+                    style={{
+                      height: 'auto',
+                    }}
+                  >
+                    <div
+                      onClick={() => handleRecommendationClick(anime)}
+                      className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#EC4899] cursor-pointer active:shadow-[2px_2px_0px_0px_#EC4899] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-pink-100/20 to-rose-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      
+                      {anime.posterUrl ? (
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={anime.posterUrl}
+                            alt={anime.title}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-[3/4] bg-gradient-to-br from-pink-500 to-rose-600 border-b-4 border-black flex items-center justify-center">
+                          <span className="text-5xl opacity-80">🔥</span>
+                        </div>
+                      )}
+
+                      <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
+                        <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
+                          {anime.title}
+                        </h3>
+                        {anime.rating && (
+                          <div className="inline-block bg-gradient-to-r from-pink-500 to-rose-600 text-white px-2 py-1 text-[10px] font-bold uppercase">
+                            {Math.round(anime.rating)}/10
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          </div>
+        )}
+
+        {/* TOP RATED ANIME SECTION */}
+        {topAnime.length > 0 && (
+          <div className="mt-8">
+            <div className="relative bg-gradient-to-r from-yellow-500 to-amber-600 text-black p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(0,0,0,0.1)_50%,transparent_60%)]"></div>
+              <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">⭐ TOP RATED</h2>
+            </div>
+            
+            <div className="relative">
+              <Swiper
+                slidesPerView="auto"
+                spaceBetween={16}
+                grabCursor={true}
+                speed={300}
+                resistance={true}
+                resistanceRatio={0.85}
+                freeMode={true}
+                className="w-full"
+                style={{
+                  overflow: 'visible',
+                  padding: '0 0 20px 0',
+                  willChange: 'transform',
+                }}
+              >
+                {topAnime.slice(0, 8).map((anime, index) => (
+                  <SwiperSlide
+                    key={`top-${index}`}
+                    className="w-[200px] sm:w-[220px]"
+                    style={{
+                      height: 'auto',
+                    }}
+                  >
+                    <div
+                      onClick={() => handleRecommendationClick(anime)}
+                      className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#F59E0B] cursor-pointer active:shadow-[2px_2px_0px_0px_#F59E0B] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-yellow-100/20 to-amber-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      
+                      {anime.posterUrl ? (
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={anime.posterUrl}
+                            alt={anime.title}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-[3/4] bg-gradient-to-br from-yellow-500 to-amber-600 border-b-4 border-black flex items-center justify-center">
+                          <span className="text-5xl opacity-80">⭐</span>
+                        </div>
+                      )}
+
+                      <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
+                        <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
+                          {anime.title}
+                        </h3>
+                        {anime.rating && (
+                          <div className="inline-block bg-gradient-to-r from-yellow-500 to-amber-600 text-black px-2 py-1 text-[10px] font-bold uppercase">
+                            {Math.round(anime.rating)}/10
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          </div>
+        )}
+
+        {/* BINGEABLE ANIME SECTION */}
+        {bingeableAnime.length > 0 && (
+          <div className="mt-8">
+            <div className="relative bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+              <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">📺 BINGE WORTHY</h2>
+            </div>
+            
+            <div className="relative">
+              <Swiper
+                slidesPerView="auto"
+                spaceBetween={16}
+                grabCursor={true}
+                speed={300}
+                resistance={true}
+                resistanceRatio={0.85}
+                freeMode={true}
+                className="w-full"
+                style={{
+                  overflow: 'visible',
+                  padding: '0 0 20px 0',
+                  willChange: 'transform',
+                }}
+              >
+                {bingeableAnime.slice(0, 8).map((anime, index) => (
+                  <SwiperSlide
+                    key={`binge-${index}`}
+                    className="w-[200px] sm:w-[220px]"
+                    style={{
+                      height: 'auto',
+                    }}
+                  >
+                    <div
+                      onClick={() => handleRecommendationClick(anime)}
+                      className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#3B82F6] cursor-pointer active:shadow-[2px_2px_0px_0px_#3B82F6] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-100/20 to-cyan-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      
+                      {anime.posterUrl ? (
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={anime.posterUrl}
+                            alt={anime.title}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-[3/4] bg-gradient-to-br from-blue-500 to-cyan-600 border-b-4 border-black flex items-center justify-center">
+                          <span className="text-5xl opacity-80">📺</span>
+                        </div>
+                      )}
+
+                      <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
+                        <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
+                          {anime.title}
+                        </h3>
+                        {anime.rating && (
+                          <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-2 py-1 text-[10px] font-bold uppercase">
+                            {Math.round(anime.rating)}/10
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          </div>
+        )}
+
+        {/* RETRO CLASSIC ANIME SECTION */}
+        {retroClassicAnime.length > 0 && (
+          <div className="mt-8">
+            <div className="relative bg-gradient-to-r from-purple-500 to-violet-600 text-white p-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] mb-4 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_40%,rgba(255,255,255,0.1)_50%,transparent_60%)]"></div>
+              <h2 className="relative z-10 text-xl font-black uppercase tracking-tight">🎭 RETRO CLASSICS</h2>
+            </div>
+            
+            <div className="relative">
+              <Swiper
+                slidesPerView="auto"
+                spaceBetween={16}
+                grabCursor={true}
+                speed={300}
+                resistance={true}
+                resistanceRatio={0.85}
+                freeMode={true}
+                className="w-full"
+                style={{
+                  overflow: 'visible',
+                  padding: '0 0 20px 0',
+                  willChange: 'transform',
+                }}
+              >
+                {retroClassicAnime.slice(0, 8).map((anime, index) => (
+                  <SwiperSlide
+                    key={`retro-${index}`}
+                    className="w-[200px] sm:w-[220px]"
+                    style={{
+                      height: 'auto',
+                    }}
+                  >
+                    <div
+                      onClick={() => handleRecommendationClick(anime)}
+                      className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#8B5CF6] cursor-pointer active:shadow-[2px_2px_0px_0px_#8B5CF6] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-purple-100/20 to-violet-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      
+                      {anime.posterUrl ? (
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={anime.posterUrl}
+                            alt={anime.title}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-[3/4] bg-gradient-to-br from-purple-500 to-violet-600 border-b-4 border-black flex items-center justify-center">
+                          <span className="text-5xl opacity-80">🎭</span>
+                        </div>
+                      )}
+
+                      <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
+                        <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
+                          {anime.title}
+                        </h3>
+                        {anime.year && (
+                          <div className="inline-block bg-gradient-to-r from-purple-500 to-violet-600 text-white px-2 py-1 text-[10px] font-bold uppercase">
+                            {anime.year}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          </div>
+        )}
+
         {/* ARTISTIC PERSONALIZED RECOMMENDATIONS CAROUSEL */}
         {userProfile?.onboardingCompleted &&
           forYouCategories.filter(cat => cat.id === "generalPersonalized").map((category) => (
@@ -1233,8 +1517,13 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
     userProfile,
     fullWatchlist,
     loopedPopularAnime,
+    trendingAnime,
+    topAnime,
+    bingeableAnime,
+    retroClassicAnime,
     navigateToAIAssistant,
     handleAnimeCardClick,
+    handleRecommendationClick,
     navigateToStudioGhibli,
     navigateToMadhouse,
     navigateToMappa,

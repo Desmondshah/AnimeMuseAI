@@ -3611,3 +3611,198 @@ export const fetchIsekaiAnime = action({
     }
   }
 });
+
+export const fetchPopularAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [POPULARITY_DESC],
+          averageScore_greater: 60,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      const animes = media.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Popular anime with high ratings`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+export const fetchTopRatedAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [SCORE_DESC],
+          averageScore_greater: 80,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      const animes = media.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Critically acclaimed top-rated anime`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
+
+export const fetchBingeableAnime = action({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    animes: v.optional(v.array(v.any())),
+    error: v.optional(v.string())
+  }),
+  handler: async (_ctx: ActionCtx, args) => {
+    const limit = args.limit ?? 10;
+    
+    const query = `query ($page:Int,$perPage:Int) { 
+      Page(page:$page, perPage:$perPage){ 
+        media(
+          type: ANIME, 
+          sort: [POPULARITY_DESC],
+          episodes_greater: 12,
+          episodes_lesser: 50,
+          averageScore_greater: 70,
+          genre_not_in: ["Hentai"]
+        ) { 
+          id 
+          title { romaji } 
+          description(asHtml:false) 
+          startDate{ year } 
+          coverImage{ extraLarge } 
+          averageScore 
+          genres 
+          episodes
+        } 
+      } 
+    }`;
+    
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
+      });
+      
+      if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
+      
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      
+      const animes = media.map((item: any) => ({
+        title: item.title?.romaji || 'Unknown',
+        description: item.description || '',
+        posterUrl: item.coverImage?.extraLarge || '',
+        genres: item.genres || [],
+        year: item.startDate?.year || undefined,
+        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+        emotionalTags: [],
+        trailerUrl: '',
+        studios: [],
+        themes: [],
+        reasoning: `Perfect for binge-watching (${item.episodes || 'Unknown'} episodes)`,
+        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+        _id: undefined,
+        foundInDatabase: false
+      })) as AnimeRecommendation[];
+      
+      return { animes };
+    } catch (e: any) {
+      return { animes: [], error: e.message };
+    }
+  }
+});
