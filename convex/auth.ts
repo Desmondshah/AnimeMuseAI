@@ -1,15 +1,26 @@
 // convex/auth.ts
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous"; // Import Anonymous provider
+import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { query } from "./_generated/server";
-import { Id } from "./_generated/dataModel"; // Added for type safety
+import { Id } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
-    Password,
-    Anonymous, // Add Anonymous provider here
+    Password({
+      profile(params) {
+        return {
+          email: params.email as string,
+          name: params.email as string,
+        };
+      },
+    }),
+    Anonymous,
   ],
+  session: {
+    totalDurationMs: 1000 * 60 * 60 * 24 * 30, // 30 days
+    inactiveDurationMs: 1000 * 60 * 60 * 24 * 7, // 7 days of inactivity
+  },
 });
 
 export const loggedInUser = query({

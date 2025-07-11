@@ -21,6 +21,7 @@ import type * as anime from "../anime.js";
 import type * as animeQueries from "../animeQueries.js";
 import type * as auth from "../auth.js";
 import type * as authActions from "../authActions.js";
+import type * as authSecurity from "../authSecurity.js";
 import type * as autoRefresh from "../autoRefresh.js";
 import type * as characterEnrichment from "../characterEnrichment.js";
 import type * as characterMigration from "../characterMigration.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   animeQueries: typeof animeQueries;
   auth: typeof auth;
   authActions: typeof authActions;
+  authSecurity: typeof authSecurity;
   autoRefresh: typeof autoRefresh;
   characterEnrichment: typeof characterEnrichment;
   characterMigration: typeof characterMigration;

@@ -73,12 +73,25 @@ window.addEventListener('message', async (message) => {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json']
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'convex/react', '@convex-dev/auth/react'],
+    force: mode === 'development'
   },
   server: {
     host: '0.0.0.0',
     port: 5173,
     strictPort: false, // Allow fallback to other ports
-    open: true, // This should work better now
+    open: true,
+    force: true, // Force dependency pre-bundling
+    cors: true,
+    hmr: {
+      port: 24678,
+    },
+    fs: {
+      strict: false
+    }
   },
   preview: {
     host: '0.0.0.0',

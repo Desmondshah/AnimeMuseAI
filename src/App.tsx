@@ -1,9 +1,9 @@
 // src/App.tsx
 import React, { useState, lazy, Suspense } from "react";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api"; // Adjust path if needed
-import { SignInForm } from "./SignInForm"; // Adjust path if needed
-import { SignOutButton } from "./SignOutButton"; // Adjust path if needed
+import { api } from "../convex/_generated/api";
+import { EnhancedSignInForm } from "./components/auth/EnhancedSignInForm";
+
 import { Toaster } from "sonner";
 const OnboardingFlow = lazy(() => import("./components/animuse/onboarding/OnboardingFlow"));
 const MainApp = lazy(() => import("./components/animuse/MainApp"));
@@ -87,7 +87,6 @@ export default function App() {
               </Suspense>
             </div>
           </Authenticated>
-          <SignOutButton />
         </div>
       </header>
       <main className={`flex-1 flex flex-col items-center justify-center w-full ${isIPadDevice ? 'pt-20' : ''}`}>
@@ -130,23 +129,7 @@ function Content({ onPhoneVerified }: ContentProps) {
   return (
     <div className="w-full">
       <Unauthenticated>
-        <div className="text-center mb-8">
-          <div className="bg-white text-black p-6 border-4 border-black brutal-shadow-lg mb-6 mx-4">
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-2">
-              WELCOME TO
-            </h1>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none text-brand-primary-action">
-              ANIMUSE
-            </h1>
-            <div className="mt-4 h-2 bg-black"></div>
-            <p className="text-lg font-bold uppercase mt-2 tracking-wide">
-              SIGN IN TO DISCOVER ANIME
-            </p>
-          </div>
-        </div>
-        <div className="mx-4">
-          <SignInForm />
-        </div>
+        <EnhancedSignInForm />
       </Unauthenticated>
 
       <Authenticated>

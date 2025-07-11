@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
+import { useAuthActions } from "@convex-dev/auth/react";
 
 const MOODS_OPTIONS = ["Happy", "Sad", "Chill", "Dark", "Excited", "Nostalgic", "Thought-Provoking", "Intense", "Mysterious"];
 const GENRES_OPTIONS = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Isekai", "Josei", "Mecha", "Mystery", "Psychological", "Romance", "Sci-Fi", "Seinen", "Shojo", "Shonen", "Slice of Life", "Sports", "Supernatural", "Thriller"];
@@ -98,6 +99,7 @@ const BrutalistMultiSelectButtons: React.FC<{
 export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps) {
   const userProfile = useQuery(api.users.getMyUserProfile);
   const updateUserPreferences = useMutation(api.users.updateUserProfilePreferences);
+  const { signOut } = useAuthActions();
 
   const [formData, setFormData] = useState<UserProfileForEdit>({});
   const [currentFavoriteAnime, setCurrentFavoriteAnime] = useState("");
@@ -589,6 +591,39 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
                 >
                   IMPORT FROM MYANIMELIST
                 </button>
+              </div>
+            </div>
+          </BrutalistSectionWrapper>
+
+          {/* ACCOUNT MANAGEMENT SECTION */}
+          <BrutalistSectionWrapper title="Account Management" icon="🔐" index={8}>
+            <div className="space-y-6">
+              <div className="bg-white border-4 border-black p-4">
+                <div className="bg-red-500 text-white px-2 py-1 mb-3 flex items-center gap-2">
+                  <span className="text-lg">⚠️</span>
+                  <h4 className="text-sm font-black uppercase">ACCOUNT ACTIONS</h4>
+                </div>
+                <p className="text-xs font-bold text-black uppercase mb-4">MANAGE YOUR ACCOUNT AND SESSION</p>
+                
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to sign out? Any unsaved changes will be lost.")) {
+                        void signOut();
+                      }
+                    }}
+                    className="bg-red-500 border-4 border-black px-6 py-3 font-black text-white uppercase tracking-wider shadow-brutal hover:bg-red-600 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <span className="text-lg">🚪</span>
+                    SIGN OUT
+                    <span className="text-lg">👋</span>
+                  </button>
+                  
+                  <p className="text-xs text-gray-600 text-center font-bold uppercase">
+                    This will end your session and return you to the login page
+                  </p>
+                </div>
               </div>
             </div>
           </BrutalistSectionWrapper>

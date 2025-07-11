@@ -388,6 +388,64 @@ const applicationTables = {
     .index("by_changeType", ["changeType"])
     .index("by_batchId", ["batchId"])
     .index("by_entityType_timestamp", ["entityType", "timestamp"]),
+
+  // Security tables for enhanced authentication
+  authAttempts: defineTable({
+    identifier: v.string(), // email or IP address
+    attemptType: v.union(v.literal("login"), v.literal("signup")),
+    timestamp: v.number(),
+  })
+    .index("by_identifier_timestamp", ["identifier", "timestamp"]),
+
+  securityLogs: defineTable({
+    userId: v.optional(v.id("users")),
+    event: v.string(),
+    details: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    timestamp: v.number(),
+  })
+    .index("by_userId_timestamp", ["userId", "timestamp"])
+    .index("by_timestamp", ["timestamp"]),
+
+  accountLocks: defineTable({
+    userId: v.id("users"),
+    reason: v.string(),
+    lockedUntil: v.number(),
+    lockedBy: v.optional(v.id("users")), // admin who locked the account
+  })
+    .index("by_userId", ["userId"]),
+
+  twoFactorAuth: defineTable({
+    userId: v.id("users"),
+    secret: v.string(),
+    backupCodes: v.array(v.string()),
+    isEnabled: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  userSessions: defineTable({
+    userId: v.id("users"),
+    sessionToken: v.string(),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    lastActivity: v.number(),
+    expiresAt: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_sessionToken", ["sessionToken"]),
+
+  passwordResets: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    expiresAt: v.number(),
+    isUsed: v.boolean(),
+    requestedAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_userId", ["userId"]),
 };
 
 export default defineSchema({
