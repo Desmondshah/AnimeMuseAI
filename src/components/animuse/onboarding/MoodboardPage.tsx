@@ -1,6 +1,6 @@
 // Enhanced MoodboardPage.tsx with expanded features
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import StyledButton from "../shared/StyledButton";
 import { toast } from "sonner";
@@ -499,6 +499,7 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
 }) => {
   const userProfile = useQuery(api.users.getMyUserProfile);
   const getRecommendationsByMoodTheme = useAction(api.ai.getEnhancedRecommendationsByMoodTheme);
+  const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
   // Removed debug action - moved to admin dashboard
 
   // ============================================================================
@@ -619,6 +620,40 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
     setCueIntensities(moodboard.intensities);
     toast.success(`Loaded "${moodboard.name}"!`);
   }, [onMoodCuesChange]);
+
+  // Handler for adding anime recommendation to database and navigating
+  const handleAddAnimeAndNavigate = useCallback(async (recommendation: AnimeRecommendation) => {
+    if (recommendation._id) {
+      // If anime already exists in database, navigate directly
+      navigateToDetail(recommendation._id as Id<"anime">);
+      return;
+    }
+
+    const toastId = `add-anime-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'new-anime'}`;
+    toast.loading('Adding anime to your collection...', { id: toastId });
+
+    const animeToAdd = {
+      title: recommendation.title?.trim() || "Unknown Title",
+      description: recommendation.description?.trim() || "No description available.",
+      posterUrl: recommendation.posterUrl || "",
+      genres: Array.isArray(recommendation.genres) ? recommendation.genres.filter(g => g && g.trim()) : [],
+      year: typeof recommendation.year === 'number' && recommendation.year > 1900 ? recommendation.year : undefined,
+      rating: typeof recommendation.rating === 'number' && recommendation.rating >= 0 && recommendation.rating <= 10 ? recommendation.rating : undefined,
+      emotionalTags: Array.isArray(recommendation.emotionalTags) ? recommendation.emotionalTags.filter(tag => tag && tag.trim()) : [],
+      trailerUrl: recommendation.trailerUrl && recommendation.trailerUrl.trim() ? recommendation.trailerUrl : undefined,
+      studios: Array.isArray(recommendation.studios) ? recommendation.studios.filter(s => s && s.trim()) : [],
+      themes: Array.isArray(recommendation.themes) ? recommendation.themes.filter(t => t && t.trim()) : [],
+    };
+
+    try {
+      const newAnimeId = await addAnimeByUserMutation(animeToAdd);
+      toast.success('Anime added!', { id: toastId });
+      navigateToDetail(newAnimeId);
+    } catch (error: any) {
+      console.error('[MoodboardPage] Failed to add recommendation:', error);
+      toast.error(`Failed to add anime: ${error.message || 'Unknown error'}`, { id: toastId });
+    }
+  }, [addAnimeByUserMutation, navigateToDetail]);
 
   const fetchMoodBoardRecommendations = useCallback(async () => {
     if (selectedMoodCues.length === 0) {
@@ -1494,20 +1529,21 @@ const EnhancedMoodboardPageComponent: React.FC<MoodboardPageProps> = ({
                >
                  {moodBoardRecommendations.map((rec, index) => (
                    <SwiperSlide key={`featured-${index}-${rec.title}`} className="!w-[250px]" style={{ pointerEvents: 'auto' }}>
-                     <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group"
-                          style={{ touchAction: 'pan-y pinch-zoom' }}>
+                     <div className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all group cursor-pointer"
+                          style={{ touchAction: 'pan-y pinch-zoom' }}
+                          onClick={() => handleAddAnimeAndNavigate(rec)}>
                        {/* Brutal Anime Card Container */}
-                       <div className="border-b-4 border-black" style={{ pointerEvents: 'none' }}>
+                       <div className="border-b-4 border-black" style={{ pointerEvents: 'auto' }}>
                          <AnimeCard 
                            anime={rec} 
                            isRecommendation={true} 
                            onViewDetails={navigateToDetail}
-                           className="w-full border-none shadow-none"
+                           className="w-full border-none shadow-none pointer-events-none"
                          />
                        </div>
                        
                        {/* Brutal Info Section */}
-                       <div className="p-3 bg-black" style={{ pointerEvents: 'none' }}>
+                       <div className="p-3 bg-black" style={{ pointerEvents: 'auto' }}>
                          <h4 className="text-white font-black text-xs uppercase text-center leading-tight mb-2 line-clamp-2">
                            {rec.title || "UNKNOWN TITLE"}
                          </h4>
