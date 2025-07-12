@@ -4,13 +4,14 @@ import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
 import EnhancedAnimeManagementPage from "./EnhancedAnimeManagementPage";
 import ReviewModerationPage from "./ReviewModerationPage";
+import CharacterEnrichmentPage from "./CharacterEnrichmentPage";
 import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 
 interface AdminDashboardPageProps {
   onNavigateBack: () => void;
 }
 
-type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation";
+type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation" | "character_enrichment";
 
 // FIXED: Proper responsive layout detection
 const useResponsiveLayout = () => {
@@ -268,6 +269,13 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
       description: "EDIT DATA"
     },
     { 
+      view: "character_enrichment" as AdminView, 
+      icon: "🤖", 
+      label: "AI ENRICHMENT",
+      shortLabel: "AI",
+      description: "CHARACTER AI"
+    },
+    { 
       view: "review_moderation" as AdminView, 
       icon: "📝", 
       label: "REVIEWS",
@@ -463,6 +471,8 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
         return <UserManagementPage />;
       case "anime_management":
         return <EnhancedAnimeManagementPage />;
+      case "character_enrichment":
+        return <CharacterEnrichmentPage />;
       case "review_moderation":
         return <ReviewModerationPage />;
       case "overview":

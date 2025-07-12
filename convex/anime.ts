@@ -1564,3 +1564,26 @@ export const addAnimeFromRecommendationPublic = mutation({
     return await ctx.runMutation(internal.anime.addAnimeFromRecommendation, args);
   },
 });
+
+// Get anime with characters for admin dashboard
+export const getAllAnimeWithCharacters = query({
+  args: { 
+    limit: v.optional(v.number()),
+    includeEnrichmentStats: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+    
+    // Get anime that have characters
+    const animeWithCharacters = await ctx.db
+      .query("anime")
+      .filter((q) => q.neq(q.field("characters"), undefined))
+      .filter((q) => q.neq(q.field("characters"), null))
+      .order("desc")
+      .take(limit);
+    
+    return animeWithCharacters.filter(anime => 
+      anime.characters && Array.isArray(anime.characters) && anime.characters.length > 0
+    );
+  },
+});

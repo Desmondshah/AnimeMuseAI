@@ -2608,3 +2608,409 @@ function isValidPosterUrl(posterUrl: string | undefined | null): boolean {
   if (posterUrl === "PLACEHOLDER") return false;
   return true;
 }
+
+// --- AI Character Enrichment Action ---
+
+export const fetchEnrichedCharacterDetails = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    existingData: v.object({
+      description: v.optional(v.string()),
+      role: v.optional(v.string()),
+      gender: v.optional(v.string()),
+      age: v.optional(v.string()),
+      species: v.optional(v.string()),
+      powersAbilities: v.optional(v.array(v.string())),
+      voiceActors: v.optional(v.array(v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        language: v.string(),
+        imageUrl: v.optional(v.string()),
+      }))),
+    }),
+    enrichmentLevel: v.union(v.literal("basic"), v.literal("detailed")),
+    messageId: v.string(),
+    includeAdvancedAnalysis: v.optional(v.boolean()),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    mergedCharacter: v.union(v.object({
+      personalityAnalysis: v.optional(v.string()),
+      keyRelationships: v.optional(v.array(v.object({
+        relatedCharacterName: v.string(),
+        relationshipDescription: v.string(),
+        relationType: v.string(),
+      }))),
+      detailedAbilities: v.optional(v.array(v.object({
+        abilityName: v.string(),
+        abilityDescription: v.string(),
+        powerLevel: v.optional(v.string()),
+      }))),
+      majorCharacterArcs: v.optional(v.array(v.string())),
+      trivia: v.optional(v.array(v.string())),
+      backstoryDetails: v.optional(v.string()),
+      characterDevelopment: v.optional(v.string()),
+      notableQuotes: v.optional(v.array(v.string())),
+      symbolism: v.optional(v.string()),
+      fanReception: v.optional(v.string()),
+      culturalSignificance: v.optional(v.string()),
+      advancedRelationships: v.optional(v.array(v.object({
+        characterName: v.string(),
+        relationshipType: v.string(),
+        emotionalDynamics: v.string(),
+        keyMoments: v.optional(v.array(v.string())),
+        relationshipEvolution: v.optional(v.string()),
+        impactOnStory: v.optional(v.string()),
+      }))),
+      developmentTimeline: v.optional(v.array(v.object({
+        phase: v.string(),
+        description: v.string(),
+        characterState: v.string(),
+        keyEvents: v.optional(v.array(v.string())),
+        characterGrowth: v.optional(v.string()),
+        challenges: v.optional(v.string()),
+        relationships: v.optional(v.string()),
+      }))),
+      cached: v.optional(v.boolean()),
+    }), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { error: "OpenAI API key not configured.", mergedCharacter: null };
+    }
+
+    // Create cache key based on character and anime
+    const cacheKey = `character_enrichment:${args.animeName}:${args.characterName}:${args.enrichmentLevel}:${args.includeAdvancedAnalysis ? 'advanced' : 'basic'}`;
+    
+    console.log(`[Character Enrichment] Checking cache for: ${cacheKey}`);
+    
+    // Check cache first
+    const cachedResult = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cachedResult) {
+      console.log(`[Character Enrichment] Cache hit for ${args.characterName} from ${args.animeName}`);
+      return { 
+        error: null, 
+        mergedCharacter: { 
+          ...cachedResult,
+          cached: true 
+        } 
+      };
+    }
+
+    console.log(`[Character Enrichment] Cache miss, calling AI for ${args.characterName} from ${args.animeName}`);
+
+    // Build a system prompt for character enrichment
+    let systemPrompt = `You are AniMuse AI, an expert at analyzing and enriching anime character data for a database. Your job is to take the provided character and anime information and generate a JSON object with detailed enrichment fields for the character. Be creative but plausible, and use the anime context if available.\n\n`;
+    systemPrompt += `Enrichment Level: ${args.enrichmentLevel}\n`;
+    systemPrompt += `Anime: ${args.animeName}\n`;
+    systemPrompt += `Character: ${args.characterName}\n`;
+    if (args.existingData) {
+      systemPrompt += `Existing Data: ${JSON.stringify(args.existingData, null, 2)}\n`;
+    }
+    systemPrompt += `\nOutput a single JSON object with the following fields (omit any you cannot infer):\n`;
+    systemPrompt += `{
+  personalityAnalysis: string,
+  keyRelationships: Array<{ relatedCharacterName: string, relationshipDescription: string, relationType: string }>,
+  detailedAbilities: Array<{ abilityName: string, abilityDescription: string, powerLevel?: string }>,
+  majorCharacterArcs: string[],
+  trivia: string[],
+  backstoryDetails: string,
+  characterDevelopment: string,
+  notableQuotes: string[],
+  symbolism: string,
+  fanReception: string,
+  culturalSignificance: string
+}`;
+    systemPrompt += `\nBe concise but informative. Output ONLY the JSON object, no extra text.`;
+
+    const userPrompt = `Enrich the character "${args.characterName}" from the anime "${args.animeName}".`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+      const content = completion.choices[0].message.content;
+      let mergedCharacter: any = null;
+      try {
+        mergedCharacter = JSON.parse(content || "null");
+      } catch (e) {
+        return { error: "Failed to parse AI response as JSON.", mergedCharacter: null };
+      }
+
+      // If advanced analysis is requested, add relationship and timeline data
+      if (args.includeAdvancedAnalysis && mergedCharacter) {
+        try {
+          // Get relationship analysis (with separate caching)
+          const relationshipResult = await ctx.runAction(api.ai.analyzeCharacterRelationships, {
+            characterName: args.characterName,
+            animeName: args.animeName,
+            messageId: `${args.messageId}_relationships`,
+          });
+
+          // Get timeline analysis (with separate caching)
+          const timelineResult = await ctx.runAction(api.ai.getCharacterDevelopmentTimeline, {
+            characterName: args.characterName,
+            animeName: args.animeName,
+            includeArcs: true,
+            messageId: `${args.messageId}_timeline`,
+          });
+
+          // Add the advanced analysis data to the merged character
+          if (!relationshipResult.error && relationshipResult.relationships) {
+            (mergedCharacter as any).advancedRelationships = relationshipResult.relationships;
+          }
+
+          if (!timelineResult.error && timelineResult.timeline) {
+            (mergedCharacter as any).developmentTimeline = timelineResult.timeline;
+          }
+        } catch (advancedError) {
+          console.warn("Advanced analysis failed, continuing with basic enrichment:", advancedError);
+        }
+      }
+
+      // Cache the result for 7 days (604800000 ms)
+      if (mergedCharacter) {
+        await ctx.runMutation(internal.aiCache.setCache, {
+          key: cacheKey,
+          value: mergedCharacter,
+          ttl: 604800000, // 7 days
+        });
+        console.log(`[Character Enrichment] Cached result for ${args.characterName} from ${args.animeName}`);
+      }
+
+      return { error: null, mergedCharacter: { ...mergedCharacter, cached: false } };
+    } catch (err: any) {
+      return { error: err.message || "OpenAI error.", mergedCharacter: null };
+    }
+  },
+});
+
+// AI Character Relationship Analysis
+export const analyzeCharacterRelationships = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    messageId: v.string(),
+  },
+  returns: v.object({
+    relationships: v.array(v.object({
+      characterName: v.string(),
+      relationshipType: v.string(),
+      emotionalDynamics: v.string(),
+      keyMoments: v.optional(v.array(v.string())),
+      relationshipEvolution: v.optional(v.string()),
+      impactOnStory: v.optional(v.string()),
+    })),
+    error: v.union(v.string(), v.null()),
+    cached: v.optional(v.boolean()),
+  }),
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { relationships: [], error: "OpenAI API key not configured." };
+    }
+
+    // Create cache key for relationships
+    const cacheKey = `character_relationships:${args.animeName}:${args.characterName}`;
+    
+    console.log(`[Character Relationships] Checking cache for: ${cacheKey}`);
+    
+    // Check cache first
+    const cachedResult = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cachedResult) {
+      console.log(`[Character Relationships] Cache hit for ${args.characterName} from ${args.animeName}`);
+      return { 
+        relationships: cachedResult,
+        error: null,
+        cached: true
+      };
+    }
+
+    console.log(`[Character Relationships] Cache miss, calling AI for ${args.characterName} from ${args.animeName}`);
+
+    const systemPrompt = `You are AniMuse AI, an expert at analyzing anime character relationships and dynamics.
+
+TASK: Analyze the relationships of "${args.characterName}" from "${args.animeName}".
+
+Focus on:
+1. Key relationships with other characters
+2. Emotional dynamics and power balances
+3. Character development through relationships
+4. Impact of relationships on the story
+5. Character chemistry and interactions
+
+Output JSON: {
+  "relationships": [
+    {
+      "characterName": "Name of related character",
+      "relationshipType": "friend/enemy/lover/mentor/student/family/rival/etc",
+      "emotionalDynamics": "Description of emotional relationship",
+      "keyMoments": ["Important moment 1", "Important moment 2"],
+      "relationshipEvolution": "How the relationship changes throughout the story",
+      "impactOnStory": "How this relationship affects the plot"
+    }
+  ]
+}
+
+Be specific and insightful. Focus on 3-5 most important relationships.`;
+
+    const userPrompt = `Analyze the relationships of "${args.characterName}" from "${args.animeName}".`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+
+      const content = completion.choices[0].message.content;
+      let result: any = null;
+      try {
+        result = JSON.parse(content || "{}");
+      } catch (e) {
+        return { relationships: [], error: "Failed to parse AI response as JSON." };
+      }
+
+      const relationships = result.relationships || [];
+      
+      // Cache the result for 7 days
+      if (relationships.length > 0) {
+        await ctx.runMutation(internal.aiCache.setCache, {
+          key: cacheKey,
+          value: relationships,
+          ttl: 604800000, // 7 days
+        });
+        console.log(`[Character Relationships] Cached result for ${args.characterName} from ${args.animeName}`);
+      }
+
+      return { relationships, error: null, cached: false };
+    } catch (err: any) {
+      return { relationships: [], error: err.message || "OpenAI error." };
+    }
+  },
+});
+
+// AI Character Development Timeline
+export const getCharacterDevelopmentTimeline = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    includeArcs: v.optional(v.boolean()),
+    messageId: v.string(),
+  },
+  returns: v.object({
+    timeline: v.array(v.object({
+      phase: v.string(),
+      description: v.string(),
+      characterState: v.string(),
+      keyEvents: v.optional(v.array(v.string())),
+      characterGrowth: v.optional(v.string()),
+      challenges: v.optional(v.string()),
+      relationships: v.optional(v.string()),
+    })),
+    error: v.union(v.string(), v.null()),
+    cached: v.optional(v.boolean()),
+  }),
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { timeline: [], error: "OpenAI API key not configured." };
+    }
+
+    // Create cache key for timeline
+    const cacheKey = `character_timeline:${args.animeName}:${args.characterName}:${args.includeArcs ? 'arcs' : 'basic'}`;
+    
+    console.log(`[Character Timeline] Checking cache for: ${cacheKey}`);
+    
+    // Check cache first
+    const cachedResult = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cachedResult) {
+      console.log(`[Character Timeline] Cache hit for ${args.characterName} from ${args.animeName}`);
+      return { 
+        timeline: cachedResult,
+        error: null,
+        cached: true
+      };
+    }
+
+    console.log(`[Character Timeline] Cache miss, calling AI for ${args.characterName} from ${args.animeName}`);
+
+    const systemPrompt = `You are AniMuse AI, an expert at analyzing character development and story arcs.
+
+TASK: Create a detailed character development timeline for "${args.characterName}" from "${args.animeName}".
+
+Focus on:
+1. Character's initial state and introduction
+2. Key development moments and turning points
+3. Character growth and changes
+4. Major challenges and how they're overcome
+5. Final character state and resolution
+${args.includeArcs ? '6. Character arcs and story progression' : ''}
+
+Output JSON: {
+  "timeline": [
+    {
+      "phase": "Introduction/Early Story",
+      "description": "What happens in this phase",
+      "characterState": "How the character is at this point",
+      "keyEvents": ["Event 1", "Event 2"],
+      "characterGrowth": "How the character develops in this phase",
+      "challenges": "What challenges they face",
+      "relationships": "How relationships develop"
+    }
+  ]
+}
+
+Create 4-6 phases covering the character's journey. Be specific about character development and growth.`;
+
+    const userPrompt = `Create a character development timeline for "${args.characterName}" from "${args.animeName}".`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+      
+      const content = completion.choices[0].message.content;
+      let timeline = [];
+      
+      try {
+        const parsed = JSON.parse(content || "{}");
+        timeline = parsed.timeline || [];
+      } catch (e) {
+        return { timeline: [], error: "Failed to parse AI response as JSON." };
+      }
+      
+      // Cache the result for 7 days
+      if (timeline.length > 0) {
+        await ctx.runMutation(internal.aiCache.setCache, {
+          key: cacheKey,
+          value: timeline,
+          ttl: 604800000, // 7 days
+        });
+        console.log(`[Character Timeline] Cached result for ${args.characterName} from ${args.animeName}`);
+      }
+      
+      return { timeline, error: null, cached: false };
+    } catch (err: any) {
+      return { timeline: [], error: err.message || "OpenAI error." };
+    }
+  },
+});

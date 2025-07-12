@@ -1,6 +1,6 @@
 // convex/characterEnrichment.ts - Fixed TypeScript issues
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, action } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
@@ -326,6 +326,7 @@ export const enrichCharactersForAnime = internalAction({
           },
           enrichmentLevel: 'detailed' as const,
           messageId: `cron_enrich_${characterName.replace(/[^\w]/g, '_')}_${Date.now()}`,
+          includeAdvancedAnalysis: true,
         });
         
         console.log(`[Enrich Character] AI response for ${characterName}:`, {
@@ -688,5 +689,67 @@ export const getPopularAnimeWithUnenrichedCharacters = internalQuery({
     }
     
     return animesWithUnenriched;
+  },
+});
+
+// Public action for enriching characters in a single anime (admin dashboard)
+export const enrichAnimeCharacters = action({
+  args: {
+    animeId: v.id("anime"),
+    maxCharacters: v.optional(v.number()),
+    includeRetries: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.runAction(internal.characterEnrichment.enrichCharactersForAnime, {
+      animeId: args.animeId,
+      maxCharacters: args.maxCharacters,
+      includeRetries: args.includeRetries,
+    });
+  },
+});
+
+// Public action for batch enrichment (admin dashboard)
+export const batchEnrichAnimeCharacters = action({
+  args: {
+    animeBatchSize: v.optional(v.number()),
+    charactersPerAnime: v.optional(v.number()),
+    includeRetries: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.runAction(internal.characterEnrichment.batchEnrichCharacters, {
+      animeBatchSize: args.animeBatchSize,
+      charactersPerAnime: args.charactersPerAnime,
+      includeRetries: args.includeRetries,
+    });
+  },
+});
+
+// Public actions for admin dashboard
+export const enrichCharacterRealTime = action({
+  args: {
+    animeId: v.id("anime"),
+    characterName: v.string(),
+    includeAdvancedAnalysis: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.runAction(internal.characterEnrichment.enrichCharacterRealTime, {
+      animeId: args.animeId,
+      characterName: args.characterName,
+      includeAdvancedAnalysis: args.includeAdvancedAnalysis,
+    });
+  },
+});
+
+export const getCacheStatistics = action({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.runQuery(internal.characterEnrichment.getCacheStatistics, {});
+  },
+});
+
+export const clearExpiredCache = action({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.runMutation(internal.characterEnrichment.clearExpiredCache, {});
   },
 });

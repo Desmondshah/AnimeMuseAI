@@ -1,10 +1,10 @@
 // BRUTALIST ANIME MANAGEMENT - EnhancedAnimeManagementPage.tsx
-import React, { useState, memo, useMemo, useEffect } from "react";
-import { usePaginatedQuery, useMutation } from "convex/react";
+import React, { useState, useEffect, useMemo, memo } from "react";
+import { usePaginatedQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import StyledButton from "../animuse/shared/StyledButton";
-import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import EditAnimeForm from "./EditAnimeForm";
 import CharacterEditor from "./CharacterEditor";
@@ -54,6 +54,7 @@ const BrutalistCharacterCard: React.FC<{
 }> = memo(({ character, index, isEditing, onEdit, onSave, onCancel, onEnrich, onDelete, isEnriching }) => {
   const [editData, setEditData] = useState(character);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [showEnrichedData, setShowEnrichedData] = useState(false);
   const [descriptionSize, setDescriptionSize] = useState({ width: '100%', height: '80px' });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string>('');
@@ -275,6 +276,27 @@ const BrutalistCharacterCard: React.FC<{
           <p className="text-lg text-white font-bold uppercase tracking-wide">
             {character.role || 'NO ROLE'}
           </p>
+          
+          {/* Enrichment Status */}
+          {character.enrichmentStatus && (
+            <div className="mt-2">
+              {character.enrichmentStatus === 'success' && (
+                <span className="bg-green-500 text-white px-2 py-1 border-2 border-green-500 font-black text-xs uppercase tracking-wide">
+                  ✅ AI ENRICHED
+                </span>
+              )}
+              {character.enrichmentStatus === 'pending' && (
+                <span className="bg-yellow-500 text-black px-2 py-1 border-2 border-yellow-500 font-black text-xs uppercase tracking-wide">
+                  ⏳ ENRICHING...
+                </span>
+              )}
+              {character.enrichmentStatus === 'failed' && (
+                <span className="bg-red-500 text-white px-2 py-1 border-2 border-red-500 font-black text-xs uppercase tracking-wide">
+                  ❌ ENRICHMENT FAILED
+                </span>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-3">
@@ -291,6 +313,187 @@ const BrutalistCharacterCard: React.FC<{
           <div className="text-white font-black">
             {character.description}
           </div>
+        </div>
+      )}
+
+      {/* AI Enriched Data Section */}
+      {character.enrichmentStatus === 'success' && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowEnrichedData(!showEnrichedData)}
+            className="w-full bg-blue-500 text-white border-4 border-blue-500 px-4 py-3 font-black uppercase tracking-wide hover:bg-blue-600 transition-colors mb-4"
+          >
+            <span className={`transition-transform duration-200 ${showEnrichedData ? 'rotate-90' : ''}`}>
+              ▶
+            </span>
+            {showEnrichedData ? 'HIDE' : 'SHOW'} AI ENRICHED DATA
+          </button>
+          
+          {showEnrichedData && (
+            <div className="space-y-4 bg-white text-black p-4 border-4 border-black">
+              {/* Personality Analysis */}
+              {character.personalityAnalysis && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">🧠 PERSONALITY ANALYSIS</h4>
+                  <p className="font-medium leading-relaxed">{character.personalityAnalysis}</p>
+                </div>
+              )}
+
+              {/* Key Relationships */}
+              {character.keyRelationships && character.keyRelationships.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">👥 KEY RELATIONSHIPS</h4>
+                  <div className="space-y-2">
+                    {character.keyRelationships.map((rel: any, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-3 border-2 border-white">
+                        <div className="font-black uppercase tracking-wide text-sm">{rel.relatedCharacterName}</div>
+                        <div className="font-medium text-sm">{rel.relationshipDescription}</div>
+                        <div className="text-xs opacity-80">{rel.relationType}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Detailed Abilities */}
+              {character.detailedAbilities && character.detailedAbilities.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">⚡ DETAILED ABILITIES</h4>
+                  <div className="space-y-2">
+                    {character.detailedAbilities.map((ability: any, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-3 border-2 border-white">
+                        <div className="font-black uppercase tracking-wide text-sm">{ability.abilityName}</div>
+                        <div className="font-medium text-sm">{ability.abilityDescription}</div>
+                        {ability.powerLevel && (
+                          <div className="text-xs opacity-80">Power Level: {ability.powerLevel}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trivia */}
+              {character.trivia && character.trivia.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">🎯 TRIVIA</h4>
+                  <div className="space-y-1">
+                    {character.trivia.map((fact: string, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-2 border-2 border-white">
+                        <span className="font-medium text-sm">• {fact}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Character Development */}
+              {character.characterDevelopment && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">📈 CHARACTER DEVELOPMENT</h4>
+                  <p className="font-medium leading-relaxed">{character.characterDevelopment}</p>
+                </div>
+              )}
+
+              {/* Notable Quotes */}
+              {character.notableQuotes && character.notableQuotes.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">💬 NOTABLE QUOTES</h4>
+                  <div className="space-y-2">
+                    {character.notableQuotes.map((quote: string, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-3 border-2 border-white italic">
+                        "{quote}"
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cultural Significance */}
+              {character.culturalSignificance && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">🌍 CULTURAL SIGNIFICANCE</h4>
+                  <p className="font-medium leading-relaxed">{character.culturalSignificance}</p>
+                </div>
+              )}
+
+              {/* Advanced Relationships Analysis */}
+              {character.advancedRelationships && character.advancedRelationships.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">🔗 ADVANCED RELATIONSHIP ANALYSIS</h4>
+                  <div className="space-y-3">
+                    {character.advancedRelationships.map((rel: any, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-4 border-2 border-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-black uppercase tracking-wide text-sm">{rel.characterName}</div>
+                          <div className="bg-blue-500 text-white px-2 py-1 text-xs font-black uppercase">
+                            {rel.relationshipType}
+                          </div>
+                        </div>
+                        <div className="font-medium text-sm mb-2">{rel.emotionalDynamics}</div>
+                        {rel.keyMoments && rel.keyMoments.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-xs opacity-80 mb-1">KEY MOMENTS:</div>
+                            <div className="space-y-1">
+                              {rel.keyMoments.map((moment: string, momentIdx: number) => (
+                                <div key={momentIdx} className="text-xs">• {moment}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {rel.relationshipEvolution && (
+                          <div className="text-xs opacity-80">
+                            <div className="mb-1">EVOLUTION:</div>
+                            <div>{rel.relationshipEvolution}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Development Timeline */}
+              {character.developmentTimeline && character.developmentTimeline.length > 0 && (
+                <div>
+                  <h4 className="font-black uppercase tracking-wide mb-2 text-lg">📈 CHARACTER DEVELOPMENT TIMELINE</h4>
+                  <div className="space-y-3">
+                    {character.developmentTimeline.map((phase: any, idx: number) => (
+                      <div key={idx} className="bg-black text-white p-4 border-2 border-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-black uppercase tracking-wide text-sm">{phase.phase}</div>
+                          <div className="bg-green-500 text-white px-2 py-1 text-xs font-black uppercase">
+                            PHASE {idx + 1}
+                          </div>
+                        </div>
+                        <div className="font-medium text-sm mb-2">{phase.description}</div>
+                        <div className="text-xs opacity-80 mb-2">
+                          <div className="mb-1">CHARACTER STATE:</div>
+                          <div>{phase.characterState}</div>
+                        </div>
+                        {phase.keyEvents && phase.keyEvents.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-xs opacity-80 mb-1">KEY EVENTS:</div>
+                            <div className="space-y-1">
+                              {phase.keyEvents.map((event: string, eventIdx: number) => (
+                                <div key={eventIdx} className="text-xs">• {event}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {phase.characterGrowth && (
+                          <div className="text-xs opacity-80">
+                            <div className="mb-1">GROWTH:</div>
+                            <div>{phase.characterGrowth}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       
@@ -841,6 +1044,10 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   const deleteAnimeMutation = useMutation(api.admin.adminDeleteAnime);
   const saveAnimeMutation = useMutation(api.admin.adminEditAnime);
   const saveCharactersMutation = useMutation(api.admin.adminUpdateAnimeCharacters);
+  
+  // Character enrichment action
+  const enrichSingleAnime = useAction(api.characterEnrichment.enrichAnimeCharacters);
+  const enrichCharacterRealTime = useAction(api.characterEnrichment.enrichCharacterRealTime);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
@@ -852,6 +1059,9 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   const [savingAnime, setSavingAnime] = useState<string | null>(null);
   const [viewingHistory, setViewingHistory] = useState<Id<"anime"> | null>(null);
   const [showGlobalChangeHistory, setShowGlobalChangeHistory] = useState(false);
+  const [enrichingCharacterIndex, setEnrichingCharacterIndex] = useState<number | null>(null);
+  const [editingCharacter, setEditingCharacter] = useState<{ character: any; index: number } | null>(null);
+  const [savingCharacter, setSavingCharacter] = useState<number | null>(null);
 
   const {
     results: animeList,
@@ -966,17 +1176,160 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   };
 
   const handleEditCharacter = (character: any, index: number) => {
-    if (!managingCharacters) return;
+    setEditingCharacter({ character, index });
+  };
+
+  const handleSaveCharacterEdit = async (updatedCharacter: any) => {
+    if (!editingCharacter || !managingCharacters) return;
     
-    // For now, just show a toast since character editing is done through the anime form
-    toast.info("Character editing is available through the main anime edit form");
+    try {
+      setSavingCharacter(editingCharacter.index);
+      
+      // Update the character in local state
+      const updatedCharacters = [...managingCharacters.characters];
+      updatedCharacters[editingCharacter.index] = updatedCharacter;
+      
+      setManagingCharacters({
+        ...managingCharacters,
+        characters: updatedCharacters
+      });
+      
+      toast.success(`Character "${updatedCharacter.name}" updated successfully!`);
+      setEditingCharacter(null);
+      
+    } catch (error) {
+      console.error("Failed to save character:", error);
+      toast.error(`Failed to save character: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setSavingCharacter(null);
+    }
+  };
+
+  const handleCancelCharacterEdit = () => {
+    setEditingCharacter(null);
   };
 
   const handleEnrichCharacter = async (index: number) => {
-    if (!managingCharacters) return;
+    if (!managingCharacters || enrichingCharacterIndex !== null) return;
     
-    toast.info("Character enrichment feature coming soon!");
-    // TODO: Implement character enrichment
+    const character = managingCharacters.characters[index];
+    if (!character) {
+      toast.error("Character not found");
+      return;
+    }
+
+    try {
+      setEnrichingCharacterIndex(index);
+      toast.info(`🤖 Starting real-time AI enrichment for ${character.name}...`);
+      
+      // Update the character status to pending in local state
+      const updatedCharacters = [...managingCharacters.characters];
+      updatedCharacters[index] = {
+        ...character,
+        enrichmentStatus: 'pending',
+        enrichmentAttempts: (character.enrichmentAttempts || 0) + 1,
+        lastAttemptTimestamp: Date.now()
+      };
+      
+      setManagingCharacters({
+        ...managingCharacters,
+        characters: updatedCharacters
+      });
+      
+      // Call the real-time character enrichment API
+      const result = await enrichCharacterRealTime({
+        animeId: managingCharacters.anime._id,
+        characterName: character.name,
+        includeAdvancedAnalysis: true,
+      });
+
+      if (result.error) {
+        toast.error(`❌ AI enrichment failed for ${character.name}: ${result.error}`);
+        
+        // Update local state to show failure
+        const failedCharacters = [...managingCharacters.characters];
+        failedCharacters[index] = {
+          ...failedCharacters[index],
+          enrichmentStatus: 'failed',
+          lastErrorMessage: result.error
+        };
+        
+        setManagingCharacters({
+          ...managingCharacters,
+          characters: failedCharacters
+        });
+        
+      } else if (result.result) {
+        const wasCached = result.progress?.cached;
+        const cacheMessage = wasCached ? " (Retrieved from cache - no tokens used!)" : " (Fresh AI analysis completed)";
+        
+        toast.success(`🎉 Successfully enriched ${character.name} with AI data!${cacheMessage} The character now has enhanced personality analysis, relationships, abilities, and more.`);
+        
+        // Update local state to show success with the actual enriched data
+        const successCharacters = [...managingCharacters.characters];
+        successCharacters[index] = {
+          ...successCharacters[index],
+          enrichmentStatus: 'success',
+          enrichmentTimestamp: Date.now(),
+          personalityAnalysis: result.result.enrichmentData.personalityAnalysis,
+          keyRelationships: result.result.enrichmentData.keyRelationships,
+          detailedAbilities: result.result.enrichmentData.detailedAbilities,
+          majorCharacterArcs: result.result.enrichmentData.majorCharacterArcs,
+          trivia: result.result.enrichmentData.trivia,
+          backstoryDetails: result.result.enrichmentData.backstoryDetails,
+          characterDevelopment: result.result.enrichmentData.characterDevelopment,
+          notableQuotes: result.result.enrichmentData.notableQuotes,
+          symbolism: result.result.enrichmentData.symbolism,
+          fanReception: result.result.enrichmentData.fanReception,
+          culturalSignificance: result.result.enrichmentData.culturalSignificance,
+        };
+        
+        setManagingCharacters({
+          ...managingCharacters,
+          characters: successCharacters
+        });
+        
+        // Show additional info if advanced analysis was included
+        if (result.progress?.hasAdvancedAnalysis) {
+          toast.info(`📊 Advanced relationship and timeline analysis also completed for ${character.name}!`);
+        }
+        
+      } else {
+        toast.warning(`⚠️ AI enrichment completed but no changes were made for ${character.name}. Character may already be fully enriched.`);
+        
+        // Update local state to show skipped
+        const skippedCharacters = [...managingCharacters.characters];
+        skippedCharacters[index] = {
+          ...skippedCharacters[index],
+          enrichmentStatus: 'skipped'
+        };
+        
+        setManagingCharacters({
+          ...managingCharacters,
+          characters: skippedCharacters
+        });
+      }
+      
+    } catch (error) {
+      console.error("Character enrichment failed:", error);
+      toast.error(`❌ Failed to enrich ${character.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Update local state to show failure
+      const errorCharacters = [...managingCharacters.characters];
+      errorCharacters[index] = {
+        ...errorCharacters[index],
+        enrichmentStatus: 'failed',
+        lastErrorMessage: error instanceof Error ? error.message : 'Unknown error'
+      };
+      
+      setManagingCharacters({
+        ...managingCharacters,
+        characters: errorCharacters
+      });
+      
+    } finally {
+      setEnrichingCharacterIndex(null);
+    }
   };
 
   if (isLoadingList && status === "LoadingFirstPage" && (!animeList || animeList.length === 0)) {
@@ -1155,6 +1508,14 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
               </div>
             </div>
             
+            {/* AI Enrichment Info */}
+            <div className="bg-blue-500 text-white border-4 border-blue-500 p-4 mb-6">
+              <h4 className="font-black uppercase text-sm mb-2">🤖 AI CHARACTER ENRICHMENT</h4>
+              <p className="text-xs font-bold uppercase">
+                Click the AI button on any character to enhance them with detailed personality analysis, relationships, abilities, character arcs, trivia, and cultural significance using advanced AI models.
+              </p>
+            </div>
+            
             {/* Character Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
               {managingCharacters.characters?.map((character: any, index: number) => (
@@ -1186,10 +1547,25 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
                       {character.name || 'UNNAMED CHARACTER'}
                     </h4>
                     
-                    <div className="text-xs text-white uppercase tracking-wide mb-2">
+                    <div className="text-xs text-white uppercase tracking-wide mb-2 flex items-center justify-between">
                       <span className="bg-white text-black px-1 py-0.5 border-2 border-black font-black">
                         {character.role || 'UNKNOWN'}
                       </span>
+                      {character.enrichmentStatus === 'success' && (
+                        <span className="bg-green-500 text-white px-1 py-0.5 border-2 border-green-500 font-black text-xs">
+                          ✅ ENRICHED
+                        </span>
+                      )}
+                      {character.enrichmentStatus === 'pending' && (
+                        <span className="bg-yellow-500 text-black px-1 py-0.5 border-2 border-yellow-500 font-black text-xs">
+                          ⏳ PENDING
+                        </span>
+                      )}
+                      {character.enrichmentStatus === 'failed' && (
+                        <span className="bg-red-500 text-white px-1 py-0.5 border-2 border-red-500 font-black text-xs">
+                          ❌ FAILED
+                        </span>
+                      )}
                     </div>
                     
                     <p className="text-xs text-white uppercase tracking-wide mb-3 line-clamp-2 flex-1">
@@ -1206,9 +1582,25 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleEnrichCharacter(index)}
-                        className="flex-1 bg-green-500 text-white border-2 border-green-500 px-1 py-1 font-black uppercase tracking-wide hover:bg-green-600 transition-colors text-xs"
+                        disabled={enrichingCharacterIndex === index}
+                        className={`flex-1 border-2 px-1 py-1 font-black uppercase tracking-wide transition-colors text-xs ${
+                          enrichingCharacterIndex === index 
+                            ? 'bg-yellow-500 text-black border-yellow-500 cursor-not-allowed' 
+                            : character.enrichmentStatus === 'success'
+                            ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                            : character.enrichmentStatus === 'failed'
+                            ? 'bg-red-600 text-white border-red-600 hover:bg-green-500 hover:border-green-500'
+                            : 'bg-green-500 text-white border-green-500 hover:bg-green-600'
+                        }`}
                       >
-                        AI
+                        {enrichingCharacterIndex === index 
+                          ? '🤖...' 
+                          : character.enrichmentStatus === 'success'
+                          ? '✅ AI'
+                          : character.enrichmentStatus === 'failed'
+                          ? '❌ AI'
+                          : '🤖 AI'
+                        }
                       </button>
                       <button
                         onClick={() => handleDeleteCharacter(index)}
@@ -1247,6 +1639,24 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
                 SAVE CHARACTERS
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* BRUTALIST Character Editor Modal */}
+      {editingCharacter && managingCharacters && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <CharacterEditor
+              character={editingCharacter.character}
+              characterIndex={editingCharacter.index}
+              animeId={managingCharacters.anime._id}
+              onSave={handleSaveCharacterEdit}
+              onCancel={handleCancelCharacterEdit}
+              onEnrich={(characterIndex) => handleEnrichCharacter(characterIndex)}
+              isSaving={savingCharacter === editingCharacter.index}
+              isEnriching={enrichingCharacterIndex === editingCharacter.index}
+            />
           </div>
         </div>
       )}
