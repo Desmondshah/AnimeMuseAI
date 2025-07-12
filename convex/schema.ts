@@ -156,6 +156,11 @@ const applicationTables = {
       lastErrorMessage: v.optional(v.string()), // ADD THIS - missing field
       enrichmentTimestamp: v.optional(v.number()),
       
+      // Manual admin enrichment protection
+      manuallyEnrichedByAdmin: v.optional(v.boolean()), // Prevents automatic AI override
+      manualEnrichmentTimestamp: v.optional(v.number()), // When admin manually enriched
+      manualEnrichmentAdminId: v.optional(v.id("users")), // Which admin did the enrichment
+      
       // Enriched content
       personalityAnalysis: v.optional(v.string()),
       keyRelationships: v.optional(v.array(v.object({
@@ -176,6 +181,90 @@ const applicationTables = {
       symbolism: v.optional(v.string()),
       fanReception: v.optional(v.string()),
       culturalSignificance: v.optional(v.string()),
+      
+      // ===== EXTENDED ENRICHMENT FIELDS =====
+      // Advanced psychological profile
+      psychologicalProfile: v.optional(v.object({
+        personalityType: v.optional(v.string()), // MBTI, Enneagram, etc.
+        coreFears: v.optional(v.array(v.string())),
+        coreDesires: v.optional(v.array(v.string())),
+        emotionalTriggers: v.optional(v.array(v.string())),
+        copingMechanisms: v.optional(v.array(v.string())),
+        mentalHealthAspects: v.optional(v.string()),
+        traumaHistory: v.optional(v.string()),
+        defenseMechanisms: v.optional(v.array(v.string())),
+      })),
+      
+      // Combat and power analysis
+      combatProfile: v.optional(v.object({
+        fightingStyle: v.optional(v.string()),
+        preferredWeapons: v.optional(v.array(v.string())),
+        combatStrengths: v.optional(v.array(v.string())),
+        combatWeaknesses: v.optional(v.array(v.string())),
+        battleTactics: v.optional(v.string()),
+        powerScaling: v.optional(v.string()), // How powerful they are in universe
+        specialTechniques: v.optional(v.array(v.object({
+          name: v.string(),
+          description: v.string(),
+          powerLevel: v.optional(v.string()),
+          limitations: v.optional(v.string()),
+        }))),
+      })),
+      
+      // Social and cultural analysis
+      socialDynamics: v.optional(v.object({
+        socialClass: v.optional(v.string()),
+        culturalBackground: v.optional(v.string()),
+        socialInfluence: v.optional(v.string()),
+        leadershipStyle: v.optional(v.string()),
+        communicationStyle: v.optional(v.string()),
+        socialConnections: v.optional(v.array(v.string())),
+        reputation: v.optional(v.string()),
+        publicImage: v.optional(v.string()),
+      })),
+      
+      // Character archetype and tropes
+      characterArchetype: v.optional(v.object({
+        primaryArchetype: v.optional(v.string()),
+        secondaryArchetypes: v.optional(v.array(v.string())),
+        characterTropes: v.optional(v.array(v.string())),
+        subvertedTropes: v.optional(v.array(v.string())),
+        characterRole: v.optional(v.string()), // Hero, Anti-hero, Villain, etc.
+        narrativeFunction: v.optional(v.string()),
+      })),
+      
+      // Character impact and legacy
+      characterImpact: v.optional(v.object({
+        influenceOnStory: v.optional(v.string()),
+        influenceOnOtherCharacters: v.optional(v.string()),
+        culturalImpact: v.optional(v.string()),
+        fanbaseReception: v.optional(v.string()),
+        merchandisePopularity: v.optional(v.string()),
+        cosplayPopularity: v.optional(v.string()),
+        memeStatus: v.optional(v.string()),
+        legacyInAnime: v.optional(v.string()),
+      })),
+      
+      // Character relationships (extended)
+      advancedRelationships: v.optional(v.array(v.object({
+        characterName: v.string(),
+        relationshipType: v.string(),
+        emotionalDynamics: v.string(),
+        keyMoments: v.optional(v.array(v.string())),
+        relationshipEvolution: v.optional(v.string()),
+        impactOnStory: v.optional(v.string()),
+      }))),
+      
+      // Character development timeline
+      developmentTimeline: v.optional(v.array(v.object({
+        phase: v.string(),
+        description: v.string(),
+        characterState: v.string(),
+        keyEvents: v.optional(v.array(v.string())),
+        characterGrowth: v.optional(v.string()),
+        challenges: v.optional(v.string()),
+        relationships: v.optional(v.string()),
+      }))),
     }))),
     ost: v.optional(v.array(v.object({
       title: v.string(),

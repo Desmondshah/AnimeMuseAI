@@ -1587,3 +1587,32 @@ export const getAllAnimeWithCharacters = query({
     );
   },
 });
+
+// Query to get a specific character with enrichment data from an anime
+export const getCharacterFromAnime = query({
+  args: {
+    animeId: v.id("anime"),
+    characterName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const anime = await ctx.db.get(args.animeId);
+    if (!anime || !anime.characters) {
+      return null;
+    }
+
+    // Find the character by name (case-insensitive)
+    const character = anime.characters.find((char: any) => 
+      char.name.toLowerCase() === args.characterName.toLowerCase()
+    );
+
+    if (!character) {
+      return null;
+    }
+
+    return {
+      character,
+      animeName: anime.title,
+      animeId: anime._id,
+    };
+  },
+});

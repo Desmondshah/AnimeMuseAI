@@ -275,6 +275,7 @@ export default function MainApp() {
   // NEW CHARACTER STATE:
   const [selectedCharacterData, setSelectedCharacterData] = useState<EnhancedCharacter | null>(null);
   const [selectedAnimeNameForCharacter, setSelectedAnimeNameForCharacter] = useState<string>("");
+  const [selectedAnimeIdForCharacter, setSelectedAnimeIdForCharacter] = useState<Id<"anime"> | null>(null);
 
   // FIXED: Move useRef hooks INSIDE the component
   const fetchInProgressRef = useRef<boolean>(false);
@@ -314,6 +315,7 @@ export default function MainApp() {
     if (view !== "character_detail") {
       setSelectedCharacterData(null);
       setSelectedAnimeNameForCharacter("");
+      setSelectedAnimeIdForCharacter(null);
     }
   }, [historyStack]);
 
@@ -342,10 +344,11 @@ export default function MainApp() {
     setSelectedAnimeId(animeId); 
   }, [navigateTo]);
 
-  const navigateToCharacterDetail = useCallback((character: EnhancedCharacter, animeName: string) => {
+  const navigateToCharacterDetail = useCallback((character: EnhancedCharacter, animeName: string, animeId?: Id<"anime">) => {
     navigateTo("character_detail");
     setSelectedCharacterData(character);
     setSelectedAnimeNameForCharacter(animeName);
+    setSelectedAnimeIdForCharacter(animeId || null);
   }, [navigateTo]);
   
   const navigateToDashboard = useCallback(() => navigateTo("dashboard"), [navigateTo]);
@@ -1744,6 +1747,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           <CharacterDetailPage
             character={selectedCharacterData}
             animeName={selectedAnimeNameForCharacter}
+            animeId={selectedAnimeIdForCharacter}
             onBack={navigateBack}
           />
         ) : <LoadingSpinner className="text-white" />;
@@ -1849,6 +1853,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
     currentView, 
     selectedAnimeId, 
     selectedCustomListId, 
+    selectedAnimeIdForCharacter, // NEW: Add anime ID for character
     selectedCharacterData, // NEW: Add character data
     selectedAnimeNameForCharacter, // NEW: Add anime name for character
     navigateBack, 

@@ -1,9 +1,9 @@
 // convex/admin.ts
-import { query, mutation, internalQuery } from "./_generated/server"; // ensure internalQuery is imported if used, though not in this final version
+import { query, mutation, internalQuery, internalMutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api"; // For potential calls to internal functions like updateAnimeAverageRating
+import { internal, api } from "./_generated/api";
 
 // Helper function to assert admin privileges
 const assertAdmin = async (ctx: { db: any, auth: any }): Promise<Id<"users">> => {
@@ -24,6 +24,8 @@ const assertAdmin = async (ctx: { db: any, auth: any }): Promise<Id<"users">> =>
 
 // Query to check if the current user is an admin (for UI rendering)
 export const isCurrentUserAdmin = query({
+  args: {},
+  returns: v.boolean(),
   handler: async (ctx): Promise<boolean> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -41,6 +43,17 @@ export const isCurrentUserAdmin = query({
 
 // Get all user profiles (admin only)
 export const getAllUserProfilesForAdmin = query({
+  args: {},
+  returns: v.array(v.object({
+    _id: v.id("userProfiles"),
+    _creationTime: v.number(),
+    userId: v.id("users"),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()),
+    avatarUrl: v.optional(v.string()),
+    preferences: v.optional(v.any()),
+  })),
   handler: async (ctx): Promise<Doc<"userProfiles">[]> => {
     await assertAdmin(ctx); // Ensure caller is admin
     return await ctx.db.query("userProfiles").collect();
@@ -127,7 +140,57 @@ export const getChangeHistoryByAdmin = query({
 
 // --- Admin Mutations ---
 
-// Utility function to track changes
+// Get user profile by ID (helper function)
+export const getUserProfileById = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.union(v.any(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+  },
+});
+
+// Track changes (internal mutation)
+export const trackChangeMutation = internalMutation({
+  args: {
+    adminUserId: v.id("users"),
+    adminUserName: v.string(),
+    entityType: v.union(v.literal("anime"), v.literal("character"), v.literal("user")),
+    entityId: v.id("anime"),
+    entityTitle: v.string(),
+    changeType: v.union(v.literal("create"), v.literal("update"), v.literal("delete"), v.literal("enrich"), v.literal("bulk_update")),
+    changes: v.array(v.object({
+      field: v.string(),
+      oldValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
+      changeDescription: v.string(),
+    })),
+    additionalData: v.optional(v.object({
+      characterIndex: v.optional(v.number()),
+      characterName: v.optional(v.string()),
+      batchId: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("changeTracking", {
+      adminUserId: args.adminUserId,
+      adminUserName: args.adminUserName,
+      entityType: args.entityType,
+      entityId: args.entityId,
+      entityTitle: args.entityTitle,
+      changeType: args.changeType,
+      changes: args.changes,
+      characterIndex: args.additionalData?.characterIndex,
+      characterName: args.additionalData?.characterName,
+      batchId: args.additionalData?.batchId,
+      timestamp: Date.now(),
+    });
+  },
+});
+
+// Utility function to track changes (legacy - for backward compatibility)
 const trackChange = async (
   ctx: any,
   adminUserId: Id<"users">,
@@ -684,5 +747,224 @@ export const adminResetAutoRefreshProtection = mutation({
         : "Reset all auto-refresh protection",
       stillProtectedFields: updatedFieldsEdited
     };
+  },
+});
+
+// Manual admin character enrichment with permanent protection
+export const adminManualCharacterEnrichment = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    existingData: v.object({
+      description: v.optional(v.string()),
+      role: v.optional(v.string()),
+      gender: v.optional(v.string()),
+      age: v.optional(v.string()),
+      species: v.optional(v.string()),
+      powersAbilities: v.optional(v.array(v.string())),
+      voiceActors: v.optional(v.array(v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        language: v.string(),
+        imageUrl: v.optional(v.string()),
+      }))),
+    }),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    success: v.boolean(),
+    message: v.string(),
+    enrichedData: v.optional(v.any()), // Add the enriched data to the response
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return {
+        error: "User not authenticated",
+        success: false,
+        message: "Authentication required",
+        enrichedData: undefined
+      };
+    }
+    
+    const userProfile = await ctx.runQuery(internal.admin.getUserProfileById, { userId });
+    if (!userProfile?.isAdmin) {
+      return {
+        error: "User is not an admin",
+        success: false,
+        message: "Admin privileges required",
+        enrichedData: undefined
+      };
+    }
+    
+    const adminUserId = userId;
+    
+    try {
+      // Find the anime by name to get the anime ID
+      const anime = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { 
+        title: args.animeName 
+      });
+      
+      if (!anime) {
+        return {
+          error: "Anime not found in database",
+          success: false,
+          message: `Could not find anime "${args.animeName}" in the database`,
+          enrichedData: undefined
+        };
+      }
+      
+      const animeId = anime._id;
+      
+      // Call the AI enrichment
+      const result = await ctx.runAction(api.ai.fetchComprehensiveCharacterDetails, {
+        characterName: args.characterName,
+        animeName: args.animeName,
+        existingData: args.existingData,
+        messageId: `admin_manual_enrich_${args.characterName.replace(/[^\w]/g, '_')}_${Date.now()}`,
+      });
+
+      if (result.error) {
+        return {
+          error: result.error,
+          success: false,
+          message: `AI enrichment failed: ${result.error}`,
+          enrichedData: undefined
+        };
+      }
+
+      if (!result.comprehensiveCharacter) {
+        return {
+          error: "No character data generated",
+          success: false,
+          message: "AI enrichment completed but no data was generated",
+          enrichedData: undefined
+        };
+      }
+
+      // Update the character with comprehensive data AND mark as manually enriched
+      await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
+        animeId: animeId,
+        characterName: args.characterName,
+        updates: {
+          enrichmentStatus: "success",
+          enrichmentAttempts: 1,
+          lastAttemptTimestamp: Date.now(),
+          enrichmentTimestamp: Date.now(),
+          
+          // Mark as manually enriched by admin (permanent protection)
+          manuallyEnrichedByAdmin: true,
+          manualEnrichmentTimestamp: Date.now(),
+          manualEnrichmentAdminId: adminUserId,
+          
+          // Basic enrichment fields
+          personalityAnalysis: result.comprehensiveCharacter.personalityAnalysis,
+          keyRelationships: result.comprehensiveCharacter.keyRelationships,
+          detailedAbilities: result.comprehensiveCharacter.detailedAbilities,
+          majorCharacterArcs: result.comprehensiveCharacter.majorCharacterArcs,
+          trivia: result.comprehensiveCharacter.trivia,
+          backstoryDetails: result.comprehensiveCharacter.backstoryDetails,
+          characterDevelopment: result.comprehensiveCharacter.characterDevelopment,
+          notableQuotes: result.comprehensiveCharacter.notableQuotes,
+          symbolism: result.comprehensiveCharacter.symbolism,
+          fanReception: result.comprehensiveCharacter.fanReception,
+          culturalSignificance: result.comprehensiveCharacter.culturalSignificance,
+          
+          // Extended enrichment fields
+          psychologicalProfile: result.comprehensiveCharacter.psychologicalProfile,
+          combatProfile: result.comprehensiveCharacter.combatProfile,
+          socialDynamics: result.comprehensiveCharacter.socialDynamics,
+          characterArchetype: result.comprehensiveCharacter.characterArchetype,
+          characterImpact: result.comprehensiveCharacter.characterImpact,
+        },
+      });
+
+      // Get admin user info for logging
+      const adminUser = await ctx.runQuery(internal.admin.getUserProfileById, { userId: adminUserId });
+      const adminUserName = adminUser?.name || "Unknown Admin";
+
+      // Track the manual enrichment
+      await ctx.runMutation(internal.admin.trackChangeMutation, {
+        adminUserId,
+        adminUserName,
+        entityType: "character",
+        entityId: animeId,
+        entityTitle: args.animeName,
+        changeType: "enrich",
+        changes: [{
+          field: "manuallyEnrichedByAdmin",
+          oldValue: false,
+          newValue: true,
+          changeDescription: `Manually enriched character "${args.characterName}" with comprehensive AI data (permanent protection enabled)`
+        }],
+        additionalData: {
+          characterName: args.characterName
+        }
+      });
+
+      return {
+        error: null,
+        success: true,
+        message: `Successfully enriched "${args.characterName}" with comprehensive AI data and enabled permanent protection against automatic override`,
+        enrichedData: result.comprehensiveCharacter // Include the enriched data in the response
+      };
+
+    } catch (error: any) {
+      return {
+        error: error.message || "Unknown error",
+        success: false,
+        message: `Failed to enrich character: ${error.message || "Unknown error"}`,
+        enrichedData: undefined
+      };
+    }
+  },
+});
+
+// Clear AI cache for character enrichment (admin only)
+export const clearCharacterEnrichmentCache = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return {
+        error: "User not authenticated",
+        success: false,
+        message: "Authentication required"
+      };
+    }
+    
+    const userProfile = await ctx.runQuery(internal.admin.getUserProfileById, { userId });
+    if (!userProfile?.isAdmin) {
+      return {
+        error: "User is not an admin",
+        success: false,
+        message: "Admin privileges required"
+      };
+    }
+    
+    try {
+      const cacheKey = `comprehensive_character:${args.animeName}:${args.characterName}`;
+      await ctx.runMutation(internal.aiCache.invalidateCache, { key: cacheKey });
+      
+      return {
+        error: null,
+        success: true,
+        message: `Cleared AI cache for "${args.characterName}" from "${args.animeName}". You can now re-run enrichment.`
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Unknown error",
+        success: false,
+        message: `Failed to clear cache: ${error.message || "Unknown error"}`
+      };
+    }
   },
 });

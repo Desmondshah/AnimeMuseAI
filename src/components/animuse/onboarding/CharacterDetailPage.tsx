@@ -1,9 +1,10 @@
 // Brutalist Character Detail Page - Mobile-First iPhone Design
 import React, { useState, useEffect } from "react";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
-import { useAction } from "convex/react";
+import { useAction, useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from "sonner";
 
 // Enhanced character interface
 interface EnhancedCharacter {
@@ -60,11 +61,17 @@ interface EnhancedCharacter {
   fanReception?: string;
   culturalSignificance?: string;
   enrichmentTimestamp?: number;
+  
+  // Manual admin enrichment protection
+  manuallyEnrichedByAdmin?: boolean;
+  manualEnrichmentTimestamp?: number;
+  manualEnrichmentAdminId?: Id<"users">;
 }
 
 interface CharacterDetailPageProps {
   character: EnhancedCharacter;
   animeName: string;
+  animeId?: Id<"anime"> | null;
   onBack: () => void;
 }
 
@@ -78,6 +85,207 @@ const BrutalistLoader: React.FC<{ message?: string }> = ({ message = "LOADING...
     </div>
   </div>
 );
+
+// Admin Enrichment Button Component
+const AdminEnrichmentButton: React.FC<{
+  character: EnhancedCharacter;
+  animeName: string;
+  onEnrichmentComplete: (enrichedData: any) => void;
+}> = ({ character, animeName, onEnrichmentComplete }) => {
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
+  const adminManualEnrichmentAction = useAction(api.admin.adminManualCharacterEnrichment);
+  const clearCacheAction = useAction(api.admin.clearCharacterEnrichmentCache);
+  
+  const handleEnrichment = async () => {
+    setIsEnriching(true);
+    
+    try {
+      toast.info("🤖 Starting admin AI enrichment process...", { duration: 3000 });
+      
+      const result = await adminManualEnrichmentAction({
+        characterName: character.name,
+        animeName: animeName,
+        existingData: {
+          description: character.description,
+          role: character.role,
+          gender: character.gender,
+          age: character.age,
+          species: character.species,
+          powersAbilities: character.powersAbilities,
+          voiceActors: character.voiceActors,
+        },
+      });
+
+      if (result.error) {
+        toast.error(`❌ Admin enrichment failed: ${result.error}`);
+        return;
+      }
+
+      if (result.success) {
+        toast.success(`🎉 ${result.message}`, { duration: 5000 });
+        
+        // Update the character with the new data and mark as manually enriched
+        const enrichedCharacter = {
+          ...character,
+          ...result.enrichedData, // Add the actual enriched data from the API response
+          enrichmentStatus: "success" as const,
+          enrichmentTimestamp: Date.now(),
+          manuallyEnrichedByAdmin: true,
+          manualEnrichmentTimestamp: Date.now(),
+        };
+        
+        onEnrichmentComplete(enrichedCharacter);
+        
+        toast.info(`🔒 Character "${character.name}" is now permanently protected from automatic AI override`, { duration: 4000 });
+      } else {
+        toast.warning(`⚠️ ${result.message}`);
+      }
+      
+    } catch (error) {
+      console.error("Admin character enrichment failed:", error);
+      toast.error(`❌ Failed to enrich ${character.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true);
+    
+    try {
+      toast.info("🗑️ Clearing AI cache...", { duration: 2000 });
+      
+      const result = await clearCacheAction({
+        characterName: character.name,
+        animeName: animeName,
+      });
+
+      if (result.error) {
+        toast.error(`❌ Failed to clear cache: ${result.error}`);
+        return;
+      }
+
+      if (result.success) {
+        toast.success(`✅ ${result.message}`, { duration: 4000 });
+      } else {
+        toast.warning(`⚠️ ${result.message}`);
+      }
+      
+    } catch (error) {
+      console.error("Clear cache failed:", error);
+      toast.error(`❌ Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
+  const getEnrichmentStatusColor = () => {
+    if (character.manuallyEnrichedByAdmin) {
+      return "bg-purple-600"; // Special color for manually enriched characters
+    }
+    
+    switch (character.enrichmentStatus) {
+      case "success": return "bg-green-600";
+      case "failed": return "bg-red-600";
+      case "pending": return "bg-yellow-600";
+      default: return "bg-gray-600";
+    }
+  };
+
+  const getEnrichmentStatusText = () => {
+    if (character.manuallyEnrichedByAdmin) {
+      return character.manualEnrichmentTimestamp ? 
+        `MANUALLY ENRICHED ${formatDistanceToNow(character.manualEnrichmentTimestamp, { addSuffix: true })}` : 
+        "MANUALLY ENRICHED";
+    }
+    
+    switch (character.enrichmentStatus) {
+      case "success": return character.enrichmentTimestamp ? 
+        `ENRICHED ${formatDistanceToNow(character.enrichmentTimestamp, { addSuffix: true })}` : 
+        "ENRICHED";
+      case "failed": return "FAILED";
+      case "pending": return "PENDING";
+      default: return "NOT ENRICHED";
+    }
+  };
+
+  return (
+    <div className="bg-black border-4 border-white shadow-brutal-lg">
+      <div className="bg-red-600 border-b-4 border-white p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-black uppercase text-lg">🔧 ADMIN TOOLS</h3>
+          <div className="bg-white text-black px-2 py-1 border-2 border-black">
+            <span className="text-xs font-black uppercase">ADMIN ONLY</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4 space-y-4">
+        {/* Current Enrichment Status */}
+        <div className="bg-white border-2 border-black p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-black font-black uppercase text-sm">ENRICHMENT STATUS</span>
+            <div className={`${getEnrichmentStatusColor()} text-white px-2 py-1 border-2 border-black`}>
+              <span className="text-xs font-black">{getEnrichmentStatusText()}</span>
+            </div>
+          </div>
+          
+          {/* Enrichment Quality Indicators */}
+          {character.enrichmentStatus === "success" && (
+            <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+              <div className={`p-2 border border-black ${character.personalityAnalysis ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <span className="font-bold">Personality: {character.personalityAnalysis ? '✅' : '❌'}</span>
+              </div>
+              <div className={`p-2 border border-black ${character.trivia?.length ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <span className="font-bold">Trivia: {character.trivia?.length || 0} facts</span>
+              </div>
+              <div className={`p-2 border border-black ${character.detailedAbilities?.length ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <span className="font-bold">Abilities: {character.detailedAbilities?.length || 0}</span>
+              </div>
+              <div className={`p-2 border border-black ${character.notableQuotes?.length ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <span className="font-bold">Quotes: {character.notableQuotes?.length || 0}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* AI Enrichment Button */}
+        <button
+          onClick={handleEnrichment}
+          disabled={isEnriching}
+          className={`
+            w-full p-4 border-4 border-black shadow-brutal font-black uppercase text-sm transition-all touch-target
+            ${isEnriching 
+              ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+              : 'bg-brand-primary-action text-black hover:bg-yellow-400 hover:shadow-brutal-lg active:translate-x-1 active:translate-y-1'
+            }
+          `}
+        >
+          {isEnriching ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+              <span>ENRICHING WITH AI...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-lg">🤖</span>
+              <span>ENRICH WITH AI</span>
+            </div>
+          )}
+        </button>
+
+        {/* Info Text */}
+        <div className="bg-yellow-400 border-2 border-black p-3">
+          <p className="text-black font-bold text-xs uppercase leading-relaxed">
+            ⚡ This will generate comprehensive AI analysis including personality, abilities, relationships, trivia, quotes, and cultural significance. 
+            {character.enrichmentStatus === "success" ? " Re-enriching will refresh all data." : ""}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Brutalist Tab Navigation - Mobile First
 const BrutalistTabBar: React.FC<{
@@ -237,9 +445,84 @@ const BrutalistHero: React.FC<{
 };
 
 // Overview Section
-const OverviewSection: React.FC<{ character: EnhancedCharacter }> = ({ character }) => (
-  <div className="p-4 space-y-4">
-    {/* Description */}
+const OverviewSection: React.FC<{ 
+  character: EnhancedCharacter;
+  isAdmin?: boolean;
+  animeName: string;
+  onEnrichmentComplete: (enrichedData: any) => void;
+}> = ({ character, isAdmin, animeName, onEnrichmentComplete }) => {
+  const [isClearingCache, setIsClearingCache] = useState(false);
+  const clearCacheAction = useAction(api.admin.clearCharacterEnrichmentCache);
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true);
+    
+    try {
+      toast.info("🗑️ Clearing AI cache...", { duration: 2000 });
+      
+      const result = await clearCacheAction({
+        characterName: character.name,
+        animeName: animeName,
+      });
+
+      if (result.error) {
+        toast.error(`❌ Failed to clear cache: ${result.error}`);
+        return;
+      }
+
+      if (result.success) {
+        toast.success(`✅ ${result.message}`, { duration: 4000 });
+      } else {
+        toast.warning(`⚠️ ${result.message}`);
+      }
+      
+    } catch (error) {
+      console.error("Clear cache failed:", error);
+      toast.error(`❌ Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
+  return (
+          <div className="p-4 space-y-4">
+        {/* AI Enrichment Button - Only show for admins */}
+        {isAdmin && (
+          <div className="space-y-3">
+            <AdminEnrichmentButton
+              character={character}
+              animeName={animeName}
+              onEnrichmentComplete={onEnrichmentComplete}
+            />
+            
+            {/* Clear Cache Button */}
+            <div className="bg-black border-4 border-white shadow-brutal-lg">
+              <div className="bg-orange-600 border-b-4 border-white p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white font-black uppercase text-lg">🗑️ CACHE TOOLS</h3>
+                  <div className="bg-white text-black px-2 py-1 border-2 border-black">
+                    <span className="text-xs font-black uppercase">ADMIN ONLY</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4">
+                <button
+                  onClick={handleClearCache}
+                  disabled={isClearingCache}
+                  className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 border-4 border-black shadow-brutal p-4 text-white font-black uppercase text-lg transition-all duration-200 disabled:opacity-50"
+                >
+                  {isClearingCache ? "🗑️ CLEARING..." : "🗑️ CLEAR AI CACHE"}
+                </button>
+                <p className="text-black/70 font-bold text-xs mt-2 text-center">
+                  Clear cached AI data to force fresh enrichment
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Description */}
             {character.description && (
       <div className="bg-white border-4 border-black shadow-brutal-lg">
         <div className="bg-black border-b-4 border-white p-4">
@@ -268,18 +551,69 @@ const OverviewSection: React.FC<{ character: EnhancedCharacter }> = ({ character
       </div>
     )}
 
-    {/* Powers & Abilities */}
-    {character.powersAbilities && character.powersAbilities.length > 0 && (
+    {/* Powers & Abilities - Prioritize AI Enhanced over Basic */}
+    {(character.detailedAbilities && character.detailedAbilities.length > 0) ? (
+      // Show AI Enhanced Detailed Abilities
+      <div className="bg-purple-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">⚡ POWERS & ABILITIES</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ENHANCED ANALYSIS</div>
+        </div>
+        <div className="p-4 space-y-3">
+          {character.detailedAbilities.map((ability, index) => (
+            <div key={index} className="bg-white border-4 border-black shadow-brutal p-4">
+              <div className="flex items-start justify-between mb-2">
+                <h4 className="text-black font-black uppercase text-sm">{ability.abilityName}</h4>
+                {ability.powerLevel && (
+                  <span className="bg-black text-white px-2 py-1 border-2 border-white text-xs font-bold">
+                    {ability.powerLevel}
+                  </span>
+                )}
+              </div>
+              <p className="text-black/80 font-medium text-sm leading-relaxed">
+                {ability.abilityDescription}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : (character.powersAbilities && character.powersAbilities.length > 0) ? (
+      // Fallback to Basic Abilities if no AI enhancement
       <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg">
         <div className="bg-black border-b-4 border-white p-4">
           <h3 className="text-white font-black uppercase text-lg">⚡ POWERS & ABILITIES</h3>
-            </div>
+          <div className="text-white/70 font-bold text-xs mt-1">BASIC INFO</div>
+        </div>
         <div className="p-4 space-y-2">
           {character.powersAbilities.map((power, index) => (
             <div key={index} className="bg-black border-2 border-white shadow-brutal p-3">
               <span className="text-white font-bold">• {power}</span>
-                </div>
-              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null}
+
+    {/* Remove the old separate Detailed Abilities section since it's now integrated above */}
+
+    {/* Trivia & Facts */}
+    {character.trivia && character.trivia.length > 0 && (
+      <div className="bg-green-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">🎯 FACTS & TRIVIA</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI GENERATED</div>
+        </div>
+        <div className="p-4 space-y-2">
+          {character.trivia.map((fact, index) => (
+            <div key={index} className="bg-white border-2 border-black shadow-brutal p-3">
+              <div className="flex items-start gap-3">
+                <span className="text-black font-black text-lg flex-shrink-0">💡</span>
+                <p className="text-black font-medium text-sm leading-relaxed">
+                  {fact}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )}
@@ -301,17 +635,174 @@ const OverviewSection: React.FC<{ character: EnhancedCharacter }> = ({ character
         </div>
       </div>
     )}
+
+    {/* Backstory Details */}
+    {character.backstoryDetails && (
+      <div className="bg-indigo-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">📚 BACKSTORY</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4">
+          <p className="text-white font-medium leading-relaxed">
+            {character.backstoryDetails}
+          </p>
+        </div>
+      </div>
+    )}
+
+    {/* Character Development */}
+    {character.characterDevelopment && (
+      <div className="bg-orange-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">📈 CHARACTER GROWTH</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4">
+          <p className="text-white font-medium leading-relaxed">
+            {character.characterDevelopment}
+          </p>
+        </div>
+      </div>
+    )}
+
+    {/* Major Character Arcs */}
+    {character.majorCharacterArcs && character.majorCharacterArcs.length > 0 && (
+      <div className="bg-red-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">🎭 STORY ARCS</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4 space-y-2">
+          {character.majorCharacterArcs.map((arc, index) => (
+            <div key={index} className="bg-white border-2 border-black shadow-brutal p-3">
+              <div className="flex items-start gap-3">
+                <span className="text-black font-black text-lg flex-shrink-0">🎬</span>
+                <p className="text-black font-medium text-sm leading-relaxed">
+                  {arc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Symbolism */}
+    {character.symbolism && (
+      <div className="bg-yellow-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">🔍 SYMBOLISM</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4">
+          <p className="text-white font-medium leading-relaxed">
+            {character.symbolism}
+          </p>
+        </div>
+      </div>
+    )}
+
+    {/* Fan Reception */}
+    {character.fanReception && (
+      <div className="bg-pink-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">💖 FAN RECEPTION</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4">
+          <p className="text-white font-medium leading-relaxed">
+            {character.fanReception}
+          </p>
+        </div>
+      </div>
+    )}
+
+    {/* Cultural Significance */}
+    {character.culturalSignificance && (
+      <div className="bg-teal-600 border-4 border-black shadow-brutal-lg">
+        <div className="bg-black border-b-4 border-white p-4">
+          <h3 className="text-white font-black uppercase text-lg">🌍 CULTURAL IMPACT</h3>
+          <div className="text-white/70 font-bold text-xs mt-1">AI ANALYSIS</div>
+        </div>
+        <div className="p-4">
+          <p className="text-white font-medium leading-relaxed">
+            {character.culturalSignificance}
+          </p>
+        </div>
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 // Main Component
-export default function CharacterDetailPage({ character: initialCharacter, animeName, onBack }: CharacterDetailPageProps) {
+export default function CharacterDetailPage({ character: initialCharacter, animeName, animeId, onBack }: CharacterDetailPageProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'voice_actors' | 'development' | 'relationships'>('overview');
   const [character, setCharacter] = useState<EnhancedCharacter>(initialCharacter);
   const [relationshipData, setRelationshipData] = useState<any[]>([]);
   const [timelineData, setTimelineData] = useState<any[]>([]);
   const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
+
+  // Admin check
+  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
+
+  // Fetch latest character data from database if we have animeId
+  const queryArgs = (animeId && animeId !== null) ? {
+    animeId: animeId,
+    characterName: initialCharacter.name,
+  } : "skip";
+  
+  console.log("🔍 Character query args:", { queryArgs, animeId, characterName: initialCharacter.name });
+  
+  const latestCharacterData = useQuery(api.anime.getCharacterFromAnime, queryArgs);
+
+  // Update character state when fresh data is available from the database
+  useEffect(() => {
+    console.log("🔍 Character data effect triggered:", {
+      hasLatestData: !!latestCharacterData,
+      hasCharacter: !!latestCharacterData?.character,
+      animeId,
+      characterName: initialCharacter.name
+    });
+    
+    if (latestCharacterData?.character) {
+      // Only update if the database version has newer enrichment data
+      const dbChar = latestCharacterData.character;
+      const currentChar = character;
+      
+      // Check if database has more recent enrichment
+      const dbEnrichmentTime = dbChar.enrichmentTimestamp || dbChar.manualEnrichmentTimestamp || 0;
+      const currentEnrichmentTime = currentChar.enrichmentTimestamp || currentChar.manualEnrichmentTimestamp || 0;
+      
+      console.log("🔍 Enrichment time comparison:", {
+        dbEnrichmentTime,
+        currentEnrichmentTime,
+        dbStatus: dbChar.enrichmentStatus,
+        currentStatus: currentChar.enrichmentStatus,
+        shouldUpdate: dbEnrichmentTime > currentEnrichmentTime || (dbChar.enrichmentStatus === "success" && currentChar.enrichmentStatus !== "success")
+      });
+      
+      if (dbEnrichmentTime > currentEnrichmentTime || (dbChar.enrichmentStatus === "success" && currentChar.enrichmentStatus !== "success")) {
+        console.log("🔄 Updating character with latest enrichment data from database");
+        setCharacter(dbChar);
+      }
+    }
+  }, [latestCharacterData]);
+
+
+
+  // Handler for when AI enrichment is completed
+  const handleEnrichmentComplete = (enrichedData: any) => {
+    console.log("🎉 Enrichment completed, updating character state");
+    setCharacter(enrichedData);
+    
+    // If we have animeId, the useQuery will automatically refresh and get the latest data
+    // from the database, which will then update the character state via useEffect
+  };
+
+
 
   // Convex actions
   const analyzeRelationships = useAction(api.ai.analyzeCharacterRelationships);
@@ -416,7 +907,14 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
 
       {/* Tab Content */}
       <div className="min-h-screen bg-black">
-        {activeTab === 'overview' && <OverviewSection character={character} />}
+        {activeTab === 'overview' && (
+          <OverviewSection 
+            character={character} 
+            isAdmin={isAdmin}
+            animeName={animeName}
+            onEnrichmentComplete={handleEnrichmentComplete}
+          />
+        )}
         
         {activeTab === 'details' && (
           <div className="p-4 space-y-4">

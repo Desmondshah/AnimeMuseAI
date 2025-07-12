@@ -2700,31 +2700,92 @@ export const fetchEnrichedCharacterDetails = action({
 
     console.log(`[Character Enrichment] Cache miss, calling AI for ${args.characterName} from ${args.animeName}`);
 
-    // Build a system prompt for character enrichment
-    let systemPrompt = `You are AniMuse AI, an expert at analyzing and enriching anime character data for a database. Your job is to take the provided character and anime information and generate a JSON object with detailed enrichment fields for the character. Be creative but plausible, and use the anime context if available.\n\n`;
-    systemPrompt += `Enrichment Level: ${args.enrichmentLevel}\n`;
-    systemPrompt += `Anime: ${args.animeName}\n`;
-    systemPrompt += `Character: ${args.characterName}\n`;
-    if (args.existingData) {
-      systemPrompt += `Existing Data: ${JSON.stringify(args.existingData, null, 2)}\n`;
-    }
-    systemPrompt += `\nOutput a single JSON object with the following fields (omit any you cannot infer):\n`;
-    systemPrompt += `{
-  personalityAnalysis: string,
-  keyRelationships: Array<{ relatedCharacterName: string, relationshipDescription: string, relationType: string }>,
-  detailedAbilities: Array<{ abilityName: string, abilityDescription: string, powerLevel?: string }>,
-  majorCharacterArcs: string[],
-  trivia: string[],
-  backstoryDetails: string,
-  characterDevelopment: string,
-  notableQuotes: string[],
-  symbolism: string,
-  fanReception: string,
-  culturalSignificance: string
-}`;
-    systemPrompt += `\nBe concise but informative. Output ONLY the JSON object, no extra text.`;
+    // Enhanced system prompt for comprehensive character enrichment
+    let systemPrompt = `You are AniMuse AI, an expert anime character analyst and database curator. Your task is to create EXTENSIVE and COMPREHENSIVE character data for "${args.characterName}" from "${args.animeName}". 
 
-    const userPrompt = `Enrich the character "${args.characterName}" from the anime "${args.animeName}".`;
+Generate the most detailed, thorough, and insightful character analysis possible. This data will be used in a comprehensive anime database, so be exhaustive in your coverage.
+
+ENRICHMENT LEVEL: ${args.enrichmentLevel}
+ANIME CONTEXT: ${args.animeName}
+CHARACTER: ${args.characterName}
+EXISTING DATA: ${JSON.stringify(args.existingData, null, 2)}
+
+REQUIRED OUTPUT FORMAT (JSON object with ALL fields filled comprehensively):
+
+{
+  "personalityAnalysis": "EXTENSIVE personality analysis (minimum 150 words) covering: character traits, behavioral patterns, psychological motivations, emotional intelligence, social dynamics, decision-making style, fears and desires, moral compass, communication style, and unique personality quirks. Be thorough and insightful.",
+  
+  "keyRelationships": [
+    {
+      "relatedCharacterName": "Character name",
+      "relationshipDescription": "Detailed description of the relationship dynamics, emotional connection, and interaction patterns (minimum 80 words per relationship)",
+      "relationType": "friend/enemy/lover/mentor/student/family/rival/ally/mentor/mentee/etc"
+    }
+  ],
+  
+  "detailedAbilities": [
+    {
+      "abilityName": "Specific ability name",
+      "abilityDescription": "Comprehensive description of the ability including: how it works, limitations, power level, usage conditions, development over time, and strategic applications (minimum 100 words per ability)",
+      "powerLevel": "Novice/Average/Skilled/Expert/Master/Legendary/God-tier"
+    }
+  ],
+  
+  "majorCharacterArcs": [
+    "Detailed description of major story arcs involving this character (minimum 60 words per arc)"
+  ],
+  
+  "trivia": [
+    "Interesting fact 1 (detailed explanation)",
+    "Interesting fact 2 (detailed explanation)", 
+    "Interesting fact 3 (detailed explanation)",
+    "Interesting fact 4 (detailed explanation)",
+    "Interesting fact 5 (detailed explanation)",
+    "Interesting fact 6 (detailed explanation)",
+    "Interesting fact 7 (detailed explanation)",
+    "Interesting fact 8 (detailed explanation)"
+  ],
+  
+  "backstoryDetails": "COMPREHENSIVE backstory analysis (minimum 200 words) covering: origin story, family background, formative experiences, traumatic events, achievements, failures, relationships that shaped them, and how their past influences their present behavior and motivations.",
+  
+  "characterDevelopment": "EXTENSIVE character development analysis (minimum 150 words) covering: growth trajectory, key turning points, lessons learned, changes in worldview, skill development, relationship evolution, and how they've changed from beginning to end.",
+  
+  "notableQuotes": [
+    "Memorable quote 1 with context",
+    "Memorable quote 2 with context",
+    "Memorable quote 3 with context",
+    "Memorable quote 4 with context",
+    "Memorable quote 5 with context"
+  ],
+  
+  "symbolism": "Detailed analysis of what this character represents symbolically, including: themes they embody, metaphors they represent, cultural significance, and deeper meanings in the story (minimum 120 words).",
+  
+  "fanReception": "Comprehensive analysis of how fans perceive this character, including: popularity trends, fan theories, controversies, memes, cosplay popularity, and cultural impact (minimum 100 words).",
+  
+  "culturalSignificance": "Detailed analysis of the character's cultural impact and significance, including: influence on anime culture, representation of certain archetypes, impact on storytelling, and broader cultural relevance (minimum 120 words)."
+}
+
+CRITICAL REQUIREMENTS:
+1. EVERY field must be filled with substantial, detailed content
+2. Minimum word counts must be met for all text fields
+3. Provide at least 5-8 detailed trivia facts
+4. Include at least 3-5 detailed abilities for every character
+5. Cover at least 3-5 major character arcs
+6. Include at least 5 notable quotes with context
+7. Be specific, insightful, and avoid generic descriptions
+8. Use the anime context to make content relevant and accurate
+9. Even for minor characters, provide comprehensive analysis
+10. Focus on unique aspects that make this character memorable
+
+For abilities analysis:
+- Combat characters: Include fighting techniques, special powers, weapons mastery, strategic thinking
+- Non-combat characters: Include intellectual abilities, social skills, talents, leadership qualities, emotional intelligence
+- Every character has abilities worth analyzing in detail
+- Rate power levels accurately based on their demonstrated capabilities
+
+Output ONLY the JSON object, no extra text or explanations.`;
+
+    const userPrompt = `Create EXTENSIVE and COMPREHENSIVE character data for "${args.characterName}" from "${args.animeName}". Generate the most detailed analysis possible with substantial content in every field.`;
 
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
@@ -2738,10 +2799,48 @@ export const fetchEnrichedCharacterDetails = action({
         temperature: 0.7
       });
       const content = completion.choices[0].message.content;
+      console.log(`[Character Enrichment] AI Response length: ${content?.length || 0} characters`);
+      
       let mergedCharacter: any = null;
       try {
         mergedCharacter = JSON.parse(content || "null");
+        console.log(`[Character Enrichment] Successfully parsed AI response for ${args.characterName}`);
+        console.log(`[Character Enrichment] Generated fields: ${Object.keys(mergedCharacter || {}).join(', ')}`);
+        
+        // Enhanced field validation and logging
+        const fieldsCheck = {
+          hasPersonalityAnalysis: !!mergedCharacter?.personalityAnalysis,
+          personalityLength: mergedCharacter?.personalityAnalysis?.length || 0,
+          hasTrivia: Array.isArray(mergedCharacter?.trivia) && mergedCharacter.trivia.length > 0,
+          triviaCount: mergedCharacter?.trivia?.length || 0,
+          hasDetailedAbilities: Array.isArray(mergedCharacter?.detailedAbilities) && mergedCharacter.detailedAbilities.length > 0,
+          abilitiesCount: mergedCharacter?.detailedAbilities?.length || 0,
+          hasBackstory: !!mergedCharacter?.backstoryDetails,
+          backstoryLength: mergedCharacter?.backstoryDetails?.length || 0,
+          hasCharacterDevelopment: !!mergedCharacter?.characterDevelopment,
+          developmentLength: mergedCharacter?.characterDevelopment?.length || 0,
+          hasQuotes: Array.isArray(mergedCharacter?.notableQuotes) && mergedCharacter.notableQuotes.length > 0,
+          quotesCount: mergedCharacter?.notableQuotes?.length || 0,
+          hasArcs: Array.isArray(mergedCharacter?.majorCharacterArcs) && mergedCharacter.majorCharacterArcs.length > 0,
+          arcsCount: mergedCharacter?.majorCharacterArcs?.length || 0,
+          abilityNames: mergedCharacter?.detailedAbilities?.map((a: any) => a.abilityName) || []
+        };
+        console.log(`[Character Enrichment] Comprehensive field check for ${args.characterName}:`, fieldsCheck);
+        
+        // Enhanced validation warnings
+        if (!mergedCharacter?.detailedAbilities || mergedCharacter.detailedAbilities.length === 0) {
+          console.warn(`[Character Enrichment] WARNING: No detailed abilities generated for ${args.characterName}`);
+        }
+        if (!mergedCharacter?.trivia || mergedCharacter.trivia.length < 5) {
+          console.warn(`[Character Enrichment] WARNING: Insufficient trivia generated for ${args.characterName} (${mergedCharacter?.trivia?.length || 0} items)`);
+        }
+        if (!mergedCharacter?.personalityAnalysis || mergedCharacter.personalityAnalysis.length < 150) {
+          console.warn(`[Character Enrichment] WARNING: Personality analysis too short for ${args.characterName} (${mergedCharacter?.personalityAnalysis?.length || 0} chars)`);
+        }
+        
       } catch (e) {
+        console.error(`[Character Enrichment] JSON parse error for ${args.characterName}:`, e);
+        console.error(`[Character Enrichment] Raw content:`, content);
         return { error: "Failed to parse AI response as JSON.", mergedCharacter: null };
       }
 
@@ -2837,31 +2936,46 @@ export const analyzeCharacterRelationships = action({
 
     const systemPrompt = `You are AniMuse AI, an expert at analyzing anime character relationships and dynamics.
 
-TASK: Analyze the relationships of "${args.characterName}" from "${args.animeName}".
+TASK: Create a COMPREHENSIVE and DETAILED analysis of the relationships of "${args.characterName}" from "${args.animeName}".
 
-Focus on:
-1. Key relationships with other characters
-2. Emotional dynamics and power balances
+Focus on providing EXTENSIVE insights into:
+1. Key relationships with other characters (both major and minor)
+2. Complex emotional dynamics and power balances
 3. Character development through relationships
-4. Impact of relationships on the story
-5. Character chemistry and interactions
+4. Impact of relationships on the overall story and plot
+5. Character chemistry and interaction patterns
+6. Relationship conflicts and resolutions
+7. Trust dynamics and loyalty patterns
+8. Communication styles between characters
+9. Shared experiences and bonding moments
+10. Relationship influence on character decisions
 
 Output JSON: {
   "relationships": [
     {
       "characterName": "Name of related character",
-      "relationshipType": "friend/enemy/lover/mentor/student/family/rival/etc",
-      "emotionalDynamics": "Description of emotional relationship",
-      "keyMoments": ["Important moment 1", "Important moment 2"],
-      "relationshipEvolution": "How the relationship changes throughout the story",
-      "impactOnStory": "How this relationship affects the plot"
+      "relationshipType": "friend/enemy/lover/mentor/student/family/rival/ally/mentor/mentee/comrade/partner/guardian/ward/etc",
+      "emotionalDynamics": "COMPREHENSIVE description of emotional relationship including: trust levels, emotional dependency, conflict patterns, mutual understanding, and psychological impact (minimum 120 words)",
+      "keyMoments": ["Detailed important moment 1", "Detailed important moment 2", "Detailed important moment 3", "Detailed important moment 4"],
+      "relationshipEvolution": "DETAILED analysis of how the relationship changes throughout the story, including: initial impressions, development phases, turning points, and final state (minimum 100 words)",
+      "impactOnStory": "COMPREHENSIVE analysis of how this relationship affects the plot, including: plot developments, character motivations, story conflicts, and narrative progression (minimum 100 words)"
     }
   ]
 }
 
-Be specific and insightful. Focus on 3-5 most important relationships.`;
+REQUIREMENTS:
+- Analyze 5-8 most important relationships
+- Provide detailed descriptions for each field (minimum word counts specified)
+- Include both positive and negative relationships
+- Cover relationships with main characters, supporting characters, and antagonists
+- Focus on relationships that significantly impact the story or character development
+- Be specific about emotional dynamics and psychological aspects
+- Include relationship conflicts and their resolutions
+- Analyze how relationships influence character growth and decisions
 
-    const userPrompt = `Analyze the relationships of "${args.characterName}" from "${args.animeName}".`;
+Be specific, insightful, and provide deep psychological analysis of character interactions.`;
+
+    const userPrompt = `Create a COMPREHENSIVE analysis of the relationships of "${args.characterName}" from "${args.animeName}". Focus on the most significant relationships and provide detailed insights into emotional dynamics, character development, and story impact.`;
 
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
@@ -2884,6 +2998,16 @@ Be specific and insightful. Focus on 3-5 most important relationships.`;
       }
 
       const relationships = result.relationships || [];
+      
+      // Enhanced validation and logging
+      console.log(`[Character Relationships] Generated ${relationships.length} relationships for ${args.characterName}`);
+      relationships.forEach((rel: any, index: number) => {
+        console.log(`[Character Relationships] Relationship ${index + 1}: ${rel.characterName} (${rel.relationshipType})`);
+        console.log(`[Character Relationships] - Emotional dynamics length: ${rel.emotionalDynamics?.length || 0} chars`);
+        console.log(`[Character Relationships] - Key moments: ${rel.keyMoments?.length || 0} items`);
+        console.log(`[Character Relationships] - Evolution length: ${rel.relationshipEvolution?.length || 0} chars`);
+        console.log(`[Character Relationships] - Impact length: ${rel.impactOnStory?.length || 0} chars`);
+      });
       
       // Cache the result for 7 days
       if (relationships.length > 0) {
@@ -2948,33 +3072,50 @@ export const getCharacterDevelopmentTimeline = action({
 
     const systemPrompt = `You are AniMuse AI, an expert at analyzing character development and story arcs.
 
-TASK: Create a detailed character development timeline for "${args.characterName}" from "${args.animeName}".
+TASK: Create a COMPREHENSIVE and DETAILED character development timeline for "${args.characterName}" from "${args.animeName}".
 
-Focus on:
-1. Character's initial state and introduction
-2. Key development moments and turning points
-3. Character growth and changes
-4. Major challenges and how they're overcome
-5. Final character state and resolution
-${args.includeArcs ? '6. Character arcs and story progression' : ''}
+Focus on providing EXTENSIVE insights into:
+1. Character's initial state, introduction, and first impressions
+2. Key development moments and major turning points
+3. Character growth, changes, and evolution throughout the story
+4. Major challenges, obstacles, and how they're overcome
+5. Final character state, resolution, and ultimate transformation
+6. Character arcs and story progression (if requested)
+7. Psychological development and mindset changes
+8. Skill development and capability growth
+9. Relationship development and social growth
+10. Moral and ethical development
+11. Personal goals and motivations evolution
+12. Character's impact on the world around them
 
 Output JSON: {
   "timeline": [
     {
-      "phase": "Introduction/Early Story",
-      "description": "What happens in this phase",
-      "characterState": "How the character is at this point",
-      "keyEvents": ["Event 1", "Event 2"],
-      "characterGrowth": "How the character develops in this phase",
-      "challenges": "What challenges they face",
-      "relationships": "How relationships develop"
+      "phase": "Introduction/Early Story/Mid-Story/Climax/Resolution/etc",
+      "description": "COMPREHENSIVE description of what happens in this phase, including major events, plot developments, and character actions (minimum 120 words)",
+      "characterState": "DETAILED analysis of how the character is at this point, including: personality traits, emotional state, skills, relationships, motivations, and worldview (minimum 100 words)",
+      "keyEvents": ["Detailed event 1", "Detailed event 2", "Detailed event 3", "Detailed event 4", "Detailed event 5"],
+      "characterGrowth": "EXTENSIVE analysis of how the character develops in this phase, including: lessons learned, skills gained, relationships formed, mindset changes, and personal evolution (minimum 100 words)",
+      "challenges": "COMPREHENSIVE description of challenges faced in this phase, including: internal struggles, external obstacles, conflicts, failures, and how they're addressed (minimum 80 words)",
+      "relationships": "DETAILED analysis of how relationships develop in this phase, including: new connections, relationship changes, conflicts, resolutions, and social dynamics (minimum 80 words)"
     }
   ]
 }
 
-Create 4-6 phases covering the character's journey. Be specific about character development and growth.`;
+REQUIREMENTS:
+- Create 6-8 detailed phases covering the character's complete journey
+- Provide substantial content for each field (minimum word counts specified)
+- Include both external plot events and internal character development
+- Cover emotional, psychological, social, and skill-based growth
+- Analyze how the character changes from beginning to end
+- Include both successes and failures in character development
+- Focus on transformative moments and turning points
+- Show the character's impact on the story and other characters
+- Include character's goals and how they evolve over time
 
-    const userPrompt = `Create a character development timeline for "${args.characterName}" from "${args.animeName}".`;
+Be specific, insightful, and provide deep analysis of character transformation and growth.`;
+
+    const userPrompt = `Create a COMPREHENSIVE character development timeline for "${args.characterName}" from "${args.animeName}". Focus on detailed phases that show the character's complete journey from introduction to resolution, including all major developments and transformations.`;
 
     try {
       const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
@@ -2998,6 +3139,18 @@ Create 4-6 phases covering the character's journey. Be specific about character 
         return { timeline: [], error: "Failed to parse AI response as JSON." };
       }
       
+      // Enhanced validation and logging
+      console.log(`[Character Timeline] Generated ${timeline.length} phases for ${args.characterName}`);
+      timeline.forEach((phase: any, index: number) => {
+        console.log(`[Character Timeline] Phase ${index + 1}: ${phase.phase}`);
+        console.log(`[Character Timeline] - Description length: ${phase.description?.length || 0} chars`);
+        console.log(`[Character Timeline] - Character state length: ${phase.characterState?.length || 0} chars`);
+        console.log(`[Character Timeline] - Key events: ${phase.keyEvents?.length || 0} items`);
+        console.log(`[Character Timeline] - Growth length: ${phase.characterGrowth?.length || 0} chars`);
+        console.log(`[Character Timeline] - Challenges length: ${phase.challenges?.length || 0} chars`);
+        console.log(`[Character Timeline] - Relationships length: ${phase.relationships?.length || 0} chars`);
+      });
+      
       // Cache the result for 7 days
       if (timeline.length > 0) {
         await ctx.runMutation(internal.aiCache.setCache, {
@@ -3011,6 +3164,362 @@ Create 4-6 phases covering the character's journey. Be specific about character 
       return { timeline, error: null, cached: false };
     } catch (err: any) {
       return { timeline: [], error: err.message || "OpenAI error." };
+    }
+  },
+});
+
+// --- Comprehensive Character Enrichment Action ---
+export const fetchComprehensiveCharacterDetails = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+    existingData: v.object({
+      description: v.optional(v.string()),
+      role: v.optional(v.string()),
+      gender: v.optional(v.string()),
+      age: v.optional(v.string()),
+      species: v.optional(v.string()),
+      powersAbilities: v.optional(v.array(v.string())),
+      voiceActors: v.optional(v.array(v.object({
+        id: v.optional(v.number()),
+        name: v.string(),
+        language: v.string(),
+        imageUrl: v.optional(v.string()),
+      }))),
+    }),
+    messageId: v.string(),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    comprehensiveCharacter: v.union(v.object({
+      // Basic enrichment fields
+      personalityAnalysis: v.optional(v.string()),
+      keyRelationships: v.optional(v.array(v.object({
+        relatedCharacterName: v.string(),
+        relationshipDescription: v.string(),
+        relationType: v.string(),
+      }))),
+      detailedAbilities: v.optional(v.array(v.object({
+        abilityName: v.string(),
+        abilityDescription: v.string(),
+        powerLevel: v.optional(v.string()),
+      }))),
+      majorCharacterArcs: v.optional(v.array(v.string())),
+      trivia: v.optional(v.array(v.string())),
+      backstoryDetails: v.optional(v.string()),
+      characterDevelopment: v.optional(v.string()),
+      notableQuotes: v.optional(v.array(v.string())),
+      symbolism: v.optional(v.string()),
+      fanReception: v.optional(v.string()),
+      culturalSignificance: v.optional(v.string()),
+      
+      // Extended enrichment fields
+      psychologicalProfile: v.optional(v.object({
+        personalityType: v.optional(v.string()),
+        coreFears: v.optional(v.array(v.string())),
+        coreDesires: v.optional(v.array(v.string())),
+        emotionalTriggers: v.optional(v.array(v.string())),
+        copingMechanisms: v.optional(v.array(v.string())),
+        mentalHealthAspects: v.optional(v.string()),
+        traumaHistory: v.optional(v.string()),
+        defenseMechanisms: v.optional(v.array(v.string())),
+      })),
+      combatProfile: v.optional(v.object({
+        fightingStyle: v.optional(v.string()),
+        preferredWeapons: v.optional(v.array(v.string())),
+        combatStrengths: v.optional(v.array(v.string())),
+        combatWeaknesses: v.optional(v.array(v.string())),
+        battleTactics: v.optional(v.string()),
+        powerScaling: v.optional(v.string()),
+        specialTechniques: v.optional(v.array(v.object({
+          name: v.string(),
+          description: v.string(),
+          powerLevel: v.optional(v.string()),
+          limitations: v.optional(v.string()),
+        }))),
+      })),
+      socialDynamics: v.optional(v.object({
+        socialClass: v.optional(v.string()),
+        culturalBackground: v.optional(v.string()),
+        socialInfluence: v.optional(v.string()),
+        leadershipStyle: v.optional(v.string()),
+        communicationStyle: v.optional(v.string()),
+        socialConnections: v.optional(v.array(v.string())),
+        reputation: v.optional(v.string()),
+        publicImage: v.optional(v.string()),
+      })),
+      characterArchetype: v.optional(v.object({
+        primaryArchetype: v.optional(v.string()),
+        secondaryArchetypes: v.optional(v.array(v.string())),
+        characterTropes: v.optional(v.array(v.string())),
+        subvertedTropes: v.optional(v.array(v.string())),
+        characterRole: v.optional(v.string()),
+        narrativeFunction: v.optional(v.string()),
+      })),
+      characterImpact: v.optional(v.object({
+        influenceOnStory: v.optional(v.string()),
+        influenceOnOtherCharacters: v.optional(v.string()),
+        culturalImpact: v.optional(v.string()),
+        fanbaseReception: v.optional(v.string()),
+        merchandisePopularity: v.optional(v.string()),
+        cosplayPopularity: v.optional(v.string()),
+        memeStatus: v.optional(v.string()),
+        legacyInAnime: v.optional(v.string()),
+      })),
+      cached: v.optional(v.boolean()),
+    }), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    if (!process.env.CONVEX_OPENAI_API_KEY) {
+      return { error: "OpenAI API key not configured.", comprehensiveCharacter: null };
+    }
+
+    // Create cache key for comprehensive enrichment
+    const cacheKey = `comprehensive_character:${args.animeName}:${args.characterName}`;
+    
+    console.log(`[Comprehensive Character] Checking cache for: ${cacheKey}`);
+    
+    // Check cache first
+    const cachedResult = await ctx.runQuery(internal.aiCache.getCache, { key: cacheKey });
+    if (cachedResult) {
+      console.log(`[Comprehensive Character] Cache hit for ${args.characterName} from ${args.animeName}`);
+      return { 
+        error: null, 
+        comprehensiveCharacter: { 
+          ...cachedResult,
+          cached: true 
+        } 
+      };
+    }
+
+    console.log(`[Comprehensive Character] Cache miss, calling AI for ${args.characterName} from ${args.animeName}`);
+
+    // Comprehensive system prompt for all character aspects
+    const systemPrompt = `You are AniMuse AI, an expert anime character analyst and database curator. Your task is to create the MOST COMPREHENSIVE and DETAILED character analysis possible for "${args.characterName}" from "${args.animeName}".
+
+This will be the definitive character profile for a comprehensive anime database. Generate EXTENSIVE data covering every aspect of the character.
+
+ANIME CONTEXT: ${args.animeName}
+CHARACTER: ${args.characterName}
+EXISTING DATA: ${JSON.stringify(args.existingData, null, 2)}
+
+REQUIRED OUTPUT FORMAT (JSON object with ALL fields filled comprehensively):
+
+{
+  "personalityAnalysis": "EXTENSIVE personality analysis (minimum 200 words) covering: character traits, behavioral patterns, psychological motivations, emotional intelligence, social dynamics, decision-making style, fears and desires, moral compass, communication style, and unique personality quirks.",
+  
+  "keyRelationships": [
+    {
+      "relatedCharacterName": "Character name",
+      "relationshipDescription": "Detailed description of the relationship dynamics, emotional connection, and interaction patterns (minimum 100 words per relationship)",
+      "relationType": "friend/enemy/lover/mentor/student/family/rival/ally/mentor/mentee/etc"
+    }
+  ],
+  
+  "detailedAbilities": [
+    {
+      "abilityName": "Specific ability name",
+      "abilityDescription": "Comprehensive description of the ability including: how it works, limitations, power level, usage conditions, development over time, and strategic applications (minimum 120 words per ability)",
+      "powerLevel": "Novice/Average/Skilled/Expert/Master/Legendary/God-tier"
+    }
+  ],
+  
+  "majorCharacterArcs": [
+    "Detailed description of major story arcs involving this character (minimum 80 words per arc)"
+  ],
+  
+  "trivia": [
+    "Interesting fact 1 (detailed explanation)",
+    "Interesting fact 2 (detailed explanation)", 
+    "Interesting fact 3 (detailed explanation)",
+    "Interesting fact 4 (detailed explanation)",
+    "Interesting fact 5 (detailed explanation)",
+    "Interesting fact 6 (detailed explanation)",
+    "Interesting fact 7 (detailed explanation)",
+    "Interesting fact 8 (detailed explanation)",
+    "Interesting fact 9 (detailed explanation)",
+    "Interesting fact 10 (detailed explanation)"
+  ],
+  
+  "backstoryDetails": "COMPREHENSIVE backstory analysis (minimum 250 words) covering: origin story, family background, formative experiences, traumatic events, achievements, failures, relationships that shaped them, and how their past influences their present behavior and motivations.",
+  
+  "characterDevelopment": "EXTENSIVE character development analysis (minimum 200 words) covering: growth trajectory, key turning points, lessons learned, changes in worldview, skill development, relationship evolution, and how they've changed from beginning to end.",
+  
+  "notableQuotes": [
+    "Memorable quote 1 with context",
+    "Memorable quote 2 with context",
+    "Memorable quote 3 with context",
+    "Memorable quote 4 with context",
+    "Memorable quote 5 with context",
+    "Memorable quote 6 with context"
+  ],
+  
+  "symbolism": "Detailed analysis of what this character represents symbolically, including: themes they embody, metaphors they represent, cultural significance, and deeper meanings in the story (minimum 150 words).",
+  
+  "fanReception": "Comprehensive analysis of how fans perceive this character, including: popularity trends, fan theories, controversies, memes, cosplay popularity, and cultural impact (minimum 150 words).",
+  
+  "culturalSignificance": "Detailed analysis of the character's cultural impact and significance, including: influence on anime culture, representation of certain archetypes, impact on storytelling, and broader cultural relevance (minimum 150 words).",
+  
+  "psychologicalProfile": {
+    "personalityType": "MBTI type, Enneagram, or other personality classification",
+    "coreFears": ["Fear 1", "Fear 2", "Fear 3", "Fear 4"],
+    "coreDesires": ["Desire 1", "Desire 2", "Desire 3", "Desire 4"],
+    "emotionalTriggers": ["Trigger 1", "Trigger 2", "Trigger 3"],
+    "copingMechanisms": ["Mechanism 1", "Mechanism 2", "Mechanism 3"],
+    "mentalHealthAspects": "Detailed analysis of mental health aspects, psychological challenges, and emotional well-being (minimum 100 words)",
+    "traumaHistory": "Comprehensive analysis of traumatic experiences and their impact on character development (minimum 120 words)",
+    "defenseMechanisms": ["Mechanism 1", "Mechanism 2", "Mechanism 3"]
+  },
+  
+  "combatProfile": {
+    "fightingStyle": "Detailed description of fighting style and approach to combat (minimum 80 words)",
+    "preferredWeapons": ["Weapon 1", "Weapon 2", "Weapon 3"],
+    "combatStrengths": ["Strength 1", "Strength 2", "Strength 3", "Strength 4"],
+    "combatWeaknesses": ["Weakness 1", "Weakness 2", "Weakness 3"],
+    "battleTactics": "Comprehensive analysis of battle strategies and tactical approach (minimum 100 words)",
+    "powerScaling": "Detailed analysis of character's power level within the anime universe (minimum 80 words)",
+    "specialTechniques": [
+      {
+        "name": "Technique name",
+        "description": "Detailed description of the technique (minimum 60 words)",
+        "powerLevel": "Power level rating",
+        "limitations": "Technique limitations and drawbacks"
+      }
+    ]
+  },
+  
+  "socialDynamics": {
+    "socialClass": "Character's social class and economic status",
+    "culturalBackground": "Cultural heritage and background",
+    "socialInfluence": "Level of social influence and impact on others (minimum 80 words)",
+    "leadershipStyle": "Leadership approach and style (minimum 80 words)",
+    "communicationStyle": "How the character communicates and interacts (minimum 80 words)",
+    "socialConnections": ["Connection 1", "Connection 2", "Connection 3", "Connection 4"],
+    "reputation": "How the character is perceived by others (minimum 80 words)",
+    "publicImage": "Public persona and image projection (minimum 80 words)"
+  },
+  
+  "characterArchetype": {
+    "primaryArchetype": "Main character archetype",
+    "secondaryArchetypes": ["Archetype 1", "Archetype 2", "Archetype 3"],
+    "characterTropes": ["Trope 1", "Trope 2", "Trope 3", "Trope 4"],
+    "subvertedTropes": ["Subverted trope 1", "Subverted trope 2"],
+    "characterRole": "Hero/Anti-hero/Villain/Supporting/etc",
+    "narrativeFunction": "Character's function in the story (minimum 80 words)"
+  },
+  
+  "characterImpact": {
+    "influenceOnStory": "How the character drives the plot and story progression (minimum 100 words)",
+    "influenceOnOtherCharacters": "Impact on other characters' development and actions (minimum 100 words)",
+    "culturalImpact": "Cultural influence and significance (minimum 100 words)",
+    "fanbaseReception": "How fans receive and perceive this character (minimum 100 words)",
+    "merchandisePopularity": "Popularity in merchandise and collectibles",
+    "cosplayPopularity": "Popularity among cosplayers",
+    "memeStatus": "Meme potential and internet presence",
+    "legacyInAnime": "Character's lasting impact on anime culture (minimum 100 words)"
+  }
+}
+
+CRITICAL REQUIREMENTS:
+1. EVERY field must be filled with substantial, detailed content
+2. Minimum word counts must be met for all text fields
+3. Provide at least 8-10 detailed trivia facts
+4. Include at least 4-6 detailed abilities for every character
+5. Cover at least 4-6 major character arcs
+6. Include at least 6 notable quotes with context
+7. Be specific, insightful, and avoid generic descriptions
+8. Use the anime context to make content relevant and accurate
+9. Even for minor characters, provide comprehensive analysis
+10. Focus on unique aspects that make this character memorable
+11. Include psychological depth and character complexity
+12. Cover both strengths and weaknesses
+13. Analyze character from multiple perspectives
+
+Output ONLY the JSON object, no extra text or explanations.`;
+
+    const userPrompt = `Create the MOST COMPREHENSIVE and DETAILED character analysis possible for "${args.characterName}" from "${args.animeName}". Generate extensive data covering every aspect of the character including psychological profile, combat analysis, social dynamics, and cultural impact.`;
+
+    try {
+      const openai = new OpenAI({ apiKey: process.env.CONVEX_OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7
+      });
+      const content = completion.choices[0].message.content;
+      console.log(`[Comprehensive Character] AI Response length: ${content?.length || 0} characters`);
+      
+      let comprehensiveCharacter: any = null;
+      try {
+        comprehensiveCharacter = JSON.parse(content || "null");
+        console.log(`[Comprehensive Character] Successfully parsed AI response for ${args.characterName}`);
+        console.log(`[Comprehensive Character] Generated fields: ${Object.keys(comprehensiveCharacter || {}).join(', ')}`);
+        
+        // Comprehensive field validation and logging
+        const fieldsCheck = {
+          hasPersonalityAnalysis: !!comprehensiveCharacter?.personalityAnalysis,
+          personalityLength: comprehensiveCharacter?.personalityAnalysis?.length || 0,
+          hasTrivia: Array.isArray(comprehensiveCharacter?.trivia) && comprehensiveCharacter.trivia.length > 0,
+          triviaCount: comprehensiveCharacter?.trivia?.length || 0,
+          hasDetailedAbilities: Array.isArray(comprehensiveCharacter?.detailedAbilities) && comprehensiveCharacter.detailedAbilities.length > 0,
+          abilitiesCount: comprehensiveCharacter?.detailedAbilities?.length || 0,
+          hasBackstory: !!comprehensiveCharacter?.backstoryDetails,
+          backstoryLength: comprehensiveCharacter?.backstoryDetails?.length || 0,
+          hasCharacterDevelopment: !!comprehensiveCharacter?.characterDevelopment,
+          developmentLength: comprehensiveCharacter?.characterDevelopment?.length || 0,
+          hasQuotes: Array.isArray(comprehensiveCharacter?.notableQuotes) && comprehensiveCharacter.notableQuotes.length > 0,
+          quotesCount: comprehensiveCharacter?.notableQuotes?.length || 0,
+          hasArcs: Array.isArray(comprehensiveCharacter?.majorCharacterArcs) && comprehensiveCharacter.majorCharacterArcs.length > 0,
+          arcsCount: comprehensiveCharacter?.majorCharacterArcs?.length || 0,
+          hasPsychologicalProfile: !!comprehensiveCharacter?.psychologicalProfile,
+          hasCombatProfile: !!comprehensiveCharacter?.combatProfile,
+          hasSocialDynamics: !!comprehensiveCharacter?.socialDynamics,
+          hasCharacterArchetype: !!comprehensiveCharacter?.characterArchetype,
+          hasCharacterImpact: !!comprehensiveCharacter?.characterImpact,
+          abilityNames: comprehensiveCharacter?.detailedAbilities?.map((a: any) => a.abilityName) || []
+        };
+        console.log(`[Comprehensive Character] Complete field check for ${args.characterName}:`, fieldsCheck);
+        
+        // Enhanced validation warnings
+        if (!comprehensiveCharacter?.detailedAbilities || comprehensiveCharacter.detailedAbilities.length < 4) {
+          console.warn(`[Comprehensive Character] WARNING: Insufficient abilities generated for ${args.characterName} (${comprehensiveCharacter?.detailedAbilities?.length || 0} items)`);
+        }
+        if (!comprehensiveCharacter?.trivia || comprehensiveCharacter.trivia.length < 8) {
+          console.warn(`[Comprehensive Character] WARNING: Insufficient trivia generated for ${args.characterName} (${comprehensiveCharacter?.trivia?.length || 0} items)`);
+        }
+        if (!comprehensiveCharacter?.personalityAnalysis || comprehensiveCharacter.personalityAnalysis.length < 200) {
+          console.warn(`[Comprehensive Character] WARNING: Personality analysis too short for ${args.characterName} (${comprehensiveCharacter?.personalityAnalysis?.length || 0} chars)`);
+        }
+        if (!comprehensiveCharacter?.psychologicalProfile) {
+          console.warn(`[Comprehensive Character] WARNING: Missing psychological profile for ${args.characterName}`);
+        }
+        if (!comprehensiveCharacter?.combatProfile) {
+          console.warn(`[Comprehensive Character] WARNING: Missing combat profile for ${args.characterName}`);
+        }
+        
+      } catch (e) {
+        console.error(`[Comprehensive Character] JSON parse error for ${args.characterName}:`, e);
+        console.error(`[Comprehensive Character] Raw content:`, content);
+        return { error: "Failed to parse AI response as JSON.", comprehensiveCharacter: null };
+      }
+
+      // Cache the result for 7 days (604800000 ms)
+      if (comprehensiveCharacter) {
+        await ctx.runMutation(internal.aiCache.setCache, {
+          key: cacheKey,
+          value: comprehensiveCharacter,
+          ttl: 604800000, // 7 days
+        });
+        console.log(`[Comprehensive Character] Cached result for ${args.characterName} from ${args.animeName}`);
+      }
+
+      return { error: null, comprehensiveCharacter: { ...comprehensiveCharacter, cached: false } };
+    } catch (err: any) {
+      return { error: err.message || "OpenAI error.", comprehensiveCharacter: null };
     }
   },
 });

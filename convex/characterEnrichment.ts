@@ -71,6 +71,11 @@ type CharacterType = {
   fanReception?: string;
   culturalSignificance?: string;
   enrichmentTimestamp?: number;
+  
+  // Manual admin enrichment protection
+  manuallyEnrichedByAdmin?: boolean;
+  manualEnrichmentTimestamp?: number;
+  manualEnrichmentAdminId?: Id<"users">;
 };
 
 // ADD THE MISSING QUERY that was referenced in batchEnrichCharacters
@@ -105,13 +110,20 @@ export const getUnenrichedCharactersFromAnime = internalQuery({
     
     console.log(`[Debug] Checking anime: ${anime.title} with ${anime.characters.length} characters`);
     
-    // Enhanced filtering with retry logic
+    // Enhanced filtering with retry logic and manual enrichment protection
     const unenrichedCharacters = anime.characters.filter(
       (char: CharacterType) => {
         const status = char.enrichmentStatus;
         const attempts = char.enrichmentAttempts || 0;
         const lastAttempt = char.lastAttemptTimestamp || 0;
         const hoursSinceLastAttempt = (Date.now() - lastAttempt) / (1000 * 60 * 60);
+        const manuallyEnriched = char.manuallyEnrichedByAdmin || false;
+        
+        // Skip characters that were manually enriched by admin (permanent protection)
+        if (manuallyEnriched) {
+          console.log(`[Debug] Skipping ${char.name}: Manually enriched by admin (permanent protection)`);
+          return false;
+        }
         
         // Include if no status or pending
         if (!status || status === "pending") {
@@ -161,6 +173,11 @@ export const updateCharacterInAnime = internalMutation({
       lastAttemptTimestamp: v.optional(v.number()),
       lastErrorMessage: v.optional(v.string()),
       enrichmentTimestamp: v.optional(v.number()),
+      
+      // Manual admin enrichment protection
+      manuallyEnrichedByAdmin: v.optional(v.boolean()),
+      manualEnrichmentTimestamp: v.optional(v.number()),
+      manualEnrichmentAdminId: v.optional(v.id("users")),
       personalityAnalysis: v.optional(v.string()),
       keyRelationships: v.optional(v.array(v.object({
         relatedCharacterName: v.string(),
@@ -180,6 +197,76 @@ export const updateCharacterInAnime = internalMutation({
       symbolism: v.optional(v.string()),
       fanReception: v.optional(v.string()),
       culturalSignificance: v.optional(v.string()),
+      // Extended enrichment fields
+      psychologicalProfile: v.optional(v.object({
+        personalityType: v.optional(v.string()),
+        coreFears: v.optional(v.array(v.string())),
+        coreDesires: v.optional(v.array(v.string())),
+        emotionalTriggers: v.optional(v.array(v.string())),
+        copingMechanisms: v.optional(v.array(v.string())),
+        mentalHealthAspects: v.optional(v.string()),
+        traumaHistory: v.optional(v.string()),
+        defenseMechanisms: v.optional(v.array(v.string())),
+      })),
+      combatProfile: v.optional(v.object({
+        fightingStyle: v.optional(v.string()),
+        preferredWeapons: v.optional(v.array(v.string())),
+        combatStrengths: v.optional(v.array(v.string())),
+        combatWeaknesses: v.optional(v.array(v.string())),
+        battleTactics: v.optional(v.string()),
+        powerScaling: v.optional(v.string()),
+        specialTechniques: v.optional(v.array(v.object({
+          name: v.string(),
+          description: v.string(),
+          powerLevel: v.optional(v.string()),
+          limitations: v.optional(v.string()),
+        }))),
+      })),
+      socialDynamics: v.optional(v.object({
+        socialClass: v.optional(v.string()),
+        culturalBackground: v.optional(v.string()),
+        socialInfluence: v.optional(v.string()),
+        leadershipStyle: v.optional(v.string()),
+        communicationStyle: v.optional(v.string()),
+        socialConnections: v.optional(v.array(v.string())),
+        reputation: v.optional(v.string()),
+        publicImage: v.optional(v.string()),
+      })),
+      characterArchetype: v.optional(v.object({
+        primaryArchetype: v.optional(v.string()),
+        secondaryArchetypes: v.optional(v.array(v.string())),
+        characterTropes: v.optional(v.array(v.string())),
+        subvertedTropes: v.optional(v.array(v.string())),
+        characterRole: v.optional(v.string()),
+        narrativeFunction: v.optional(v.string()),
+      })),
+      characterImpact: v.optional(v.object({
+        influenceOnStory: v.optional(v.string()),
+        influenceOnOtherCharacters: v.optional(v.string()),
+        culturalImpact: v.optional(v.string()),
+        fanbaseReception: v.optional(v.string()),
+        merchandisePopularity: v.optional(v.string()),
+        cosplayPopularity: v.optional(v.string()),
+        memeStatus: v.optional(v.string()),
+        legacyInAnime: v.optional(v.string()),
+      })),
+      advancedRelationships: v.optional(v.array(v.object({
+        characterName: v.string(),
+        relationshipType: v.string(),
+        emotionalDynamics: v.string(),
+        keyMoments: v.optional(v.array(v.string())),
+        relationshipEvolution: v.optional(v.string()),
+        impactOnStory: v.optional(v.string()),
+      }))),
+      developmentTimeline: v.optional(v.array(v.object({
+        phase: v.string(),
+        description: v.string(),
+        characterState: v.string(),
+        keyEvents: v.optional(v.array(v.string())),
+        characterGrowth: v.optional(v.string()),
+        challenges: v.optional(v.string()),
+        relationships: v.optional(v.string()),
+      }))),
     }),
   },
   handler: async (ctx, args) => {
@@ -312,7 +399,7 @@ export const enrichCharactersForAnime = internalAction({
         
         // Call the AI enrichment function with better error handling
         console.log(`[Enrich Character] Calling AI for: ${characterName}`);
-        const enrichedResult = await ctx.runAction(api.ai.fetchEnrichedCharacterDetails, {
+        const enrichedResult = await ctx.runAction(api.ai.fetchComprehensiveCharacterDetails, {
           characterName: characterName,
           animeName: data.anime.title || "",
           existingData: {
@@ -324,19 +411,17 @@ export const enrichCharactersForAnime = internalAction({
             powersAbilities: character.powersAbilities,
             voiceActors: character.voiceActors,
           },
-          enrichmentLevel: 'detailed' as const,
           messageId: `cron_enrich_${characterName.replace(/[^\w]/g, '_')}_${Date.now()}`,
-          includeAdvancedAnalysis: true,
         });
         
         console.log(`[Enrich Character] AI response for ${characterName}:`, {
           hasError: !!enrichedResult.error,
-          hasMergedCharacter: !!enrichedResult.mergedCharacter,
+          hasComprehensiveCharacter: !!enrichedResult.comprehensiveCharacter,
           error: enrichedResult.error
         });
         
-        if (!enrichedResult.error && enrichedResult.mergedCharacter) {
-          // Success case
+        if (!enrichedResult.error && enrichedResult.comprehensiveCharacter) {
+          // Success case - update with comprehensive data
           await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
             animeId: args.animeId,
             characterName: characterName,
@@ -344,40 +429,96 @@ export const enrichCharactersForAnime = internalAction({
               enrichmentStatus: "success",
               enrichmentAttempts: attempts,
               lastAttemptTimestamp: Date.now(),
-              personalityAnalysis: enrichedResult.mergedCharacter.personalityAnalysis,
-              keyRelationships: enrichedResult.mergedCharacter.keyRelationships,
-              detailedAbilities: enrichedResult.mergedCharacter.detailedAbilities,
-              majorCharacterArcs: enrichedResult.mergedCharacter.majorCharacterArcs,
-              trivia: enrichedResult.mergedCharacter.trivia,
-              backstoryDetails: enrichedResult.mergedCharacter.backstoryDetails,
-              characterDevelopment: enrichedResult.mergedCharacter.characterDevelopment,
-              notableQuotes: enrichedResult.mergedCharacter.notableQuotes,
-              symbolism: enrichedResult.mergedCharacter.symbolism,
-              fanReception: enrichedResult.mergedCharacter.fanReception,
-              culturalSignificance: enrichedResult.mergedCharacter.culturalSignificance,
+              // Basic enrichment fields
+              personalityAnalysis: enrichedResult.comprehensiveCharacter.personalityAnalysis,
+              keyRelationships: enrichedResult.comprehensiveCharacter.keyRelationships,
+              detailedAbilities: enrichedResult.comprehensiveCharacter.detailedAbilities,
+              majorCharacterArcs: enrichedResult.comprehensiveCharacter.majorCharacterArcs,
+              trivia: enrichedResult.comprehensiveCharacter.trivia,
+              backstoryDetails: enrichedResult.comprehensiveCharacter.backstoryDetails,
+              characterDevelopment: enrichedResult.comprehensiveCharacter.characterDevelopment,
+              notableQuotes: enrichedResult.comprehensiveCharacter.notableQuotes,
+              symbolism: enrichedResult.comprehensiveCharacter.symbolism,
+              fanReception: enrichedResult.comprehensiveCharacter.fanReception,
+              culturalSignificance: enrichedResult.comprehensiveCharacter.culturalSignificance,
+              // Extended enrichment fields
+              psychologicalProfile: enrichedResult.comprehensiveCharacter.psychologicalProfile,
+              combatProfile: enrichedResult.comprehensiveCharacter.combatProfile,
+              socialDynamics: enrichedResult.comprehensiveCharacter.socialDynamics,
+              characterArchetype: enrichedResult.comprehensiveCharacter.characterArchetype,
+              characterImpact: enrichedResult.comprehensiveCharacter.characterImpact,
               enrichmentTimestamp: Date.now(),
             },
           });
           
           succeeded++;
-          console.log(`✅ Successfully enriched: ${characterName}`);
+          console.log(`✅ Successfully enriched: ${characterName} with comprehensive data`);
         } else {
-          // Failure case with detailed error tracking
-          const errorMessage = enrichedResult.error || "Unknown AI response error";
-          
-          await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
-            animeId: args.animeId,
+          // Fallback to basic enrichment if comprehensive fails
+          console.log(`[Enrich Character] Comprehensive enrichment failed, trying basic enrichment for: ${characterName}`);
+          const basicEnrichedResult = await ctx.runAction(api.ai.fetchEnrichedCharacterDetails, {
             characterName: characterName,
-            updates: {
-              enrichmentStatus: "failed",
-              enrichmentAttempts: attempts,
-              lastAttemptTimestamp: Date.now(),
-              lastErrorMessage: errorMessage,
+            animeName: data.anime.title || "",
+            existingData: {
+              description: character.description,
+              role: character.role,
+              gender: character.gender,
+              age: character.age,
+              species: character.species,
+              powersAbilities: character.powersAbilities,
+              voiceActors: character.voiceActors,
             },
+            enrichmentLevel: 'detailed' as const,
+            messageId: `cron_enrich_basic_${characterName.replace(/[^\w]/g, '_')}_${Date.now()}`,
+            includeAdvancedAnalysis: true,
           });
           
-          failed++;
-          console.error(`❌ Failed to enrich ${characterName}: ${errorMessage}`);
+          if (!basicEnrichedResult.error && basicEnrichedResult.mergedCharacter) {
+            // Success with basic enrichment
+            await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
+              animeId: args.animeId,
+              characterName: characterName,
+              updates: {
+                enrichmentStatus: "success",
+                enrichmentAttempts: attempts,
+                lastAttemptTimestamp: Date.now(),
+                personalityAnalysis: basicEnrichedResult.mergedCharacter.personalityAnalysis,
+                keyRelationships: basicEnrichedResult.mergedCharacter.keyRelationships,
+                detailedAbilities: basicEnrichedResult.mergedCharacter.detailedAbilities,
+                majorCharacterArcs: basicEnrichedResult.mergedCharacter.majorCharacterArcs,
+                trivia: basicEnrichedResult.mergedCharacter.trivia,
+                backstoryDetails: basicEnrichedResult.mergedCharacter.backstoryDetails,
+                characterDevelopment: basicEnrichedResult.mergedCharacter.characterDevelopment,
+                notableQuotes: basicEnrichedResult.mergedCharacter.notableQuotes,
+                symbolism: basicEnrichedResult.mergedCharacter.symbolism,
+                fanReception: basicEnrichedResult.mergedCharacter.fanReception,
+                culturalSignificance: basicEnrichedResult.mergedCharacter.culturalSignificance,
+                advancedRelationships: basicEnrichedResult.mergedCharacter.advancedRelationships,
+                developmentTimeline: basicEnrichedResult.mergedCharacter.developmentTimeline,
+                enrichmentTimestamp: Date.now(),
+              },
+            });
+            
+            succeeded++;
+            console.log(`✅ Successfully enriched: ${characterName} with basic data`);
+          } else {
+            // Failure case with detailed error tracking
+            const errorMessage = basicEnrichedResult.error || enrichedResult.error || "Unknown AI response error";
+            
+            await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
+              animeId: args.animeId,
+              characterName: characterName,
+              updates: {
+                enrichmentStatus: "failed",
+                enrichmentAttempts: attempts,
+                lastAttemptTimestamp: Date.now(),
+                lastErrorMessage: errorMessage,
+              },
+            });
+            
+            failed++;
+            console.error(`❌ Failed to enrich ${characterName}: ${errorMessage}`);
+          }
         }
         
         // Rate limiting - wait between characters
@@ -751,5 +892,131 @@ export const clearExpiredCache = action({
   args: {},
   handler: async (ctx) => {
     return await ctx.runMutation(internal.characterEnrichment.clearExpiredCache, {});
+  },
+});
+
+// Test comprehensive character enrichment for a specific character
+export const testComprehensiveEnrichment = action({
+  args: {
+    animeId: v.id("anime"),
+    characterName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`[Test Comprehensive] Starting comprehensive enrichment test for ${args.characterName} from anime ${args.animeId}`);
+    
+    try {
+      // Get the anime data
+      const anime = await ctx.runQuery(internal.characterEnrichment.getUnenrichedCharactersFromAnime, {
+        animeId: args.animeId,
+        includeRetries: true
+      });
+      
+      if (!anime || !anime.characters) {
+        return { error: "Anime not found or has no characters", success: false };
+      }
+      
+      // Find the specific character
+      const character = anime.characters.find((char: any) => 
+        char.name.toLowerCase().includes(args.characterName.toLowerCase()) ||
+        args.characterName.toLowerCase().includes(char.name.toLowerCase())
+      );
+      
+      if (!character) {
+        return { 
+          error: `Character "${args.characterName}" not found in anime "${anime.anime.title}"`, 
+          success: false,
+          availableCharacters: anime.characters.map((c: any) => c.name)
+        };
+      }
+      
+      console.log(`[Test Comprehensive] Found character: ${character.name}`);
+      
+      // Call comprehensive enrichment
+      const result = await ctx.runAction(api.ai.fetchComprehensiveCharacterDetails, {
+        characterName: character.name,
+        animeName: anime.anime.title,
+        existingData: {
+          description: character.description,
+          role: character.role,
+          gender: character.gender,
+          age: character.age,
+          species: character.species,
+          powersAbilities: character.powersAbilities,
+          voiceActors: character.voiceActors,
+        },
+        messageId: `test_comprehensive_${character.name.replace(/[^\w]/g, '_')}_${Date.now()}`,
+      });
+      
+      if (result.error) {
+        return { error: result.error, success: false };
+      }
+      
+      if (!result.comprehensiveCharacter) {
+        return { error: "No comprehensive character data generated", success: false };
+      }
+      
+      // Update the character with comprehensive data
+      await ctx.runMutation(internal.characterEnrichment.updateCharacterInAnime, {
+        animeId: args.animeId,
+        characterName: character.name,
+        updates: {
+          enrichmentStatus: "success",
+          enrichmentAttempts: (character.enrichmentAttempts || 0) + 1,
+          lastAttemptTimestamp: Date.now(),
+          // Basic enrichment fields
+          personalityAnalysis: result.comprehensiveCharacter.personalityAnalysis,
+          keyRelationships: result.comprehensiveCharacter.keyRelationships,
+          detailedAbilities: result.comprehensiveCharacter.detailedAbilities,
+          majorCharacterArcs: result.comprehensiveCharacter.majorCharacterArcs,
+          trivia: result.comprehensiveCharacter.trivia,
+          backstoryDetails: result.comprehensiveCharacter.backstoryDetails,
+          characterDevelopment: result.comprehensiveCharacter.characterDevelopment,
+          notableQuotes: result.comprehensiveCharacter.notableQuotes,
+          symbolism: result.comprehensiveCharacter.symbolism,
+          fanReception: result.comprehensiveCharacter.fanReception,
+          culturalSignificance: result.comprehensiveCharacter.culturalSignificance,
+          // Extended enrichment fields
+          psychologicalProfile: result.comprehensiveCharacter.psychologicalProfile,
+          combatProfile: result.comprehensiveCharacter.combatProfile,
+          socialDynamics: result.comprehensiveCharacter.socialDynamics,
+          characterArchetype: result.comprehensiveCharacter.characterArchetype,
+          characterImpact: result.comprehensiveCharacter.characterImpact,
+          enrichmentTimestamp: Date.now(),
+        },
+      });
+      
+      // Return success with data summary
+      const dataSummary = {
+        characterName: character.name,
+        animeTitle: anime.anime.title,
+        hasPersonalityAnalysis: !!result.comprehensiveCharacter.personalityAnalysis,
+        personalityLength: result.comprehensiveCharacter.personalityAnalysis?.length || 0,
+        triviaCount: result.comprehensiveCharacter.trivia?.length || 0,
+        abilitiesCount: result.comprehensiveCharacter.detailedAbilities?.length || 0,
+        quotesCount: result.comprehensiveCharacter.notableQuotes?.length || 0,
+        arcsCount: result.comprehensiveCharacter.majorCharacterArcs?.length || 0,
+        hasPsychologicalProfile: !!result.comprehensiveCharacter.psychologicalProfile,
+        hasCombatProfile: !!result.comprehensiveCharacter.combatProfile,
+        hasSocialDynamics: !!result.comprehensiveCharacter.socialDynamics,
+        hasCharacterArchetype: !!result.comprehensiveCharacter.characterArchetype,
+        hasCharacterImpact: !!result.comprehensiveCharacter.characterImpact,
+        cached: result.comprehensiveCharacter.cached || false,
+      };
+      
+      console.log(`[Test Comprehensive] Successfully enriched ${character.name}:`, dataSummary);
+      
+      return { 
+        success: true, 
+        dataSummary,
+        message: `Successfully enriched ${character.name} with comprehensive data`
+      };
+      
+    } catch (error: any) {
+      console.error(`[Test Comprehensive] Error:`, error);
+      return { 
+        error: error.message || "Unknown error occurred", 
+        success: false 
+      };
+    }
   },
 });

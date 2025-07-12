@@ -349,7 +349,7 @@ interface AnimeDetailPageProps {
   animeId: Id<"anime">; 
   onBack: () => void;
   navigateToDetail: (animeId: Id<"anime">) => void;
-  onCharacterClick: (character: any, animeName: string) => void;
+  onCharacterClick: (character: any, animeName: string, animeId?: Id<"anime">) => void;
 }
 
 interface CustomListType {
@@ -1586,12 +1586,30 @@ const useEnrichedCharacters = (
             return character;
           }
           
-          return {
+          console.log(`[Character Enrichment] Success for ${character.name}:`, {
+            hasPersonalityAnalysis: !!result.mergedCharacter?.personalityAnalysis,
+            hasTrivia: !!result.mergedCharacter?.trivia?.length,
+            hasDetailedAbilities: !!result.mergedCharacter?.detailedAbilities?.length,
+            hasBackstory: !!result.mergedCharacter?.backstoryDetails,
+            allFields: Object.keys(result.mergedCharacter || {})
+          });
+          
+          const enrichedCharacter = {
             ...character,
             ...result.mergedCharacter,
-            enrichmentStatus: "success",
+            enrichmentStatus: "success" as const,
             enrichmentTimestamp: Date.now()
           };
+          
+          console.log(`[Character Enrichment] Final character data for ${character.name}:`, {
+            hasPersonalityAnalysis: !!enrichedCharacter.personalityAnalysis,
+            hasTrivia: !!enrichedCharacter.trivia?.length,
+            hasDetailedAbilities: !!enrichedCharacter.detailedAbilities?.length,
+            triviaCount: enrichedCharacter.trivia?.length || 0,
+            detailedAbilitiesCount: enrichedCharacter.detailedAbilities?.length || 0
+          });
+          
+          return enrichedCharacter;
         } catch (error) {
           console.error(`Error enriching character ${character.name}:`, error);
           return character;
@@ -2892,7 +2910,7 @@ const episodePreviewStatus = useQuery(api.anime.getEpisodePreviewStatus, animeId
                     {charactersForDisplay.slice(0, charactersToShow).map((character, index) => (
                       <div 
                         key={`character-${character.id || character.name || index}`}
-                        onClick={() => onCharacterClick(character, anime.title)}
+                        onClick={() => onCharacterClick(character, anime.title, anime._id)}
                         className="bg-white border-4 border-black shadow-brutal hover:shadow-brutal-lg transition-all cursor-pointer touch-target"
                       >
                         <div className="aspect-[3/4] bg-gray-200 border-b-3 border-black relative overflow-hidden">
