@@ -525,7 +525,6 @@ export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
         await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
             animeId: args.animeIdInOurDB,
             updates,
-            sourceApi: 'enhanced_fallback_apis',
         });
 
         return {
@@ -578,7 +577,7 @@ export const batchEnhanceAnimeWithFallbacks = internalAction({
     
     console.log(`[Enhanced Batch Processing] Starting enhanced batch processing...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     const animeNeedingEnhancement = allAnime
       .filter((anime: Doc<"anime">) => {
@@ -1065,7 +1064,6 @@ export const triggerFetchExternalAnimeDetails = internalAction({
             await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
               animeId: args.animeIdInOurDB,
               updates: updatesForMutation,
-              sourceApi: sourceApiUsed,
             });
             const episodeCount = mappedData.streamingEpisodes?.length || 0;
             const characterCount = mappedData.characters?.length || 0;
@@ -1156,7 +1154,7 @@ export const batchUpdateEpisodeDataForAllAnime = internalAction({
     
     console.log(`[Episode Batch Update] Starting batch update for anime episode data...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     const animeNeedingEpisodeUpdate = allAnime
       .filter((anime: Doc<"anime">) => {
@@ -1246,7 +1244,7 @@ export const enhanceExistingAnimePosters = internalAction({
     console.log("[Poster Enhancement] Starting batch enhancement of existing anime posters...");
     
     // Get anime with potentially low-quality posters
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     const animesToEnhance = allAnime.filter(anime => {
       const poster = anime.posterUrl;
       // Target placeholder images or very old/low quality URLs
@@ -1398,7 +1396,7 @@ export const enhanceExistingAnimePostersBetter = internalAction({
   handler: async (ctx: ActionCtx): Promise<void> => {
     console.log("[Enhanced Poster Enhancement] Starting TMDB-enabled poster enhancement...");
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     const animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
       const poster = anime.posterUrl;
       // Include anime with ANY existing poster for potential TMDB upgrade
@@ -1548,7 +1546,7 @@ export const manualPosterEnhancement = action({
     const prioritizeWorst = args.prioritizeWorst ?? true;
     
     // Get anime needing enhancement
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     let animesToEnhance = allAnime.filter((anime: Doc<"anime">) => {
       const poster = anime.posterUrl;
       return !poster || 
@@ -1639,7 +1637,7 @@ export const checkPosterQuality = action({
       animeToCheck = animeResults.filter((anime): anime is Doc<"anime"> => anime !== null);
     } else {
       // Check random sample
-      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
       animeToCheck = allAnime.slice(0, limit);
     }
 
@@ -1702,7 +1700,7 @@ export const checkPosterQuality = action({
 export const getPosterQualityStats = action({
   args: {},
   handler: async (ctx: ActionCtx): Promise<PosterStatsResult> => {
-        const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+        const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     const stats: PosterStats = {
       total: allAnime.length,
@@ -1772,7 +1770,7 @@ export const testPosterEnhancementSample = action({
     
     console.log(`[Test Poster Enhancement] Testing on ${sampleSize} anime sample...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     const animesToTest = allAnime
       .filter((anime: Doc<"anime">) => !anime.posterUrl || anime.posterUrl.includes('placeholder'))
       .slice(0, sampleSize);
@@ -1840,7 +1838,7 @@ export const quickFixPlaceholderPosters = action({
     
     console.log(`[Quick Fix] Finding anime with placeholder posters...`);
     
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     const placeholderAnime = allAnime
       .filter((anime: Doc<"anime">) => anime.posterUrl && anime.posterUrl.includes('placehold'))
       .slice(0, limit);
@@ -2629,7 +2627,7 @@ export const fetchStudioGhibliAnime = action({
   handler: async (ctx: ActionCtx, args) => {
     const limit = args.limit ?? 100;
     
-    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     const ghibliAnime = allAnime.filter(anime => {
       const studios = anime.studios || [];
@@ -2685,7 +2683,7 @@ export const fetchMadhouseAnime = action({
     console.log(`[Madhouse] Fetching from database only...`);
     
     // Get all anime from database
-    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     // Filter for Madhouse works
     const madhouseAnime = allAnime.filter(anime => {
@@ -2750,7 +2748,7 @@ export const fetchMappaAnime = action({
     console.log(`[MAPPA] Fetching from database only...`);
     
     // Get all anime from database
-    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     // Filter for MAPPA works
     const mappaAnime = allAnime.filter(anime => {
@@ -2814,7 +2812,7 @@ export const fetchBonesAnime = action({
     console.log(`[Bones] Fetching from database only...`);
     
     // Get all anime from database
-    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     // Filter for Bones works
     const bonesAnime = allAnime.filter(anime => {
@@ -2879,7 +2877,7 @@ export const fetchKyotoAnimationAnime = action({
     console.log(`[Kyoto Animation] Fetching from database only...`);
     
     // Get all anime from database
-    const allAnime = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     // Filter for Kyoto Animation works
     const kyoaniAnime = allAnime.filter(anime => {

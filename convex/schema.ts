@@ -281,6 +281,7 @@ const applicationTables = {
         url: v.string(),
       })))
     }))),
+    alternateTitles: v.optional(v.array(v.string())), // NEW: Alternate titles for Japanese names or other variations
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])

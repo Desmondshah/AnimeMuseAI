@@ -1,6 +1,6 @@
 // Enhanced DiscoverPage.tsx with BRUTALIST AESTHETIC and Mobile-First Design
-import React, { useState, useEffect, useCallback, memo } from "react";
-import { usePaginatedQuery, useQuery, useAction } from "convex/react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../convex/_generated/dataModel";
 import AnimeCard from "../AnimeCard";
@@ -96,12 +96,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     minReviews: undefined, studios: [], themes: [], emotionalTags: [],
   });
   
-  // Poster enhancement state
-  const [isEnhancingPosters, setIsEnhancingPosters] = useState(false);
-  const [enhancementProgress, setEnhancementProgress] = useState<{current: number; total: number} | null>(null);
-
   const filterOptions = useQuery(api.anime.getFilterOptions);
-  const enhanceBatchPosters = useAction(api.externalApis.callBatchEnhanceVisibleAnimePosters);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
@@ -135,7 +130,19 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
     { initialNumItems: 20 }
   );
 
-  const filteredAnimeList = animeList;
+  const deduplicatedAnimeList = useMemo(() => {
+    const seenTitles = new Set();
+    return animeList.filter(anime => {
+      const normalizedTitle = anime.title.trim().toLowerCase();
+      if (seenTitles.has(normalizedTitle)) {
+        return false;
+      }
+      seenTitles.add(normalizedTitle);
+      return true;
+    });
+  }, [animeList]);
+
+  const filteredAnimeList = deduplicatedAnimeList;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -150,41 +157,6 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
   const clearFilters = useCallback(() => setFilters({ genres: [], yearRange: {}, ratingRange: {}, userRatingRange: {}, minReviews: undefined, studios: [], themes: [], emotionalTags: [] }), []);
   const clearSearch = useCallback(() => { setSearchQuery(""); setDebouncedSearchQuery(""); }, []);
   const clearAll = useCallback(() => { clearFilters(); clearSearch(); }, [clearFilters, clearSearch]);
-
-  // Poster enhancement function
-  const handleEnhancePosters = useCallback(async () => {
-    if (!filteredAnimeList || filteredAnimeList.length === 0) {
-      toast.error("No anime to enhance!");
-      return;
-    }
-
-    setIsEnhancingPosters(true);
-    setEnhancementProgress({ current: 0, total: filteredAnimeList.length });
-
-    const toastId = "enhance-posters";
-    toast.loading("Enhancing anime posters...", { id: toastId });
-
-    try {
-      const animeIds = filteredAnimeList.slice(0, 24).map(anime => anime._id);
-      
-      const result = await enhanceBatchPosters({
-        animeIds: animeIds,
-        messageId: `batch-enhance-${Date.now()}`
-      });
-
-      if (result.error) {
-        toast.error(`Enhancement failed: ${result.error}`, { id: toastId });
-      } else {
-        toast.success(`Enhanced ${result.enhancedCount} out of ${animeIds.length} anime posters!`, { id: toastId });
-      }
-    } catch (error: any) {
-      console.error("Poster enhancement error:", error);
-      toast.error(`Enhancement failed: ${error.message}`, { id: toastId });
-    } finally {
-      setIsEnhancingPosters(false);
-      setEnhancementProgress(null);
-    }
-  }, [filteredAnimeList, enhanceBatchPosters]);
 
   const activeFilterCount = Object.values(filters).reduce((acc, value) => Array.isArray(value) ? acc + value.length : typeof value === 'object' ? acc + Object.values(value).filter(v => v !== undefined).length : value !== undefined ? acc + 1 : acc, 0);
   const hasActiveFilters = activeFilterCount > 0;
@@ -237,35 +209,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
                 ← BACK
               </button>
             )}
-            
-            <button
-              onClick={handleEnhancePosters}
-              disabled={isEnhancingPosters || !filteredAnimeList || filteredAnimeList.length === 0}
-              className={`border-4 border-black px-6 py-3 font-black uppercase tracking-wider shadow-brutal transition-all active:scale-95 ${
-                isEnhancingPosters 
-                  ? 'bg-gray-300 text-gray-600' 
-                  : 'bg-brand-accent-gold text-black hover:bg-yellow-400'
-              }`}
-            >
-              {isEnhancingPosters ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-black bg-white animate-spin"></div>
-                  ENHANCING...
-                </span>
-              ) : (
-                "🖼️ ENHANCE POSTERS"
-              )}
-            </button>
           </div>
-          
-          {/* Enhancement Progress */}
-          {enhancementProgress && (
-            <div className="mt-4 bg-white border-4 border-black p-4 text-center">
-              <span className="text-black font-black uppercase">
-                ENHANCING: {enhancementProgress.current}/{enhancementProgress.total}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* BRUTAL SEARCH SECTION */}

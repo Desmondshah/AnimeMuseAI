@@ -61,27 +61,25 @@ interface EnhancedCharacter {
   fanReception?: string;
   culturalSignificance?: string;
   enrichmentTimestamp?: number;
-  
+
   // Manual admin enrichment protection
   manuallyEnrichedByAdmin?: boolean;
   manualEnrichmentTimestamp?: number;
   manualEnrichmentAdminId?: Id<"users">;
 }
 
-interface CharacterDetailPageProps {
-  character: EnhancedCharacter;
-  animeName: string;
-  animeId?: Id<"anime"> | null;
-  onBack: () => void;
-}
+// Standalone validation function
+const validateEnhancedCharacter = (character: EnhancedCharacter): boolean => {
+  return !!character.name && !!character.role && typeof character.name === 'string' && typeof character.role === 'string';
+};
 
 // Brutalist Loading Component
-const BrutalistLoader: React.FC<{ message?: string }> = ({ message = "LOADING..." }) => (
-  <div className="bg-black border-4 border-white shadow-brutal-lg p-8 text-center">
-    <div className="text-white font-black text-4xl mb-4 animate-pulse">⚡</div>
-    <h3 className="text-white font-black uppercase text-lg">{message}</h3>
-    <div className="mt-4 bg-white h-2 border-2 border-black">
-      <div className="bg-brand-primary-action h-full animate-pulse"></div>
+const BrutalistLoader: React.FC<{ message?: string; theme?: "light" | "dark" }> = ({ message = "LOADING...", theme = "dark" }) => (
+  <div className={`bg-${theme === "dark" ? "black" : "white"} border-4 border-${theme === "dark" ? "white" : "black"} shadow-brutal-lg p-8 text-center`}>
+    <div className={`text-${theme === "dark" ? "white" : "black"} font-black text-4xl mb-4 animate-pulse`}>⚡</div>
+    <h3 className={`text-${theme === "dark" ? "white" : "black"} font-black uppercase text-lg`}>{message}</h3>
+    <div className={`mt-4 bg-${theme === "dark" ? "white" : "black"} h-2 border-2 border-${theme === "dark" ? "black" : "white"}`}>
+      <div className={`bg-brand-primary-action h-full animate-pulse`}></div>
     </div>
   </div>
 );
@@ -99,10 +97,10 @@ const AdminEnrichmentButton: React.FC<{
   
   const handleEnrichment = async () => {
     setIsEnriching(true);
-    
+
     try {
       toast.info("🤖 Starting admin AI enrichment process...", { duration: 3000 });
-      
+
       const result = await adminManualEnrichmentAction({
         characterName: character.name,
         animeName: animeName,
@@ -117,31 +115,34 @@ const AdminEnrichmentButton: React.FC<{
         },
       });
 
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response from enrichment action');
+      }
+
       if (result.error) {
         toast.error(`❌ Admin enrichment failed: ${result.error}`);
         return;
       }
 
-      if (result.success) {
+      if (result.success && result.enrichedData) {
         toast.success(`🎉 ${result.message}`, { duration: 5000 });
-        
-        // Update the character with the new data and mark as manually enriched
+
         const enrichedCharacter = {
           ...character,
-          ...result.enrichedData, // Add the actual enriched data from the API response
+          ...result.enrichedData,
           enrichmentStatus: "success" as const,
           enrichmentTimestamp: Date.now(),
           manuallyEnrichedByAdmin: true,
           manualEnrichmentTimestamp: Date.now(),
         };
-        
+
         onEnrichmentComplete(enrichedCharacter);
-        
+
         toast.info(`🔒 Character "${character.name}" is now permanently protected from automatic AI override`, { duration: 4000 });
       } else {
-        toast.warning(`⚠️ ${result.message}`);
+        toast.warning(`⚠️ ${result.message || 'Unexpected response from enrichment action'}`);
       }
-      
+
     } catch (error) {
       console.error("Admin character enrichment failed:", error);
       toast.error(`❌ Failed to enrich ${character.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -152,14 +153,18 @@ const AdminEnrichmentButton: React.FC<{
 
   const handleClearCache = async () => {
     setIsClearingCache(true);
-    
+
     try {
       toast.info("🗑️ Clearing AI cache...", { duration: 2000 });
-      
+
       const result = await clearCacheAction({
         characterName: character.name,
         animeName: animeName,
       });
+
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response from cache clearing action');
+      }
 
       if (result.error) {
         toast.error(`❌ Failed to clear cache: ${result.error}`);
@@ -169,9 +174,9 @@ const AdminEnrichmentButton: React.FC<{
       if (result.success) {
         toast.success(`✅ ${result.message}`, { duration: 4000 });
       } else {
-        toast.warning(`⚠️ ${result.message}`);
+        toast.warning(`⚠️ ${result.message || 'Unexpected response from cache clearing action'}`);
       }
-      
+
     } catch (error) {
       console.error("Clear cache failed:", error);
       toast.error(`❌ Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -456,7 +461,7 @@ const OverviewSection: React.FC<{
 
   const handleClearCache = async () => {
     setIsClearingCache(true);
-    
+
     try {
       toast.info("🗑️ Clearing AI cache...", { duration: 2000 });
       
@@ -464,6 +469,10 @@ const OverviewSection: React.FC<{
         characterName: character.name,
         animeName: animeName,
       });
+
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid response from cache clearing action');
+      }
 
       if (result.error) {
         toast.error(`❌ Failed to clear cache: ${result.error}`);
@@ -473,7 +482,7 @@ const OverviewSection: React.FC<{
       if (result.success) {
         toast.success(`✅ ${result.message}`, { duration: 4000 });
       } else {
-        toast.warning(`⚠️ ${result.message}`);
+        toast.warning(`⚠️ ${result.message || 'Unexpected response from cache clearing action'}`);
       }
       
     } catch (error) {
@@ -735,6 +744,14 @@ const OverviewSection: React.FC<{
   </div>
   );
 };
+
+// Ensure CharacterDetailPageProps is properly defined and exported
+export interface CharacterDetailPageProps {
+  character: EnhancedCharacter;
+  animeName: string;
+  animeId?: Id<"anime"> | null;
+  onBack: () => void;
+}
 
 // Main Component
 export default function CharacterDetailPage({ character: initialCharacter, animeName, animeId, onBack }: CharacterDetailPageProps) {

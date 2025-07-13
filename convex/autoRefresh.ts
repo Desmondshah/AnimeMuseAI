@@ -337,7 +337,7 @@ export const batchSmartAutoRefresh = internalAction({
       animeToProcess = animeResults.filter((anime): anime is Doc<"anime"> => anime !== null);
     } else {
       // Get all anime and filter by priority
-      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+      const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
       
       // Calculate priorities and filter
       const animeWithPriorities: AnimeWithPriority[] = allAnime.map((anime: Doc<"anime">) => ({
@@ -492,7 +492,7 @@ export const bulkFixMissingEpisodeData = action({
     console.log(`[Bulk Episode Fix] ${dryRun ? 'DRY RUN - ' : ''}Finding anime missing episode data...`);
     
     // Get all anime and find those missing episode data
-    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.anime.getAllAnimeInternal, {});
+    const allAnime: Doc<"anime">[] = await ctx.runQuery(internal.ai.getAllAnimeInternal, {});
     
     const animeMissingEpisodes = allAnime
       .map((anime: Doc<"anime">) => ({

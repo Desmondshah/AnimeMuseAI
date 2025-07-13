@@ -2499,7 +2499,7 @@ const enhanceRecommendationsWithAutoAdd = async (
           // If no exact match, try fuzzy search
           if (!dbAnime) {
             try {
-              const searchResults = await ctx.runQuery(internal.anime.getFilteredAnime, {
+              const searchResults = await ctx.runQuery(internal.anime.getFilteredAnimeInternal, {
                 paginationOpts: { numItems: 20, cursor: null },
                 searchTerm: rec.title
               });

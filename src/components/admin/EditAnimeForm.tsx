@@ -38,6 +38,7 @@ interface AnimeBackendUpdates {
   themes?: string[];
   anilistId?: number;
   myAnimeListId?: number;
+  alternateTitles?: string[]; // NEW: Alternate titles
 }
 
 interface AnimeProp {
@@ -59,6 +60,7 @@ interface AnimeProp {
   } | null;
   anilistId?: number | null;
   myAnimeListId?: number | null;
+  alternateTitles?: string[] | null; // NEW: Alternate titles
 }
 
 interface EditAnimeFormProps {
@@ -316,6 +318,53 @@ const BrutalistAutoResizeTextarea: React.FC<{
   );
 });
 
+// Add alternate titles section
+const AlternateTitlesSection: React.FC<{
+  alternateTitles: string[];
+  onAddTitle: (title: string) => void;
+  onRemoveTitle: (title: string) => void;
+}> = ({ alternateTitles, onAddTitle, onRemoveTitle }) => {
+  const [newTitle, setNewTitle] = useState("");
+
+  return (
+    <BrutalistFormSection title="Alternate Titles" icon="🈶">
+      <div className="flex flex-col gap-4">
+        <ul className="list-disc pl-5">
+          {alternateTitles.map((title, index) => (
+            <li key={index} className="flex justify-between items-center">
+              <span>{title}</span>
+              <StyledButton
+                onClick={() => onRemoveTitle(title)}
+                className="bg-red-500 text-white"
+              >
+                Remove
+              </StyledButton>
+            </li>
+          ))}
+        </ul>
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Add new title"
+            className="w-full border-2 border-black p-2 bg-white text-black"
+          />
+          <StyledButton
+            onClick={() => {
+              onAddTitle(newTitle);
+              setNewTitle("");
+            }}
+            className="bg-green-500 text-white"
+          >
+            Add
+          </StyledButton>
+        </div>
+      </div>
+    </BrutalistFormSection>
+  );
+};
+
 const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, onCancel, isSaving }) => {
   const { shouldReduceAnimations, isMobile, iPad, isLandscape } = useMobileOptimizations();
   const { getGridClasses } = useAdminLayoutOptimization();
@@ -340,6 +389,8 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
     anilistId: anime.anilistId || "",
     myAnimeListId: anime.myAnimeListId || "",
   });
+
+  const [alternateTitles, setAlternateTitles] = useState<string[]>(anime.alternateTitles || []);
 
   useEffect(() => {
     setFormData({
@@ -410,46 +461,19 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
     setFormData(prev => ({ ...prev, [fieldName]: e.target.value === "" ? "" : parseFloat(e.target.value) }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
-    const updates: AnimeBackendUpdates = {};
-    let changesFound = false;
 
-    const currentFormKeys = Object.keys(formData) as Array<keyof FormDataShape>;
+    // Ensure year is converted to number or undefined
+    const updates: AnimeBackendUpdates = {
+      ...formData,
+      year: formData.year === "" ? undefined : formData.year,
+      rating: formData.rating === "" ? undefined : formData.rating,
+      anilistId: formData.anilistId === "" ? undefined : formData.anilistId,
+      myAnimeListId: formData.myAnimeListId === "" ? undefined : formData.myAnimeListId,
+      alternateTitles: alternateTitles.length > 0 ? alternateTitles : undefined,
+    };
 
-    for (const key of currentFormKeys) {
-      const formValue = formData[key];
-      const originalValue = anime[key as keyof AnimeProp];
-
-      if (key === "title" || key === "description" || key === "posterUrl" || key === "trailerUrl") {
-        const currentVal = formValue as string;
-        const originalVal = (originalValue as string | null | undefined) || "";
-        if (currentVal !== originalVal) {
-          updates[key] = currentVal;
-          changesFound = true;
-        }
-      } else if (key === "year" || key === "rating" || key === "anilistId" || key === "myAnimeListId") {
-        const currentNumVal = formValue === "" || formValue === undefined ? undefined : Number(formValue);
-        const originalNumVal = originalValue === null || originalValue === undefined ? undefined : Number(originalValue);
-        if (currentNumVal !== originalNumVal) {
-          updates[key] = currentNumVal;
-          changesFound = true;
-        }
-      } else if (key === "genres" || key === "emotionalTags" || key === "studios" || key === "themes") {
-        const currentArrayVal = formValue as string[];
-        const originalArrayVal = (originalValue as string[] | null | undefined) || [];
-        if (JSON.stringify(currentArrayVal.slice().sort()) !== JSON.stringify(originalArrayVal.slice().sort())) {
-          updates[key] = currentArrayVal;
-          changesFound = true;
-        }
-      }
-    }
-    
-    if (!changesFound) {
-      toast.info("No changes detected to save.");
-      onCancel(); 
-      return;
-    }
     await onSave(anime._id, updates);
   };
 
@@ -785,7 +809,7 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className={`${
+      <form onSubmit={handleSave} className={`${
         iPad.isIPadMini ? 'space-y-4' : iPad.isIPadPro12 ? 'space-y-8' : 'space-y-6'
       }`}>
         {/* Basic Information Section */}
@@ -993,6 +1017,13 @@ const EditAnimeFormComponent: React.FC<EditAnimeFormProps> = ({ anime, onSave, o
             </div>
           </div>
         </BrutalistFormSection>
+
+        {/* Alternate Titles Section */}
+        <AlternateTitlesSection
+          alternateTitles={alternateTitles}
+          onAddTitle={(title) => setAlternateTitles((prev) => [...prev, title])}
+          onRemoveTitle={(title) => setAlternateTitles((prev) => prev.filter((t) => t !== title))}
+        />
 
         {/* Action Buttons - iPad Optimized */}
         <div className={`flex pt-6 ${

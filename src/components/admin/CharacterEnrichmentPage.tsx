@@ -93,10 +93,13 @@ const CharacterEnrichmentPage: React.FC = () => {
   });
 
   // Queries
-  const animeWithCharacters = useQuery(api.anime.getAllAnimeWithCharacters, {
+  const animeWithCharactersResult = useQuery(api.anime.getAllAnimeWithCharacters, {
     limit: 50,
     includeEnrichmentStats: true,
-  }) as AnimeEnrichmentData[] | undefined;
+  });
+  
+  // Extract the page array from the pagination result
+  const animeWithCharacters = animeWithCharactersResult?.page as AnimeEnrichmentData[] | undefined;
 
   // Cache statistics state
   const [showCacheStats, setShowCacheStats] = useState(false);
@@ -128,7 +131,7 @@ const CharacterEnrichmentPage: React.FC = () => {
 
   // Calculate overall stats
   const overallStats = useMemo<EnrichmentStats>(() => {
-    if (!animeWithCharacters) {
+    if (!animeWithCharacters || !Array.isArray(animeWithCharacters)) {
       return {
         totalCharacters: 0,
         enrichedCharacters: 0,

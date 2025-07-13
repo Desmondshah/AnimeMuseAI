@@ -178,20 +178,20 @@ crons.weekly(
 );
 
 // Daily job to enrich episode previews via Jikan
-crons.daily(
-  "enrichEpisodePreviewsYouTube",
-  { hourUTC: 5, minuteUTC: 30 },
-  internal.anime.batchEnrichEpisodesWithYouTubePreviews,
-  { maxAnimeToProcess: 15 } // Process 15 anime per day
-);
+// crons.daily(
+//   "enrichEpisodePreviewsYouTube",
+//   { hourUTC: 5, minuteUTC: 30 },
+//   internal.anime.batchEnrichEpisodesWithYouTubePreviews,
+//   { maxAnimeToProcess: 15 } // Process 15 anime per day
+// );
 
-// Daily job to deduplicate anime database
-crons.daily(
-  "deduplicateAnimeDatabase",
-  { hourUTC: 6, minuteUTC: 0 },
-  internal.anime.deduplicateAnimeDatabase,
-  {}
-);
+// Daily job to deduplicate anime database - DISABLED (function not implemented)
+// crons.daily(
+//   "deduplicateAnimeDatabase",
+//   { hourUTC: 6, minuteUTC: 0 },
+//   internal.anime.deduplicateAnimeDatabase,
+//   {}
+// );
 
 // ===== STUDIO CACHE REFRESH =====
 // NOTE: Studio pages now use database-only approach - no external API calls needed

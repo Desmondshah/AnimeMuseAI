@@ -1044,6 +1044,7 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   const deleteAnimeMutation = useMutation(api.admin.adminDeleteAnime);
   const saveAnimeMutation = useMutation(api.admin.adminEditAnime);
   const saveCharactersMutation = useMutation(api.admin.adminUpdateAnimeCharacters);
+  const bulkProtectMutation = useMutation(api.admin.adminBulkProtectAllAnimeFields);
   
   // Character enrichment action
   const enrichSingleAnime = useAction(api.characterEnrichment.enrichAnimeCharacters);
@@ -1062,6 +1063,7 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
   const [enrichingCharacterIndex, setEnrichingCharacterIndex] = useState<number | null>(null);
   const [editingCharacter, setEditingCharacter] = useState<{ character: any; index: number } | null>(null);
   const [savingCharacter, setSavingCharacter] = useState<number | null>(null);
+  const [isBulkProtecting, setIsBulkProtecting] = useState(false);
 
   const {
     results: animeList,
@@ -1177,6 +1179,25 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
 
   const handleEditCharacter = (character: any, index: number) => {
     setEditingCharacter({ character, index });
+  };
+
+  const handleBulkProtectAllFields = async () => {
+    if (!window.confirm("This will protect ALL fields for ALL anime from auto-refresh. This is a one-time fix for the protection bug. Continue?")) {
+      return;
+    }
+    
+    setIsBulkProtecting(true);
+    const toastId = "bulk-protect";
+    toast.loading("Protecting all anime fields...", { id: toastId });
+    
+    try {
+      const result = await bulkProtectMutation({});
+      toast.success(result.message, { id: toastId, duration: 8000 });
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to bulk protect fields", { id: toastId });
+    } finally {
+      setIsBulkProtecting(false);
+    }
   };
 
   const handleSaveCharacterEdit = async (updatedCharacter: any) => {
@@ -1362,6 +1383,22 @@ const EnhancedAnimeManagementPageComponent: React.FC = () => {
               className="bg-blue-500 text-white hover:bg-blue-600 border-4 border-blue-500 px-12 py-6 font-black uppercase tracking-wide transition-colors text-xl" // LARGER buttons
             >
               📦 BATCH IMPORT
+            </button>
+            <button
+              onClick={handleBulkProtectAllFields}
+              disabled={isBulkProtecting}
+              className="bg-red-500 text-white hover:bg-red-600 border-4 border-red-500 px-12 py-6 font-black uppercase tracking-wide transition-colors text-xl disabled:opacity-50" // LARGER buttons
+            >
+              {isBulkProtecting ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin">⚙️</span>
+                  PROTECTING...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  🛡️ BULK PROTECT ALL
+                </span>
+              )}
             </button>
           </div>
         </div>

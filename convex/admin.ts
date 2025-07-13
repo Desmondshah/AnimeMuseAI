@@ -241,6 +241,7 @@ export const adminEditAnime = mutation({
       trailerUrl: v.optional(v.string()),
       studios: v.optional(v.array(v.string())),
       themes: v.optional(v.array(v.string())),
+      alternateTitles: v.optional(v.array(v.string())),
       averageUserRating: v.optional(v.number()),
       reviewCount: v.optional(v.number()),
       anilistId: v.optional(v.number()),
@@ -280,6 +281,7 @@ export const adminEditAnime = mutation({
       }))),
     }),
   },
+  returns: v.id("anime"),
   handler: async (ctx, args) => {
     const adminUserId = await assertAdmin(ctx);
     const { animeId, updates } = args;
@@ -330,10 +332,14 @@ export const adminEditAnime = mutation({
     // Add protection against auto-refresh overwriting manual edits
     const fieldsEdited = changes.map(change => change.field);
     if (fieldsEdited.length > 0) {
+      // Get existing protected fields and merge with new fields
+      const existingProtectedFields = currentAnime.lastManualEdit?.fieldsEdited || [];
+      const allProtectedFields = [...new Set([...existingProtectedFields, ...fieldsEdited])];
+      
       (definedUpdates as any).lastManualEdit = {
         adminUserId,
         timestamp: Date.now(),
-        fieldsEdited,
+        fieldsEdited: allProtectedFields,
       };
     }
     
@@ -660,6 +666,147 @@ export const adminSetUserAdminStatus = mutation({
         console.log(`Admin status for user ${args.targetUserId} set to ${args.isAdmin} by admin ${currentAdminUserId}.`);
         return { success: true, message: `User admin status updated.` };
     }
+});
+
+// Bulk protect all fields across all animes (for fixing the protection bug)
+export const adminBulkProtectAllAnimeFields = mutation({
+  args: {
+    batchSize: v.optional(v.number()), // Default to 50 if not provided
+  },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    protectedCount: v.number(),
+    skippedCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const adminUserId = await assertAdmin(ctx);
+    const batchSize = args.batchSize || 50;
+    
+    // Get total count first
+    const totalAnime = await ctx.db.query("anime").collect();
+    const totalCount = totalAnime.length;
+    
+    if (totalCount === 0) {
+      return {
+        success: true,
+        message: "No anime found to protect.",
+        protectedCount: 0,
+        skippedCount: 0,
+        totalAnime: 0
+      };
+    }
+    
+    // Process in batches to avoid memory limits
+    let processedCount = 0;
+    let protectedCount = 0;
+    let skippedCount = 0;
+    
+    // All fields that can be protected
+    const allProtectableFields = [
+      'title',
+      'description', 
+      'posterUrl',
+      'genres',
+      'year',
+      'rating',
+      'emotionalTags',
+      'trailerUrl',
+      'studios',
+      'themes',
+      'alternateTitles',
+      'averageUserRating',
+      'reviewCount',
+      'anilistId',
+      'myAnimeListId',
+      'totalEpisodes',
+      'episodeDuration',
+      'airingStatus',
+      'nextAiringEpisode',
+      'streamingEpisodes',
+      'episodes'
+    ];
+    
+    // Process in batches using cursor-based pagination
+    let lastId: Id<"anime"> | undefined = undefined;
+    let hasMore = true;
+    
+    while (hasMore) {
+      let queryBuilder = ctx.db.query("anime").order("asc");
+
+      // If we have a last ID, start after it
+      if (lastId) {
+        queryBuilder = queryBuilder.filter((q) => q.gt(q.field("_id"), lastId as Id<"anime">));
+      }
+
+      const batch = await queryBuilder.take(batchSize);
+
+      if (batch.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      for (const anime of batch) {
+        // Check if anime already has protection
+        const currentProtectedFields = anime.lastManualEdit?.fieldsEdited || [];
+
+        // If all fields are already protected, skip
+        if (currentProtectedFields.length === allProtectableFields.length) {
+          skippedCount++;
+        } else {
+          // Merge existing protected fields with all protectable fields
+          const allProtectedFields = [...new Set([...currentProtectedFields, ...allProtectableFields])];
+          
+          // Update the anime with full protection
+          await ctx.db.patch(anime._id, {
+            lastManualEdit: {
+              adminUserId,
+              timestamp: Date.now(),
+              fieldsEdited: allProtectedFields,
+            }
+          });
+          
+          protectedCount++;
+        }
+        
+        processedCount++;
+        lastId = anime._id;
+      }
+      
+      // If we got fewer results than batch size, we're done
+      if (batch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+    
+    // Get admin user info for logging
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+    
+    // Log the bulk operation
+    await trackChange(
+      ctx,
+      adminUserId,
+      adminUserName,
+      "anime",
+      "bulk" as any, // Special identifier for bulk operations
+      "All Anime",
+      "bulk_update",
+      [{
+        field: "lastManualEdit",
+        oldValue: "various",
+        newValue: "all fields protected",
+        changeDescription: `Bulk protected all fields for ${protectedCount} anime (${skippedCount} already fully protected) out of ${totalCount} total`
+      }]
+    );
+    
+    return {
+      success: true,
+      message: `Bulk protection completed! ${protectedCount} anime updated, ${skippedCount} already fully protected.`,
+      protectedCount,
+      skippedCount,
+    };
+  },
 });
 
 // Reset auto-refresh protection for specific fields (allow auto-refresh to update them again)
