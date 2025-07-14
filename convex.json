@@ -1,14 +1,6 @@
 {
-  "project": "academic-mammoth-217",
-  "team": "academic-mammoth-217",
-  "prodUrl": "https://academic-mammoth-217.convex.cloud",
-  "functions": {
-    "config": {
-      "schema": "./convex/schema.ts"
-    }
-  },
   "auth": {
-    "domain": "academic-mammoth-217.convex.cloud",
-    "applicationID": "academic-mammoth-217"
+    "domain": "glad-wolf-707.convex.cloud",
+    "applicationID": "glad-wolf-707"
   }
-} 
+}
