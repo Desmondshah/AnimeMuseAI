@@ -15,6 +15,7 @@ interface ExternalApiResult {
   message: string;
   details?: any;
   source?: string;
+  protectedFields?: string[];
 }
 
 interface EnhancedBatchResult {
@@ -522,16 +523,22 @@ export const triggerFetchExternalAnimeDetailsEnhanced = internalAction({
             source: 'enhanced_fallback_apis',
         };
 
-        await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+        const updateResult = await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
             animeId: args.animeIdInOurDB,
             updates,
         });
 
+        let protectionMessage = '';
+        if (updateResult.protectedFields && updateResult.protectedFields.length > 0) {
+          protectionMessage = ` (${updateResult.protectedFields.length} protected fields skipped)`;
+        }
+
         return {
             success: true,
-            message: `Enhanced ${enhancementCount} data fields: ${sources.join(', ')}`,
+            message: `Enhanced ${enhancementCount} data fields: ${sources.join(', ')}${protectionMessage}`,
             source: 'enhanced_fallback_apis',
-            details: { enhanced: sources, posterUpgraded: enhancedPosterUrl !== existingAnime.posterUrl }
+            details: { enhanced: sources, posterUpgraded: enhancedPosterUrl !== existingAnime.posterUrl },
+            protectedFields: updateResult.protectedFields
         };
     }
 
@@ -1061,15 +1068,28 @@ export const triggerFetchExternalAnimeDetails = internalAction({
         const updatesForMutation: Partial<Omit<Doc<"anime">, "title" | "_id" | "_creationTime">> = { ...mappedData };
 
         if (Object.keys(updatesForMutation).length > 0) {
-            await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
+            const updateResult = await ctx.runMutation(internal.anime.updateAnimeWithExternalData, {
               animeId: args.animeIdInOurDB,
               updates: updatesForMutation,
             });
+            
             const episodeCount = mappedData.streamingEpisodes?.length || 0;
             const characterCount = mappedData.characters?.length || 0;
             const episodeMessage = episodeCount > 0 ? ` (${episodeCount} episodes)` : '';
             const characterMessage = characterCount > 0 ? ` (${characterCount} characters)` : '';
-            return { success: true, message: `High-quality data from ${sourceApiUsed} applied${episodeMessage}${characterMessage}.`, source: sourceApiUsed };
+            
+            // Include protection information in the response
+            let protectionMessage = '';
+            if (updateResult.protectedFields && updateResult.protectedFields.length > 0) {
+              protectionMessage = ` (${updateResult.protectedFields.length} protected fields skipped)`;
+            }
+            
+            return { 
+              success: true, 
+              message: `High-quality data from ${sourceApiUsed} applied${episodeMessage}${characterMessage}${protectionMessage}.`, 
+              source: sourceApiUsed,
+              protectedFields: updateResult.protectedFields 
+            };
         } else {
             return { success: true, message: `No new data from ${sourceApiUsed} to update.`, source: sourceApiUsed };
         }
@@ -2296,6 +2316,18 @@ export const fetchTrendingAnime = action({
         const title = item.title?.romaji || 'Unknown';
         const existing = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title });
         if (existing) continue;
+        
+        // Check if this anime was previously deleted and is protected
+        const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
+          title,
+          anilistId: item.id,
+        });
+        
+        if (isProtected) {
+          console.log(`[Trending Import] Skipping previously deleted anime: "${title}"`);
+          continue;
+        }
+        
         await ctx.runMutation(internal.anime.addAnimeInternal, {
           title,
           description: item.description || '',
@@ -3179,6 +3211,24 @@ export const batchSmartAutoFill = action({
             });
 
             if (!existingAnime) {
+              // Check if this anime was previously deleted and is protected
+              const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
+                title: result.data.title,
+                anilistId: result.data.anilistId,
+                myAnimeListId: result.data.myAnimeListId,
+              });
+              
+              if (isProtected) {
+                console.log(`[Batch Smart Auto-Fill] Skipping previously deleted anime: "${result.data.title}"`);
+                return {
+                  success: false,
+                  error: "Anime was previously deleted by admin",
+                  data: result.data,
+                  anilistId: idPair.anilistId,
+                  myAnimeListId: idPair.myAnimeListId
+                };
+              }
+              
               // Create the anime
               await ctx.runMutation(api.admin.adminCreateAnime, {
                 animeData: {

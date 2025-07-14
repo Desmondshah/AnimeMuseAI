@@ -343,8 +343,11 @@ export const adminEditAnime = mutation({
       };
     }
     
-    // Apply the updates
+    // Apply the updates (including protection metadata)
     await ctx.db.patch(animeId, definedUpdates);
+
+    // Log success
+    console.log(`Anime ${animeId} updated successfully by admin ${adminUserName}.`);
     
     // Log the changes if any were made
     if (changes.length > 0) {
@@ -576,10 +579,61 @@ export const adminCreateAnime = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    const adminUserId = await assertAdmin(ctx);
     const { animeData } = args;
     
-    const animeId = await ctx.db.insert("anime", animeData);
+    // Get admin user info for protection
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+    
+    // Define all fields that should be protected initially
+    const initialProtectedFields = [
+      'title',
+      'description', 
+      'posterUrl',
+      'genres',
+      'year',
+      'rating',
+      'emotionalTags',
+      'trailerUrl',
+      'studios',
+      'themes',
+      'anilistId',
+      'myAnimeListId',
+      'totalEpisodes',
+      'episodeDuration',
+      'airingStatus'
+    ];
+    
+    const animeId = await ctx.db.insert("anime", {
+      ...animeData,
+      // Set initial protection to prevent external API from overwriting admin-created data
+      lastManualEdit: {
+        adminUserId,
+        timestamp: Date.now(),
+        fieldsEdited: initialProtectedFields,
+      },
+    });
+    
+    console.log(`[Admin Create] Set initial protection for "${animeData.title}" - ${initialProtectedFields.length} fields protected from auto-refresh`);
+    
+    // Track the creation
+    await trackChange(
+      ctx,
+      adminUserId,
+      adminUserName,
+      "anime",
+      animeId,
+      animeData.title,
+      "create",
+      [{
+        field: "all",
+        oldValue: undefined,
+        newValue: "Created new anime with initial protection",
+        changeDescription: `Created anime "${animeData.title}" with ${initialProtectedFields.length} fields protected from auto-refresh`
+      }]
+    );
+    
     return animeId;
   },
 });
@@ -588,7 +642,7 @@ export const adminCreateAnime = mutation({
 export const adminDeleteAnime = mutation({
   args: { animeId: v.id("anime") },
   handler: async (ctx, args) => {
-    await assertAdmin(ctx);
+    const adminUserId = await assertAdmin(ctx);
     
     const animeToDelete = await ctx.db.get(args.animeId);
     if (!animeToDelete) throw new Error("Anime not found");
@@ -597,7 +651,11 @@ export const adminDeleteAnime = mutation({
     // 1. Reviews associated with this anime
     const relatedReviews = await ctx.db.query("reviews").withIndex("by_animeId_createdAt", q => q.eq("animeId", args.animeId)).collect();
     for (const review of relatedReviews) {
-      await ctx.db.delete(review._id);
+      try {
+        await ctx.db.delete(review._id);
+      } catch (error) {
+        throw new Error(`Failed to delete review with ID: ${review._id}. Error: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
     // 2. Watchlist entries associated with this anime
@@ -609,12 +667,33 @@ export const adminDeleteAnime = mutation({
         .filter(q => q.eq(q.field("animeId"), args.animeId))
         .collect();
     for (const item of relatedWatchlistItems) {
-      await ctx.db.delete(item._id);
+      try {
+        await ctx.db.delete(item._id);
+      } catch (error) {
+        throw new Error(`Failed to delete watchlist item with ID: ${item._id}. Error: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
-    // Finally, delete the anime itself
-    await ctx.db.delete(args.animeId);
-    console.log(`Admin deleted anime ${args.animeId} and its associated reviews/watchlist items.`);
+    // Add deleted anime to protection list before deleting
+    if (animeToDelete) {
+      await ctx.db.insert("deletedAnimeProtection", {
+        title: animeToDelete.title,
+        anilistId: animeToDelete.anilistId,
+        myAnimeListId: animeToDelete.myAnimeListId,
+        posterUrl: animeToDelete.posterUrl,
+        deletedAt: Date.now(),
+        deletedBy: adminUserId,
+        reason: "Admin deletion",
+      });
+    }
+
+    try {
+      await ctx.db.delete(args.animeId);
+    } catch (error) {
+      throw new Error(`Failed to delete anime with ID: ${args.animeId}. Error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    console.log(`Admin deleted anime ${args.animeId} and its associated reviews/watchlist items. Added to deletion protection.`);
     return true;
   },
 });
@@ -897,6 +976,87 @@ export const adminResetAutoRefreshProtection = mutation({
   },
 });
 
+// Manually set protection for an anime (for fixing anime added before protection fix)
+export const adminSetAnimeProtection = mutation({
+  args: {
+    animeId: v.id("anime"),
+    fieldsToProtect: v.optional(v.array(v.string())), // If not provided, protects all fields
+  },
+  handler: async (ctx, args) => {
+    const adminUserId = await assertAdmin(ctx);
+    const { animeId, fieldsToProtect } = args;
+
+    const anime = await ctx.db.get(animeId);
+    if (!anime) {
+      throw new Error("Anime not found.");
+    }
+
+    // Get admin user info for logging
+    const adminUser = await ctx.db.get(adminUserId);
+    const adminUserName = adminUser?.name || "Unknown Admin";
+
+    // Define all fields that can be protected
+    const allProtectableFields = [
+      'title',
+      'description', 
+      'posterUrl',
+      'genres',
+      'year',
+      'rating',
+      'emotionalTags',
+      'trailerUrl',
+      'studios',
+      'themes',
+      'anilistId',
+      'myAnimeListId',
+      'totalEpisodes',
+      'episodeDuration',
+      'airingStatus'
+    ];
+
+    // Use provided fields or all fields
+    const fieldsToProtectFinal = fieldsToProtect || allProtectableFields;
+
+    // Get existing protected fields and merge with new fields
+    const existingProtectedFields = anime.lastManualEdit?.fieldsEdited || [];
+    const allProtectedFields = [...new Set([...existingProtectedFields, ...fieldsToProtectFinal])];
+
+    // Update the anime with protection
+    await ctx.db.patch(animeId, {
+      lastManualEdit: {
+        adminUserId,
+        timestamp: Date.now(),
+        fieldsEdited: allProtectedFields,
+      }
+    });
+
+    console.log(`[Admin] Set protection for ${anime.title}. Protected fields: ${allProtectedFields.join(', ')}`);
+
+    // Track the change
+    await trackChange(
+      ctx,
+      adminUserId,
+      adminUserName,
+      "anime",
+      animeId,
+      anime.title || "Unknown Anime",
+      "update",
+      [{
+        field: "lastManualEdit",
+        oldValue: existingProtectedFields,
+        newValue: allProtectedFields,
+        changeDescription: `Manually set protection for fields: ${fieldsToProtectFinal.join(', ')}`
+      }]
+    );
+
+    return {
+      success: true,
+      message: `Protection set for ${fieldsToProtectFinal.length} fields`,
+      protectedFields: allProtectedFields
+    };
+  },
+});
+
 // Manual admin character enrichment with permanent protection
 export const adminManualCharacterEnrichment = action({
   args: {
@@ -1113,5 +1273,57 @@ export const clearCharacterEnrichmentCache = action({
         message: `Failed to clear cache: ${error.message || "Unknown error"}`
       };
     }
+  },
+});
+
+// Admin function to view deleted anime protection list
+export const getDeletedAnimeProtectionList = query({
+  args: { paginationOpts: v.any() },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    return await ctx.db.query("deletedAnimeProtection").order("desc").paginate(args.paginationOpts);
+  },
+});
+
+// Admin function to remove anime from deletion protection (allow re-adding)
+export const removeAnimeFromDeletionProtection = mutation({
+  args: { protectionId: v.id("deletedAnimeProtection") },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    
+    const protection = await ctx.db.get(args.protectionId);
+    if (!protection) {
+      throw new Error("Protection entry not found.");
+    }
+    
+    await ctx.db.delete(args.protectionId);
+    console.log(`Admin removed deletion protection for: "${protection.title}"`);
+    return true;
+  },
+});
+
+// Admin function to manually add anime to deletion protection
+export const addAnimeToProtectionList = mutation({
+  args: { 
+    title: v.string(),
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const adminUserId = await assertAdmin(ctx);
+    
+    await ctx.db.insert("deletedAnimeProtection", {
+      title: args.title,
+      anilistId: args.anilistId,
+      myAnimeListId: args.myAnimeListId,
+      posterUrl: undefined,
+      deletedAt: Date.now(),
+      deletedBy: adminUserId,
+      reason: args.reason,
+    });
+    
+    console.log(`Admin added "${args.title}" to deletion protection list`);
+    return true;
   },
 });

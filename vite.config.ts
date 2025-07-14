@@ -40,28 +40,65 @@ window.addEventListener('message', async (message) => {
     // End of code for taking screenshots on chef.convex.dev.
   ].filter(Boolean),
   build: {
-    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'convex-vendor': ['convex/react'],
-          'ui-components': [
-            './src/components/animuse/AnimeCard.tsx',
-            './src/components/animuse/shared/StyledButton.tsx',
-            './src/components/animuse/BottomNavigationBar.tsx'
-          ],
-          'pages': [
-            './src/components/animuse/AIAssistantPage.tsx',
-            './src/components/animuse/AnimeDetailPage.tsx'
-          ]
+        // Optimize bundle names for caching
+        entryFileNames: mode === 'production' ? 'assets/[name]-[hash].js' : '[name].js',
+        chunkFileNames: mode === 'production' ? 'assets/[name]-[hash].js' : '[name].js',
+        assetFileNames: mode === 'production' ? 'assets/[name]-[hash].[ext]' : '[name].[ext]',
+        
+        // Advanced manual chunking for better caching
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/convex') || id.includes('node_modules/@convex-dev')) {
+            return 'convex-vendor';
+          }
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/gsap')) {
+            return 'animation-vendor';
+          }
+          if (id.includes('node_modules/openai') || id.includes('node_modules/@openai')) {
+            return 'ai-vendor';
+          }
+          if (id.includes('node_modules/')) {
+            return 'vendor';
+          }
+          
+          // App chunks
+          if (id.includes('src/components/admin/')) {
+            return 'admin';
+          }
+          if (id.includes('src/components/auth/')) {
+            return 'auth';
+          }
+          if (id.includes('src/components/animuse/') && 
+              (id.includes('AnimeDetailPage') || id.includes('AIAssistantPage'))) {
+            return 'pages';
+          }
+          if (id.includes('src/components/animuse/')) {
+            return 'ui-components';
+          }
+          if (id.includes('src/hooks/')) {
+            return 'hooks';
+          }
         }
+      },
+      // Tree-shaking optimizations
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false,
+        unknownGlobalSideEffects: false
       }
     },
     cssCodeSplit: true,
-    // Use esbuild (default and faster than terser)
+    cssMinify: mode === 'production',
     minify: mode === 'production' ? 'esbuild' : false,
-    // esbuild options for better mobile optimization
+    
+    // Enhanced esbuild options for production
     ...(mode === 'production' && {
       esbuild: {
         drop: ['console', 'debugger'],
@@ -69,10 +106,28 @@ window.addEventListener('message', async (message) => {
         minifyIdentifiers: true,
         minifySyntax: true,
         minifyWhitespace: true,
+        treeShaking: true,
+        // Remove unused imports
+        ignoreAnnotations: false,
+        // Performance optimizations
+        platform: 'browser',
+        format: 'esm',
+        splitting: true,
+        // Security hardening
+        banner: '/* AnimeMuseAI - Optimized Production Build */',
       }
     }),
-    // Optimize chunk size for mobile
-    chunkSizeWarningLimit: 1000,
+    
+    // Performance optimizations
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 800, // Reduced for mobile
+    assetsInlineLimit: 4096, // Inline small assets
+    
+    // Source maps for production debugging (optional)
+    sourcemap: mode === 'production' ? 'hidden' : true,
+    
+    // Output directory cleanup
+    emptyOutDir: true,
   },
   resolve: {
     alias: {
@@ -81,21 +136,50 @@ window.addEventListener('message', async (message) => {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'convex/react', '@convex-dev/auth/react'],
-    force: mode === 'development'
+    include: [
+      'react', 
+      'react-dom', 
+      'convex/react', 
+      '@convex-dev/auth/react',
+      'framer-motion',
+      'lucide-react',
+      'clsx',
+      'tailwind-merge'
+    ],
+    exclude: ['@vite/client', '@vite/env'],
+    force: mode === 'development',
+    // Prebundle dependencies for faster dev startup
+    esbuildOptions: {
+      target: 'es2020'
+    }
   },
   server: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: false, // Allow fallback to other ports
+    strictPort: false,
     open: true,
-    force: true, // Force dependency pre-bundling
-    cors: true,
+    cors: {
+      origin: ['http://localhost:5173', 'https://localhost:5173'],
+      credentials: true
+    },
+    headers: {
+      // Security headers for development
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+    },
     hmr: {
       port: 24678,
+      overlay: true
     },
     fs: {
-      strict: false
+      strict: true,
+      allow: ['..']
+    },
+    // Performance optimizations
+    warmup: {
+      clientFiles: ['./src/main.tsx', './src/App.tsx']
     }
   },
   preview: {

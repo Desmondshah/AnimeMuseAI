@@ -26,6 +26,7 @@ const AutoRefreshProtectionManager: React.FC<AutoRefreshProtectionManagerProps> 
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   
   const resetProtectionMutation = useMutation(api.admin.adminResetAutoRefreshProtection);
+  const setProtectionMutation = useMutation(api.admin.adminSetAnimeProtection);
   
   const protectedFields = anime.lastManualEdit?.fieldsEdited || [];
   const hasProtection = protectedFields.length > 0;
@@ -72,6 +73,16 @@ const AutoRefreshProtectionManager: React.FC<AutoRefreshProtectionManagerProps> 
       }
     } catch (error: any) {
       toast.error(error?.message || "Failed to reset selected fields");
+    }
+  };
+
+  const handleSetProtection = async () => {
+    try {
+      const result = await setProtectionMutation({ animeId });
+      toast.success(result.message || "Protection set successfully");
+      setIsExpanded(true); // Expand to show the new protection
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to set protection");
     }
   };
 
@@ -123,6 +134,21 @@ const AutoRefreshProtectionManager: React.FC<AutoRefreshProtectionManagerProps> 
                 <li>Click "Save Changes"</li>
                 <li>That field will be automatically protected!</li>
               </ol>
+            </div>
+            
+            {/* Quick Protection Button */}
+            <div className="mt-4">
+              <button
+                onClick={handleSetProtection}
+                className={`px-6 py-3 bg-blue-600 text-white font-black uppercase border-4 border-black hover:bg-blue-500 transition-colors ${
+                  iPad.isIPadMini ? 'text-sm' : iPad.isIPadPro12 ? 'text-lg' : 'text-base'
+                }`}
+              >
+                🛡️ Set Protection Now
+              </button>
+              <p className="text-green-300 text-xs mt-2 font-bold">
+                Or click above to manually protect all fields from auto-refresh
+              </p>
             </div>
           </div>
         </div>

@@ -45,6 +45,34 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      
+      // Security rules
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+      "no-script-url": "error",
+      
+      // Performance rules
+      "no-console": "warn",
+      "no-debugger": "error",
+      "no-alert": "warn",
+      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      
+      // Best practices
+      "prefer-const": "error",
+      "no-var": "error",
+      "eqeqeq": ["error", "always"],
+      "curly": ["error", "all"],
+      
+      // React specific performance
+      "react-hooks/exhaustive-deps": "warn",
+      
+      // TypeScript specific
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      
       // All of these overrides ease getting into
       // TypeScript, and can be removed for stricter
       // linting down the line.

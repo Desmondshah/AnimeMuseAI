@@ -713,6 +713,37 @@ export const getFilteredAnimeInternal = internalQuery({
   },
 });
 
+// Check if anime exists by external IDs
+export const checkAnimeExistsByExternalIds = internalQuery({
+  args: {
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+    title: v.string(),
+  },
+  handler: async (ctx, args): Promise<Doc<"anime"> | null> => {
+    // First check by AniList ID
+    if (args.anilistId) {
+      const byAnilistId = await ctx.db
+        .query("anime")
+        .withIndex("by_anilistId", (q) => q.eq("anilistId", args.anilistId))
+        .first();
+      if (byAnilistId) return byAnilistId;
+    }
+
+    // Then check by MyAnimeList ID
+    if (args.myAnimeListId) {
+      const byMalId = await ctx.db
+        .query("anime")
+        .filter((q) => q.eq(q.field("myAnimeListId"), args.myAnimeListId))
+        .first();
+      if (byMalId) return byMalId;
+    }
+
+    // Finally check by title
+    return await findExistingAnimeByTitle(ctx, args.title);
+  },
+});
+
 export const internalUpdateFilterMetadata = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -830,6 +861,17 @@ export async function addAnimeByUserHandler(ctx: any, args: {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("User not authenticated");
 
+  // Check if this anime was previously deleted and is protected
+  const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
+    title: args.title,
+    anilistId: args.anilistId,
+  });
+  
+  if (isProtected) {
+    console.log(`[Add Anime] User ${userId} blocked from re-adding previously deleted anime: "${args.title}"`);
+    throw new Error(`This anime was previously deleted by an admin and cannot be re-added.`);
+  }
+
   const existing = await findExistingAnimeByTitle(ctx, args.title);
 
   if (existing) {
@@ -840,6 +882,26 @@ export async function addAnimeByUserHandler(ctx: any, args: {
   }
 
   console.log(`[Add Anime] User ${userId} adding new anime: "${args.title}"`);
+  
+  // Get admin user info for protection
+  const adminUser = await ctx.db.get(userId);
+  const adminUserName = adminUser?.name || "Unknown Admin";
+  
+  // Define all fields that should be protected initially
+  const initialProtectedFields = [
+    'title',
+    'description', 
+    'posterUrl',
+    'genres',
+    'year',
+    'rating',
+    'emotionalTags',
+    'trailerUrl',
+    'studios',
+    'themes',
+    'anilistId'
+  ];
+  
   const animeId = await ctx.db.insert("anime", {
     title: args.title,
     description: args.description,
@@ -852,12 +914,19 @@ export async function addAnimeByUserHandler(ctx: any, args: {
     studios: args.studios,
     themes: args.themes,
     anilistId: args.anilistId,
+    // Set initial protection to prevent external API from overwriting user-added data
+    lastManualEdit: {
+      adminUserId: userId,
+      timestamp: Date.now(),
+      fieldsEdited: initialProtectedFields,
+    },
   });
 
-  ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
-    animeIdInOurDB: animeId,
-    titleToSearch: args.title,
-  });
+  console.log(`[Add Anime] Set initial protection for "${args.title}" - ${initialProtectedFields.length} fields protected from auto-refresh`);
+
+  // Note: We're not automatically triggering external API fetch anymore
+  // This prevents external data from overwriting the user's initial data
+  // External data can still be fetched manually if needed
 
   return animeId;
 }
@@ -887,16 +956,30 @@ export const addAnimeInternal = internalMutation({
       anilistId: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        // Check if this anime was previously deleted and is protected
+        const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
+          title: args.title,
+          anilistId: args.anilistId,
+        });
+        
+        if (isProtected) {
+          console.log(`[Add Anime Internal] Blocked re-adding previously deleted anime: "${args.title}"`);
+          throw new Error(`This anime was previously deleted by an admin and cannot be re-added automatically.`);
+        }
+
         const existing = await findExistingAnimeByTitle(ctx, args.title);
         if (existing) return existing._id;
         
+        // For internal operations, we'll create the anime without initial protection
+        // Protection will be set when an actual admin edits the anime
+        // This prevents the type issue and maintains the protection system's integrity
         const animeId = await ctx.db.insert("anime", args);
         
-        // Auto-fetch external data for better poster quality
-        ctx.scheduler.runAfter(0, internal.externalApis.triggerFetchExternalAnimeDetails, {
-            animeIdInOurDB: animeId,
-            titleToSearch: args.title
-        });
+        console.log(`[Add Anime Internal] Created anime "${args.title}" without initial protection (will be set on first admin edit)`);
+        
+        // Note: We're not automatically triggering external API fetch anymore
+        // This prevents external data from overwriting the initial data
+        // External data can still be fetched manually if needed
         
         return animeId;
     }
@@ -1047,14 +1130,276 @@ export const updateAnimeWithExternalData = internalMutation({
       })),
     }),
   },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    protectedFields: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx, args) => {
     const { animeId, updates } = args;
 
-    await ctx.db.patch(animeId, updates);
+    // Get current anime data to check for protection
+    const currentAnime = await ctx.db.get(animeId);
+    if (!currentAnime) {
+      throw new Error("Anime not found");
+    }
+
+    // Check if any fields are protected from auto-refresh
+    const protectedFields = currentAnime.lastManualEdit?.fieldsEdited || [];
+    
+    if (protectedFields.length > 0) {
+      console.log(`[Auto-Refresh Protection] Anime "${currentAnime.title}" has protected fields: ${protectedFields.join(', ')}`);
+      
+      // Filter out protected fields from updates
+      const filteredUpdates: any = {};
+      const skippedFields: string[] = [];
+      
+      for (const [field, value] of Object.entries(updates)) {
+        if (protectedFields.includes(field)) {
+          skippedFields.push(field);
+          console.log(`[Auto-Refresh Protection] Skipping protected field: ${field}`);
+        } else {
+          filteredUpdates[field] = value;
+        }
+      }
+      
+      // Only update if there are fields to update
+      if (Object.keys(filteredUpdates).length > 0) {
+        await ctx.db.patch(animeId, filteredUpdates);
+        
+        const updatedFieldCount = Object.keys(filteredUpdates).length;
+        const skippedFieldCount = skippedFields.length;
+        
+        return {
+          success: true,
+          message: `Anime updated successfully. ${updatedFieldCount} fields updated, ${skippedFieldCount} fields protected and skipped.`,
+          protectedFields: skippedFields,
+        };
+      } else {
+        return {
+          success: true,
+          message: `All fields are protected from auto-refresh. No updates applied.`,
+          protectedFields: skippedFields,
+        };
+      }
+    } else {
+      // No protection, update all fields as normal
+      await ctx.db.patch(animeId, updates);
+
+      return {
+        success: true,
+        message: `Anime updated successfully.`,
+      };
+    }
+  },
+});
+
+// Check if anime was previously deleted (for deletion protection)
+export const checkDeletedAnimeProtection = internalQuery({
+  args: {
+    title: v.string(),
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<boolean> => {
+    // Check by title
+    const byTitle = await ctx.db
+      .query("deletedAnimeProtection")
+      .withIndex("by_title", (q) => q.eq("title", args.title))
+      .first();
+    if (byTitle) return true;
+
+    // Check by AniList ID
+    if (args.anilistId) {
+      const byAnilistId = await ctx.db
+        .query("deletedAnimeProtection")
+        .withIndex("by_anilistId", (q) => q.eq("anilistId", args.anilistId))
+        .first();
+      if (byAnilistId) return true;
+    }
+
+    // Check by MyAnimeList ID
+    if (args.myAnimeListId) {
+      const byMalId = await ctx.db
+        .query("deletedAnimeProtection")
+        .filter((q) => q.eq(q.field("myAnimeListId"), args.myAnimeListId))
+        .first();
+      if (byMalId) return true;
+    }
+
+    return false;
+  },
+});
+
+// Episode Preview Status and Enrichment Functions
+export const getEpisodePreviewStatus = query({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    const anime = await ctx.db.get(args.animeId);
+    if (!anime) {
+      throw new Error("Anime not found");
+    }
+
+    const episodes = anime.episodes || [];
+    const streamingEpisodes = anime.streamingEpisodes || [];
+    
+    // Count episodes with preview URLs from both sources
+    const episodesWithPreviews = episodes.filter(ep => ep.previewUrl).length +
+                                 streamingEpisodes.filter(ep => ep.previewUrl).length;
+    
+    const totalEpisodes = Math.max(episodes.length, streamingEpisodes.length, anime.totalEpisodes || 0);
+    
+    const previewPercentage = totalEpisodes > 0 ? Math.round((episodesWithPreviews / totalEpisodes) * 100) : 0;
 
     return {
-      success: true,
-      message: `Anime updated successfully.`,
+      episodesWithPreviews,
+      totalEpisodes,
+      previewPercentage,
+      lastEnrichment: anime.lastManualEdit?.timestamp,
     };
+  },
+});
+
+export const triggerPreviewEnrichment = mutation({
+  args: { animeId: v.id("anime") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const anime = await ctx.db.get(args.animeId);
+    if (!anime) {
+      throw new Error("Anime not found");
+    }
+
+    try {
+      // Schedule the enrichment action
+      await ctx.scheduler.runAfter(0, internal.anime.enrichEpisodePreviews, {
+        animeId: args.animeId,
+        userId,
+      });
+
+      return {
+        success: true,
+        message: "Episode preview enrichment started successfully",
+        animeTitle: anime.title,
+      };
+    } catch (error: any) {
+      console.error("Failed to trigger preview enrichment:", error);
+      throw new Error(`Failed to trigger preview enrichment: ${error.message}`);
+    }
+  },
+});
+
+export const enrichEpisodePreviews = internalAction({
+  args: { 
+    animeId: v.id("anime"), 
+    userId: v.id("users") 
+  },
+  handler: async (ctx, args) => {
+    const anime = await ctx.runQuery(internal.anime.getAnimeByIdInternal, { animeId: args.animeId });
+    if (!anime) {
+      console.error("Anime not found for preview enrichment:", args.animeId);
+      return { success: false, error: "Anime not found" };
+    }
+
+    console.log(`Starting episode preview enrichment for: ${anime.title}`);
+
+    try {
+      // Use OpenAI to generate preview URLs for episodes that don't have them
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const episodes = anime.episodes || [];
+      const enrichedEpisodes: Array<{
+        episodeNumber: number;
+        title: string;
+        airDate?: string;
+        duration?: number;
+        thumbnailUrl?: string;
+        previewUrl?: string;
+      }> = [];
+
+      for (const episode of episodes) {
+        if (!episode.previewUrl) {
+          try {
+            // Generate a placeholder preview URL or description
+            const response = await openai.chat.completions.create({
+              model: "gpt-3.5-turbo",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are helping generate episode preview content for an anime database. Generate a brief preview description for the episode.",
+                },
+                {
+                  role: "user",
+                  content: `Generate a brief preview description for episode ${episode.episodeNumber} titled "${episode.title}" from the anime "${anime.title}". Keep it under 100 words and avoid spoilers.`,
+                },
+              ],
+              max_tokens: 150,
+              temperature: 0.7,
+            });
+
+            const previewDescription = response.choices[0]?.message?.content?.trim();
+            
+            enrichedEpisodes.push({
+              ...episode,
+              previewUrl: `data:text/plain;base64,${Buffer.from(previewDescription || "Preview not available").toString('base64')}`,
+            });
+          } catch (episodeError: any) {
+            console.error(`Failed to enrich episode ${episode.episodeNumber}:`, episodeError);
+            enrichedEpisodes.push(episode); // Keep original episode data
+          }
+        } else {
+          enrichedEpisodes.push(episode); // Keep episodes that already have previews
+        }
+      }
+
+      // Update the anime with enriched episodes
+      await ctx.runMutation(internal.anime.updateAnimeWithEnrichedEpisodes, {
+        animeId: args.animeId,
+        episodes: enrichedEpisodes,
+        userId: args.userId,
+      });
+
+      console.log(`Successfully enriched ${enrichedEpisodes.length} episodes for: ${anime.title}`);
+      
+      return {
+        success: true,
+        enrichedCount: enrichedEpisodes.filter((ep) => ep.previewUrl).length,
+        totalEpisodes: episodes.length,
+      };
+    } catch (error: any) {
+      console.error("Episode preview enrichment failed:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+});
+
+export const updateAnimeWithEnrichedEpisodes = internalMutation({
+  args: {
+    animeId: v.id("anime"),
+    episodes: v.array(v.object({
+      episodeNumber: v.number(),
+      title: v.string(),
+      airDate: v.optional(v.string()),
+      duration: v.optional(v.number()),
+      thumbnailUrl: v.optional(v.string()),
+      previewUrl: v.optional(v.string()),
+    })),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.animeId, {
+      episodes: args.episodes,
+      lastManualEdit: {
+        adminUserId: args.userId,
+        timestamp: Date.now(),
+        fieldsEdited: ["episodes"],
+      },
+    });
   },
 });

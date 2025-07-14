@@ -551,6 +551,20 @@ const applicationTables = {
   })
     .index("by_token", ["token"])
     .index("by_userId", ["userId"]),
+
+  // Deletion protection to prevent re-adding deleted anime
+  deletedAnimeProtection: defineTable({
+    title: v.string(),
+    anilistId: v.optional(v.number()),
+    myAnimeListId: v.optional(v.number()),
+    posterUrl: v.optional(v.string()),
+    deletedAt: v.number(),
+    deletedBy: v.id("users"),
+    reason: v.string(),
+  })
+    .index("by_title", ["title"])
+    .index("by_anilistId", ["anilistId"])
+    .index("by_deletedAt", ["deletedAt"]),
 };
 
 export default defineSchema({

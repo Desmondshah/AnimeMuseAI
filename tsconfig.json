@@ -1,9 +1,4 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
   "compilerOptions": {
     "baseUrl": ".",
     "jsx": "preserve",
@@ -11,23 +6,13 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "noErrorTruncation": false,
-    "noCheck": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    "convex/**/*.ts"
-  ],
-  "exclude": ["node_modules", 
-  "dist", 
-  "externalApis.ts", 
-  "retryEnhancement.ts",
-  "testData.ts",
-  "runMigration.ts",
-  "twilioSender.ts"
-]
+  "include": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }
