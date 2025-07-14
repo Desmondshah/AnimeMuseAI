@@ -1,4 +1,8 @@
 {
+  "project": "glad-wolf-707",
+  "team": "glad-wolf-707",
+  "prodUrl": "https://glad-wolf-707.convex.cloud",
+  "functions": "convex/",
   "auth": {
     "domain": "glad-wolf-707.convex.cloud",
     "applicationID": "glad-wolf-707"
