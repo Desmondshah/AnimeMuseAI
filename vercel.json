@@ -1,0 +1,10 @@
+{
+  "env": {
+    "VITE_CONVEX_URL": "https://glad-wolf-707.convex.cloud"
+  },
+  "build": {
+    "env": {
+      "VITE_CONVEX_URL": "https://glad-wolf-707.convex.cloud"
+    }
+  }
+}
