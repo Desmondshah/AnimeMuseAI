@@ -48,71 +48,44 @@ window.addEventListener('message', async (message) => {
         chunkFileNames: mode === 'production' ? 'assets/[name]-[hash].js' : '[name].js',
         assetFileNames: mode === 'production' ? 'assets/[name]-[hash].[ext]' : '[name].[ext]',
         
-        // Advanced manual chunking for better caching
+        // Simplified chunking to avoid circular dependencies
         manualChunks: (id) => {
-          // Vendor chunks
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
-          }
-          if (id.includes('node_modules/convex') || id.includes('node_modules/@convex-dev')) {
-            return 'convex-vendor';
-          }
-          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/gsap')) {
-            return 'animation-vendor';
-          }
-          if (id.includes('node_modules/openai') || id.includes('node_modules/@openai')) {
-            return 'ai-vendor';
-          }
+          // Vendor chunks - keep it simple
           if (id.includes('node_modules/')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('convex') || id.includes('@convex-dev')) {
+              return 'convex-vendor';
+            }
             return 'vendor';
-          }
-          
-          // App chunks
-          if (id.includes('src/components/admin/')) {
-            return 'admin';
-          }
-          if (id.includes('src/components/auth/')) {
-            return 'auth';
-          }
-          if (id.includes('src/components/animuse/') && 
-              (id.includes('AnimeDetailPage') || id.includes('AIAssistantPage'))) {
-            return 'pages';
-          }
-          if (id.includes('src/components/animuse/')) {
-            return 'ui-components';
-          }
-          if (id.includes('src/hooks/')) {
-            return 'hooks';
           }
         }
       },
-      // Tree-shaking optimizations
+      // Less aggressive tree-shaking to prevent initialization issues
       treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false,
-        unknownGlobalSideEffects: false
+        moduleSideEffects: true,
+        propertyReadSideEffects: true,
+        tryCatchDeoptimization: true,
+        unknownGlobalSideEffects: true
       }
     },
     cssCodeSplit: true,
     cssMinify: mode === 'production',
     minify: mode === 'production' ? 'esbuild' : false,
     
-    // Enhanced esbuild options for production
+    // Simplified esbuild options for production
     ...(mode === 'production' && {
       esbuild: {
         drop: ['console', 'debugger'],
         legalComments: 'none',
-        minifyIdentifiers: true,
+        minifyIdentifiers: false, // Less aggressive to prevent issues
         minifySyntax: true,
         minifyWhitespace: true,
         treeShaking: true,
-        // Remove unused imports
-        ignoreAnnotations: false,
         // Performance optimizations
         platform: 'browser',
         format: 'esm',
-        splitting: true,
         // Security hardening
         banner: '/* AnimeMuseAI - Optimized Production Build */',
       }
@@ -120,7 +93,7 @@ window.addEventListener('message', async (message) => {
     
     // Performance optimizations
     reportCompressedSize: true,
-    chunkSizeWarningLimit: 800, // Reduced for mobile
+    chunkSizeWarningLimit: 1000, // Increased for stability
     assetsInlineLimit: 4096, // Inline small assets
     
     // Source maps for production debugging (optional)
