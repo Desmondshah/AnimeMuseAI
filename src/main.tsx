@@ -38,7 +38,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener("resize", handleResize, { passive: true });
 }
 
-// Initialize Convex client with better error handling
+// Initialize Convex client
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 if (!convexUrl) {
   console.error("VITE_CONVEX_URL environment variable is required");
