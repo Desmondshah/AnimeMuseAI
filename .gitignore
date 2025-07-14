@@ -159,3 +159,4 @@ test-report.html
 
 # Convex specific
 convex/.env.local
+.vercel
