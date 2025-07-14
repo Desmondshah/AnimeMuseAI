@@ -7,6 +7,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* EMERGENCY ADMIN LAYOUT FIX */
+@media (orientation: landscape) and (min-width: 768px) {
+  .w-full.max-w-lg,
+  .w-full.max-w-xl, 
+  .w-full.max-w-2xl {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 2rem !important;
+    width: 100% !important;
+  }
+}
+
 :root {
   --vh: 1vh;
 }

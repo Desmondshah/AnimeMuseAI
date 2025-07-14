@@ -4,7 +4,7 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "./dist/types",
+    "outDir": "./dist/app",
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -35,11 +35,13 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "convex/**/*.ts",
+    "convex/useTheme.ts",
+    "convex/useRafInterval.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "convex"
+    "dist"
   ]
 }
