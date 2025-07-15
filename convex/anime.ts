@@ -1403,3 +1403,27 @@ export const updateAnimeWithEnrichedEpisodes = internalMutation({
     });
   },
 });
+
+// Query to fetch a specific character from an anime by its ID and character name
+export const getCharacterFromAnime = query({
+  args: {
+    animeId: v.id("anime"),
+    characterName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const anime = await ctx.db.get(args.animeId);
+    if (!anime || !anime.characters) {
+      throw new Error("Anime or characters not found.");
+    }
+
+    const character = anime.characters.find(
+      (char) => char.name.toLowerCase() === args.characterName.toLowerCase()
+    );
+
+    if (!character) {
+      throw new Error(`Character ${args.characterName} not found in anime ${anime.title}`);
+    }
+
+    return character;
+  },
+});

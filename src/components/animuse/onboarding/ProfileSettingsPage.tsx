@@ -14,6 +14,7 @@ const CHARACTER_ARCHETYPES_OPTIONS = ["Tsundere", "Kuudere", "Dandere", "Yandere
 const TROPES_OPTIONS = ["Found Family", "Time Loop", "Tournament Arc", "Redemption Arc", "Chosen One", "Love Triangle", "Hidden Identity", "Deconstruction", "Magical Girl"];
 const ART_STYLES_OPTIONS = ["Retro (80s/90s)", "Modern Cel-Shaded", "Photorealistic", "Chibi/Super-Deformed", "Minimalist", "Ghibli-esque", "Dark & Gritty"];
 const NARRATIVE_PACING_OPTIONS = ["Slow Burn", "Episodic", "Fast-Paced", "Medium Paced"];
+const THEME_OPTIONS = ["Brutalist", "Voxel", "Brutalist B/W"];
 
 interface ProfileSettingsPageProps {
   onBack: () => void;
@@ -33,6 +34,7 @@ type UserProfileForEdit = {
   narrativePacing?: string;
   watchlistIsPublic?: boolean;
   animationsEnabled?: boolean;
+  theme?: string;
 };
 
 // BRUTALIST LOADING SPINNER
@@ -125,6 +127,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
           animationsPref !== null
             ? animationsPref === 'true'
             : userProfile.animationsEnabled ?? true,
+        theme: userProfile.theme || "System",
       });
     }
   }, [userProfile]);
@@ -188,6 +191,7 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
         narrativePacing: formData.narrativePacing || "",
         watchlistIsPublic: formData.watchlistIsPublic || false,
         animationsEnabled: formData.animationsEnabled ?? true,
+        theme: formData.theme || "System",
       };
       await updateUserPreferences(preferencesToUpdate);
       toast.success("Profile updated successfully! Refreshing recommendations...", { id: "profile-settings-save" });
@@ -624,6 +628,23 @@ export default function ProfileSettingsPage({ onBack }: ProfileSettingsPageProps
                     This will end your session and return you to the login page
                   </p>
                 </div>
+              </div>
+            </div>
+          </BrutalistSectionWrapper>
+
+          {/* THEME SETTINGS SECTION */}
+          <BrutalistSectionWrapper title="Theme Settings" icon="🎨" index={9}>
+            <div className="space-y-6">
+              <div>
+                <div className="bg-blue-500 border-4 border-black p-2 mb-3">
+                  <label className="text-sm font-black text-white uppercase">SELECT THEME</label>
+                </div>
+                <BrutalistMultiSelectButtons
+                  options={THEME_OPTIONS}
+                  selected={[formData.theme || "System"]}
+                  onChange={(item) => setFormData((prev) => ({ ...prev, theme: item }))}
+                  colorScheme="blue-500"
+                />
               </div>
             </div>
           </BrutalistSectionWrapper>

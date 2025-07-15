@@ -28,6 +28,7 @@ const applicationTables = {
     narrativePacing: v.optional(v.string()), // e.g., "Slow Burn", "Fast-Paced"
     watchlistIsPublic: v.optional(v.boolean()), // User's general preference for watchlist privacy
     animationsEnabled: v.optional(v.boolean()), // User toggle for animated UI
+    theme: v.optional(v.string()), // Add theme field to match the schema validation
   })
   .index("by_userId", ["userId"])
   .index("by_phoneNumber", ["phoneNumber"])
