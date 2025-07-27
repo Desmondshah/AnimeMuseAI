@@ -84,7 +84,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
             'bg-brand-primary-action', // HOME - orange
             'bg-purple-500',           // MOOD - purple
             'bg-blue-500',            // FIND - blue
-            'bg-green-500',           // LIST - green
+            'bg-green-500',           // LIST - green (only when active)
             'bg-brand-accent-gold',   // USER - gold
           ];
           const activeColor = colors[index];
@@ -103,7 +103,7 @@ const BottomNavigationBar: React.FC<BottomNavigationBarProps> = ({ currentView, 
                 active:translate-x-0.5 active:translate-y-0.5
                 ${isActive 
                   ? `${activeColor} text-white shadow-[2px_2px_0px_0px_#000] active:shadow-[1px_1px_0px_0px_#000]` 
-                  : `bg-white text-black shadow-[2px_2px_0px_0px_#000] active:shadow-[1px_1px_0px_0px_#000] hover:${activeColor} hover:text-white`
+                  : `bg-white text-black shadow-[2px_2px_0px_0px_#000] active:shadow-[1px_1px_0px_0px_#000] hover:bg-gray-100`
                 }
               `}
               aria-current={isActive ? "page" : undefined}

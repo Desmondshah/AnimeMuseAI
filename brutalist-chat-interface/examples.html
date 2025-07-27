@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRUTALIST RECOMMENDATIONS // EXAMPLES</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .examples-header {
+            background: var(--brutal-red);
+            color: var(--brutal-white);
+            padding: 20px 40px;
+            border-bottom: 6px solid var(--brutal-black);
+            text-align: center;
+        }
+        
+        .examples-title {
+            font-family: var(--font-grotesk);
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+        
+        .example-section {
+            margin: 40px 0;
+            padding: 30px;
+            background: var(--brutal-concrete);
+            border: 4px solid var(--brutal-black);
+            transform: rotate(-0.2deg);
+        }
+        
+        .example-section:nth-child(even) {
+            transform: rotate(0.3deg);
+            background: var(--brutal-white);
+        }
+        
+        .section-title {
+            font-family: var(--font-grotesk);
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            color: var(--brutal-black);
+            border-bottom: 4px solid var(--brutal-yellow);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="brutal-container" style="grid-template-areas: 'header header' 'main main';">
+        <div class="examples-header">
+            <h1 class="examples-title">RECOMMENDATION EXAMPLES // BRUTALIST SYSTEM</h1>
+        </div>
+        
+        <main class="chat-container">
+            <div class="chat-messages">
+                <!-- MOVIE RECOMMENDATIONS EXAMPLE -->
+                <div class="example-section">
+                    <h2 class="section-title">MOVIE RECOMMENDATIONS</h2>
+                    
+                    <div class="message-block user-message">
+                        <div class="message-header">
+                            <span class="sender-tag">USER//INPUT</span>
+                            <span class="timestamp">15:24:33</span>
+                        </div>
+                        <div class="message-content">
+                            <p>I want some sci-fi movies with strong female leads and mind-bending plots</p>
+                        </div>
+                    </div>
+
+                    <div class="message-block ai-message">
+                        <div class="message-header">
+                            <span class="sender-tag">AI//CINEMA</span>
+                            <span class="timestamp">15:24:51</span>
+                        </div>
+                        <div class="message-content">
+                            <div class="text-stack">
+                                <p class="primary-text">ANALYZING CINEMATIC PREFERENCES</p>
+                                <p class="secondary-text">Cross-referencing female protagonist patterns with narrative complexity metrics:</p>
+                            </div>
+                            
+                            <div class="recommendations-grid">
+                                <div class="rec-card primary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">FILM</span>
+                                        <span class="confidence">94%</span>
+                                    </div>
+                                    <h3 class="rec-title">ANNIHILATION</h3>
+                                    <p class="rec-artist">ALEX GARLAND</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">PSYCHOLOGICAL</span>
+                                        <span class="tag">BODY HORROR</span>
+                                    </div>
+                                    <button class="rec-action">WATCH</button>
+                                </div>
+
+                                <div class="rec-card secondary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">FILM</span>
+                                        <span class="confidence">91%</span>
+                                    </div>
+                                    <h3 class="rec-title">ARRIVAL</h3>
+                                    <p class="rec-artist">DENIS VILLENEUVE</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">LINGUISTICS</span>
+                                        <span class="tag">TIME</span>
+                                    </div>
+                                    <button class="rec-action">STREAM</button>
+                                </div>
+
+                                <div class="rec-card tertiary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">FILM</span>
+                                        <span class="confidence">88%</span>
+                                    </div>
+                                    <h3 class="rec-title">EX MACHINA</h3>
+                                    <p class="rec-artist">ALEX GARLAND</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">AI</span>
+                                        <span class="tag">CONSCIOUSNESS</span>
+                                    </div>
+                                    <button class="rec-action">RENT</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOOK RECOMMENDATIONS EXAMPLE -->
+                <div class="example-section">
+                    <h2 class="section-title">BOOK RECOMMENDATIONS</h2>
+                    
+                    <div class="message-block user-message">
+                        <div class="message-header">
+                            <span class="sender-tag">USER//INPUT</span>
+                            <span class="timestamp">16:15:22</span>
+                        </div>
+                        <div class="message-content">
+                            <p>Looking for cyberpunk novels that explore corporate dystopia and transhumanism</p>
+                        </div>
+                    </div>
+
+                    <div class="message-block ai-message">
+                        <div class="message-header">
+                            <span class="sender-tag">AI//LITERATURE</span>
+                            <span class="timestamp">16:15:39</span>
+                        </div>
+                        <div class="message-content">
+                            <div class="text-stack">
+                                <p class="primary-text">SCANNING LITERARY DATABASE</p>
+                                <p class="secondary-text">Matching cyberpunk + corporate themes + posthuman elements:</p>
+                            </div>
+                            
+                            <div class="recommendations-grid">
+                                <div class="rec-card primary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">NOVEL</span>
+                                        <span class="confidence">96%</span>
+                                    </div>
+                                    <h3 class="rec-title">NEUROMANCER</h3>
+                                    <p class="rec-artist">WILLIAM GIBSON</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">CLASSIC</span>
+                                        <span class="tag">MATRIX</span>
+                                    </div>
+                                    <button class="rec-action">READ</button>
+                                </div>
+
+                                <div class="rec-card secondary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">NOVEL</span>
+                                        <span class="confidence">93%</span>
+                                    </div>
+                                    <h3 class="rec-title">ALTERED CARBON</h3>
+                                    <p class="rec-artist">RICHARD K. MORGAN</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">NOIR</span>
+                                        <span class="tag">IDENTITY</span>
+                                    </div>
+                                    <button class="rec-action">DOWNLOAD</button>
+                                </div>
+
+                                <div class="rec-card tertiary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">NOVEL</span>
+                                        <span class="confidence">89%</span>
+                                    </div>
+                                    <h3 class="rec-title">THE WINDUP GIRL</h3>
+                                    <p class="rec-artist">PAOLO BACIGALUPI</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">BIOPUNK</span>
+                                        <span class="tag">ECOLOGY</span>
+                                    </div>
+                                    <button class="rec-action">ORDER</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRODUCT RECOMMENDATIONS EXAMPLE -->
+                <div class="example-section">
+                    <h2 class="section-title">PRODUCT RECOMMENDATIONS</h2>
+                    
+                    <div class="message-block user-message">
+                        <div class="message-header">
+                            <span class="sender-tag">USER//INPUT</span>
+                            <span class="timestamp">17:42:15</span>
+                        </div>
+                        <div class="message-content">
+                            <p>Need a mechanical keyboard for coding, preferably with tactile switches and RGB</p>
+                        </div>
+                    </div>
+
+                    <div class="message-block ai-message">
+                        <div class="message-header">
+                            <span class="sender-tag">AI//HARDWARE</span>
+                            <span class="timestamp">17:42:28</span>
+                        </div>
+                        <div class="message-content">
+                            <div class="text-stack">
+                                <p class="primary-text">ANALYZING HARDWARE REQUIREMENTS</p>
+                                <p class="secondary-text">Processing tactile preferences + RGB requirements + coding optimization:</p>
+                            </div>
+                            
+                            <div class="recommendations-grid">
+                                <div class="rec-card primary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">KEYBOARD</span>
+                                        <span class="confidence">95%</span>
+                                    </div>
+                                    <h3 class="rec-title">KEYCHRON Q1</h3>
+                                    <p class="rec-artist">GATERON BROWN</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">TACTILE</span>
+                                        <span class="tag">HOTSWAP</span>
+                                    </div>
+                                    <button class="rec-action">BUY</button>
+                                </div>
+
+                                <div class="rec-card secondary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">KEYBOARD</span>
+                                        <span class="confidence">92%</span>
+                                    </div>
+                                    <h3 class="rec-title">DUCKY ONE 3</h3>
+                                    <p class="rec-artist">CHERRY MX BROWN</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">DURABLE</span>
+                                        <span class="tag">COMPACT</span>
+                                    </div>
+                                    <button class="rec-action">COMPARE</button>
+                                </div>
+
+                                <div class="rec-card tertiary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">KEYBOARD</span>
+                                        <span class="confidence">87%</span>
+                                    </div>
+                                    <h3 class="rec-title">GLORIOUS GMMK</h3>
+                                    <p class="rec-artist">GLORIOUS PANDA</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">MODULAR</span>
+                                        <span class="tag">CUSTOM</span>
+                                    </div>
+                                    <button class="rec-action">CONFIGURE</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPLEX MULTI-CATEGORY EXAMPLE -->
+                <div class="example-section">
+                    <h2 class="section-title">LIFESTYLE ECOSYSTEM</h2>
+                    
+                    <div class="message-block user-message">
+                        <div class="message-header">
+                            <span class="sender-tag">USER//INPUT</span>
+                            <span class="timestamp">18:30:45</span>
+                        </div>
+                        <div class="message-content">
+                            <p>I'm starting a new morning routine focused on productivity and mindfulness</p>
+                        </div>
+                    </div>
+
+                    <div class="message-block ai-message">
+                        <div class="message-header">
+                            <span class="sender-tag">AI//LIFESTYLE</span>
+                            <span class="timestamp">18:31:03</span>
+                        </div>
+                        <div class="message-content">
+                            <div class="text-stack">
+                                <p class="primary-text">ECOSYSTEM ANALYSIS INITIATED</p>
+                                <p class="secondary-text">Building integrated routine across multiple categories:</p>
+                            </div>
+                            
+                            <div class="recommendations-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                <div class="rec-card primary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">APP</span>
+                                        <span class="confidence">93%</span>
+                                    </div>
+                                    <h3 class="rec-title">HEADSPACE</h3>
+                                    <p class="rec-artist">MEDITATION</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">MINDFUL</span>
+                                        <span class="tag">GUIDED</span>
+                                    </div>
+                                    <button class="rec-action">INSTALL</button>
+                                </div>
+
+                                <div class="rec-card secondary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">BOOK</span>
+                                        <span class="confidence">91%</span>
+                                    </div>
+                                    <h3 class="rec-title">ATOMIC HABITS</h3>
+                                    <p class="rec-artist">JAMES CLEAR</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">ROUTINE</span>
+                                        <span class="tag">SYSTEMS</span>
+                                    </div>
+                                    <button class="rec-action">READ</button>
+                                </div>
+
+                                <div class="rec-card tertiary">
+                                    <div class="rec-header">
+                                        <span class="rec-type">PRODUCT</span>
+                                        <span class="confidence">88%</span>
+                                    </div>
+                                    <h3 class="rec-title">SUNRISE ALARM</h3>
+                                    <p class="rec-artist">PHILIPS HUE</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">CIRCADIAN</span>
+                                        <span class="tag">WAKE</span>
+                                    </div>
+                                    <button class="rec-action">SHOP</button>
+                                </div>
+
+                                <div class="rec-card primary" style="transform: rotate(-1.5deg);">
+                                    <div class="rec-header">
+                                        <span class="rec-type">MUSIC</span>
+                                        <span class="confidence">89%</span>
+                                    </div>
+                                    <h3 class="rec-title">FOCUS BEATS</h3>
+                                    <p class="rec-artist">LO-FI PLAYLIST</p>
+                                    <div class="rec-tags">
+                                        <span class="tag">AMBIENT</span>
+                                        <span class="tag">FOCUS</span>
+                                    </div>
+                                    <button class="rec-action">PLAY</button>
+                                </div>
+                            </div>
+
+                            <div class="action-cluster">
+                                <button class="action-btn primary">BUILD ROUTINE</button>
+                                <button class="action-btn secondary">TRACK PROGRESS</button>
+                                <button class="action-btn tertiary">CUSTOMIZE TIMING</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

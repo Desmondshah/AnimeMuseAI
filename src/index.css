@@ -39,7 +39,11 @@ body {
   overscroll-behavior: none;
 }
 
-/* BRUTALIST UTILITIES - MOBILE FIRST */
+/* ENHANCED BRUTALIST UTILITIES - MOBILE FIRST */
+.brutal-shadow-xs {
+  box-shadow: 1px 1px 0px 0px #000;
+}
+
 .brutal-shadow-sm {
   box-shadow: 2px 2px 0px 0px #000;
 }
@@ -52,18 +56,50 @@ body {
   box-shadow: 8px 8px 0px 0px #000;
 }
 
+.brutal-shadow-xl {
+  box-shadow: 12px 12px 0px 0px #000;
+}
+
+.brutal-shadow-2xl {
+  box-shadow: 16px 16px 0px 0px #000;
+}
+
+/* Colored brutal shadows */
 .brutal-shadow-color-orange {
-  box-shadow: 4px 4px 0px 0px #FF6B35;
+  box-shadow: 6px 6px 0px 0px #FF6B35;
 }
 
 .brutal-shadow-color-gold {
-  box-shadow: 4px 4px 0px 0px #B08968;
+  box-shadow: 6px 6px 0px 0px #B08968;
+}
+
+.brutal-shadow-color-peach {
+  box-shadow: 6px 6px 0px 0px #F4A261;
 }
 
 .brutal-shadow-color-red {
-  box-shadow: 4px 4px 0px 0px #FF0000;
+  box-shadow: 6px 6px 0px 0px #FF0000;
 }
 
+.brutal-shadow-color-white {
+  box-shadow: 6px 6px 0px 0px #FFFFFF;
+}
+
+/* Multi-layered brutal shadows */
+.brutal-shadow-double {
+  box-shadow: 
+    4px 4px 0px 0px #000,
+    8px 8px 0px 0px #FF6B35;
+}
+
+.brutal-shadow-triple {
+  box-shadow: 
+    2px 2px 0px 0px #000,
+    6px 6px 0px 0px #FF6B35,
+    10px 10px 0px 0px #B08968;
+}
+
+/* Enhanced border utilities */
 .brutal-border {
   border: 4px solid #000;
 }
@@ -74,6 +110,41 @@ body {
 
 .brutal-border-thick {
   border: 6px solid #000;
+}
+
+.brutal-border-xl {
+  border: 8px solid #000;
+}
+
+.brutal-border-2xl {
+  border: 10px solid #000;
+}
+
+.brutal-border-orange {
+  border: 4px solid #FF6B35;
+}
+
+.brutal-border-gold {
+  border: 4px solid #B08968;
+}
+
+.brutal-border-peach {
+  border: 4px solid #F4A261;
+}
+
+/* Asymmetric brutal borders */
+.brutal-border-asymmetric {
+  border-top: 6px solid #000;
+  border-right: 8px solid #FF6B35;
+  border-bottom: 4px solid #B08968;
+  border-left: 10px solid #F4A261;
+}
+
+.brutal-border-chaos {
+  border-top: 3px solid #000;
+  border-right: 7px solid #FF6B35;
+  border-bottom: 5px solid #000;
+  border-left: 9px solid #B08968;
 }
 
 /* ARTISTIC CAROUSEL ENHANCEMENTS */
@@ -265,30 +336,79 @@ body {
   opacity: 0.3;
 }
 
-/* ENHANCED BUTTON INTERACTIONS */
+
+/* ENHANCED BRUTAL BUTTON INTERACTIONS */
+/* ENHANCED BRUTAL BUTTON INTERACTIONS */
 .brutal-button {
-  @apply brutal-shadow transition-all duration-75 active:translate-x-1 active:translate-y-1;
+  @apply brutal-shadow transition-all duration-100 active:translate-x-2 active:translate-y-2;
   will-change: transform, box-shadow;
+  transform-origin: center;
 }
 
 .brutal-button:active {
-  box-shadow: 2px 2px 0px 0px #000;
+  box-shadow: 1px 1px 0px 0px #000;
+}
+
+.brutal-button:hover {
+  transform: translateX(-2px) translateY(-2px);
+  box-shadow: 6px 6px 0px 0px #000;
 }
 
 .brutal-button-primary {
-  @apply brutal-button bg-brand-primary-action text-white brutal-border;
+  @apply brutal-button bg-brand-primary-action text-white brutal-border font-black uppercase tracking-wider;
 }
 
 .brutal-button-secondary {
-  @apply brutal-button bg-white text-black brutal-border;
+  @apply brutal-button bg-white text-black brutal-border font-black uppercase tracking-wider;
 }
 
-/* ARTISTIC ANIMATIONS */
+.brutal-button-chaotic {
+  @apply brutal-button bg-black text-white brutal-border-chaos font-black uppercase tracking-wider;
+  transform: rotate(-1deg);
+}
+
+.brutal-button-chaotic:hover {
+  transform: rotate(1deg) translateX(-3px) translateY(-3px);
+}
+
+.brutal-button-xl {
+  @apply brutal-button brutal-shadow-xl brutal-border-xl;
+  padding: 1.5rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.brutal-button-ghost {
+  @apply brutal-button bg-transparent text-black brutal-border;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.1) 2px,
+    rgba(0,0,0,0.1) 4px
+  );
+}
+
+/* Brutal link styling */
+.brutal-link {
+  @apply font-black uppercase tracking-wider underline decoration-4 decoration-brand-primary-action;
+  text-underline-offset: 4px;
+  transition: all 0.2s ease;
+}
+
+.brutal-link:hover {
+  text-decoration-color: #000;
+  transform: skew(-5deg);
+}
+
+
+/* ENHANCED ARTISTIC ANIMATIONS */
+/* ENHANCED ARTISTIC ANIMATIONS */
 @keyframes brutalist-pulse {
   0%, 100% {
     transform: scale(1);
-  opacity: 1;
-}
+    opacity: 1;
+  }
   50% {
     transform: scale(1.02);
     opacity: 0.9;
@@ -312,14 +432,263 @@ body {
   animation: geometric-float 6s ease-in-out infinite;
 }
 
+@keyframes brutal-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10% { transform: translateX(-2px) rotate(-1deg); }
+  20% { transform: translateX(4px) rotate(1deg); }
+  30% { transform: translateX(-2px) rotate(-1deg); }
+  40% { transform: translateX(4px) rotate(1deg); }
+  50% { transform: translateX(-2px) rotate(-1deg); }
+  60% { transform: translateX(4px) rotate(1deg); }
+  70% { transform: translateX(-2px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+  90% { transform: translateX(-2px) rotate(-1deg); }
+}
+
+.animate-brutal-shake {
+  animation: brutal-shake 0.5s ease-in-out;
+}
+
+@keyframes brutal-chaos {
+  0% { transform: rotate(0deg) scale(1) skew(0deg); }
+  25% { transform: rotate(1deg) scale(1.02) skew(-1deg); }
+  50% { transform: rotate(-1deg) scale(0.98) skew(1deg); }
+  75% { transform: rotate(1deg) scale(1.01) skew(-0.5deg); }
+  100% { transform: rotate(0deg) scale(1) skew(0deg); }
+}
+
+.animate-brutal-chaos {
+  animation: brutal-chaos 3s ease-in-out infinite;
+}
+
+@keyframes brutal-glitch {
+  0%, 100% { 
+    transform: translate(0);
+    box-shadow: 0 0 0 rgba(255, 107, 53, 0);
+  }
+  20% { 
+    transform: translate(-2px, 2px);
+    box-shadow: 2px -2px 0 rgba(255, 107, 53, 0.8);
+  }
+  40% { 
+    transform: translate(-2px, -2px);
+    box-shadow: -2px 2px 0 rgba(176, 137, 104, 0.8);
+  }
+  60% { 
+    transform: translate(2px, 2px);
+    box-shadow: 2px -2px 0 rgba(244, 162, 97, 0.8);
+  }
+  80% { 
+    transform: translate(2px, -2px);
+    box-shadow: -2px 2px 0 rgba(255, 107, 53, 0.8);
+  }
+}
+
+.animate-brutal-glitch {
+  animation: brutal-glitch 0.3s ease-in-out;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0) rotate(12deg);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-5px) rotate(15deg);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite;
+}
+
+/* BRUTAL TEXT EFFECTS */
+.text-brutal-outline {
+  color: transparent;
+  -webkit-text-stroke: 3px #000;
+  text-stroke: 3px #000;
+}
+
+.text-brutal-outline-white {
+  color: transparent;
+  -webkit-text-stroke: 3px #fff;
+  text-stroke: 3px #fff;
+}
+
+.text-brutal-3d {
+  color: #000;
+  text-shadow: 
+    1px 1px 0 #FF6B35,
+    2px 2px 0 #B08968,
+    3px 3px 0 #F4A261,
+    4px 4px 0 #000;
+}
+
+.text-brutal-neon {
+  color: #fff;
+  text-shadow: 
+    0 0 5px #FF6B35,
+    0 0 10px #FF6B35,
+    0 0 15px #FF6B35,
+    0 0 20px #FF6B35;
+}
+
+/* BRUTAL LAYOUT UTILITIES */
+.brutal-grid-chaos {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1.5fr;
+  gap: 1rem;
+  transform: skew(-2deg);
+}
+
+.brutal-flex-chaos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.brutal-flex-chaos > * {
+  flex: 1 1 auto;
+  min-width: 200px;
+  transform: rotate(-1deg);
+}
+
+.brutal-flex-chaos > *:nth-child(even) {
+  transform: rotate(1deg);
+}
+
+/* BRUTAL FORM ELEMENTS */
+.brutal-input {
+  border: 4px solid #000;
+  background: #fff;
+  color: #000;
+  padding: 12px 16px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+}
+
+.brutal-input:focus {
+  outline: none;
+  border-color: #FF6B35;
+  box-shadow: 4px 4px 0 #000;
+  transform: translateX(-2px) translateY(-2px);
+}
+
+.brutal-input::placeholder {
+  color: #666;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.brutal-textarea {
+  @apply brutal-input;
+  resize: none;
+  min-height: 120px;
+}
+
+.brutal-select {
+  @apply brutal-input;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23000' d='m0 0 2 2 2-2z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 40px;
+}
+
+/* BRUTAL UTILITY CLASSES */
+.brutal-clip-corner {
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+
+.brutal-clip-diagonal {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+}
+
+.brutal-clip-arrow {
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%);
+}
+
+.brutal-rotate-chaos {
+  transform: rotate(-2deg);
+}
+
+.brutal-rotate-chaos:hover {
+  transform: rotate(2deg);
+}
+
+.brutal-scale-up {
+  transition: transform 0.2s ease;
+}
+
+.brutal-scale-up:hover {
+  transform: scale(1.05);
+}
+
+.brutal-scale-up:active {
+  transform: scale(0.95);
+}
+
+@keyframes brutalist-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.9;
+  }
+}
+
+.animate-brutalist-pulse {
+  animation: brutalist-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes geometric-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+.animate-geometric-float {
+  animation: geometric-float 6s ease-in-out infinite;
+}
+
+@keyframes brutal-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10% { transform: translateX(-2px) rotate(-1deg); }
+  20% { transform: translateX(4px) rotate(1deg); }
+  30% { transform: translateX(-2px) rotate(-1deg); }
+  40% { transform: translateX(4px) rotate(1deg); }
+  50% { transform: translateX(-2px) rotate(-1deg); }
+  60% { transform: translateX(4px) rotate(1deg); }
+  70% { transform: translateX(-2px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+  90% { transform: translateX(-2px) rotate(-1deg); }
+}
+
+.animate-brutal-shake {
+  animation: brutal-shake 0.5s ease-in-out;
+}
+
 /* IPHONE SPECIFIC OPTIMIZATIONS */
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari specific styles */
   .ios-optimized {
     -webkit-overflow-scrolling: touch;
     -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
+    transform: translateZ(0);
+  }
 
   /* Smooth scrolling for iOS */
   .smooth-scroll-ios {

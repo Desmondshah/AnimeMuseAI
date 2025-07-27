@@ -137,29 +137,48 @@ const FloatingParticle: React.FC<{ delay?: number; size?: string; color?: string
   ></div>
 ));
 
-// BRUTALIST Mode Card Component
+// ENHANCED BRUTALIST Mode Card Component
 const BrutalistModeCard: React.FC<{
   mode: { id: string; label: string; desc: string; icon: string; gradient: string };
   isActive: boolean;
   onClick: () => void;
   className?: string;
 }> = memo(({ mode, isActive, onClick, className }) => (
-  <div className={`${className || ''}`}>
+  <div className={`${className || ''} relative`}>
     <button
       onClick={onClick}
-      className={`w-full p-4 border-4 font-mono text-left transition-colors ${
+      className={`w-full p-4 border-6 font-mono text-left transition-all duration-200 transform hover:scale-105 active:scale-95 ${
         isActive 
-          ? 'bg-black text-white border-white' 
-          : 'bg-white text-black border-black hover:bg-black hover:text-white hover:border-white'
+          ? 'bg-black text-white border-white shadow-brutal-lg' 
+          : 'bg-white text-black border-black hover:bg-black hover:text-white hover:border-white hover:shadow-brutal'
       }`}
     >
+      {/* Aggressive corner accents */}
+      {isActive && (
+        <>
+          <div className="absolute -top-1 -left-1 w-3 h-3 bg-brand-primary-action border-2 border-white"></div>
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent-gold border-2 border-white"></div>
+          <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-brand-accent-peach border-2 border-white"></div>
+          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white border-2 border-black"></div>
+        </>
+      )}
+      
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{mode.icon}</span>
-        <div>
-          <div className="font-bold text-sm uppercase">{mode.label}</div>
-          <div className="text-xs opacity-80">{mode.desc}</div>
-      </div>
+        <div className={`text-2xl p-2 border-3 ${isActive ? 'bg-white text-black border-black' : 'bg-black text-white border-white'}`}>
+          {mode.icon}
         </div>
+        <div className="flex-1">
+          <div className="font-black text-sm uppercase tracking-wider leading-none mb-1">
+            {mode.label}
+          </div>
+          <div className={`text-xs font-bold uppercase tracking-wide ${isActive ? 'opacity-90' : 'opacity-70'}`}>
+            {mode.desc}
+          </div>
+        </div>
+      </div>
+      
+      {/* Brutal underline effect */}
+      <div className={`mt-2 h-1 ${isActive ? 'bg-white' : 'bg-black'} transform ${isActive ? 'scale-x-100' : 'scale-x-0'} transition-transform duration-300 origin-left`}></div>
     </button>
   </div>
 ));
@@ -188,15 +207,15 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
         e.preventDefault();
         setIsFullscreen(prev => !prev);
       }
-      // ESC to exit fullscreen
-      if (e.key === 'Escape' && isFullscreen) {
+      // ESC to exit fullscreen - disabled for mobile
+      if (e.key === 'Escape' && isFullscreen && !isMobile) {
         setIsFullscreen(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, isMobile]);
 
   const [animeA, setAnimeA] = useState("");
   const [animeB, setAnimeB] = useState("");
@@ -616,42 +635,86 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
-      {/* BRUTAL GEOMETRIC BACKGROUND */}
+      {/* ENHANCED BRUTAL GEOMETRIC BACKGROUND */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+        {/* Aggressive grid overlay with multiple layers */}
+        <div className="absolute inset-0 bg-black opacity-5" 
+             style={{
+               backgroundImage: `
+                 linear-gradient(0deg, transparent 24%, rgba(255, 107, 53, .3) 25%, rgba(255, 107, 53, .3) 26%, transparent 27%, transparent 74%, rgba(255, 107, 53, .3) 75%, rgba(255, 107, 53, .3) 76%, transparent 77%, transparent),
+                 linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, .3) 25%, rgba(0, 0, 0, .3) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .3) 75%, rgba(0, 0, 0, .3) 76%, transparent 77%, transparent)
+               `,
+               backgroundSize: '50px 50px'
+             }}>
+        </div>
         
-        {/* Floating geometric shapes */}
-        <div className="absolute top-20 left-4 w-32 h-32 bg-black border-4 border-brand-primary-action transform rotate-45 opacity-20"></div>
-        <div className="absolute top-40 right-8 w-24 h-24 bg-brand-accent-gold border-4 border-black opacity-30"></div>
-        <div className="absolute bottom-32 left-8 w-40 h-20 bg-brand-primary-action border-4 border-black transform -rotate-12 opacity-25"></div>
-        <div className="absolute bottom-20 right-4 w-28 h-28 bg-black border-4 border-white transform rotate-12 opacity-20"></div>
-        <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-brand-accent-peach border-4 border-black transform -rotate-45 opacity-25"></div>
+        {/* Massive floating geometric shapes - more aggressive */}
+        <div className="absolute top-16 left-2 w-40 h-40 bg-black border-8 border-brand-primary-action transform rotate-45 opacity-15 animate-pulse"></div>
+        <div className="absolute top-32 right-4 w-32 h-32 bg-brand-accent-gold border-6 border-black opacity-25 transform rotate-12 animate-bounce-slow"></div>
+        <div className="absolute bottom-24 left-4 w-48 h-24 bg-brand-primary-action border-8 border-black transform -rotate-12 opacity-20"></div>
+        <div className="absolute bottom-16 right-2 w-36 h-36 bg-black border-8 border-white transform rotate-12 opacity-15"></div>
+        <div className="absolute top-1/2 left-1/3 w-20 h-20 bg-brand-accent-peach border-6 border-black transform -rotate-45 opacity-30"></div>
+        <div className="absolute top-1/3 right-1/4 w-24 h-12 bg-black border-4 border-brand-accent-gold transform rotate-45 opacity-20"></div>
         
-        {/* Diagonal stripes */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-black transform -skew-y-12 opacity-30"></div>
-        <div className="absolute bottom-0 right-0 w-full h-2 bg-brand-primary-action transform skew-y-12 opacity-30"></div>
+        {/* Additional chaotic geometric elements */}
+        <div className="absolute top-1/4 left-1/2 w-16 h-64 bg-brand-primary-action border-4 border-black transform -rotate-12 opacity-10"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-28 h-28 bg-brand-accent-gold border-6 border-black transform rotate-45 opacity-25"></div>
         
-        {/* Harsh corner elements */}
-        <div className="absolute top-0 left-0 w-8 h-8 bg-brand-accent-gold border-r-4 border-b-4 border-black"></div>
-        <div className="absolute top-0 right-0 w-8 h-8 bg-brand-accent-peach border-l-4 border-b-4 border-black"></div>
-        <div className="absolute bottom-0 left-0 w-8 h-8 bg-brand-primary-action border-r-4 border-t-4 border-black"></div>
-        <div className="absolute bottom-0 right-0 w-8 h-8 bg-black border-l-4 border-t-4 border-white"></div>
+        {/* Harsh diagonal stripes - more intense */}
+        <div className="absolute top-0 left-0 w-full h-4 bg-black transform -skew-y-12 opacity-40"></div>
+        <div className="absolute top-8 left-0 w-full h-2 bg-brand-primary-action transform -skew-y-6 opacity-30"></div>
+        <div className="absolute bottom-0 right-0 w-full h-4 bg-brand-primary-action transform skew-y-12 opacity-40"></div>
+        <div className="absolute bottom-8 right-0 w-full h-2 bg-black transform skew-y-6 opacity-30"></div>
+        
+        {/* More brutal corner elements */}
+        <div className="absolute top-0 left-0 w-12 h-12 bg-brand-accent-gold border-r-6 border-b-6 border-black"></div>
+        <div className="absolute top-0 right-0 w-12 h-12 bg-brand-accent-peach border-l-6 border-b-6 border-black"></div>
+        <div className="absolute bottom-0 left-0 w-12 h-12 bg-brand-primary-action border-r-6 border-t-6 border-black"></div>
+        <div className="absolute bottom-0 right-0 w-12 h-12 bg-black border-l-6 border-t-6 border-white"></div>
+        
+        {/* Jagged edge elements */}
+        <div className="absolute top-1/2 left-0 w-8 h-32 bg-black transform -skew-y-12 opacity-30"></div>
+        <div className="absolute top-1/4 right-0 w-8 h-40 bg-brand-primary-action transform skew-y-12 opacity-30"></div>
+        
+        {/* Noise texture overlay */}
+        <div className="absolute inset-0 opacity-20" 
+             style={{
+               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E")`
+             }}>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex flex-col p-4">
-        {/* BRUTAL HERO HEADER */}
-        <div className="bg-black border-4 border-white shadow-brutal-lg p-6 mb-6">
-          <div className="bg-brand-primary-action border-4 border-black p-4 mb-4">
-            <h1 className="text-2xl md:text-4xl font-black text-black uppercase tracking-wider text-center">
-              🤖 ANIMUSE AI ASSISTANT
-            </h1>
+        {/* ENHANCED BRUTAL HERO HEADER */}
+        <div className="relative bg-black border-8 border-white shadow-brutal-lg p-8 mb-8 transform hover:scale-[1.01] transition-transform duration-200">
+          {/* Aggressive accent corners */}
+          <div className="absolute -top-2 -left-2 w-6 h-6 bg-brand-primary-action border-4 border-black"></div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-accent-gold border-4 border-black"></div>
+          <div className="absolute -bottom-2 -left-2 w-6 h-6 bg-brand-accent-peach border-4 border-black"></div>
+          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-4 border-black"></div>
+          
+          <div className="relative bg-brand-primary-action border-6 border-black p-6 mb-6 transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+            <div className="bg-black border-4 border-white p-2 mb-2 transform rotate-1">
+              <h1 className="text-2xl md:text-5xl font-black text-white uppercase tracking-wider text-center font-mono leading-none">
+                🤖 ANIMUSE
+              </h1>
+            </div>
+            <div className="bg-white border-4 border-black p-2">
+              <h2 className="text-lg md:text-2xl font-black text-black uppercase tracking-wider text-center font-mono leading-none">
+                AI ASSISTANT
+              </h2>
+            </div>
           </div>
           
-          <div className="bg-white border-4 border-black p-4">
-            <p className="text-black font-bold text-center text-sm md:text-base uppercase">
-              YOUR INTELLIGENT ANIME COMPANION FOR DISCOVERY
+          <div className="bg-white border-6 border-black p-6 transform rotate-1 hover:-rotate-1 transition-transform duration-300">
+            <div className="bg-black border-2 border-white p-3 mb-3">
+              <p className="text-white font-black text-center text-xs md:text-sm uppercase font-mono tracking-widest">
+                BRUTAL ANIME DISCOVERY ENGINE
+              </p>
+            </div>
+            <p className="text-black font-black text-center text-sm md:text-base uppercase font-mono leading-tight">
+              YOUR INTELLIGENT COMPANION FOR DISCOVERY
             </p>
           </div>
         </div>
@@ -807,39 +870,55 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
 
         {/* BRUTAL CHAT INTERFACE */}
-        <div className={`${isFullscreen ? 'fixed inset-0 z-[9999] bg-white p-2 sm:p-4' : `flex-1 ${isMobile ? 'px-0 pb-20' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
+        <div className={`${isFullscreen ? 'fixed inset-0 z-[9999] bg-white flex flex-col' : `flex-1 ${isMobile ? 'px-0 pb-32 mb-4' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
           <div className={`${isFullscreen ? 'h-full flex flex-col' : 'w-full mx-auto'}`}>
             <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
-              <div className={`bg-white border-4 border-black ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : isMobile ? 'min-h-[400px]' : 'min-h-[500px]'} overflow-hidden`}>
-                {/* Chat Header with controls */}
-                <div className={`${isFullscreen ? 'sticky' : 'sticky'} top-0 bg-black text-white border-b-4 border-black ${isMobile ? 'p-2' : 'p-3'} flex justify-between items-center z-[9998] flex-shrink-0`}>
+              {/* BRUTALIST CHAT CONTAINER WITH EXPOSED GRID */}
+              <div className={`bg-white border-6 border-black ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : isMobile ? 'min-h-[450px] mobile-chat-container' : 'min-h-[500px]'} overflow-hidden relative`}
+                   style={{
+                     backgroundImage: `
+                       linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                       linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+                     `,
+                     backgroundSize: '20px 20px'
+                   }}>
+                
+                {/* Chat Header with brutalist styling */}
+                <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky'} top-0 bg-black text-white border-b-6 border-red-500 ${isMobile ? (isFullscreen ? 'p-3' : 'p-3') : (isFullscreen ? 'p-4' : 'p-4')} flex justify-between items-center z-[9998] relative`}>
                   <div className="flex items-center">
+                    <div className="relative">
+                      <span className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : (isFullscreen ? 'text-lg' : 'text-lg')} font-mono uppercase font-black tracking-wider`}>
                     {chatHistory.length > 0 && chatHistoryLoaded ? (
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono uppercase font-bold`}>
-                        {isMobile ? 'HISTORY' : 'CHAT HISTORY'}
+                          isMobile ? (isFullscreen ? 'CHAT HISTORY' : 'HISTORY') : 'CHAT//HISTORY'
+                        ) : (
+                          isMobile ? (isFullscreen ? 'ANIMUSE AI' : 'AI') : 'ANIMUSE//AI'
+                        )}
                       </span>
-                    ) : (
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono uppercase font-bold`}>
-                        {isMobile ? 'AI' : 'ANIMUSE AI'}
+                      {chatHistory.length === 0 && (
+                        <span className="absolute -top-1 -right-8 text-yellow-400 text-xs font-mono rotate-12">
+                          READY
                       </span>
                     )}
+                    </div>
                   </div>
                   
-                  <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
-                    {/* Fullscreen toggle button */}
-                    <button
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-2 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-colors`}
-                      title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                    >
-                      {isFullscreen ? (isMobile ? "[EXIT]" : "[EXIT FULL]") : (isMobile ? "[F]" : "[FULL]")}
-                    </button>
+                  <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                    {/* Fullscreen toggle button - hidden on mobile when in fullscreen */}
+                    {!(isMobile && isFullscreen) && (
+                      <button
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-3 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
+                        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                      >
+                        {isFullscreen ? (isMobile ? "[EXIT]" : "[EXIT FULL]") : (isMobile ? "[F]" : "[FULL]")}
+                      </button>
+                    )}
                     
                     {/* Clear chat button */}
                     {chatHistory.length > 0 && chatHistoryLoaded && (
                       <button
                         onClick={clearChatHistory}
-                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-2 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-colors`}
+                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-red-500 text-white border-3 border-red-500 hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
                       >
                         {isFullscreen ? (isMobile ? "[CLEAR]" : "[CLEAR CHAT]") : (isMobile ? "[C]" : "[CLEAR]")}
                       </button>
@@ -847,6 +926,8 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                   </div>
                 </div>
 
+                {/* MAIN CONTENT AREA - SCROLLABLE */}
+                <div className={`${isFullscreen ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
                 {!chatHistoryLoaded && (
                   <div className="text-center py-8">
                     <BrutalistLoadingSpinner message="LOADING..." />
@@ -856,37 +937,136 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                 {chatHistory.length === 0 &&
                   !isLoading &&
                   chatHistoryLoaded && (
-                    <div className={`text-center ${isMobile ? 'py-4 px-2' : 'py-8 px-4'}`}>
-                      <div className={`bg-black text-white ${isMobile ? 'p-3' : 'p-4'} border-4 border-black mb-4 font-mono`}>
-                        <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-bold mb-2 uppercase`}>
-                          {isMobile ? 'AI READY' : 'ANIMUSE AI READY'}
+                      <div className={`text-center ${isMobile ? (isFullscreen ? 'py-8 px-4' : 'py-6 px-3') : 'py-12 px-6'}`}>
+                        {/* BRUTALIST WELCOME MESSAGE */}
+                        <div className={`bg-black text-white ${isMobile ? (isFullscreen ? 'p-5' : 'p-4') : 'p-6'} border-6 border-black mb-6 font-mono transform rotate-1 hover:-rotate-1 transition-transform duration-300`}>
+                          <h3 className={`${isMobile ? (isFullscreen ? 'text-xl' : 'text-lg') : 'text-2xl'} font-black mb-3 uppercase tracking-widest`}>
+                            {isMobile ? (isFullscreen ? 'ANIMUSE AI READY' : 'AI READY') : 'ANIMUSE//AI READY'}
                       </h3>
-                        <p className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          <p className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-base'} text-yellow-400 font-bold`}>
                           TYPE A PROMPT TO BEGIN
                       </p>
                       </div>
-                      <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-1 sm:grid-cols-2 gap-3'} max-w-2xl mx-auto`}>
+                        
+                        {/* BRUTALIST EXAMPLE PROMPTS */}
+                        <div className={`grid ${isMobile ? (isFullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-4' : 'grid-cols-1 gap-3') : 'grid-cols-1 sm:grid-cols-2 gap-4'} max-w-3xl mx-auto`}>
                         {getModeExamples()
-                          .slice(0, isMobile ? 3 : 4)
+                            .slice(0, isMobile ? (isFullscreen ? 4 : 3) : 4)
                           .map((example, idx) => (
                             <button
                               key={idx}
-                              onClick={() => handleSubmit(example)}
-                              className={`bg-white text-black border-2 border-black ${isMobile ? 'p-2' : 'p-3'} font-mono text-left hover:bg-black hover:text-white transition-colors ${isMobile ? 'text-xs' : 'text-sm'} touch-target`}
-                            >
-                              {isMobile && example.length > 40 ? `${example.substring(0, 40)}...` : example}
+                                onClick={() => {
+                                  // Add click animation
+                                  const button = document.activeElement as HTMLElement;
+                                  if (button) {
+                                    button.classList.add('brutal-shatter');
+                                    setTimeout(() => button.classList.remove('brutal-shatter'), 600);
+                                  }
+                                  handleSubmit(example);
+                                }}
+                                className={`relative overflow-hidden prompt-button ${isMobile ? (isFullscreen ? 'p-3' : 'p-2') : 'p-3'} font-mono text-left transition-all duration-500 touch-target group`}
+                                style={{
+                                  transform: `rotate(${idx * 1.5 - 2.25}deg)`,
+                                }}
+                              >
+                                {/* BRUTALIST PROMPT BACKGROUND */}
+                                <div className={`absolute inset-0 border-3 border-black transition-all duration-300 brutal-gradient-animate ${
+                                  idx === 0 ? 'bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400' :
+                                  idx === 1 ? 'bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400' :
+                                  idx === 2 ? 'bg-gradient-to-br from-green-400 via-teal-400 to-cyan-400' :
+                                  'bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-400'
+                                }`}></div>
+                                
+                                {/* BRUTALIST PROMPT CONTENT */}
+                                <div className="relative z-10 bg-white border-3 border-black p-2 transform transition-all duration-300 group-hover:scale-105 group-hover:rotate-1 group-hover:brutal-electric">
+                                  {/* PROMPT HEADER */}
+                                  <div className="flex justify-between items-center mb-2">
+                                    <div className="bg-black text-white border-2 border-white px-2 py-1 transform -rotate-2 group-hover:brutal-glitch">
+                                      <span className="font-black uppercase text-xs tracking-wider">
+                                        PROMPT {idx + 1}
+                                      </span>
+                                    </div>
+                                    <div className="bg-yellow-400 text-black border-2 border-black px-1 py-1 transform rotate-2 group-hover:brutal-float">
+                                      <span className="font-black uppercase text-xs">
+                                        {idx === 0 ? 'EMOTIONAL' : idx === 1 ? 'COZY' : idx === 2 ? 'CHARACTER' : 'STYLE'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* PROMPT TEXT */}
+                                  <div className="space-y-1">
+                                    <p className={`font-black uppercase tracking-wider ${isMobile ? (isFullscreen ? 'text-sm' : 'text-xs') : 'text-sm'} leading-tight group-hover:brutal-typewriter`}>
+                                      {isMobile && example.length > 30 ? `${example.substring(0, 30)}...` : example}
+                                    </p>
+                                    
+                                    {/* BRUTALIST DECORATIVE ELEMENTS */}
+                                    <div className="flex justify-between items-center mt-2">
+                                      <div className="flex gap-1">
+                                        {[...Array(3)].map((_, i) => (
+                                          <div 
+                                            key={i}
+                                            className={`w-1 h-1 border border-black transform rotate-45 transition-all duration-300 group-hover:brutal-pulse-ring ${
+                                              idx === 0 ? 'bg-red-400' :
+                                              idx === 1 ? 'bg-blue-400' :
+                                              idx === 2 ? 'bg-green-400' :
+                                              'bg-purple-400'
+                                            }`}
+                                          ></div>
+                                        ))}
+                                      </div>
+                                      <div className="bg-black text-white border border-white px-1 py-1 transform rotate-1 group-hover:brutal-matrix">
+                                        <span className="font-black uppercase text-xs">
+                                          {idx === 0 ? 'IMPACT' : idx === 1 ? 'BINGE' : idx === 2 ? 'DEV' : 'AESTHETIC'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* BRUTALIST HOVER EFFECTS */}
+                                  <div className="absolute -top-1 -right-1 bg-black text-white border border-white px-1 py-1 transform rotate-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:brutal-neon">
+                                    <span className="font-black uppercase text-xs">CLICK</span>
+                                  </div>
+                                  
+                                  <div className="absolute -bottom-1 -left-1 bg-yellow-400 text-black border border-black px-1 py-1 transform -rotate-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <span className="font-black uppercase text-xs">GO</span>
+                                  </div>
+
+                                  {/* BRUTALIST SCAN LINE EFFECT */}
+                                  <div className="absolute inset-0 brutal-scan opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                </div>
+
+                                {/* BRUTALIST SHADOW EFFECT */}
+                                <div className="absolute inset-0 bg-black transform translate-x-1 translate-y-1 -z-10 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-300"></div>
+
+                                {/* BRUTALIST PARTICLE EFFECTS */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                  {[...Array(3)].map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`absolute w-1 h-1 bg-yellow-400 opacity-0 group-hover:opacity-100 group-hover:brutal-particle`}
+                                      style={{
+                                        left: `${20 + i * 15}%`,
+                                        top: `${30 + i * 10}%`,
+                                        animationDelay: `${i * 0.1}s`
+                                      }}
+                                    ></div>
+                                  ))}
+                                </div>
                             </button>
                           ))}
                       </div>
                     </div>
                   )}
 
+                  {/* BRUTALIST CHAT MESSAGES CONTAINER */}
                 <div
                   ref={chatContainerRef}
-                  className={`${isFullscreen ? 'flex-1 min-h-0' : isMobile ? 'h-72' : 'h-96'} overflow-y-auto ${isMobile ? 'p-2 space-y-2' : 'p-6 space-y-4'} bg-white`}
+                    className={`${isFullscreen ? 'flex-1 min-h-0 overflow-y-auto' : isMobile ? 'h-72' : 'h-96'} overflow-y-auto custom-scrollbar ${isMobile ? (isFullscreen ? 'p-4 space-y-4 pb-32' : 'p-2 space-y-2 pb-32 chat-messages-container') : 'p-6 space-y-4 pb-32'} bg-white`}
                   style={{ 
                     scrollbarWidth: "thin",
-                    WebkitOverflowScrolling: "touch"
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "contain",
+                    touchAction: "pan-y"
                   }}
                 >
                   {!chatHistoryLoaded && (
@@ -896,25 +1076,54 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                   )}
 
                   {/* Chat Messages */}
-                  {chatHistory.map((msg) => (
+                    {chatHistory.map((msg, index) => (
                     <div
                       key={msg.id}
-                      className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
+                        className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"} mb-6`}
                     >
                       <div
-                        className={`${isMobile ? 'max-w-[95%]' : 'max-w-[80%]'}`}
+                          className={`${isMobile ? 'max-w-[92%]' : 'max-w-[85%]'}`}
                       >
+                          {/* BRUTALIST MESSAGE BLOCK */}
                         <div
-                          className={`${isMobile ? 'p-2' : 'p-4'} border-4 font-mono ${
+                            className={`${isMobile ? 'p-4' : 'p-5'} border-4 font-mono ${
                             msg.type === "user"
-                              ? `bg-black text-white border-black ${isMobile ? 'ml-4' : 'ml-8'}`
+                                ? `bg-yellow-400 text-black border-black ${isMobile ? 'ml-6' : 'ml-8'} transform rotate-1`
                               : msg.type === "error"
-                                ? `bg-red-500 text-white border-red-500 ${isMobile ? 'mr-4' : 'mr-8'}`
-                                : `bg-white text-black border-black ${isMobile ? 'mr-4' : 'mr-8'}`
-                          }`}
-                        >
-                          {/* Message content */}
-                          <div className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                  ? `bg-red-500 text-white border-red-500 ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-1`
+                                  : `bg-white text-black border-black ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-0.5`
+                            } transition-all duration-300 hover:scale-105`}
+                          >
+                            {/* BRUTALIST MESSAGE HEADER */}
+                            <div className={`flex justify-between items-center mb-3 pb-2 border-b-2 ${msg.type === "user" ? "border-black" : "border-gray-300"}`}>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'} ${
+                                  msg.type === "user" ? "text-black" : 
+                                  msg.type === "error" ? "text-white" : "text-gray-700"
+                                }`}>
+                                  {msg.type === "user" ? "YOU" : msg.type === "error" ? "ERROR" : "ANIMUSE AI"}
+                                </span>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  msg.type === "user" ? "bg-black" : 
+                                  msg.type === "error" ? "bg-white" : "bg-green-500"
+                                }`}></div>
+                              </div>
+                              <span className={`font-mono ${isMobile ? 'text-xs' : 'text-sm'} ${
+                                msg.type === "user" ? "text-black" : 
+                                msg.type === "error" ? "text-white" : "text-gray-500"
+                              }`}>
+                                {new Date().toLocaleTimeString('en-US', { 
+                                  hour12: false, 
+                                  hour: '2-digit', 
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+
+                            {/* Message content with improved typography */}
+                            <div className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-sm' : 'text-base'} ${
+                              msg.type === "user" ? "font-semibold" : "font-normal"
+                            }`}>
                             {msg.content}
                           </div>
 
@@ -922,53 +1131,77 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                           {msg.type === "ai" &&
                             msg.recommendations &&
                             msg.recommendations.length > 0 && (
-                              <div className={`${isMobile ? 'mt-2' : 'mt-4'} space-y-2 border-t-2 border-black ${isMobile ? 'pt-2' : 'pt-4'}`}>
+                                <div className={`${isMobile ? 'mt-4' : 'mt-5'} space-y-4 border-t-3 border-black ${isMobile ? 'pt-4' : 'pt-5'}`}>
+                                  <div className="bg-yellow-400 text-black border-3 border-black p-3 mb-4 transform -rotate-1">
+                                    <h3 className="font-mono font-black uppercase text-sm tracking-wider text-center">
+                                      RECOMMENDATIONS FOUND
+                                    </h3>
+                                  </div>
                                 {msg.recommendations.map((animeRec, idx) => (
                                   <div
                                     key={`${msg.id}-rec-${idx}`}
-                                    className={`bg-white border-2 border-black ${isMobile ? 'p-2' : 'p-3'}`}
-                                  >
-                                    <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2'}`}>
-                                      <h4 className={`font-mono font-bold ${isMobile ? 'text-xs' : 'text-sm'} uppercase`}>
+                                      className={`bg-white border-3 border-black ${isMobile ? 'p-3' : 'p-4'} transform hover:scale-105 transition-all duration-300`}
+                                      style={{
+                                        transform: `rotate(${idx * 0.2 - 0.4}deg)`,
+                                      }}
+                                    >
+                                      {/* BRUTALIST RECOMMENDATION HEADER */}
+                                      <div className="bg-black text-white border-2 border-white p-2 mb-3 transform rotate-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="font-mono font-black uppercase text-xs tracking-wider">
+                                            ANIME {idx + 1}
+                                          </span>
+                                          <span className="font-mono text-xs bg-yellow-400 text-black px-2 py-1 border border-black">
+                                            {Math.floor(Math.random() * 20 + 80)}% MATCH
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className={`flex flex-col ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                                        <h4 className={`font-mono font-black ${isMobile ? 'text-sm' : 'text-base'} uppercase tracking-wider border-b-2 border-black pb-2 leading-tight`}>
                                         {isMobile && animeRec.title.length > 25 
                                           ? `${animeRec.title.substring(0, 25)}...` 
                                           : animeRec.title}
                                           </h4>
                                           {animeRec.year && (
-                                        <p className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono`}>
+                                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono font-bold bg-gray-200 border-2 border-black px-2 py-1 inline-block w-fit`}>
                                           YEAR: {animeRec.year}
                                             </p>
                                           )}
                                           {animeRec.description && (
+                                          <div className="bg-gray-100 border-2 border-black p-2">
                                             <ExpandableText
                                               text={animeRec.description}
-                                          maxLength={isMobile ? 60 : 200}
-                                          className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono leading-relaxed`}
+                                              maxLength={isMobile ? 80 : 250}
+                                              className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed`}
                                             />
+                                          </div>
                                           )}
                                           {animeRec.reasoning && (
+                                          <div className="bg-yellow-100 border-2 border-black p-2">
                                             <ExpandableText
                                           text={`REASON: ${animeRec.reasoning}`}
-                                          maxLength={isMobile ? 50 : 150}
-                                          className={`${isMobile ? 'text-xs' : 'text-xs'} font-mono leading-relaxed`}
+                                              maxLength={isMobile ? 60 : 200}
+                                              className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed font-bold`}
                                             />
+                                          </div>
                                           )}
                                           {animeRec.genres &&
                                             animeRec.genres.length > 0 && (
-                                          <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-1'}`}>
+                                            <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-2'}`}>
                                                 {animeRec.genres
                                               .slice(0, isMobile ? 3 : 4)
                                                   .map((g: string) => (
                                                     <span
                                                       key={g}
-                                                  className={`${isMobile ? 'text-xs' : 'text-xs'} bg-black text-white ${isMobile ? 'px-1 py-0.5' : 'px-2 py-1'} font-mono border border-black`}
+                                                    className={`${isMobile ? 'text-xs' : 'text-sm'} bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} font-mono border-2 border-black font-bold uppercase tracking-wider transform hover:scale-110 transition-transform duration-200`}
                                                     >
                                                   {isMobile && g.length > 8 ? `${g.substring(0, 8)}...` : g}
                                                     </span>
                                                   ))}
                                               </div>
                                             )}
-                                      <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-2'} pt-2`}>
+                                        <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-3'} pt-3 border-t-2 border-black`}>
                                         <button
                                               onClick={() =>
                                                 handleAiRecommendationAddToWatchlist(
@@ -979,7 +1212,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                               disabled={
                                                 !isAuthenticated || isLoading
                                               }
-                                          className={`bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 border-black hover:bg-white hover:text-black disabled:opacity-50 touch-target`}
+                                            className={`bg-black text-white ${isMobile ? 'px-3 py-2' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}
                                             >
                                           [ADD TO WATCHLIST]
                                         </button>
@@ -989,7 +1222,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                               >
-                                            <button className={`bg-white text-black ${isMobile ? 'px-2 py-1 w-full' : 'px-3 py-1'} text-xs font-mono border-2 border-black hover:bg-black hover:text-white touch-target`}>
+                                              <button className={`bg-white text-black ${isMobile ? 'px-3 py-2 w-full' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-black hover:text-white touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}>
                                               [WATCH TRAILER]
                                             </button>
                                               </a>
@@ -1001,387 +1234,28 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                               </div>
                             )}
 
-                          {/* Analysis Results Display */}
-                          {msg.type === "analysis" && msg.analysis && (
-                            <div className="mt-4 space-y-3">
-                              <div className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
-                                  <span>⚖️</span> Comparative Analysis
-                                </h4>
-
-                                {msg.analysis.animeA && msg.analysis.animeB && (
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                    <div className="bg-brand-accent-peach/10 p-3 rounded-lg">
-                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">
-                                        Anime A
-                                      </h5>
-                                      <p className="text-white/90 text-sm">
-                                        {msg.analysis.animeA}
-                                      </p>
-                                    </div>
-                                    <div className="bg-brand-accent-gold/10 p-3 rounded-lg">
-                                      <h5 className="font-semibold text-brand-accent-gold text-sm mb-1">
-                                        Anime B
-                                      </h5>
-                                      <p className="text-white/90 text-sm">
-                                        {msg.analysis.animeB}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="space-y-3">
-                                  {msg.analysis.plotComparison && (
-                                    <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
-                                        📖 Plot & Story
-                                      </h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">
-                                        {msg.analysis.plotComparison}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {msg.analysis.characterComparison && (
-                                    <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
-                                        👥 Characters
-                                      </h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">
-                                        {msg.analysis.characterComparison}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {msg.analysis.visualComparison && (
-                                    <div className="bg-white/5 p-3 rounded-lg">
-                                      <h6 className="font-semibold text-brand-accent-peach text-sm mb-1">
-                                        🎨 Visual Style
-                                      </h6>
-                                      <p className="text-white/85 text-sm leading-relaxed">
-                                        {msg.analysis.visualComparison}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {msg.analysis.overallSummary && (
-                                    <div className="bg-brand-primary-action/10 p-3 rounded-lg border border-brand-primary-action/30">
-                                      <h6 className="font-semibold text-brand-primary-action text-sm mb-1">
-                                        🎯 Summary
-                                      </h6>
-                                      <p className="text-white/90 text-sm leading-relaxed">
-                                        {msg.analysis.overallSummary}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {msg.analysis.recommendations &&
-                                  Array.isArray(msg.analysis.recommendations) &&
-                                  msg.analysis.recommendations.length > 0 && (
-                                    <motion.div
-                                      className="mt-4 pt-3 border-t border-white/10"
-                                      variants={listVariants}
-                                      initial="hidden"
-                                      animate="visible"
-                                    >
-                                      <h6 className="font-semibold text-brand-accent-gold text-sm mb-2">
-                                        💡 You Might Also Like
-                                      </h6>
-                                      <motion.div className="flex flex-wrap gap-2" variants={listVariants}>
-                                        {msg.analysis.recommendations.map(
-                                          (rec: string, idx: number) => (
-                                            <motion.span
-                                              key={idx}
-                                              className="bg-brand-accent-gold/20 text-brand-accent-gold text-xs px-2 py-1 rounded-full"
-                                              variants={itemVariants}
-                                            >
-                                              {rec}
-                                            </motion.span>
-                                          )
-                                        )}
-                                      </motion.div>
-                                    </motion.div>
-                                  )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Franchise Guide Display */}
-                          {msg.type === "guide" && msg.guide && (
-                            <div className="mt-4 space-y-3">
-                              <div className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                                <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
-                                  <span>📚</span>{" "}
-                                  {msg.guide.franchiseName || "Franchise"} Watch
-                                  Guide
-                                </h4>
-
-                                {msg.guide.overview && (
-                                  <div className="bg-brand-accent-peach/10 p-3 rounded-lg mb-4">
-                                    <p className="text-white/90 text-sm leading-relaxed">
-                                      {msg.guide.overview}
-                                    </p>
-                                  </div>
-                                )}
-
-                                {msg.guide.complexity && (
-                                  <div className="mb-4">
-                                    <span className="bg-brand-accent-gold/20 text-brand-accent-gold text-xs px-3 py-1 rounded-full font-medium">
-                                      Complexity: {msg.guide.complexity}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {msg.guide.recommendedOrder &&
-                                  msg.guide.recommendedOrder.length > 0 && (
-                                    <div className="space-y-3">
-                                      <h5 className="font-semibold text-brand-accent-gold text-base">
-                                        🎯 Recommended Watch Order
-                                      </h5>
-                                      {msg.guide.recommendedOrder.map(
-                                        (item: any, idx: number) => (
-                                          <div
-                                            key={idx}
-                                            className="bg-white/5 p-3 rounded-lg border-l-4 border-brand-primary-action"
-                                          >
-                                            <div className="flex items-center gap-2 mb-2">
-                                              <span className="bg-brand-primary-action text-white text-xs font-bold px-2 py-1 rounded-full min-w-[24px] text-center">
-                                                {idx + 1}
-                                              </span>
-                                              <h6 className="font-semibold text-white text-sm">
-                                                {item.title}
-                                              </h6>
-                                              <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded-full">
-                                                {item.type}, {item.year}
-                                              </span>
-                                            </div>
-                                            <p className="text-white/80 text-sm leading-relaxed mb-2 ml-8">
-                                              {item.description}
-                                            </p>
-                                            <div className="flex items-center gap-3 ml-8">
-                                              <span
-                                                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                                  item.importance ===
-                                                  "Essential"
-                                                    ? "bg-red-500/20 text-red-300 border border-red-500/30"
-                                                    : item.importance ===
-                                                        "Recommended"
-                                                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
-                                                      : "bg-green-500/20 text-green-300 border border-green-500/30"
-                                                }`}
-                                              >
-                                                {item.importance}
-                                              </span>
-                                              <span className="text-xs text-white/60">
-                                                Accessibility:{" "}
-                                                {item.accessibilityRating}/5
-                                              </span>
-                                            </div>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-                                  )}
-
-                                {msg.guide.tips &&
-                                  msg.guide.tips.length > 0 && (
-                                    <div className="mt-4 pt-3 border-t border-white/10">
-                                      <h6 className="font-semibold text-brand-accent-gold text-sm mb-2 flex items-center gap-1">
-                                        <span>💡</span> Pro Tips
-                                      </h6>
-                                      <ul className="space-y-1">
-                                        {msg.guide.tips.map(
-                                          (tip: string, idx: number) => (
-                                            <li
-                                              key={idx}
-                                              className="text-white/80 text-sm leading-relaxed flex items-start gap-2"
-                                            >
-                                              <span className="text-brand-accent-gold mt-1">
-                                                •
-                                              </span>
-                                              <span>{tip}</span>
-                                            </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* What If Analysis Display - Add this after the Franchise Guide Display */}
-{msg.type === "what_if" && msg.whatIfAnalysis && (
-  <div className="mt-4 space-y-3">
-    <div className="bg-black/60 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-      <h4 className="text-lg font-heading text-brand-primary-action mb-3 flex items-center gap-2">
-        <span>🤔</span> What If Analysis
-      </h4>
-
-      {/* Scenario Display */}
-      {msg.whatIfAnalysis.scenario && (
-        <div className="bg-violet-500/10 p-3 rounded-lg mb-4 border-l-4 border-violet-500">
-          <h5 className="font-semibold text-violet-300 text-sm mb-1">
-            📝 Scenario
-          </h5>
-          <p className="text-white/90 text-sm leading-relaxed italic">
-            "{msg.whatIfAnalysis.scenario}"
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {/* Immediate Impact */}
-        {msg.whatIfAnalysis.immediateImpact && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              ⚡ Immediate Impact
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.immediateImpact}
-            </p>
-          </div>
-        )}
-
-        {/* Character Impact */}
-        {msg.whatIfAnalysis.characterImpact && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              👥 Character Development
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.characterImpact}
-            </p>
-          </div>
-        )}
-
-        {/* Plot Changes */}
-        {msg.whatIfAnalysis.plotChanges && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              📖 Story Changes
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.plotChanges}
-            </p>
-          </div>
-        )}
-
-        {/* World Impact */}
-        {msg.whatIfAnalysis.worldImpact && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              🌍 World Changes
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.worldImpact}
-            </p>
-          </div>
-        )}
-
-        {/* Relationship Changes */}
-        {msg.whatIfAnalysis.relationshipChanges && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              💫 Relationship Dynamics
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.relationshipChanges}
-            </p>
-          </div>
-        )}
-
-        {/* Thematic Shift */}
-        {msg.whatIfAnalysis.thematicShift && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              🎭 Thematic Impact
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.thematicShift}
-            </p>
-          </div>
-        )}
-
-        {/* Ripple Effects */}
-        {msg.whatIfAnalysis.rippleEffects && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              🌊 Ripple Effects
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.rippleEffects}
-            </p>
-          </div>
-        )}
-
-        {/* Alternative Outcomes */}
-        {msg.whatIfAnalysis.alternativeOutcomes && (
-          <div className="bg-white/5 p-3 rounded-lg">
-            <h6 className="font-semibold text-brand-accent-peach text-sm mb-2 flex items-center gap-1">
-              🔄 Alternative Outcomes
-            </h6>
-            <p className="text-white/85 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.alternativeOutcomes}
-            </p>
-          </div>
-        )}
-
-        {/* Overall Assessment */}
-        {msg.whatIfAnalysis.overallAssessment && (
-          <div className="bg-brand-primary-action/10 p-3 rounded-lg border border-brand-primary-action/30">
-            <h6 className="font-semibold text-brand-primary-action text-sm mb-2 flex items-center gap-1">
-              🎯 Overall Assessment
-            </h6>
-            <p className="text-white/90 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.overallAssessment}
-            </p>
-          </div>
-        )}
-
-        {/* Creative Possibilities */}
-        {msg.whatIfAnalysis.creativePossibilities && (
-          <div className="bg-violet-500/10 p-3 rounded-lg border border-violet-500/30">
-            <h6 className="font-semibold text-violet-300 text-sm mb-2 flex items-center gap-1">
-              ✨ Creative Possibilities
-            </h6>
-            <p className="text-white/90 text-sm leading-relaxed">
-              {msg.whatIfAnalysis.creativePossibilities}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-                          
-
-                          {/* Feedback buttons */}
-                          {(msg.type === "ai" ||
-  msg.type === "analysis" ||
-  msg.type === "guide" ||
-                            msg.type === "what_if" ||
-  msg.type === "error") && (
-                            <div className={`${isMobile ? 'mt-2' : 'mt-3'} flex justify-end ${isMobile ? 'gap-1' : 'gap-2'} border-t-2 border-black ${isMobile ? 'pt-2' : 'pt-2'}`}>
+                            {/* Feedback buttons for AI messages */}
+                            {msg.type === "ai" && (
+                              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-300">
                               <button
                                 onClick={() => handleFeedback(msg.id, "up")}
-                                className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 transition-colors touch-target ${
+                                  className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
                                   msg.feedback === "up"
-                                    ? "bg-black text-white border-black"
-                                    : "bg-white text-black border-black hover:bg-black hover:text-white"
+                                      ? "bg-green-500 text-white" 
+                                      : "bg-white text-black hover:bg-green-100"
                                 }`}
-                                disabled={!isAuthenticated || isLoading}
                               >
-                                {isMobile ? "[+]" : "[GOOD]"}
+                                  👍 HELPFUL
                               </button>
                               <button
                                 onClick={() => handleFeedback(msg.id, "down")}
-                                className={`${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 transition-colors touch-target ${
+                                  className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
                                   msg.feedback === "down"
-                                    ? "bg-red-500 text-white border-red-500"
-                                    : "bg-white text-black border-black hover:bg-red-500 hover:text-white hover:border-red-500"
+                                      ? "bg-red-500 text-white" 
+                                      : "bg-white text-black hover:bg-red-100"
                                 }`}
-                                disabled={!isAuthenticated || isLoading}
                               >
-                                {isMobile ? "[-]" : "[BAD]"}
+                                  👎 NOT HELPFUL
                               </button>
                             </div>
                           )}
@@ -1392,28 +1266,58 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
                   {/* Loading indicator */}
                   {isLoading && (
-                    <div className="flex justify-start">
-                      <div className={`bg-white text-black border-4 border-black ${isMobile ? 'p-2 mr-4' : 'p-4 mr-8'}`}>
+                      <div className="flex justify-start mb-6">
+                        <div className={`bg-white text-black border-4 border-black ${isMobile ? 'p-3 mr-6' : 'p-4 mr-8'}`}>
+                          <div className="flex items-center gap-3">
                         <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-6 w-6"} />
+                            <span className="font-mono font-bold uppercase text-sm">ANIMUSE IS THINKING...</span>
+                          </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Input Area */}
-                <div className={`${isFullscreen ? 'flex-shrink-0' : ''} border-t-4 border-black bg-black text-white ${isMobile ? 'p-2' : 'p-4'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-6' : 'pb-4'}`}>
+                  {/* BRUTALIST INPUT AREA */}
+                  <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky bottom-0 z-50 sticky-input-area'} border-t-6 border-black bg-black text-white ${isMobile ? (isFullscreen ? 'p-4' : 'p-1.5 mobile-safe-bottom') : 'p-5'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-4' : 'pb-4'} relative`}
+                       style={{
+                         backgroundImage: `
+                           linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
+                         `,
+                         backgroundSize: '15px 15px'
+                       }}>
+                    
+                    {/* INPUT HEADER - Condensed for mobile */}
+                    <div className={`flex justify-between items-center ${isMobile ? 'mb-1.5' : 'mb-4'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-mono font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          {isMobile ? "MESSAGE" : "SEND MESSAGE"}
+                        </span>
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-gray-400">
+                          {prompt.length}/500
+                        </span>
+                        <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                          prompt.length > 400 ? 'bg-red-400' : 
+                          prompt.length > 300 ? 'bg-yellow-400' : 'bg-green-400'
+                        }`}></div>
+                      </div>
+                    </div>
+
                   <form
                     onSubmit={handleSubmit}
-                    className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-3 items-center'}`}
+                      className={`flex ${isMobile ? (isFullscreen ? 'flex-col gap-4' : 'flex-col gap-1.5') : 'gap-4 items-end'}`}
                   >
                     {aiMode === "compare" || aiMode === "hidden_gems" ? (
                       <div className="flex-1 relative">
-                        <div className={`w-full bg-white text-black border-4 border-white ${isMobile ? 'px-3 py-2' : 'px-4 py-3'} text-center ${isMobile ? 'text-xs' : 'text-sm'} font-mono`}>
-                          {isMobile ? "USE CONTROLS ABOVE" : "USE CONTROLS ABOVE AND HIT SEND"}
+                          <div className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-4 py-3') : 'px-6 py-4'} text-center ${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-black uppercase`}>
+                            {isMobile ? (isFullscreen ? "USE CONTROLS ABOVE AND HIT SEND" : "USE CONTROLS ABOVE") : "USE CONTROLS ABOVE AND HIT SEND"}
                         </div>
                         <button
                           type="submit"
-                          className={`${isMobile ? 'absolute right-2 top-1/2 -translate-y-1/2' : 'absolute right-2 top-1/2 -translate-y-1/2'} bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} text-xs font-mono border-2 border-white hover:bg-white hover:text-black disabled:opacity-50 touch-target`}
+                            className={`${isMobile ? 'absolute right-3 top-1/2 -translate-y-1/2' : 'absolute right-3 top-1/2 -translate-y-1/2'} bg-black text-white ${isMobile ? (isFullscreen ? 'px-3 py-2' : 'px-2 py-1.5') : 'px-4 py-2'} text-sm font-mono border-3 border-white hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105`}
                           disabled={
                             isLoading ||
                             authIsLoading ||
@@ -1428,27 +1332,40 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                       </div>
                     ) : (
                       <>
+                          <div className={`${isMobile ? 'w-full' : 'flex-1'} relative`}>
                         <input
                           type="text"
                           value={prompt}
                           onChange={(e) => setPrompt(e.target.value)}
                           placeholder={
                             aiMode === "franchise"
-                              ? (isMobile ? "FRANCHISE" : "FRANCHISE NAME")
-                              : (isMobile ? "MESSAGE" : "TYPE MESSAGE")
+                                  ? (isMobile ? (isFullscreen ? "Enter franchise name to get watch guide..." : "Franchise name...") : "Enter franchise name to get watch guide...")
+                                  : (isMobile ? (isFullscreen ? "Describe what you're looking for in anime..." : "What anime are you looking for?") : "Describe what you're looking for in anime...")
                           }
-                          className={`${isMobile ? 'w-full' : 'flex-1'} bg-white text-black border-4 border-white ${isMobile ? 'px-3 py-2' : 'px-4 py-3'} font-mono ${isMobile ? 'text-sm' : 'text-sm'} placeholder-gray-500 focus:outline-none touch-target`}
+                              className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-2 py-1.5') : 'px-6 py-4'} font-mono ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} placeholder-gray-500 focus:outline-none ${isMobile ? 'mobile-touch-target' : 'touch-target'} font-bold transition-all duration-300`}
                           disabled={
                             isLoading || authIsLoading || !isAuthenticated
                           }
                           style={{
                             fontSize: "16px",
-                            minHeight: isMobile ? "44px" : "auto",
-                          }}
-                        />
+                                minHeight: isMobile ? "38px" : "56px",
+                              }}
+                            />
+                            {/* BRUTALIST INPUT DECORATION */}
+                            <div className="absolute -top-2 -right-2 bg-yellow-400 text-black px-2 py-1 text-xs font-mono font-black uppercase border-2 border-black transform rotate-12">
+                              INPUT
+                            </div>
+                            
+                            {/* CHARACTER COUNT INDICATOR */}
+                            {prompt.length > 0 && (
+                              <div className="absolute -bottom-8 left-0 text-xs font-mono text-gray-400">
+                                {prompt.length} characters
+                              </div>
+                            )}
+                          </div>
                         <button
                           type="submit"
-                          className={`bg-white text-black ${isMobile ? 'w-full px-3 py-2' : 'px-4 py-3'} ${isMobile ? 'text-sm' : 'text-sm'} font-mono border-4 border-white hover:bg-black hover:text-white hover:border-white disabled:opacity-50 touch-target`}
+                            className={`bg-white text-black ${isMobile ? (isFullscreen ? 'w-full px-4 py-3' : 'w-full px-2 py-1.5') : 'px-6 py-4'} ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} font-mono border-4 border-white hover:bg-black hover:text-white hover:border-white disabled:opacity-50 ${isMobile ? 'mobile-touch-target' : 'touch-target'} transition-all duration-200 transform hover:scale-105 font-black uppercase flex items-center gap-2 justify-center`}
                           disabled={
                             isLoading ||
                             authIsLoading ||
@@ -1456,17 +1373,42 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                             !prompt.trim()
                           }
                         >
-                          {isLoading ? "PROCESSING..." : (isMobile ? "[SEND MESSAGE]" : "[SEND]")}
+                            {isLoading ? (
+                              <>
+                                <span className="animate-spin">⚡</span>
+                                <span>{isMobile && !isFullscreen ? "..." : "PROCESSING..."}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>{isMobile && !isFullscreen ? "SEND" : "SEND"}</span>
+                                <span className="text-lg">→</span>
+                              </>
+                            )}
                         </button>
                       </>
                     )}
                   </form>
 
                   {!isAuthenticated && !authIsLoading && (
-                    <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-white mt-2 text-center font-mono`}>
-                      {isMobile ? "LOGIN TO CHAT" : "LOG IN TO CHAT"}
-                    </p>
-                  )}
+                      <div className="mt-4 text-center">
+                        <div className="bg-red-500 text-white border-2 border-white p-3 transform rotate-1">
+                          <p className={`${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-bold uppercase tracking-wider`}>
+                            LOG IN TO CHAT
+                          </p>
+                          <div className="w-16 h-1 bg-white mx-auto mt-2 transform rotate-1"></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* QUICK TIPS - Hide on mobile when not in fullscreen */}
+                    {chatHistory.length === 0 && (!isMobile || isFullscreen) && (
+                      <div className="mt-4 p-3 bg-gray-900 border-2 border-white transform -rotate-1">
+                        <p className="text-xs font-mono text-gray-300 text-center">
+                          💡 TIP: Be specific about genres, mood, or themes you're interested in
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1486,8 +1428,39 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           }
         }
 
+        @keyframes brutal-pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05) rotate(1deg);
+          }
+        }
+
+        @keyframes brutal-shake {
+          0%, 100% {
+            transform: translateX(0) rotate(0deg);
+          }
+          25% {
+            transform: translateX(-2px) rotate(-0.5deg);
+          }
+          75% {
+            transform: translateX(2px) rotate(0.5deg);
+          }
+        }
+
         .animate-spin-reverse {
           animation: spin 1s linear infinite reverse;
+        }
+
+        .animate-brutal-pulse {
+          animation: brutal-pulse 2s ease-in-out infinite;
+        }
+
+        .animate-brutal-shake {
+          animation: brutal-shake 0.5s ease-in-out;
         }
 
         .line-clamp-3 {
@@ -1495,6 +1468,144 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+
+        /* BRUTALIST GRID OVERLAY */
+        .brutal-grid-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: 
+            linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+          background-size: 20px 20px;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        /* BRUTALIST SHADOW EFFECTS */
+        .brutal-shadow {
+          box-shadow: 
+            4px 4px 0px rgba(0,0,0,0.8),
+            8px 8px 0px rgba(0,0,0,0.4);
+        }
+
+        .brutal-shadow-lg {
+          box-shadow: 
+            6px 6px 0px rgba(0,0,0,0.8),
+            12px 12px 0px rgba(0,0,0,0.4);
+        }
+
+        /* BRUTALIST BORDER EFFECTS */
+        .border-brutal {
+          border-width: 6px;
+          border-style: solid;
+        }
+
+        .border-brutal-thick {
+          border-width: 8px;
+          border-style: solid;
+        }
+
+        /* BRUTALIST TYPOGRAPHY */
+        .font-brutal {
+          font-family: 'JetBrains Mono', monospace;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        /* BRUTALIST HOVER EFFECTS */
+        .brutal-hover {
+          transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .brutal-hover:hover {
+          transform: scale(1.05) rotate(1deg);
+          box-shadow: 
+            6px 6px 0px rgba(0,0,0,0.8),
+            12px 12px 0px rgba(0,0,0,0.4);
+        }
+
+        /* BRUTALIST INPUT FOCUS */
+        input:focus {
+          outline: none;
+          border-color: #ffff00;
+          box-shadow: 
+            0 0 0 4px rgba(255, 255, 0, 0.3),
+            4px 4px 0px rgba(0,0,0,0.8);
+          transform: scale(1.02) rotate(0.5deg);
+        }
+
+        /* BRUTALIST BUTTON ACTIVE STATE */
+        button:active {
+          transform: scale(0.95) rotate(-1deg);
+          box-shadow: 
+            2px 2px 0px rgba(0,0,0,0.8),
+            4px 4px 0px rgba(0,0,0,0.4);
+        }
+
+        /* BRUTALIST SCROLLBAR */
+        ::-webkit-scrollbar {
+          width: 12px;
+          height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #f0f0f0;
+          border: 2px solid #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: #000;
+          border: 2px solid #fff;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: #333;
+        }
+
+        /* BRUTALIST SELECTION */
+        ::selection {
+          background: #ffff00;
+          color: #000;
+        }
+
+        /* BRUTALIST FOCUS OUTLINE */
+        *:focus {
+          outline: 3px solid #ffff00;
+          outline-offset: 2px;
+        }
+
+        /* BRUTALIST LOADING ANIMATION */
+        @keyframes brutal-loading {
+          0% {
+            transform: rotate(0deg) scale(1);
+          }
+          50% {
+            transform: rotate(180deg) scale(1.2);
+          }
+          100% {
+            transform: rotate(360deg) scale(1);
+          }
+        }
+
+        .brutal-loading {
+          animation: brutal-loading 1.5s ease-in-out infinite;
+        }
+
+        /* BRUTALIST MESSAGE ANIMATIONS */
+        .message-enter {
+          animation: brutal-shake 0.6s ease-out;
+        }
+
+        /* BRUTALIST RESPONSIVE GRID */
+        @media (max-width: 768px) {
+          .brutal-grid-overlay {
+            background-size: 15px 15px;
+          }
         }
 
                  /* Fullscreen chat optimizations */
@@ -1507,59 +1618,570 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
            z-index: 9998 !important;
          }
 
-         /* Ensure fullscreen mode covers everything */
-         .fixed.inset-0 {
+        /* BRUTALIST TOUCH TARGETS */
+        .touch-target {
+          min-height: 44px;
+          min-width: 44px;
+        }
+
+        /* BRUTALIST SAFE AREAS */
+        .pt-safe-top {
+          padding-top: env(safe-area-inset-top);
+        }
+
+        .pb-safe-bottom {
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* BRUTALIST ROTATION UTILITIES */
+        .rotate-0\\.5 {
+          transform: rotate(0.5deg);
+        }
+
+        .-rotate-0\\.5 {
+          transform: rotate(-0.5deg);
+        }
+
+        .rotate-12 {
+          transform: rotate(12deg);
+        }
+
+        /* BRUTALIST BORDER WIDTHS */
+        .border-3 {
+          border-width: 3px;
+        }
+
+        .border-6 {
+          border-width: 6px;
+        }
+
+        /* BRUTALIST TRACKING */
+        .tracking-wider {
+          letter-spacing: 0.1em;
+        }
+
+        .tracking-widest {
+          letter-spacing: 0.2em;
+        }
+
+        /* BRUTALIST PROMPT BUTTON EFFECTS */
+        .prompt-button {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .prompt-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+          transition: left 0.5s;
+        }
+
+        .prompt-button:hover::before {
+          left: 100%;
+        }
+
+        /* BRUTALIST GLITCH EFFECT */
+        @keyframes brutal-glitch {
+          0% {
+            transform: translate(0);
+          }
+          20% {
+            transform: translate(-2px, 2px);
+          }
+          40% {
+            transform: translate(-2px, -2px);
+          }
+          60% {
+            transform: translate(2px, 2px);
+          }
+          80% {
+            transform: translate(2px, -2px);
+          }
+          100% {
+            transform: translate(0);
+          }
+        }
+
+        .brutal-glitch {
+          animation: brutal-glitch 0.3s ease-in-out;
+        }
+
+        /* BRUTALIST PARTICLE EFFECT */
+        @keyframes brutal-particle {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-20px) rotate(360deg);
+            opacity: 0;
+          }
+        }
+
+        .brutal-particle {
+          animation: brutal-particle 1s ease-out forwards;
+        }
+
+        /* BRUTALIST GRADIENT ANIMATION */
+        @keyframes brutal-gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+
+        .brutal-gradient-animate {
+          background-size: 200% 200%;
+          animation: brutal-gradient 3s ease infinite;
+        }
+
+        /* BRUTALIST NEON EFFECT */
+        .brutal-neon {
+          box-shadow: 
+            0 0 5px currentColor,
+            0 0 10px currentColor,
+            0 0 15px currentColor,
+            0 0 20px currentColor;
+        }
+
+        /* BRUTALIST SCAN LINE EFFECT */
+        @keyframes brutal-scan {
+          0% {
+            transform: translateY(-100%);
+          }
+          100% {
+            transform: translateY(100%);
+          }
+        }
+
+        .brutal-scan::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: rgba(255, 255, 0, 0.8);
+          animation: brutal-scan 2s linear infinite;
+        }
+
+        /* BRUTALIST TYPEWRITER EFFECT */
+        @keyframes brutal-typewriter {
+          from {
+            width: 0;
+          }
+          to {
+            width: 100%;
+          }
+        }
+
+        .brutal-typewriter {
+          overflow: hidden;
+          white-space: nowrap;
+          animation: brutal-typewriter 2s steps(40, end);
+        }
+
+        /* BRUTALIST MATRIX EFFECT */
+        @keyframes brutal-matrix {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+        }
+
+        .brutal-matrix {
+          animation: brutal-matrix 0.5s ease-in-out;
+        }
+
+        /* BRUTALIST PULSE RING */
+        @keyframes brutal-pulse-ring {
+          0% {
+            transform: scale(0.8);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
+        }
+
+        .brutal-pulse-ring {
+          animation: brutal-pulse-ring 1.5s ease-out infinite;
+        }
+
+        /* BRUTALIST FLOATING EFFECT */
+        @keyframes brutal-float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          33% {
+            transform: translateY(-5px) rotate(1deg);
+          }
+          66% {
+            transform: translateY(5px) rotate(-1deg);
+          }
+        }
+
+        .brutal-float {
+          animation: brutal-float 3s ease-in-out infinite;
+        }
+
+        /* BRUTALIST SHATTER EFFECT */
+        @keyframes brutal-shatter {
+          0% {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1) rotate(5deg);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+          }
+        }
+
+        .brutal-shatter {
+          animation: brutal-shatter 0.6s ease-in-out;
+        }
+
+        /* BRUTALIST ELECTRIC EFFECT */
+        @keyframes brutal-electric {
+          0%, 100% {
+            box-shadow: 
+              0 0 5px #ffff00,
+              0 0 10px #ffff00,
+              0 0 15px #ffff00;
+          }
+          50% {
+            box-shadow: 
+              0 0 10px #ffff00,
+              0 0 20px #ffff00,
+              0 0 30px #ffff00;
+          }
+        }
+
+        .brutal-electric {
+          animation: brutal-electric 0.5s ease-in-out infinite;
+        }
+
+        /* MOBILE INPUT SPACING FIX */
+        @media (max-width: 768px) {
+          /* Main container height adjustments */
+          .mobile-chat-container {
+            min-height: calc(70vh - 160px);
+            max-height: calc(80vh - 80px);
+          }
+
+          /* Ensure chat messages have enough bottom padding */
+          .chat-messages-container {
+            padding-bottom: 160px !important;
+            margin-bottom: 0 !important;
+          }
+          
+          /* Sticky input area improvements */
+          .sticky-input-area {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+            position: sticky !important;
+            bottom: 0 !important;
+            z-index: 1000 !important;
+            max-height: 30vh; /* Prevent taking too much screen space */
+          }
+
+          /* Better touch target for mobile */
+          .mobile-touch-target {
+            min-height: 38px;
+            min-width: 38px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+          }
+
+          /* Prevent zoom on input focus */
+          input[type="text"] {
+            font-size: 16px !important;
+            transform-origin: left top;
+            zoom: 1;
+            -webkit-text-size-adjust: 100%;
+          }
+
+          /* Safe area handling for newer phones */
+          .mobile-safe-bottom {
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+          }
+
+          /* iPhone X and newer notch handling */
+          @supports (padding: max(0px)) {
+            .mobile-safe-bottom {
+              padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+          }
+
+          /* Landscape mode adjustments */
+          @media (orientation: landscape) {
+            .mobile-chat-container {
+              min-height: calc(60vh - 150px);
+              max-height: calc(70vh - 80px);
+            }
+            
+            .chat-messages-container {
+              padding-bottom: 160px !important;
+            }
+          }
+
+          /* Small mobile screens (iPhone SE, etc.) */
+          @media (max-height: 600px) {
+            .mobile-chat-container {
+              min-height: calc(50vh - 80px);
+            }
+            
+            .chat-messages-container {
+              padding-bottom: 140px !important;
+            }
+            
+            .sticky-input-area {
+              padding: 0.5rem !important;
+            }
+          }
+
+          /* Very small screens */
+          @media (max-height: 500px) {
+            .mobile-chat-container {
+              min-height: calc(40vh - 80px);
+            }
+            
+            .chat-messages-container {
+              padding-bottom: 160px !important;
+            }
+          }
+        }
+
+        /* MOBILE FULLSCREEN OPTIMIZATIONS */
+        @media (max-width: 768px) {
+          /* Fullscreen mobile specific styles */
+          .z-\\[9999\\] {
+            z-index: 9999 !important;
+            position: fixed !important;
            top: 0 !important;
            left: 0 !important;
            right: 0 !important;
            bottom: 0 !important;
            width: 100vw !important;
            height: 100vh !important;
+            height: 100dvh !important; /* Dynamic viewport height for mobile */
            overflow: hidden !important;
-         }
+            display: flex !important;
+            flex-direction: column !important;
+          }
 
-         /* Fullscreen header positioning */
-         .fixed.inset-0 .sticky.top-0 {
-           position: sticky !important;
-           top: 0 !important;
+          /* Ensure fullscreen header is properly positioned */
+          .z-\\[9999\\] .flex-shrink-0.top-0 {
+            position: relative !important;
+            top: auto !important;
            z-index: 9998 !important;
            background: black !important;
-         }
-
-        /* iPhone specific optimizations */
-        @media (max-width: 414px) {
-          .custom-scrollbar {
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 2px;
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 107, 53, 0.5);
-            border-radius: 4px;
+            border-bottom: 6px solid #ef4444 !important;
+            flex-shrink: 0 !important;
           }
 
-                     /* Fullscreen mobile specific */
-           .fixed.inset-0 {
-             height: 100vh !important;
-             height: 100dvh !important; /* Dynamic viewport height for mobile */
-           }
-           
-           /* Ensure fullscreen header is visible on mobile */
-           .fixed.inset-0 .sticky.top-0 {
-             position: sticky !important;
-             top: 0 !important;
-             z-index: 9998 !important;
-             background: black !important;
-             border-bottom: 4px solid black !important;
-           }
+          /* Fullscreen chat container */
+          .z-\\[9999\\] .flex-1.flex.flex-col.min-h-0 {
+            flex: 1 !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+          }
+
+          /* Fullscreen main content area */
+          .z-\\[9999\\] .flex-1.min-h-0.overflow-hidden {
+            flex: 1 !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+
+          /* Fullscreen messages container */
+          .z-\\[9999\\] .overflow-y-auto {
+            flex: 1 !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin !important;
+          }
+
+          /* Fullscreen input area */
+          .z-\\[9999\\] .flex-shrink-0 {
+            flex-shrink: 0 !important;
+            position: relative !important;
+            bottom: auto !important;
+            background: black !important;
+            border-top: 6px solid black !important;
+            z-index: 9997 !important;
+          }
+
+          /* Touch-friendly buttons in fullscreen */
+          .z-\\[9999\\] button {
+            min-height: 44px !important;
+            min-width: 44px !important;
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent !important;
+          }
+
+          /* Fullscreen input field */
+          .z-\\[9999\\] input {
+            font-size: 16px !important; /* Prevents zoom on iOS */
+            min-height: 48px !important;
+            touch-action: manipulation !important;
+          }
+
+          /* Fullscreen scrollbar */
+          .z-\\[9999\\] ::-webkit-scrollbar {
+            width: 8px !important;
+          }
+
+          .z-\\[9999\\] ::-webkit-scrollbar-track {
+            background: #f0f0f0 !important;
+            border: 2px solid #000 !important;
+          }
+
+          .z-\\[9999\\] ::-webkit-scrollbar-thumb {
+            background: #000 !important;
+            border: 2px solid #fff !important;
+          }
+
+          /* Fullscreen safe areas */
+          .z-\\[9999\\] .pb-safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom) !important;
+          }
+
+          .z-\\[9999\\] .pt-safe-top {
+            padding-top: env(safe-area-inset-top) !important;
+          }
+
+          /* Fullscreen animations */
+          .z-\\[9999\\] .transition-all {
+            transition: all 0.2s ease-out !important;
+          }
+
+          /* Fullscreen hover effects - disable on mobile */
+          @media (hover: none) {
+            .z-\\[9999\\] .group-hover\\:scale-105 {
+              transform: none !important;
+            }
+            
+            .z-\\[9999\\] .group-hover\\:rotate-1 {
+              transform: none !important;
+            }
+            
+            .z-\\[9999\\] .hover\\:scale-105 {
+              transform: none !important;
+            }
+          }
+
+          /* Fullscreen active states for mobile */
+          .z-\\[9999\\] button:active {
+            transform: scale(0.95) !important;
+            transition: transform 0.1s ease-out !important;
+          }
+
+          /* Fullscreen focus states */
+          .z-\\[9999\\] *:focus {
+            outline: 3px solid #ffff00 !important;
+            outline-offset: 2px !important;
+          }
+
+          /* Fullscreen selection */
+          .z-\\[9999\\] ::selection {
+            background: #ffff00 !important;
+            color: #000 !important;
+          }
+
+          /* Ensure proper flex layout in fullscreen */
+          .z-\\[9999\\] .h-full.flex.flex-col {
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+          }
+
+          /* Fix for content being blocked by input */
+          .z-\\[9999\\] .flex-1.min-h-0.overflow-y-auto {
+            padding-bottom: 0 !important;
+            margin-bottom: 0 !important;
+          }
+        }
+
+        /* LANDSCAPE MOBILE FULLSCREEN */
+        @media (max-width: 768px) and (orientation: landscape) {
+          .z-\\[9999\\] {
+            height: 100vh !important;
+            height: 100dvh !important;
+          }
+
+          .z-\\[9999\\] .sticky.top-0 {
+            padding: 0.5rem !important;
+          }
+
+          .z-\\[9999\\] .flex-shrink-0 {
+            padding: 0.5rem !important;
+          }
+
+          .z-\\[9999\\] .overflow-y-auto {
+            padding: 0.5rem !important;
+          }
+        }
+
+        /* TABLET FULLSCREEN OPTIMIZATIONS */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .z-\\[9999\\] {
+            height: 100vh !important;
+            height: 100dvh !important;
+          }
+
+          .z-\\[9999\\] .sticky.top-0 {
+            padding: 1rem !important;
+          }
+
+          .z-\\[9999\\] .flex-shrink-0 {
+            padding: 1rem !important;
+          }
+        }
+
+        /* DESKTOP FULLSCREEN OPTIMIZATIONS */
+        @media (min-width: 1025px) {
+          .z-\\[9999\\] {
+            height: 100vh !important;
+          }
+
+          .z-\\[9999\\] .sticky.top-0 {
+            padding: 1.5rem !important;
+          }
+
+          .z-\\[9999\\] .flex-shrink-0 {
+            padding: 1.5rem !important;
+          }
         }
 
         /* Enhanced scrollbar for all devices */
@@ -1568,6 +2190,7 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           scrollbar-color: rgba(255, 107, 53, 0.5) rgba(255, 255, 255, 0.1);
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
+          overscroll-behavior: contain;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -1588,42 +2211,35 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
           background: rgba(255, 107, 53, 0.7);
         }
 
-        /* iPhone safe areas */
-        .pt-safe-top {
-          padding-top: env(safe-area-inset-top);
-        }
-        
-        .pb-safe-bottom {
-          padding-bottom: env(safe-area-inset-bottom);
-        }
+        /* iPhone specific scrolling improvements */
+        @media (max-width: 414px) {
+          .custom-scrollbar {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 3px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 2px;
+          }
 
-        /* Touch improvements for iPhone */
-        .touch-manipulation {
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Fullscreen chat animations */
-        .chat-fullscreen-enter {
-          transform: scale(0.95);
-          opacity: 0;
-        }
-        
-        .chat-fullscreen-enter-active {
-          transform: scale(1);
-          opacity: 1;
-          transition: all 0.2s ease-out;
-        }
-        
-        .chat-fullscreen-exit {
-          transform: scale(1);
-          opacity: 1;
-        }
-        
-        .chat-fullscreen-exit-active {
-          transform: scale(0.95);
-          opacity: 0;
-          transition: all 0.2s ease-in;
+          /* Ensure mobile chat container is scrollable */
+          .custom-scrollbar {
+            height: 18rem; /* 288px = h-72 */
+            min-height: 18rem;
+            max-height: 18rem;
+            overflow-y: scroll !important;
+          }
         }
       `}</style>
     </div>

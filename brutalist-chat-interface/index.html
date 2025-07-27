@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI RECOMMENDATIONS // BRUTALIST INTERFACE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="brutal-container">
+        <!-- HEADER SECTION -->
+        <header class="brutal-header">
+            <div class="header-grid">
+                <h1 class="main-title">AI//REC</h1>
+                <div class="status-block">
+                    <span class="status-text">ONLINE</span>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="grid-overlay"></div>
+            </div>
+        </header>
+
+        <!-- MAIN CHAT AREA -->
+        <main class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <!-- AI WELCOME MESSAGE -->
+                <div class="message-block ai-message">
+                    <div class="message-header">
+                        <span class="sender-tag">AI//SYSTEM</span>
+                        <span class="timestamp">14:32:15</span>
+                    </div>
+                    <div class="message-content">
+                        <div class="text-stack">
+                            <p class="primary-text">RECOMMENDATIONS SYSTEM ACTIVE</p>
+                            <p class="secondary-text">Tell me what you're looking for and I'll analyze patterns to deliver personalized suggestions. Music, books, movies, products—anything.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- USER MESSAGE EXAMPLE -->
+                <div class="message-block user-message">
+                    <div class="message-header">
+                        <span class="sender-tag">USER//INPUT</span>
+                        <span class="timestamp">14:33:01</span>
+                    </div>
+                    <div class="message-content">
+                        <p>I need some new music recommendations. I've been listening to a lot of electronic and ambient lately.</p>
+                    </div>
+                </div>
+
+                <!-- AI RESPONSE WITH RECOMMENDATIONS -->
+                <div class="message-block ai-message">
+                    <div class="message-header">
+                        <span class="sender-tag">AI//ANALYSIS</span>
+                        <span class="timestamp">14:33:18</span>
+                    </div>
+                    <div class="message-content">
+                        <div class="text-stack">
+                            <p class="primary-text">PROCESSING MUSICAL PREFERENCES</p>
+                            <p class="secondary-text">Based on electronic/ambient patterns, here are personalized recommendations:</p>
+                        </div>
+                        
+                        <!-- RECOMMENDATION CARDS -->
+                        <div class="recommendations-grid">
+                            <div class="rec-card primary">
+                                <div class="rec-header">
+                                    <span class="rec-type">ALBUM</span>
+                                    <span class="confidence">97%</span>
+                                </div>
+                                <h3 class="rec-title">SLEEP CYCLE</h3>
+                                <p class="rec-artist">MAX RICHTER</p>
+                                <div class="rec-tags">
+                                    <span class="tag">MINIMAL</span>
+                                    <span class="tag">CLASSICAL</span>
+                                </div>
+                                <button class="rec-action">LISTEN</button>
+                            </div>
+
+                            <div class="rec-card secondary">
+                                <div class="rec-header">
+                                    <span class="rec-type">ARTIST</span>
+                                    <span class="confidence">89%</span>
+                                </div>
+                                <h3 class="rec-title">NILS FRAHM</h3>
+                                <p class="rec-artist">ELECTRONIC COMPOSER</p>
+                                <div class="rec-tags">
+                                    <span class="tag">PIANO</span>
+                                    <span class="tag">ELECTRONIC</span>
+                                </div>
+                                <button class="rec-action">EXPLORE</button>
+                            </div>
+
+                            <div class="rec-card tertiary">
+                                <div class="rec-header">
+                                    <span class="rec-type">PLAYLIST</span>
+                                    <span class="confidence">84%</span>
+                                </div>
+                                <h3 class="rec-title">FOCUS FLOW</h3>
+                                <p class="rec-artist">AI CURATED</p>
+                                <div class="rec-tags">
+                                    <span class="tag">AMBIENT</span>
+                                    <span class="tag">FOCUS</span>
+                                </div>
+                                <button class="rec-action">PLAY</button>
+                            </div>
+                        </div>
+
+                        <!-- ACTION BUTTONS -->
+                        <div class="action-cluster">
+                            <button class="action-btn primary">MORE LIKE THESE</button>
+                            <button class="action-btn secondary">DIFFERENT GENRE</button>
+                            <button class="action-btn tertiary">SAVE ALL</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INPUT AREA -->
+            <div class="input-section">
+                <div class="input-container">
+                    <div class="input-header">
+                        <span class="input-label">SEND//MESSAGE</span>
+                        <span class="char-count">0/500</span>
+                    </div>
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="DESCRIBE WHAT YOU'RE LOOKING FOR..."
+                            maxlength="500"
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn">
+                            <span>SEND</span>
+                            <div class="send-arrow">→</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- SIDEBAR -->
+        <aside class="brutal-sidebar">
+            <div class="sidebar-section">
+                <h2 class="sidebar-title">RECENT//SESSIONS</h2>
+                <div class="session-list">
+                    <div class="session-item active">
+                        <span class="session-type">MUSIC</span>
+                        <span class="session-time">NOW</span>
+                    </div>
+                    <div class="session-item">
+                        <span class="session-type">BOOKS</span>
+                        <span class="session-time">2H AGO</span>
+                    </div>
+                    <div class="session-item">
+                        <span class="session-type">MOVIES</span>
+                        <span class="session-time">1D AGO</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2 class="sidebar-title">PREFERENCES//MAP</h2>
+                <div class="preference-blocks">
+                    <div class="pref-block">
+                        <span class="pref-label">ELECTRONIC</span>
+                        <div class="pref-bar">
+                            <div class="pref-fill" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div class="pref-block">
+                        <span class="pref-label">AMBIENT</span>
+                        <div class="pref-bar">
+                            <div class="pref-fill" style="width: 92%"></div>
+                        </div>
+                    </div>
+                    <div class="pref-block">
+                        <span class="pref-label">CLASSICAL</span>
+                        <div class="pref-bar">
+                            <div class="pref-fill" style="width: 67%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
