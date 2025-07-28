@@ -246,6 +246,47 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
   const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
   const upsertToWatchlistMutation = useMutation(api.anime.upsertToWatchlist);
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll to input when keyboard appears on iOS
+  useEffect(() => {
+    if (isKeyboardVisible && inputRef.current && isIOS && isFullscreen) {
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        });
+      }, 100);
+    }
+  }, [isKeyboardVisible, isIOS, isFullscreen]);
+
+  // Enhanced auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      setTimeout(() => {
+        container.scrollTo({ 
+          top: container.scrollHeight, 
+          behavior: 'smooth' 
+        });
+      }, 100);
+    }
+  }, [chatHistory]);
+
+  // Handle input focus for iOS keyboard optimization
+  const handleInputFocus = useCallback(() => {
+    if (isIOS && inputRef.current && isFullscreen) {
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 300);
+    }
+  }, [isIOS, isFullscreen]);
+
   // Enhanced mode configurations with gradients
   const modeConfigs = [
     { id: "general", label: "General", desc: "Personalized recommendations", icon: "🎯", gradient: "from-blue-500/50 to-cyan-400/50" },
@@ -311,44 +352,6 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
     };
     return examples[aiMode] || examples.general;
   }, [aiMode]);
-
-  // Handle input focus for iOS keyboard optimization
-  const handleInputFocus = useCallback(() => {
-    if (isIOS && inputRef.current && isFullscreen) {
-      setTimeout(() => {
-        inputRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }, 300);
-    }
-  }, [isIOS, isFullscreen]);
-
-  // Auto-scroll to input when keyboard appears on iOS
-  useEffect(() => {
-    if (isKeyboardVisible && inputRef.current && isIOS && isFullscreen) {
-      setTimeout(() => {
-        inputRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center',
-          inline: 'nearest'
-        });
-      }, 100);
-    }
-  }, [isKeyboardVisible, isIOS, isFullscreen]);
-
-  // Enhanced auto-scroll to bottom when new messages are added
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      const container = chatContainerRef.current;
-      setTimeout(() => {
-        container.scrollTo({ 
-          top: container.scrollHeight, 
-          behavior: 'smooth' 
-        });
-      }, 100);
-    }
-  }, [chatHistory]);
 
   const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -956,13 +959,6 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                     }`} title={isKeyboardVisible ? 'Keyboard Active' : 'Keyboard Hidden'}></div>
                   )}
                   
-                  {/* Debug info (remove in production) */}
-                  {process.env.NODE_ENV === 'development' && isIOS && (
-                    <div className="debug-keyboard text-xs">
-                      KB: {isKeyboardVisible ? 'ON' : 'OFF'} | H: {keyboardHeight}px | VH: {viewportHeight}px
-                    </div>
-                  )}
-                  
                   {/* Clear Chat */}
                   {chatHistory.length > 0 && (
                     <button
@@ -1244,27 +1240,27 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                   {/* INPUT FORM */}
                   <form onSubmit={handleSubmit} className="space-y-3">
                     
-                      {/* MODE-SPECIFIC CONTROLS */}
-                      {aiMode === "compare" && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            placeholder="FIRST ANIME"
-                            value={animeA}
-                            onChange={(e) => setAnimeA(e.target.value)}
-                            className="input-field-enhanced"
-                            style={{ fontSize: '16px' }}
-                          />
-                          <input
-                            type="text"
-                            placeholder="SECOND ANIME"
-                            value={animeB}
-                            onChange={(e) => setAnimeB(e.target.value)}
-                            className="input-field-enhanced"
-                            style={{ fontSize: '16px' }}
-                          />
-                        </div>
-                      )}
+                    {/* MODE-SPECIFIC CONTROLS */}
+                    {aiMode === "compare" && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="FIRST ANIME"
+                          value={animeA}
+                          onChange={(e) => setAnimeA(e.target.value)}
+                          className="bg-white text-black border-3 border-red-500 p-3 font-mono text-sm font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                          style={{ fontSize: '16px' }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="SECOND ANIME"
+                          value={animeB}
+                          onChange={(e) => setAnimeB(e.target.value)}
+                          className="bg-white text-black border-3 border-red-500 p-3 font-mono text-sm font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                          style={{ fontSize: '16px' }}
+                        />
+                      </div>
+                    )}
 
                     {aiMode === "hidden_gems" && (
                       <div className="bg-red-500 border-3 border-white p-3">
@@ -1296,61 +1292,53 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                       </div>
                     )}
 
-                      {/* MAIN INPUT */}
-                      {aiMode !== "compare" && aiMode !== "hidden_gems" && (
-                        <div className="relative">
-                          <input
-                            ref={inputRef}
-                            type="text"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            onFocus={handleInputFocus}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSubmit(e);
-                              }
-                            }}
-                            placeholder={
-                              aiMode === "franchise"
-                                ? "ENTER FRANCHISE NAME..."
-                                : "DESCRIBE WHAT YOU'RE LOOKING FOR..."
-                            }
-                            className="input-field-enhanced"
-                            disabled={isLoading || !isAuthenticated}
-                            style={{ fontSize: '16px', minHeight: '56px' }}
-                          />
-                          
-                          {/* CHARACTER COUNT */}
-                          <div className="absolute bottom-1 right-16 text-xs font-mono text-gray-500">
-                            {prompt.length}/500
-                          </div>
+                    {/* MAIN INPUT */}
+                    {aiMode !== "compare" && aiMode !== "hidden_gems" && (
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder={
+                            aiMode === "franchise"
+                              ? "ENTER FRANCHISE NAME..."
+                              : "DESCRIBE WHAT YOU'RE LOOKING FOR..."
+                          }
+                          className="w-full bg-white text-black border-3 border-red-500 p-4 font-mono text-base font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400 pr-20"
+                          disabled={isLoading || !isAuthenticated}
+                          style={{ fontSize: '16px', minHeight: '56px' }}
+                        />
+                        
+                        {/* CHARACTER COUNT */}
+                        <div className="absolute bottom-1 right-16 text-xs font-mono text-gray-500">
+                          {prompt.length}/500
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* SEND BUTTON */}
-                      <button
-                        type="submit"
-                        disabled={
-                          isLoading ||
-                          !isAuthenticated ||
-                          (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : (!prompt.trim() && aiMode !== "hidden_gems"))
-                        }
-                        className="send-button-enhanced"
-                        style={{ minHeight: '56px' }}
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="w-6 h-6 bg-white border-2 border-red-500 animate-pulse"></div>
-                            <span>PROCESSING...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>SEND</span>
-                            <span className="text-2xl">→</span>
-                          </>
-                        )}
-                      </button>
+                    {/* SEND BUTTON */}
+                    <button
+                      type="submit"
+                      disabled={
+                        isLoading ||
+                        !isAuthenticated ||
+                        (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : (!prompt.trim() && aiMode !== "hidden_gems"))
+                      }
+                      className="w-full bg-red-500 text-white border-3 border-white p-4 font-mono text-lg font-black uppercase transition-all duration-200 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      style={{ minHeight: '56px' }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-6 h-6 bg-white border-2 border-red-500 animate-pulse"></div>
+                          <span>PROCESSING...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>SEND</span>
+                          <span className="text-2xl">→</span>
+                        </>
+                      )}
+                    </button>
 
                     {/* AUTH NOTICE */}
                     {!isAuthenticated && (
@@ -1372,14 +1360,14 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
                   style={{ 
                     minHeight: '56px', 
                     minWidth: '56px',
-                    marginBottom: isKeyboardVisible ? '1rem' : `max(1.5rem, ${safeAreaBottom}px)`
+                    marginBottom: 'max(1.5rem, env(safe-area-inset-bottom))'
                   }}
                   title="Exit Fullscreen"
                 >
                   ✕
                 </button>
               )}
-            </div>
+            </>
           ) : (
             // REVAMPED NON-FULLSCREEN LAYOUT
             <div className="h-screen flex flex-col bg-white overflow-hidden">
