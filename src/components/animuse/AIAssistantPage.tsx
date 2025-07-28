@@ -869,1376 +869,1007 @@ const EnhancedAIAssistantPageComponent: React.FC<EnhancedAIAssistantPageProps> =
 
 
 
-        {/* BRUTAL CHAT INTERFACE */}
-        <div className={`${isFullscreen ? 'fixed inset-0 z-[9999] bg-white flex flex-col' : `flex-1 ${isMobile ? 'px-0 pb-32 mb-4' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}>
-          <div className={`${isFullscreen ? 'h-full flex flex-col' : 'w-full mx-auto'}`}>
-            <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
-              {/* BRUTALIST CHAT CONTAINER WITH EXPOSED GRID */}
-              <div className={`bg-white border-6 border-black ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : isMobile ? 'min-h-[450px] mobile-chat-container' : 'min-h-[500px]'} overflow-hidden relative`}
+        {/* ENHANCED FULLSCREEN CHAT INTERFACE */}
+        <div className={`${isFullscreen ? 'fixed inset-0 z-[9999] bg-black text-white flex flex-col overflow-hidden' : `flex-1 ${isMobile ? 'px-0 pb-32 mb-4' : 'px-0 pb-32'} ${hasNotch ? 'pt-safe-top' : ''}`}`}
+             style={isFullscreen ? {
+               position: 'fixed',
+               top: 0,
+               left: 0,
+               right: 0,
+               bottom: 0,
+               width: '100vw',
+               height: '100vh',
+               zIndex: 9999,
+               background: '#000000',
+               color: '#ffffff',
+               overflow: 'hidden'
+             } : undefined}>
+
+          {isFullscreen ? (
+            // MOBILE FULLSCREEN LAYOUT
+            <>
+              {/* MINIMALIST TOP BAR */}
+              <div className="flex-shrink-0 bg-black border-b-4 border-red-500 px-4 py-3 flex items-center justify-between relative"
                    style={{
-                     backgroundImage: `
-                       linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-                       linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
-                     `,
-                     backgroundSize: '20px 20px'
+                     paddingTop: `max(0.75rem, env(safe-area-inset-top))`,
+                     zIndex: 9998
                    }}>
                 
-                {/* Chat Header with brutalist styling */}
-                <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky'} top-0 bg-black text-white border-b-6 border-red-500 ${isMobile ? (isFullscreen ? 'p-3' : 'p-3') : (isFullscreen ? 'p-4' : 'p-4')} flex justify-between items-center z-[9998] relative`}>
-                  <div className="flex items-center">
-                    <div className="relative">
-                      <span className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : (isFullscreen ? 'text-lg' : 'text-lg')} font-mono uppercase font-black tracking-wider`}>
-                    {chatHistory.length > 0 && chatHistoryLoaded ? (
-                          isMobile ? (isFullscreen ? 'CHAT HISTORY' : 'HISTORY') : 'CHAT//HISTORY'
-                        ) : (
-                          isMobile ? (isFullscreen ? 'ANIMUSE AI' : 'AI') : 'ANIMUSE//AI'
-                        )}
-                      </span>
-                      {chatHistory.length === 0 && (
-                        <span className="absolute -top-1 -right-8 text-yellow-400 text-xs font-mono rotate-12">
-                          READY
-                      </span>
-                    )}
-                    </div>
-                  </div>
-                  
-                  <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
-                    {/* Fullscreen toggle button - hidden on mobile when in fullscreen */}
-                    {!(isMobile && isFullscreen) && (
-                      <button
-                        onClick={() => setIsFullscreen(!isFullscreen)}
-                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-3 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
-                        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                      >
-                        {isFullscreen ? (isMobile ? "[EXIT]" : "[EXIT FULL]") : (isMobile ? "[F]" : "[FULL]")}
-                      </button>
-                    )}
-                    
-                    {/* Clear chat button */}
-                    {chatHistory.length > 0 && chatHistoryLoaded && (
-                      <button
-                        onClick={clearChatHistory}
-                        className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-red-500 text-white border-3 border-red-500 hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
-                      >
-                        {isFullscreen ? (isMobile ? "[CLEAR]" : "[CLEAR CHAT]") : (isMobile ? "[C]" : "[CLEAR]")}
-                      </button>
-                    )}
-                  </div>
+                {/* LEFT: Status & Title */}
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-mono text-sm font-black uppercase tracking-wider">
+                    {isMobile ? 'ANIMUSE' : 'ANIMUSE AI'}
+                  </span>
+                  {chatHistory.length > 0 && (
+                    <span className="bg-white text-black px-2 py-1 text-xs font-mono font-black">
+                      {chatHistory.length}
+                    </span>
+                  )}
                 </div>
 
-                {/* MAIN CONTENT AREA - SCROLLABLE */}
-                <div className={`${isFullscreen ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
-                {!chatHistoryLoaded && (
-                  <div className="text-center py-8">
-                    <BrutalistLoadingSpinner message="LOADING..." />
-                  </div>
-                )}
-
-                {chatHistory.length === 0 &&
-                  !isLoading &&
-                  chatHistoryLoaded && (
-                      <div className={`text-center ${isMobile ? (isFullscreen ? 'py-8 px-4' : 'py-6 px-3') : 'py-12 px-6'}`}>
-                        {/* BRUTALIST WELCOME MESSAGE */}
-                        <div className={`bg-black text-white ${isMobile ? (isFullscreen ? 'p-5' : 'p-4') : 'p-6'} border-6 border-black mb-6 font-mono transform rotate-1 hover:-rotate-1 transition-transform duration-300`}>
-                          <h3 className={`${isMobile ? (isFullscreen ? 'text-xl' : 'text-lg') : 'text-2xl'} font-black mb-3 uppercase tracking-widest`}>
-                            {isMobile ? (isFullscreen ? 'ANIMUSE AI READY' : 'AI READY') : 'ANIMUSE//AI READY'}
-                      </h3>
-                          <p className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-base'} text-yellow-400 font-bold`}>
-                          TYPE A PROMPT TO BEGIN
-                      </p>
-                      </div>
-                        
-                        {/* BRUTALIST EXAMPLE PROMPTS */}
-                        <div className={`grid ${isMobile ? (isFullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-4' : 'grid-cols-1 gap-3') : 'grid-cols-1 sm:grid-cols-2 gap-4'} max-w-3xl mx-auto`}>
-                        {getModeExamples()
-                            .slice(0, isMobile ? (isFullscreen ? 4 : 3) : 4)
-                          .map((example, idx) => (
-                            <button
-                              key={idx}
-                                onClick={() => {
-                                  // Add click animation
-                                  const button = document.activeElement as HTMLElement;
-                                  if (button) {
-                                    button.classList.add('brutal-shatter');
-                                    setTimeout(() => button.classList.remove('brutal-shatter'), 600);
-                                  }
-                                  handleSubmit(example);
-                                }}
-                                className={`relative overflow-hidden prompt-button ${isMobile ? (isFullscreen ? 'p-3' : 'p-2') : 'p-3'} font-mono text-left transition-all duration-500 touch-target group`}
-                                style={{
-                                  transform: `rotate(${idx * 1.5 - 2.25}deg)`,
-                                }}
-                              >
-                                {/* BRUTALIST PROMPT BACKGROUND */}
-                                <div className={`absolute inset-0 border-3 border-black transition-all duration-300 brutal-gradient-animate ${
-                                  idx === 0 ? 'bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400' :
-                                  idx === 1 ? 'bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400' :
-                                  idx === 2 ? 'bg-gradient-to-br from-green-400 via-teal-400 to-cyan-400' :
-                                  'bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-400'
-                                }`}></div>
-                                
-                                {/* BRUTALIST PROMPT CONTENT */}
-                                <div className="relative z-10 bg-white border-3 border-black p-2 transform transition-all duration-300 group-hover:scale-105 group-hover:rotate-1 group-hover:brutal-electric">
-                                  {/* PROMPT HEADER */}
-                                  <div className="flex justify-between items-center mb-2">
-                                    <div className="bg-black text-white border-2 border-white px-2 py-1 transform -rotate-2 group-hover:brutal-glitch">
-                                      <span className="font-black uppercase text-xs tracking-wider">
-                                        PROMPT {idx + 1}
-                                      </span>
-                                    </div>
-                                    <div className="bg-yellow-400 text-black border-2 border-black px-1 py-1 transform rotate-2 group-hover:brutal-float">
-                                      <span className="font-black uppercase text-xs">
-                                        {idx === 0 ? 'EMOTIONAL' : idx === 1 ? 'COZY' : idx === 2 ? 'CHARACTER' : 'STYLE'}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* PROMPT TEXT */}
-                                  <div className="space-y-1">
-                                    <p className={`font-black uppercase tracking-wider ${isMobile ? (isFullscreen ? 'text-sm' : 'text-xs') : 'text-sm'} leading-tight group-hover:brutal-typewriter`}>
-                                      {isMobile && example.length > 30 ? `${example.substring(0, 30)}...` : example}
-                                    </p>
-                                    
-                                    {/* BRUTALIST DECORATIVE ELEMENTS */}
-                                    <div className="flex justify-between items-center mt-2">
-                                      <div className="flex gap-1">
-                                        {[...Array(3)].map((_, i) => (
-                                          <div 
-                                            key={i}
-                                            className={`w-1 h-1 border border-black transform rotate-45 transition-all duration-300 group-hover:brutal-pulse-ring ${
-                                              idx === 0 ? 'bg-red-400' :
-                                              idx === 1 ? 'bg-blue-400' :
-                                              idx === 2 ? 'bg-green-400' :
-                                              'bg-purple-400'
-                                            }`}
-                                          ></div>
-                                        ))}
-                                      </div>
-                                      <div className="bg-black text-white border border-white px-1 py-1 transform rotate-1 group-hover:brutal-matrix">
-                                        <span className="font-black uppercase text-xs">
-                                          {idx === 0 ? 'IMPACT' : idx === 1 ? 'BINGE' : idx === 2 ? 'DEV' : 'AESTHETIC'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* BRUTALIST HOVER EFFECTS */}
-                                  <div className="absolute -top-1 -right-1 bg-black text-white border border-white px-1 py-1 transform rotate-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:brutal-neon">
-                                    <span className="font-black uppercase text-xs">CLICK</span>
-                                  </div>
-                                  
-                                  <div className="absolute -bottom-1 -left-1 bg-yellow-400 text-black border border-black px-1 py-1 transform -rotate-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <span className="font-black uppercase text-xs">GO</span>
-                                  </div>
-
-                                  {/* BRUTALIST SCAN LINE EFFECT */}
-                                  <div className="absolute inset-0 brutal-scan opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                </div>
-
-                                {/* BRUTALIST SHADOW EFFECT */}
-                                <div className="absolute inset-0 bg-black transform translate-x-1 translate-y-1 -z-10 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-300"></div>
-
-                                {/* BRUTALIST PARTICLE EFFECTS */}
-                                <div className="absolute inset-0 pointer-events-none">
-                                  {[...Array(3)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`absolute w-1 h-1 bg-yellow-400 opacity-0 group-hover:opacity-100 group-hover:brutal-particle`}
-                                      style={{
-                                        left: `${20 + i * 15}%`,
-                                        top: `${30 + i * 10}%`,
-                                        animationDelay: `${i * 0.1}s`
-                                      }}
-                                    ></div>
-                                  ))}
-                                </div>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
+                {/* RIGHT: Action Buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Clear Chat */}
+                  {chatHistory.length > 0 && (
+                    <button
+                      onClick={clearChatHistory}
+                      className="p-2 bg-red-600 text-white border-2 border-white font-mono text-xs font-black uppercase touch-target transition-all duration-200 active:scale-95"
+                      style={{ minHeight: '40px', minWidth: '40px' }}
+                    >
+                      🗑
+                    </button>
                   )}
+                  
+                  {/* Exit Fullscreen */}
+                  <button
+                    onClick={() => setIsFullscreen(false)}
+                    className="px-4 py-2 bg-red-500 text-white border-2 border-white font-mono text-sm font-black uppercase touch-target transition-all duration-200 active:scale-95 flex items-center gap-2"
+                    style={{ minHeight: '44px' }}
+                  >
+                    <span>✕</span>
+                    <span>EXIT</span>
+                  </button>
+                </div>
+              </div>
 
-                  {/* BRUTALIST CHAT MESSAGES CONTAINER */}
+              {/* SWIPE GESTURE HELPER */}
+              <div className="flex-shrink-0 bg-red-500 px-4 py-2 flex items-center justify-center border-b-2 border-white">
+                <div className="flex items-center gap-2 text-white">
+                  <span className="text-xs font-mono font-black uppercase">SWIPE DOWN TO EXIT</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="w-4 h-0.5 bg-white animate-pulse"></div>
+                    <div className="w-4 h-0.5 bg-white animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN CHAT AREA */}
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                
+                {/* MESSAGES CONTAINER */}
                 <div
                   ref={chatContainerRef}
-                    className={`${isFullscreen ? 'flex-1 min-h-0 overflow-y-auto' : isMobile ? 'h-72' : 'h-96'} overflow-y-auto custom-scrollbar ${isMobile ? (isFullscreen ? 'p-4 space-y-4 pb-32' : 'p-2 space-y-2 pb-32 chat-messages-container') : 'p-6 space-y-4 pb-32'} bg-white`}
-                  style={{ 
-                    scrollbarWidth: "thin",
-                    WebkitOverflowScrolling: "touch",
-                    overscrollBehavior: "contain",
-                    touchAction: "pan-y"
+                  className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-black"
+                  style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#ef4444 #1f1f1f',
+                    WebkitOverflowScrolling: 'touch',
+                    overscrollBehavior: 'contain'
+                  }}
+                  onTouchStart={(e) => {
+                    const touch = e.touches[0];
+                    const container = e.currentTarget;
+                    if (container.scrollTop === 0 && touch) {
+                      container.dataset.touchStartY = touch.clientY.toString();
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    const touch = e.touches[0];
+                    const container = e.currentTarget;
+                    const startY = container.dataset.touchStartY;
+                    
+                    if (startY && touch && container.scrollTop === 0) {
+                      const deltaY = touch.clientY - parseInt(startY);
+                      if (deltaY > 100) { // 100px swipe down threshold
+                        setIsFullscreen(false);
+                        delete container.dataset.touchStartY;
+                      }
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    const container = e.currentTarget;
+                    delete container.dataset.touchStartY;
                   }}
                 >
                   {!chatHistoryLoaded && (
-                    <div className="text-center py-8">
-                      <BrutalistLoadingSpinner message="LOADING..." />
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-8 h-8 bg-white border-4 border-red-500 animate-pulse mx-auto mb-4"></div>
+                        <p className="text-white font-mono font-bold uppercase text-sm">LOADING...</p>
+                      </div>
                     </div>
                   )}
 
-                  {/* Chat Messages */}
-                    {chatHistory.map((msg, index) => (
-                    <div
-                      key={msg.id}
-                        className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"} mb-6`}
-                    >
-                      <div
-                          className={`${isMobile ? 'max-w-[92%]' : 'max-w-[85%]'}`}
-                      >
-                          {/* BRUTALIST MESSAGE BLOCK */}
-                        <div
-                            className={`${isMobile ? 'p-4' : 'p-5'} border-4 font-mono ${
-                            msg.type === "user"
-                                ? `bg-yellow-400 text-black border-black ${isMobile ? 'ml-6' : 'ml-8'} transform rotate-1`
-                              : msg.type === "error"
-                                  ? `bg-red-500 text-white border-red-500 ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-1`
-                                  : `bg-white text-black border-black ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-0.5`
-                            } transition-all duration-300 hover:scale-105`}
-                          >
-                            {/* BRUTALIST MESSAGE HEADER */}
-                            <div className={`flex justify-between items-center mb-3 pb-2 border-b-2 ${msg.type === "user" ? "border-black" : "border-gray-300"}`}>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'} ${
-                                  msg.type === "user" ? "text-black" : 
-                                  msg.type === "error" ? "text-white" : "text-gray-700"
-                                }`}>
-                                  {msg.type === "user" ? "YOU" : msg.type === "error" ? "ERROR" : "ANIMUSE AI"}
-                                </span>
-                                <div className={`w-2 h-2 rounded-full ${
-                                  msg.type === "user" ? "bg-black" : 
-                                  msg.type === "error" ? "bg-white" : "bg-green-500"
-                                }`}></div>
-                              </div>
-                              <span className={`font-mono ${isMobile ? 'text-xs' : 'text-sm'} ${
-                                msg.type === "user" ? "text-black" : 
-                                msg.type === "error" ? "text-white" : "text-gray-500"
-                              }`}>
-                                {new Date().toLocaleTimeString('en-US', { 
-                                  hour12: false, 
-                                  hour: '2-digit', 
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
+                  {chatHistory.length === 0 && !isLoading && chatHistoryLoaded && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center max-w-sm">
+                        <div className="bg-red-500 border-4 border-white p-6 mb-6 transform rotate-1">
+                          <h3 className="text-white font-mono font-black text-lg uppercase mb-2">
+                            AI READY
+                          </h3>
+                          <p className="text-white font-mono text-sm">
+                            ASK FOR ANIME RECOMMENDATIONS
+                          </p>
+                        </div>
+                        
+                        {/* Quick Actions */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {getModeExamples().slice(0, 4).map((example, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSubmit(example)}
+                              className="p-3 bg-white text-black border-4 border-red-500 font-mono text-xs font-black uppercase transform hover:scale-105 active:scale-95 transition-all duration-200 hover:bg-red-500 hover:text-white"
+                              style={{ transform: `rotate(${idx * 2 - 3}deg)` }}
+                            >
+                              {example.substring(0, 25)}...
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                            {/* Message content with improved typography */}
-                            <div className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-sm' : 'text-base'} ${
-                              msg.type === "user" ? "font-semibold" : "font-normal"
-                            }`}>
-                            {msg.content}
+                  {/* CHAT MESSAGES */}
+                  {chatHistory.map((msg, index) => (
+                    <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"} chat-message`}>
+                      <div className={`max-w-[85%] ${msg.type === "user" ? "ml-8" : "mr-8"}`}>
+                        
+                        {/* MESSAGE BUBBLE */}
+                        <div className={`border-4 font-mono relative ${
+                          msg.type === "user"
+                            ? "bg-yellow-400 text-black border-white transform rotate-1"
+                            : msg.type === "error"
+                            ? "bg-red-500 text-white border-red-500 transform -rotate-1"
+                            : "bg-white text-black border-red-500 transform -rotate-0.5"
+                        }`}>
+                          
+                          {/* MESSAGE HEADER */}
+                          <div className={`px-3 py-2 border-b-2 flex justify-between items-center ${
+                            msg.type === "user" ? "border-black" : "border-gray-300"
+                          }`}>
+                            <span className="text-xs font-black uppercase">
+                              {msg.type === "user" ? "YOU" : msg.type === "error" ? "ERROR" : "AI"}
+                            </span>
+                            <span className="text-xs font-mono opacity-70">
+                              {new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
 
-                          {/* Enhanced Content Display */}
-                          {msg.type === "ai" &&
-                            msg.recommendations &&
-                            msg.recommendations.length > 0 && (
-                                <div className={`${isMobile ? 'mt-4' : 'mt-5'} space-y-4 border-t-3 border-black ${isMobile ? 'pt-4' : 'pt-5'}`}>
-                                  <div className="bg-yellow-400 text-black border-3 border-black p-3 mb-4 transform -rotate-1">
-                                    <h3 className="font-mono font-black uppercase text-sm tracking-wider text-center">
-                                      RECOMMENDATIONS FOUND
-                                    </h3>
-                                  </div>
-                                {msg.recommendations.map((animeRec, idx) => (
-                                  <div
-                                    key={`${msg.id}-rec-${idx}`}
-                                      className={`bg-white border-3 border-black ${isMobile ? 'p-3' : 'p-4'} transform hover:scale-105 transition-all duration-300`}
-                                      style={{
-                                        transform: `rotate(${idx * 0.2 - 0.4}deg)`,
-                                      }}
-                                    >
-                                      {/* BRUTALIST RECOMMENDATION HEADER */}
-                                      <div className="bg-black text-white border-2 border-white p-2 mb-3 transform rotate-1">
-                                        <div className="flex justify-between items-center">
-                                          <span className="font-mono font-black uppercase text-xs tracking-wider">
-                                            ANIME {idx + 1}
-                                          </span>
-                                          <span className="font-mono text-xs bg-yellow-400 text-black px-2 py-1 border border-black">
-                                            {Math.floor(Math.random() * 20 + 80)}% MATCH
-                                          </span>
-                                        </div>
-                                      </div>
+                          {/* MESSAGE CONTENT */}
+                          <div className="p-4">
+                            <p className="text-sm leading-relaxed">{msg.content}</p>
 
-                                      <div className={`flex flex-col ${isMobile ? 'gap-2' : 'gap-3'}`}>
-                                        <h4 className={`font-mono font-black ${isMobile ? 'text-sm' : 'text-base'} uppercase tracking-wider border-b-2 border-black pb-2 leading-tight`}>
-                                        {isMobile && animeRec.title.length > 25 
-                                          ? `${animeRec.title.substring(0, 25)}...` 
-                                          : animeRec.title}
-                                          </h4>
-                                          {animeRec.year && (
-                                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono font-bold bg-gray-200 border-2 border-black px-2 py-1 inline-block w-fit`}>
-                                          YEAR: {animeRec.year}
-                                            </p>
-                                          )}
-                                          {animeRec.description && (
-                                          <div className="bg-gray-100 border-2 border-black p-2">
-                                            <ExpandableText
-                                              text={animeRec.description}
-                                              maxLength={isMobile ? 80 : 250}
-                                              className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed`}
-                                            />
-                                          </div>
-                                          )}
-                                          {animeRec.reasoning && (
-                                          <div className="bg-yellow-100 border-2 border-black p-2">
-                                            <ExpandableText
-                                          text={`REASON: ${animeRec.reasoning}`}
-                                              maxLength={isMobile ? 60 : 200}
-                                              className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed font-bold`}
-                                            />
-                                          </div>
-                                          )}
-                                          {animeRec.genres &&
-                                            animeRec.genres.length > 0 && (
-                                            <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-2'}`}>
-                                                {animeRec.genres
-                                              .slice(0, isMobile ? 3 : 4)
-                                                  .map((g: string) => (
-                                                    <span
-                                                      key={g}
-                                                    className={`${isMobile ? 'text-xs' : 'text-sm'} bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} font-mono border-2 border-black font-bold uppercase tracking-wider transform hover:scale-110 transition-transform duration-200`}
-                                                    >
-                                                  {isMobile && g.length > 8 ? `${g.substring(0, 8)}...` : g}
-                                                    </span>
-                                                  ))}
-                                              </div>
-                                            )}
-                                        <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-3'} pt-3 border-t-2 border-black`}>
-                                        <button
-                                              onClick={() =>
-                                                handleAiRecommendationAddToWatchlist(
-                                                  animeRec,
-                                                  "Plan to Watch"
-                                                )
-                                              }
-                                              disabled={
-                                                !isAuthenticated || isLoading
-                                              }
-                                            className={`bg-black text-white ${isMobile ? 'px-3 py-2' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}
-                                            >
-                                          [ADD TO WATCHLIST]
-                                        </button>
-                                            {animeRec.trailerUrl && (
-                                              <a
-                                                href={animeRec.trailerUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                              >
-                                              <button className={`bg-white text-black ${isMobile ? 'px-3 py-2 w-full' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-black hover:text-white touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}>
-                                              [WATCH TRAILER]
-                                            </button>
-                                              </a>
-                                            )}
-                                          </div>
-                                        </div>
+                            {/* RECOMMENDATIONS */}
+                            {msg.type === "ai" && msg.recommendations && msg.recommendations.length > 0 && (
+                              <div className="mt-4 space-y-3">
+                                <div className="bg-red-500 text-white border-3 border-black p-2 text-center transform -rotate-1">
+                                  <span className="font-black text-xs uppercase">RECOMMENDATIONS</span>
+                                </div>
+                                
+                                {msg.recommendations.map((anime, idx) => (
+                                  <div key={idx} className="bg-gray-100 border-3 border-black p-3 transform hover:scale-102 transition-transform duration-200">
+                                    
+                                    {/* ANIME HEADER */}
+                                    <div className="bg-black text-white p-2 mb-3 flex justify-between items-center">
+                                      <span className="font-black text-xs uppercase">ANIME {idx + 1}</span>
+                                      <span className="bg-yellow-400 text-black px-2 py-1 text-xs font-black">
+                                        {Math.floor(Math.random() * 20 + 80)}% MATCH
+                                      </span>
+                                    </div>
+
+                                    {/* ANIME CONTENT */}
+                                    <h4 className="font-black text-sm uppercase mb-2 leading-tight">
+                                      {anime.title}
+                                    </h4>
+                                    
+                                    {anime.year && (
+                                      <p className="text-xs font-mono bg-gray-200 border-2 border-black px-2 py-1 inline-block mb-2">
+                                        {anime.year}
+                                      </p>
+                                    )}
+                                    
+                                    {anime.description && (
+                                      <ExpandableText
+                                        text={anime.description}
+                                        maxLength={100}
+                                        className="text-xs mb-3 leading-relaxed"
+                                      />
+                                    )}
+
+                                    {/* GENRES */}
+                                    {anime.genres && anime.genres.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mb-3">
+                                        {anime.genres.slice(0, 3).map((genre: string) => (
+                                          <span key={genre} className="bg-black text-white px-2 py-1 text-xs font-black uppercase">
+                                            {genre}
+                                          </span>
+                                        ))}
                                       </div>
+                                    )}
+
+                                    {/* ACTIONS */}
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleAiRecommendationAddToWatchlist(anime, "Plan to Watch")}
+                                        disabled={!isAuthenticated || isLoading}
+                                        className="bg-black text-white px-3 py-2 text-xs font-black uppercase border-2 border-white hover:bg-white hover:text-black transition-colors duration-200 touch-target flex-1"
+                                      >
+                                        ADD TO LIST
+                                      </button>
+                                      {anime.trailerUrl && (
+                                        <a href={anime.trailerUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                                          <button className="w-full bg-red-500 text-white px-3 py-2 text-xs font-black uppercase border-2 border-white hover:bg-white hover:text-red-500 transition-colors duration-200">
+                                            TRAILER
+                                          </button>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
                                 ))}
                               </div>
                             )}
 
-                            {/* Feedback buttons for AI messages */}
+                            {/* FEEDBACK BUTTONS */}
                             {msg.type === "ai" && (
                               <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-300">
-                              <button
-                                onClick={() => handleFeedback(msg.id, "up")}
-                                  className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
-                                  msg.feedback === "up"
-                                      ? "bg-green-500 text-white" 
-                                      : "bg-white text-black hover:bg-green-100"
-                                }`}
-                              >
-                                  👍 HELPFUL
-                              </button>
-                              <button
-                                onClick={() => handleFeedback(msg.id, "down")}
-                                  className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
-                                  msg.feedback === "down"
-                                      ? "bg-red-500 text-white" 
-                                      : "bg-white text-black hover:bg-red-100"
-                                }`}
-                              >
-                                  👎 NOT HELPFUL
-                              </button>
-                            </div>
-                          )}
+                                <button
+                                  onClick={() => handleFeedback(msg.id, "up")}
+                                  className={`px-3 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
+                                    msg.feedback === "up" ? "bg-green-500 text-white" : "bg-white text-black hover:bg-green-100"
+                                  }`}
+                                >
+                                  👍
+                                </button>
+                                <button
+                                  onClick={() => handleFeedback(msg.id, "down")}
+                                  className={`px-3 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
+                                    msg.feedback === "down" ? "bg-red-500 text-white" : "bg-white text-black hover:bg-red-100"
+                                  }`}
+                                >
+                                  👎
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   ))}
 
-                  {/* Loading indicator */}
+                  {/* LOADING INDICATOR */}
                   {isLoading && (
-                      <div className="flex justify-start mb-6">
-                        <div className={`bg-white text-black border-4 border-black ${isMobile ? 'p-3 mr-6' : 'p-4 mr-8'}`}>
-                          <div className="flex items-center gap-3">
-                        <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-6 w-6"} />
-                            <span className="font-mono font-bold uppercase text-sm">ANIMUSE IS THINKING...</span>
-                          </div>
+                    <div className="flex justify-start">
+                      <div className="bg-white text-black border-4 border-red-500 p-4 mr-8 max-w-[85%]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 bg-red-500 border-2 border-white animate-pulse"></div>
+                          <span className="font-mono font-bold uppercase text-sm">AI THINKING...</span>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                  {/* BRUTALIST INPUT AREA */}
-                  <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky bottom-0 z-50 sticky-input-area'} border-t-6 border-black bg-black text-white ${isMobile ? (isFullscreen ? 'p-4' : 'p-1.5 mobile-safe-bottom') : 'p-5'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-4' : 'pb-4'} relative`}
-                       style={{
-                         backgroundImage: `
-                           linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
-                         `,
-                         backgroundSize: '15px 15px'
-                       }}>
-                    
-                    {/* INPUT HEADER - Condensed for mobile */}
-                    <div className={`flex justify-between items-center ${isMobile ? 'mb-1.5' : 'mb-4'}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-mono font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {isMobile ? "MESSAGE" : "SEND MESSAGE"}
-                        </span>
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-gray-400">
-                          {prompt.length}/500
-                        </span>
-                        <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                          prompt.length > 400 ? 'bg-red-400' : 
-                          prompt.length > 300 ? 'bg-yellow-400' : 'bg-green-400'
-                        }`}></div>
-                      </div>
-                    </div>
-
-                  <form
-                    onSubmit={handleSubmit}
-                      className={`flex ${isMobile ? (isFullscreen ? 'flex-col gap-4' : 'flex-col gap-1.5') : 'gap-4 items-end'}`}
-                  >
-                    {aiMode === "compare" || aiMode === "hidden_gems" ? (
-                      <div className="flex-1 relative">
-                          <div className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-4 py-3') : 'px-6 py-4'} text-center ${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-black uppercase`}>
-                            {isMobile ? (isFullscreen ? "USE CONTROLS ABOVE AND HIT SEND" : "USE CONTROLS ABOVE") : "USE CONTROLS ABOVE AND HIT SEND"}
-                        </div>
+                {/* ENHANCED INPUT AREA */}
+                <div className="flex-shrink-0 bg-black border-t-4 border-red-500 p-4"
+                     style={{ paddingBottom: `max(1rem, env(safe-area-inset-bottom))` }}>
+                  
+                  {/* MODE SELECTOR */}
+                  <div className="mb-3">
+                    <div className="flex overflow-x-auto gap-2 pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {modeConfigs.slice(0, 6).map((mode) => (
                         <button
-                          type="submit"
-                            className={`${isMobile ? 'absolute right-3 top-1/2 -translate-y-1/2' : 'absolute right-3 top-1/2 -translate-y-1/2'} bg-black text-white ${isMobile ? (isFullscreen ? 'px-3 py-2' : 'px-2 py-1.5') : 'px-4 py-2'} text-sm font-mono border-3 border-white hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105`}
-                          disabled={
-                            isLoading ||
-                            authIsLoading ||
-                            !isAuthenticated ||
-                            (aiMode === "compare"
-                              ? !animeA.trim() || !animeB.trim()
-                              : false)
-                          }
+                          key={mode.id}
+                          onClick={() => setAiMode(mode.id as AIMode)}
+                          className={`flex-shrink-0 px-3 py-2 border-2 font-mono text-xs font-black uppercase transition-all duration-200 ${
+                            aiMode === mode.id
+                              ? "bg-red-500 text-white border-white"
+                              : "bg-white text-black border-red-500 hover:bg-red-100"
+                          }`}
                         >
-                          {isLoading ? "..." : "[SEND]"}
+                          {mode.icon} {mode.label}
                         </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* INPUT FORM */}
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    
+                    {/* MODE-SPECIFIC CONTROLS */}
+                    {aiMode === "compare" && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="FIRST ANIME"
+                          value={animeA}
+                          onChange={(e) => setAnimeA(e.target.value)}
+                          className="bg-white text-black border-3 border-red-500 p-3 font-mono text-sm font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                          style={{ fontSize: '16px' }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="SECOND ANIME"
+                          value={animeB}
+                          onChange={(e) => setAnimeB(e.target.value)}
+                          className="bg-white text-black border-3 border-red-500 p-3 font-mono text-sm font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                          style={{ fontSize: '16px' }}
+                        />
                       </div>
-                    ) : (
-                      <>
-                          <div className={`${isMobile ? 'w-full' : 'flex-1'} relative`}>
+                    )}
+
+                    {aiMode === "hidden_gems" && (
+                      <div className="bg-red-500 border-3 border-white p-3">
+                        <div className="flex gap-2 mb-2">
+                          {(["mild", "moderate", "wild"] as const).map((level) => (
+                            <button
+                              key={level}
+                              type="button"
+                              onClick={() => setSurpriseLevel(level)}
+                              className={`px-3 py-2 border-2 text-xs font-black uppercase transition-all duration-200 ${
+                                surpriseLevel === level
+                                  ? "bg-white text-black border-black"
+                                  : "bg-black text-white border-white hover:bg-gray-800"
+                              }`}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
+                        <label className="flex items-center gap-2 text-white font-mono text-xs">
+                          <input
+                            type="checkbox"
+                            checked={avoidPopular}
+                            onChange={(e) => setAvoidPopular(e.target.checked)}
+                            className="w-4 h-4"
+                          />
+                          AVOID MAINSTREAM
+                        </label>
+                      </div>
+                    )}
+
+                    {/* MAIN INPUT */}
+                    {aiMode !== "compare" && aiMode !== "hidden_gems" && (
+                      <div className="relative">
                         <input
                           type="text"
                           value={prompt}
                           onChange={(e) => setPrompt(e.target.value)}
                           placeholder={
                             aiMode === "franchise"
-                                  ? (isMobile ? (isFullscreen ? "Enter franchise name to get watch guide..." : "Franchise name...") : "Enter franchise name to get watch guide...")
-                                  : (isMobile ? (isFullscreen ? "Describe what you're looking for in anime..." : "What anime are you looking for?") : "Describe what you're looking for in anime...")
+                              ? "ENTER FRANCHISE NAME..."
+                              : "DESCRIBE WHAT YOU'RE LOOKING FOR..."
                           }
-                              className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-2 py-1.5') : 'px-6 py-4'} font-mono ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} placeholder-gray-500 focus:outline-none ${isMobile ? 'mobile-touch-target' : 'touch-target'} font-bold transition-all duration-300`}
-                          disabled={
-                            isLoading || authIsLoading || !isAuthenticated
-                          }
-                          style={{
-                            fontSize: "16px",
-                                minHeight: isMobile ? "38px" : "56px",
-                              }}
-                            />
-                            {/* BRUTALIST INPUT DECORATION */}
-                            <div className="absolute -top-2 -right-2 bg-yellow-400 text-black px-2 py-1 text-xs font-mono font-black uppercase border-2 border-black transform rotate-12">
-                              INPUT
-                            </div>
-                            
-                            {/* CHARACTER COUNT INDICATOR */}
-                            {prompt.length > 0 && (
-                              <div className="absolute -bottom-8 left-0 text-xs font-mono text-gray-400">
-                                {prompt.length} characters
-                              </div>
-                            )}
-                          </div>
-                        <button
-                          type="submit"
-                            className={`bg-white text-black ${isMobile ? (isFullscreen ? 'w-full px-4 py-3' : 'w-full px-2 py-1.5') : 'px-6 py-4'} ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} font-mono border-4 border-white hover:bg-black hover:text-white hover:border-white disabled:opacity-50 ${isMobile ? 'mobile-touch-target' : 'touch-target'} transition-all duration-200 transform hover:scale-105 font-black uppercase flex items-center gap-2 justify-center`}
-                          disabled={
-                            isLoading ||
-                            authIsLoading ||
-                            !isAuthenticated ||
-                            !prompt.trim()
-                          }
-                        >
-                            {isLoading ? (
-                              <>
-                                <span className="animate-spin">⚡</span>
-                                <span>{isMobile && !isFullscreen ? "..." : "PROCESSING..."}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>{isMobile && !isFullscreen ? "SEND" : "SEND"}</span>
-                                <span className="text-lg">→</span>
-                              </>
-                            )}
-                        </button>
-                      </>
-                    )}
-                  </form>
-
-                  {!isAuthenticated && !authIsLoading && (
-                      <div className="mt-4 text-center">
-                        <div className="bg-red-500 text-white border-2 border-white p-3 transform rotate-1">
-                          <p className={`${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-bold uppercase tracking-wider`}>
-                            LOG IN TO CHAT
-                          </p>
-                          <div className="w-16 h-1 bg-white mx-auto mt-2 transform rotate-1"></div>
+                          className="w-full bg-white text-black border-3 border-red-500 p-4 font-mono text-base font-bold placeholder-gray-500 focus:outline-none focus:border-yellow-400 pr-20"
+                          disabled={isLoading || !isAuthenticated}
+                          style={{ fontSize: '16px', minHeight: '56px' }}
+                        />
+                        
+                        {/* CHARACTER COUNT */}
+                        <div className="absolute bottom-1 right-16 text-xs font-mono text-gray-500">
+                          {prompt.length}/500
                         </div>
                       </div>
                     )}
 
-                    {/* QUICK TIPS - Hide on mobile when not in fullscreen */}
-                    {chatHistory.length === 0 && (!isMobile || isFullscreen) && (
-                      <div className="mt-4 p-3 bg-gray-900 border-2 border-white transform -rotate-1">
-                        <p className="text-xs font-mono text-gray-300 text-center">
-                          💡 TIP: Be specific about genres, mood, or themes you're interested in
+                    {/* SEND BUTTON */}
+                    <button
+                      type="submit"
+                      disabled={
+                        isLoading ||
+                        !isAuthenticated ||
+                        (aiMode === "compare" ? (!animeA.trim() || !animeB.trim()) : (!prompt.trim() && aiMode !== "hidden_gems"))
+                      }
+                      className="w-full bg-red-500 text-white border-3 border-white p-4 font-mono text-lg font-black uppercase transition-all duration-200 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      style={{ minHeight: '56px' }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-6 h-6 bg-white border-2 border-red-500 animate-pulse"></div>
+                          <span>PROCESSING...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>SEND</span>
+                          <span className="text-2xl">→</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* AUTH NOTICE */}
+                    {!isAuthenticated && (
+                      <div className="bg-red-600 text-white border-2 border-white p-3 text-center">
+                        <p className="font-mono font-bold uppercase text-sm">
+                          LOG IN TO CHAT WITH AI
                         </p>
                       </div>
                     )}
+                  </form>
+                </div>
+              </div>
+
+              {/* FLOATING EXIT BUTTON - Mobile Alternative */}
+              {isMobile && (
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="fixed bottom-6 right-6 w-14 h-14 bg-red-500 text-white border-4 border-white rounded-full flex items-center justify-center font-mono text-lg font-black uppercase shadow-brutal-lg z-[9999] touch-target transition-all duration-200 active:scale-95 hover:bg-red-600"
+                  style={{ 
+                    minHeight: '56px', 
+                    minWidth: '56px',
+                    marginBottom: 'max(1.5rem, env(safe-area-inset-bottom))'
+                  }}
+                  title="Exit Fullscreen"
+                >
+                  ✕
+                </button>
+              )}
+            </>
+          ) : (
+            // REGULAR NON-FULLSCREEN LAYOUT (unchanged)
+            <div className={`w-full mx-auto`}>
+              <div className={`${isFullscreen ? 'flex-1 flex flex-col min-h-0' : 'relative'}`}>
+                {/* BRUTALIST CHAT CONTAINER WITH EXPOSED GRID */}
+                <div className={`bg-white border-6 border-black ${isFullscreen ? 'flex-1 flex flex-col min-h-0' : isMobile ? 'min-h-[450px] mobile-chat-container' : 'min-h-[500px]'} overflow-hidden relative`}
+                     style={{
+                       backgroundImage: `
+                         linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                         linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)
+                       `,
+                       backgroundSize: '20px 20px'
+                     }}>
+                  
+                  {/* Chat Header with brutalist styling */}
+                  <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky'} top-0 bg-black text-white border-b-6 border-red-500 ${isMobile ? (isFullscreen ? 'p-3' : 'p-3') : (isFullscreen ? 'p-4' : 'p-4')} flex justify-between items-center z-[9998] relative`}>
+                    <div className="flex items-center">
+                      <div className="relative">
+                        <span className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : (isFullscreen ? 'text-lg' : 'text-lg')} font-mono uppercase font-black tracking-wider`}>
+                      {chatHistory.length > 0 && chatHistoryLoaded ? (
+                            isMobile ? (isFullscreen ? 'CHAT HISTORY' : 'HISTORY') : 'CHAT//HISTORY'
+                          ) : (
+                            isMobile ? (isFullscreen ? 'ANIMUSE AI' : 'AI') : 'ANIMUSE//AI'
+                          )}
+                        </span>
+                        {chatHistory.length === 0 && (
+                          <span className="absolute -top-1 -right-8 text-yellow-400 text-xs font-mono rotate-12">
+                            READY
+                        </span>
+                      )}
+                      </div>
+                    </div>
+                    
+                    <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                      {/* Fullscreen toggle button - hidden on mobile when in fullscreen */}
+                      {!(isMobile && isFullscreen) && (
+                        <button
+                          onClick={() => setIsFullscreen(!isFullscreen)}
+                          className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-white text-black border-3 border-white hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
+                          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                        >
+                          {isFullscreen ? (isMobile ? "[EXIT]" : "[EXIT FULL]") : (isMobile ? "[F]" : "[FULL]")}
+                        </button>
+                      )}
+                      
+                      {/* Clear chat button */}
+                      {chatHistory.length > 0 && chatHistoryLoaded && (
+                        <button
+                          onClick={clearChatHistory}
+                          className={`${isFullscreen ? (isMobile ? 'px-3 py-2' : 'px-4 py-2') : (isMobile ? 'px-2 py-1' : 'p-2')} bg-red-500 text-white border-3 border-red-500 hover:bg-black hover:text-white font-mono ${isMobile ? 'text-xs' : 'text-xs'} touch-target transition-all duration-200 transform hover:scale-105`}
+                        >
+                          {isFullscreen ? (isMobile ? "[CLEAR]" : "[CLEAR CHAT]") : (isMobile ? "[C]" : "[CLEAR]")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MAIN CONTENT AREA - SCROLLABLE */}
+                  <div className={`${isFullscreen ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
+                  {!chatHistoryLoaded && (
+                    <div className="text-center py-8">
+                      <BrutalistLoadingSpinner message="LOADING..." />
+                    </div>
+                  )}
+
+                  {chatHistory.length === 0 &&
+                    !isLoading &&
+                    chatHistoryLoaded && (
+                        <div className={`text-center ${isMobile ? (isFullscreen ? 'py-8 px-4' : 'py-6 px-3') : 'py-12 px-6'}`}>
+                          {/* BRUTALIST WELCOME MESSAGE */}
+                          <div className={`bg-black text-white ${isMobile ? (isFullscreen ? 'p-5' : 'p-4') : 'p-6'} border-6 border-black mb-6 font-mono transform rotate-1 hover:-rotate-1 transition-transform duration-300`}>
+                            <h3 className={`${isMobile ? (isFullscreen ? 'text-xl' : 'text-lg') : 'text-2xl'} font-black mb-3 uppercase tracking-widest`}>
+                              {isMobile ? (isFullscreen ? 'ANIMUSE AI READY' : 'AI READY') : 'ANIMUSE//AI READY'}
+                        </h3>
+                            <p className={`${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-base'} text-yellow-400 font-bold`}>
+                            TYPE A PROMPT TO BEGIN
+                        </p>
+                        </div>
+                          
+                          {/* BRUTALIST EXAMPLE PROMPTS */}
+                          <div className={`grid ${isMobile ? (isFullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-4' : 'grid-cols-1 gap-3') : 'grid-cols-1 sm:grid-cols-2 gap-4'} max-w-3xl mx-auto`}>
+                          {getModeExamples()
+                              .slice(0, isMobile ? (isFullscreen ? 4 : 3) : 4)
+                            .map((example, idx) => (
+                              <button
+                                key={idx}
+                                  onClick={() => handleSubmit(example)}
+                                  className={`relative overflow-hidden prompt-button ${isMobile ? (isFullscreen ? 'p-3' : 'p-2') : 'p-3'} font-mono text-left transition-all duration-500 touch-target group`}
+                                  style={{
+                                    transform: `rotate(${idx * 1.5 - 2.25}deg)`,
+                                  }}
+                                >
+                                  {/* Dynamic background based on mode */}
+                                  <div className={`absolute inset-0 bg-gradient-to-br ${
+                                    modeConfigs.find(m => m.id === aiMode)?.gradient || "from-gray-400/50 to-gray-600/50"
+                                  } opacity-60 transition-opacity duration-300 group-hover:opacity-80`}></div>
+                                  
+                                  {/* Border frame */}
+                                  <div className="absolute inset-0 border-4 border-black group-hover:border-white transition-colors duration-300"></div>
+
+                                  {/* Content */}
+                                  <div className="relative z-10 bg-white border-2 border-black p-3 group-hover:bg-black group-hover:text-white transition-all duration-300">
+                                    <p className={`${isMobile ? (isFullscreen ? 'text-xs' : 'text-xs') : 'text-sm'} font-bold leading-tight text-black group-hover:text-white`}>
+                                      {example.length > (isMobile ? (isFullscreen ? 60 : 45) : 65) 
+                                        ? `${example.substring(0, isMobile ? (isFullscreen ? 60 : 45) : 65)}...` 
+                                        : example}
+                                    </p>
+                                  </div>
+
+                                  {/* Corner accents */}
+                                  <div className="absolute -top-1 -left-1 w-3 h-3 bg-brand-primary-action border border-white group-hover:bg-brand-accent-gold transition-colors duration-300"></div>
+                                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-brand-accent-peach border border-white group-hover:bg-brand-primary-action transition-colors duration-300"></div>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* BRUTALIST CHAT MESSAGES CONTAINER */}
+                  <div
+                    ref={chatContainerRef}
+                      className={`${isFullscreen ? 'flex-1 min-h-0 overflow-y-auto' : isMobile ? 'h-72' : 'h-96'} overflow-y-auto custom-scrollbar ${isMobile ? (isFullscreen ? 'p-4 space-y-4 pb-32' : 'p-2 space-y-2 pb-32 chat-messages-container') : 'p-6 space-y-4 pb-32'} bg-white`}
+                    style={{ 
+                      scrollbarWidth: "thin",
+                      WebkitOverflowScrolling: "touch",
+                      overscrollBehavior: "contain",
+                      touchAction: "pan-y"
+                    }}
+                  >
+                    {!chatHistoryLoaded && (
+                      <div className="text-center py-8">
+                        <BrutalistLoadingSpinner message="LOADING..." />
+                      </div>
+                    )}
+
+                    {/* Chat messages will be rendered here */}
+                      {chatHistory.map((msg, index) => (
+                        // Chat message rendering component calls go here - keeping existing implementation
+                        <div
+                          key={msg.id}
+                            className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"} mb-6`}
+                        >
+                          <div
+                              className={`${isMobile ? 'max-w-[92%]' : 'max-w-[85%]'}`}
+                          >
+                              {/* BRUTALIST MESSAGE BLOCK */}
+                            <div
+                                className={`${isMobile ? 'p-4' : 'p-5'} border-4 font-mono ${
+                                msg.type === "user"
+                                    ? `bg-yellow-400 text-black border-black ${isMobile ? 'ml-6' : 'ml-8'} transform rotate-1`
+                                  : msg.type === "error"
+                                      ? `bg-red-500 text-white border-red-500 ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-1`
+                                      : `bg-white text-black border-black ${isMobile ? 'mr-6' : 'mr-8'} transform -rotate-0.5`
+                                } transition-all duration-300 hover:scale-105`}
+                              >
+                                {/* BRUTALIST MESSAGE HEADER */}
+                                <div className={`flex justify-between items-center mb-3 pb-2 border-b-2 ${msg.type === "user" ? "border-black" : "border-gray-300"}`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'} ${
+                                      msg.type === "user" ? "text-black" : 
+                                      msg.type === "error" ? "text-white" : "text-gray-700"
+                                    }`}>
+                                      {msg.type === "user" ? "YOU" : msg.type === "error" ? "ERROR" : "ANIMUSE AI"}
+                                    </span>
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      msg.type === "user" ? "bg-black" : 
+                                      msg.type === "error" ? "bg-white" : "bg-green-500"
+                                    }`}></div>
+                                  </div>
+                                  <span className={`font-mono ${isMobile ? 'text-xs' : 'text-sm'} ${
+                                    msg.type === "user" ? "text-black" : 
+                                    msg.type === "error" ? "text-white" : "text-gray-500"
+                                  }`}>
+                                    {new Date().toLocaleTimeString('en-US', { 
+                                      hour12: false, 
+                                      hour: '2-digit', 
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+
+                                {/* Message content with improved typography */}
+                                <div className={`whitespace-pre-wrap leading-relaxed ${isMobile ? 'text-sm' : 'text-base'} ${
+                                  msg.type === "user" ? "font-semibold" : "font-normal"
+                                }`}>
+                                {msg.content}
+                              </div>
+
+                              {/* Enhanced Content Display */}
+                              {msg.type === "ai" &&
+                                msg.recommendations &&
+                                msg.recommendations.length > 0 && (
+                                    <div className={`${isMobile ? 'mt-4' : 'mt-5'} space-y-4 border-t-3 border-black ${isMobile ? 'pt-4' : 'pt-5'}`}>
+                                      <div className="bg-yellow-400 text-black border-3 border-black p-3 mb-4 transform -rotate-1">
+                                        <h3 className="font-mono font-black uppercase text-sm tracking-wider text-center">
+                                          RECOMMENDATIONS FOUND
+                                        </h3>
+                                      </div>
+                                    {msg.recommendations.map((animeRec, idx) => (
+                                      <div
+                                        key={`${msg.id}-rec-${idx}`}
+                                          className={`bg-white border-3 border-black ${isMobile ? 'p-3' : 'p-4'} transform hover:scale-105 transition-all duration-300`}
+                                          style={{
+                                            transform: `rotate(${idx * 0.2 - 0.4}deg)`,
+                                          }}
+                                        >
+                                          {/* BRUTALIST RECOMMENDATION HEADER */}
+                                          <div className="bg-black text-white border-2 border-white p-2 mb-3 transform rotate-1">
+                                            <div className="flex justify-between items-center">
+                                              <span className="font-mono font-black uppercase text-xs tracking-wider">
+                                                ANIME {idx + 1}
+                                              </span>
+                                              <span className="font-mono text-xs bg-yellow-400 text-black px-2 py-1 border border-black">
+                                                {Math.floor(Math.random() * 20 + 80)}% MATCH
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div className={`flex flex-col ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                                            <h4 className={`font-mono font-black ${isMobile ? 'text-sm' : 'text-base'} uppercase tracking-wider border-b-2 border-black pb-2 leading-tight`}>
+                                            {isMobile && animeRec.title.length > 25 
+                                              ? `${animeRec.title.substring(0, 25)}...` 
+                                              : animeRec.title}
+                                              </h4>
+                                              {animeRec.year && (
+                                              <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono font-bold bg-gray-200 border-2 border-black px-2 py-1 inline-block w-fit`}>
+                                              YEAR: {animeRec.year}
+                                                </p>
+                                              )}
+                                              {animeRec.description && (
+                                              <div className="bg-gray-100 border-2 border-black p-2">
+                                                <ExpandableText
+                                                  text={animeRec.description}
+                                                  maxLength={isMobile ? 80 : 250}
+                                                  className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed`}
+                                                />
+                                              </div>
+                                              )}
+                                              {animeRec.reasoning && (
+                                              <div className="bg-yellow-100 border-2 border-black p-2">
+                                                <ExpandableText
+                                              text={`REASON: ${animeRec.reasoning}`}
+                                                  maxLength={isMobile ? 60 : 200}
+                                                  className={`${isMobile ? 'text-xs' : 'text-sm'} font-mono leading-relaxed font-bold`}
+                                                />
+                                              </div>
+                                              )}
+                                              {animeRec.genres &&
+                                                animeRec.genres.length > 0 && (
+                                                <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-2'}`}>
+                                                    {animeRec.genres
+                                                  .slice(0, isMobile ? 3 : 4)
+                                                      .map((g: string) => (
+                                                        <span
+                                                          key={g}
+                                                        className={`${isMobile ? 'text-xs' : 'text-sm'} bg-black text-white ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} font-mono border-2 border-black font-bold uppercase tracking-wider transform hover:scale-110 transition-transform duration-200`}
+                                                        >
+                                                      {isMobile && g.length > 8 ? `${g.substring(0, 8)}...` : g}
+                                                        </span>
+                                                      ))}
+                                                  </div>
+                                                )}
+                                            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-3'} pt-3 border-t-2 border-black`}>
+                                            <button
+                                                  onClick={() =>
+                                                    handleAiRecommendationAddToWatchlist(
+                                                      animeRec,
+                                                      "Plan to Watch"
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    !isAuthenticated || isLoading
+                                                  }
+                                                className={`bg-black text-white ${isMobile ? 'px-3 py-2' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}
+                                                >
+                                              [ADD TO WATCHLIST]
+                                            </button>
+                                                {animeRec.trailerUrl && (
+                                                  <a
+                                                    href={animeRec.trailerUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                  >
+                                                  <button className={`bg-white text-black ${isMobile ? 'px-3 py-2 w-full' : 'px-4 py-2'} text-sm font-mono border-3 border-black hover:bg-black hover:text-white touch-target transition-all duration-200 transform hover:scale-105 font-black uppercase`}>
+                                                  [WATCH TRAILER]
+                                                </button>
+                                                  </a>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Feedback buttons for AI messages */}
+                                {msg.type === "ai" && (
+                                  <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-300">
+                                  <button
+                                    onClick={() => handleFeedback(msg.id, "up")}
+                                      className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
+                                      msg.feedback === "up"
+                                          ? "bg-green-500 text-white" 
+                                          : "bg-white text-black hover:bg-green-100"
+                                    }`}
+                                  >
+                                      👍 HELPFUL
+                                  </button>
+                                  <button
+                                    onClick={() => handleFeedback(msg.id, "down")}
+                                      className={`px-2 py-1 text-xs font-mono border-2 border-black transition-all duration-200 ${
+                                      msg.feedback === "down"
+                                          ? "bg-red-500 text-white" 
+                                          : "bg-white text-black hover:bg-red-100"
+                                    }`}
+                                  >
+                                      👎 NOT HELPFUL
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                    ))}
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                        <div className="flex justify-start mb-6">
+                          <div className={`bg-white text-black border-4 border-black ${isMobile ? 'p-3 mr-6' : 'p-4 mr-8'}`}>
+                            <div className="flex items-center gap-3">
+                          <BrutalistLoadingSpinner size={isMobile ? "h-4 w-4" : "h-6 w-6"} />
+                              <span className="font-mono font-bold uppercase text-sm">ANIMUSE IS THINKING...</span>
+                            </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                    {/* BRUTALIST INPUT AREA */}
+                    <div className={`${isFullscreen ? 'flex-shrink-0' : 'sticky bottom-0 z-50 sticky-input-area'} border-t-6 border-black bg-black text-white ${isMobile ? (isFullscreen ? 'p-4' : 'p-1.5 mobile-safe-bottom') : 'p-5'} ${hasNotch ? 'pb-safe-bottom' : isIOS ? 'pb-4' : 'pb-4'} relative`}
+                         style={{
+                           backgroundImage: `
+                             linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
+                           `,
+                           backgroundSize: '15px 15px'
+                         }}>
+                      
+                      {/* INPUT HEADER - Condensed for mobile */}
+                      <div className={`flex justify-between items-center ${isMobile ? 'mb-1.5' : 'mb-4'}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono font-black uppercase tracking-wider ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            {isMobile ? "MESSAGE" : "SEND MESSAGE"}
+                          </span>
+                          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-gray-400">
+                            {prompt.length}/500
+                          </span>
+                          <div className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                            prompt.length > 400 ? 'bg-red-400' : 
+                            prompt.length > 300 ? 'bg-yellow-400' : 'bg-green-400'
+                          }`}></div>
+                        </div>
+                      </div>
+
+                    <form
+                      onSubmit={handleSubmit}
+                        className={`flex ${isMobile ? (isFullscreen ? 'flex-col gap-4' : 'flex-col gap-1.5') : 'gap-4 items-end'}`}
+                    >
+                      {aiMode === "compare" || aiMode === "hidden_gems" ? (
+                        <div className="flex-1 relative">
+                            <div className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-4 py-3') : 'px-6 py-4'} text-center ${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-black uppercase`}>
+                              {isMobile ? (isFullscreen ? "USE CONTROLS ABOVE AND HIT SEND" : "USE CONTROLS ABOVE") : "USE CONTROLS ABOVE AND HIT SEND"}
+                          </div>
+                          <button
+                            type="submit"
+                              className={`${isMobile ? 'absolute right-3 top-1/2 -translate-y-1/2' : 'absolute right-3 top-1/2 -translate-y-1/2'} bg-black text-white ${isMobile ? (isFullscreen ? 'px-3 py-2' : 'px-2 py-1.5') : 'px-4 py-2'} text-sm font-mono border-3 border-white hover:bg-white hover:text-black disabled:opacity-50 touch-target transition-all duration-200 transform hover:scale-105`}
+                            disabled={
+                              isLoading ||
+                              authIsLoading ||
+                              !isAuthenticated ||
+                              (aiMode === "compare"
+                                ? !animeA.trim() || !animeB.trim()
+                                : false)
+                            }
+                          >
+                            {isLoading ? "..." : "[SEND]"}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                            <div className={`${isMobile ? 'w-full' : 'flex-1'} relative`}>
+                          <input
+                            type="text"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={
+                              aiMode === "franchise"
+                                    ? (isMobile ? (isFullscreen ? "Enter franchise name to get watch guide..." : "Franchise name...") : "Enter franchise name to get watch guide...")
+                                    : (isMobile ? (isFullscreen ? "Describe what you're looking for in anime..." : "What anime are you looking for?") : "Describe what you're looking for in anime...")
+                            }
+                                className={`w-full bg-white text-black border-4 border-white ${isMobile ? (isFullscreen ? 'px-4 py-3' : 'px-2 py-1.5') : 'px-6 py-4'} font-mono ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} placeholder-gray-500 focus:outline-none ${isMobile ? 'mobile-touch-target' : 'touch-target'} font-bold transition-all duration-300`}
+                            disabled={
+                              isLoading || authIsLoading || !isAuthenticated
+                            }
+                            style={{
+                              fontSize: "16px",
+                                  minHeight: isMobile ? "38px" : "56px",
+                                }}
+                              />
+                              {/* BRUTALIST INPUT DECORATION */}
+                              <div className="absolute -top-2 -right-2 bg-yellow-400 text-black px-2 py-1 text-xs font-mono font-black uppercase border-2 border-black transform rotate-12">
+                                INPUT
+                              </div>
+                              
+                              {/* CHARACTER COUNT INDICATOR */}
+                              {prompt.length > 0 && (
+                                <div className="absolute -bottom-8 left-0 text-xs font-mono text-gray-400">
+                                  {prompt.length} characters
+                                </div>
+                              )}
+                            </div>
+                          <button
+                            type="submit"
+                              className={`bg-white text-black ${isMobile ? (isFullscreen ? 'w-full px-4 py-3' : 'w-full px-2 py-1.5') : 'px-6 py-4'} ${isMobile ? (isFullscreen ? 'text-base' : 'text-sm') : 'text-lg'} font-mono border-4 border-white hover:bg-black hover:text-white hover:border-white disabled:opacity-50 ${isMobile ? 'mobile-touch-target' : 'touch-target'} transition-all duration-200 transform hover:scale-105 font-black uppercase flex items-center gap-2 justify-center`}
+                            disabled={
+                              isLoading ||
+                              authIsLoading ||
+                              !isAuthenticated ||
+                              !prompt.trim()
+                            }
+                          >
+                              {isLoading ? (
+                                <>
+                                  <span className="animate-spin">⚡</span>
+                                  <span>{isMobile && !isFullscreen ? "..." : "PROCESSING..."}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>{isMobile && !isFullscreen ? "SEND" : "SEND"}</span>
+                                  <span className="text-lg">→</span>
+                                </>
+                              )}
+                          </button>
+                        </>
+                      )}
+                    </form>
+
+                    {!isAuthenticated && !authIsLoading && (
+                        <div className="mt-4 text-center">
+                          <div className="bg-red-500 text-white border-2 border-white p-3 transform rotate-1">
+                            <p className={`${isMobile ? (isFullscreen ? 'text-sm' : 'text-sm') : 'text-base'} font-mono font-bold uppercase tracking-wider`}>
+                              LOG IN TO CHAT
+                            </p>
+                            <div className="w-16 h-1 bg-white mx-auto mt-2 transform rotate-1"></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* QUICK TIPS - Hide on mobile when not in fullscreen */}
+                      {chatHistory.length === 0 && (!isMobile || isFullscreen) && (
+                        <div className="mt-4 p-3 bg-gray-900 border-2 border-white transform -rotate-1">
+                          <p className="text-xs font-mono text-gray-300 text-center">
+                            💡 TIP: Be specific about genres, mood, or themes you're interested in
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* SWIPE GESTURE HELPER */}
+        {isFullscreen && isMobile && (
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9997] pointer-events-none">
+            <div className="bg-red-500 text-white border-2 border-white px-3 py-1 font-mono text-xs opacity-75 animate-pulse">
+              SWIPE UP FROM BOTTOM TO ACCESS MORE OPTIONS
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Custom CSS for animations and iPhone optimizations */}
+      {/* Enhanced mobile fullscreen styles */}
       <style jsx>{`
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-20px) rotate(180deg);
-          }
+        .active\\:scale-98:active {
+          transform: scale(0.98);
         }
-
-        @keyframes brutal-pulse {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1) rotate(0deg);
-          }
-          50% {
-            opacity: 0.8;
-            transform: scale(1.05) rotate(1deg);
-          }
-        }
-
-        @keyframes brutal-shake {
-          0%, 100% {
-            transform: translateX(0) rotate(0deg);
-          }
-          25% {
-            transform: translateX(-2px) rotate(-0.5deg);
-          }
-          75% {
-            transform: translateX(2px) rotate(0.5deg);
-          }
-        }
-
-        .animate-spin-reverse {
-          animation: spin 1s linear infinite reverse;
-        }
-
-        .animate-brutal-pulse {
-          animation: brutal-pulse 2s ease-in-out infinite;
-        }
-
-        .animate-brutal-shake {
-          animation: brutal-shake 0.5s ease-in-out;
-        }
-
-        .line-clamp-3 {
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        /* BRUTALIST GRID OVERLAY */
-        .brutal-grid-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-image: 
-            linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-          background-size: 20px 20px;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        /* BRUTALIST SHADOW EFFECTS */
-        .brutal-shadow {
-          box-shadow: 
-            4px 4px 0px rgba(0,0,0,0.8),
-            8px 8px 0px rgba(0,0,0,0.4);
-        }
-
-        .brutal-shadow-lg {
-          box-shadow: 
-            6px 6px 0px rgba(0,0,0,0.8),
-            12px 12px 0px rgba(0,0,0,0.4);
-        }
-
-        /* BRUTALIST BORDER EFFECTS */
-        .border-brutal {
-          border-width: 6px;
-          border-style: solid;
-        }
-
-        .border-brutal-thick {
-          border-width: 8px;
-          border-style: solid;
-        }
-
-        /* BRUTALIST TYPOGRAPHY */
-        .font-brutal {
-          font-family: 'JetBrains Mono', monospace;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-        }
-
-        /* BRUTALIST HOVER EFFECTS */
-        .brutal-hover {
-          transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .brutal-hover:hover {
-          transform: scale(1.05) rotate(1deg);
-          box-shadow: 
-            6px 6px 0px rgba(0,0,0,0.8),
-            12px 12px 0px rgba(0,0,0,0.4);
-        }
-
-        /* BRUTALIST INPUT FOCUS */
-        input:focus {
-          outline: none;
-          border-color: #ffff00;
-          box-shadow: 
-            0 0 0 4px rgba(255, 255, 0, 0.3),
-            4px 4px 0px rgba(0,0,0,0.8);
-          transform: scale(1.02) rotate(0.5deg);
-        }
-
-        /* BRUTALIST BUTTON ACTIVE STATE */
-        button:active {
-          transform: scale(0.95) rotate(-1deg);
-          box-shadow: 
-            2px 2px 0px rgba(0,0,0,0.8),
-            4px 4px 0px rgba(0,0,0,0.4);
-        }
-
-        /* BRUTALIST SCROLLBAR */
-        ::-webkit-scrollbar {
-          width: 12px;
-          height: 12px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: #f0f0f0;
-          border: 2px solid #000;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: #000;
-          border: 2px solid #fff;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: #333;
-        }
-
-        /* BRUTALIST SELECTION */
-        ::selection {
-          background: #ffff00;
-          color: #000;
-        }
-
-        /* BRUTALIST FOCUS OUTLINE */
-        *:focus {
-          outline: 3px solid #ffff00;
-          outline-offset: 2px;
-        }
-
-        /* BRUTALIST LOADING ANIMATION */
-        @keyframes brutal-loading {
-          0% {
-            transform: rotate(0deg) scale(1);
-          }
-          50% {
-            transform: rotate(180deg) scale(1.2);
-          }
-          100% {
-            transform: rotate(360deg) scale(1);
-          }
-        }
-
-        .brutal-loading {
-          animation: brutal-loading 1.5s ease-in-out infinite;
-        }
-
-        /* BRUTALIST MESSAGE ANIMATIONS */
-        .message-enter {
-          animation: brutal-shake 0.6s ease-out;
-        }
-
-        /* BRUTALIST RESPONSIVE GRID */
-        @media (max-width: 768px) {
-          .brutal-grid-overlay {
-            background-size: 15px 15px;
-          }
-        }
-
-                 /* Fullscreen chat optimizations */
-         .z-\\[9999\\] {
-           z-index: 9999 !important;
-           position: fixed !important;
-         }
-         
-         .z-\\[9998\\] {
-           z-index: 9998 !important;
-         }
-
-        /* BRUTALIST TOUCH TARGETS */
+        
         .touch-target {
           min-height: 44px;
           min-width: 44px;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
         }
 
-        /* BRUTALIST SAFE AREAS */
-        .pt-safe-top {
-          padding-top: env(safe-area-inset-top);
+        .hover\\:scale-102:hover {
+          transform: scale(1.02);
         }
 
-        .pb-safe-bottom {
-          padding-bottom: env(safe-area-inset-bottom);
+        .chat-message {
+          animation: messageSlideIn 0.3s ease-out;
         }
 
-        /* BRUTALIST ROTATION UTILITIES */
-        .rotate-0\\.5 {
-          transform: rotate(0.5deg);
+        .mobile-touch-target {
+          min-height: 48px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
 
-        .-rotate-0\\.5 {
-          transform: rotate(-0.5deg);
+        .mobile-chat-container {
+          max-height: calc(100vh - 400px);
+          min-height: 300px;
         }
 
-        .rotate-12 {
-          transform: rotate(12deg);
-        }
-
-        /* BRUTALIST BORDER WIDTHS */
-        .border-3 {
-          border-width: 3px;
-        }
-
-        .border-6 {
-          border-width: 6px;
-        }
-
-        /* BRUTALIST TRACKING */
-        .tracking-wider {
-          letter-spacing: 0.1em;
-        }
-
-        .tracking-widest {
-          letter-spacing: 0.2em;
-        }
-
-        /* BRUTALIST PROMPT BUTTON EFFECTS */
-        .prompt-button {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .prompt-button::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          transition: left 0.5s;
-        }
-
-        .prompt-button:hover::before {
-          left: 100%;
-        }
-
-        /* BRUTALIST GLITCH EFFECT */
-        @keyframes brutal-glitch {
-          0% {
-            transform: translate(0);
-          }
-          20% {
-            transform: translate(-2px, 2px);
-          }
-          40% {
-            transform: translate(-2px, -2px);
-          }
-          60% {
-            transform: translate(2px, 2px);
-          }
-          80% {
-            transform: translate(2px, -2px);
-          }
-          100% {
-            transform: translate(0);
-          }
-        }
-
-        .brutal-glitch {
-          animation: brutal-glitch 0.3s ease-in-out;
-        }
-
-        /* BRUTALIST PARTICLE EFFECT */
-        @keyframes brutal-particle {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-20px) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        .brutal-particle {
-          animation: brutal-particle 1s ease-out forwards;
-        }
-
-        /* BRUTALIST GRADIENT ANIMATION */
-        @keyframes brutal-gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        .brutal-gradient-animate {
-          background-size: 200% 200%;
-          animation: brutal-gradient 3s ease infinite;
-        }
-
-        /* BRUTALIST NEON EFFECT */
-        .brutal-neon {
-          box-shadow: 
-            0 0 5px currentColor,
-            0 0 10px currentColor,
-            0 0 15px currentColor,
-            0 0 20px currentColor;
-        }
-
-        /* BRUTALIST SCAN LINE EFFECT */
-        @keyframes brutal-scan {
-          0% {
-            transform: translateY(-100%);
-          }
-          100% {
-            transform: translateY(100%);
-          }
-        }
-
-        .brutal-scan::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: rgba(255, 255, 0, 0.8);
-          animation: brutal-scan 2s linear infinite;
-        }
-
-        /* BRUTALIST TYPEWRITER EFFECT */
-        @keyframes brutal-typewriter {
-          from {
-            width: 0;
-          }
-          to {
-            width: 100%;
-          }
-        }
-
-        .brutal-typewriter {
-          overflow: hidden;
-          white-space: nowrap;
-          animation: brutal-typewriter 2s steps(40, end);
-        }
-
-        /* BRUTALIST MATRIX EFFECT */
-        @keyframes brutal-matrix {
-          0% {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-        }
-
-        .brutal-matrix {
-          animation: brutal-matrix 0.5s ease-in-out;
-        }
-
-        /* BRUTALIST PULSE RING */
-        @keyframes brutal-pulse-ring {
-          0% {
-            transform: scale(0.8);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(2);
-            opacity: 0;
-          }
-        }
-
-        .brutal-pulse-ring {
-          animation: brutal-pulse-ring 1.5s ease-out infinite;
-        }
-
-        /* BRUTALIST FLOATING EFFECT */
-        @keyframes brutal-float {
-          0%, 100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          33% {
-            transform: translateY(-5px) rotate(1deg);
-          }
-          66% {
-            transform: translateY(5px) rotate(-1deg);
-          }
-        }
-
-        .brutal-float {
-          animation: brutal-float 3s ease-in-out infinite;
-        }
-
-        /* BRUTALIST SHATTER EFFECT */
-        @keyframes brutal-shatter {
-          0% {
-            transform: scale(1) rotate(0deg);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.1) rotate(5deg);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(1) rotate(0deg);
-            opacity: 1;
-          }
-        }
-
-        .brutal-shatter {
-          animation: brutal-shatter 0.6s ease-in-out;
-        }
-
-        /* BRUTALIST ELECTRIC EFFECT */
-        @keyframes brutal-electric {
-          0%, 100% {
-            box-shadow: 
-              0 0 5px #ffff00,
-              0 0 10px #ffff00,
-              0 0 15px #ffff00;
-          }
-          50% {
-            box-shadow: 
-              0 0 10px #ffff00,
-              0 0 20px #ffff00,
-              0 0 30px #ffff00;
-          }
-        }
-
-        .brutal-electric {
-          animation: brutal-electric 0.5s ease-in-out infinite;
-        }
-
-        /* MOBILE INPUT SPACING FIX */
-        @media (max-width: 768px) {
-          /* Main container height adjustments */
-          .mobile-chat-container {
-            min-height: calc(70vh - 160px);
-            max-height: calc(80vh - 80px);
-          }
-
-          /* Ensure chat messages have enough bottom padding */
-          .chat-messages-container {
-            padding-bottom: 160px !important;
-            margin-bottom: 0 !important;
-          }
-          
-          /* Sticky input area improvements */
-          .sticky-input-area {
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
-            position: sticky !important;
-            bottom: 0 !important;
-            z-index: 1000 !important;
-            max-height: 30vh; /* Prevent taking too much screen space */
-          }
-
-          /* Better touch target for mobile */
-          .mobile-touch-target {
-            min-height: 38px;
-            min-width: 38px;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-          }
-
-          /* Prevent zoom on input focus */
-          input[type="text"] {
-            font-size: 16px !important;
-            transform-origin: left top;
-            zoom: 1;
-            -webkit-text-size-adjust: 100%;
-          }
-
-          /* Safe area handling for newer phones */
-          .mobile-safe-bottom {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
-          }
-
-          /* iPhone X and newer notch handling */
-          @supports (padding: max(0px)) {
-            .mobile-safe-bottom {
-              padding-bottom: max(1rem, env(safe-area-inset-bottom));
-            }
-          }
-
-          /* Landscape mode adjustments */
-          @media (orientation: landscape) {
-            .mobile-chat-container {
-              min-height: calc(60vh - 150px);
-              max-height: calc(70vh - 80px);
-            }
-            
-            .chat-messages-container {
-              padding-bottom: 160px !important;
-            }
-          }
-
-          /* Small mobile screens (iPhone SE, etc.) */
-          @media (max-height: 600px) {
-            .mobile-chat-container {
-              min-height: calc(50vh - 80px);
-            }
-            
-            .chat-messages-container {
-              padding-bottom: 140px !important;
-            }
-            
-            .sticky-input-area {
-              padding: 0.5rem !important;
-            }
-          }
-
-          /* Very small screens */
-          @media (max-height: 500px) {
-            .mobile-chat-container {
-              min-height: calc(40vh - 80px);
-            }
-            
-            .chat-messages-container {
-              padding-bottom: 160px !important;
-            }
-          }
-        }
-
-        /* MOBILE FULLSCREEN OPTIMIZATIONS */
-        @media (max-width: 768px) {
-          /* Fullscreen mobile specific styles */
-          .z-\\[9999\\] {
-            z-index: 9999 !important;
-            position: fixed !important;
-           top: 0 !important;
-           left: 0 !important;
-           right: 0 !important;
-           bottom: 0 !important;
-           width: 100vw !important;
-           height: 100vh !important;
-            height: 100dvh !important; /* Dynamic viewport height for mobile */
-           overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-          }
-
-          /* Ensure fullscreen header is properly positioned */
-          .z-\\[9999\\] .flex-shrink-0.top-0 {
-            position: relative !important;
-            top: auto !important;
-           z-index: 9998 !important;
-           background: black !important;
-            border-bottom: 6px solid #ef4444 !important;
-            flex-shrink: 0 !important;
-          }
-
-          /* Fullscreen chat container */
-          .z-\\[9999\\] .flex-1.flex.flex-col.min-h-0 {
-            flex: 1 !important;
-            min-height: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-          }
-
-          /* Fullscreen main content area */
-          .z-\\[9999\\] .flex-1.min-h-0.overflow-hidden {
-            flex: 1 !important;
-            min-height: 0 !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-          }
-
-          /* Fullscreen messages container */
-          .z-\\[9999\\] .overflow-y-auto {
-            flex: 1 !important;
-            min-height: 0 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            -webkit-overflow-scrolling: touch !important;
-            scrollbar-width: thin !important;
-          }
-
-          /* Fullscreen input area */
-          .z-\\[9999\\] .flex-shrink-0 {
-            flex-shrink: 0 !important;
-            position: relative !important;
-            bottom: auto !important;
-            background: black !important;
-            border-top: 6px solid black !important;
-            z-index: 9997 !important;
-          }
-
-          /* Touch-friendly buttons in fullscreen */
-          .z-\\[9999\\] button {
-            min-height: 44px !important;
-            min-width: 44px !important;
-            touch-action: manipulation !important;
-            -webkit-tap-highlight-color: transparent !important;
-          }
-
-          /* Fullscreen input field */
-          .z-\\[9999\\] input {
-            font-size: 16px !important; /* Prevents zoom on iOS */
-            min-height: 48px !important;
-            touch-action: manipulation !important;
-          }
-
-          /* Fullscreen scrollbar */
-          .z-\\[9999\\] ::-webkit-scrollbar {
-            width: 8px !important;
-          }
-
-          .z-\\[9999\\] ::-webkit-scrollbar-track {
-            background: #f0f0f0 !important;
-            border: 2px solid #000 !important;
-          }
-
-          .z-\\[9999\\] ::-webkit-scrollbar-thumb {
-            background: #000 !important;
-            border: 2px solid #fff !important;
-          }
-
-          /* Fullscreen safe areas */
-          .z-\\[9999\\] .pb-safe-bottom {
-            padding-bottom: env(safe-area-inset-bottom) !important;
-          }
-
-          .z-\\[9999\\] .pt-safe-top {
-            padding-top: env(safe-area-inset-top) !important;
-          }
-
-          /* Fullscreen animations */
-          .z-\\[9999\\] .transition-all {
-            transition: all 0.2s ease-out !important;
-          }
-
-          /* Fullscreen hover effects - disable on mobile */
-          @media (hover: none) {
-            .z-\\[9999\\] .group-hover\\:scale-105 {
-              transform: none !important;
-            }
-            
-            .z-\\[9999\\] .group-hover\\:rotate-1 {
-              transform: none !important;
-            }
-            
-            .z-\\[9999\\] .hover\\:scale-105 {
-              transform: none !important;
-            }
-          }
-
-          /* Fullscreen active states for mobile */
-          .z-\\[9999\\] button:active {
-            transform: scale(0.95) !important;
-            transition: transform 0.1s ease-out !important;
-          }
-
-          /* Fullscreen focus states */
-          .z-\\[9999\\] *:focus {
-            outline: 3px solid #ffff00 !important;
-            outline-offset: 2px !important;
-          }
-
-          /* Fullscreen selection */
-          .z-\\[9999\\] ::selection {
-            background: #ffff00 !important;
-            color: #000 !important;
-          }
-
-          /* Ensure proper flex layout in fullscreen */
-          .z-\\[9999\\] .h-full.flex.flex-col {
-            height: 100% !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-          }
-
-          /* Fix for content being blocked by input */
-          .z-\\[9999\\] .flex-1.min-h-0.overflow-y-auto {
-            padding-bottom: 0 !important;
-            margin-bottom: 0 !important;
-          }
-        }
-
-        /* LANDSCAPE MOBILE FULLSCREEN */
-        @media (max-width: 768px) and (orientation: landscape) {
-          .z-\\[9999\\] {
-            height: 100vh !important;
-            height: 100dvh !important;
-          }
-
-          .z-\\[9999\\] .sticky.top-0 {
-            padding: 0.5rem !important;
-          }
-
-          .z-\\[9999\\] .flex-shrink-0 {
-            padding: 0.5rem !important;
-          }
-
-          .z-\\[9999\\] .overflow-y-auto {
-            padding: 0.5rem !important;
-          }
-        }
-
-        /* TABLET FULLSCREEN OPTIMIZATIONS */
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .z-\\[9999\\] {
-            height: 100vh !important;
-            height: 100dvh !important;
-          }
-
-          .z-\\[9999\\] .sticky.top-0 {
-            padding: 1rem !important;
-          }
-
-          .z-\\[9999\\] .flex-shrink-0 {
-            padding: 1rem !important;
-          }
-        }
-
-        /* DESKTOP FULLSCREEN OPTIMIZATIONS */
-        @media (min-width: 1025px) {
-          .z-\\[9999\\] {
-            height: 100vh !important;
-          }
-
-          .z-\\[9999\\] .sticky.top-0 {
-            padding: 1.5rem !important;
-          }
-
-          .z-\\[9999\\] .flex-shrink-0 {
-            padding: 1.5rem !important;
-          }
-        }
-
-        /* Enhanced scrollbar for all devices */
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 107, 53, 0.5) rgba(255, 255, 255, 0.1);
+        .chat-messages-container {
           -webkit-overflow-scrolling: touch;
-          scroll-behavior: smooth;
           overscroll-behavior: contain;
         }
 
+        .sticky-input-area {
+          position: sticky;
+          bottom: 0;
+          z-index: 50;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 8px;
         }
-
+        
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 3px;
+          background: #f1f1f1;
+          border-radius: 4px;
         }
-
+        
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 107, 53, 0.5);
-          border-radius: 3px;
+          background: #888;
+          border-radius: 4px;
+          border: 1px solid #000;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 107, 53, 0.7);
+        input, textarea {
+          font-size: 16px !important;
+          -webkit-text-size-adjust: 100%;
         }
 
-        /* iPhone specific scrolling improvements */
-        @media (max-width: 414px) {
-          .custom-scrollbar {
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            overscroll-behavior: contain;
-            touch-action: pan-y;
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 3px;
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-          }
-          
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 2px;
-          }
-
-          /* Ensure mobile chat container is scrollable */
-          .custom-scrollbar {
-            height: 18rem; /* 288px = h-72 */
-            min-height: 18rem;
-            max-height: 18rem;
-            overflow-y: scroll !important;
+        @media (prefers-reduced-motion: reduce) {
+          .transition-all,
+          .animate-pulse,
+          .animate-spin {
+            animation: none !important;
+            transition: none !important;
           }
         }
       `}</style>
