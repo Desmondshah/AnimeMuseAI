@@ -86,6 +86,132 @@ interface EpisodeBatchUpdateResult {
   errors: string[];
 }
 
+// ---------------------------------------------
+// Anime News fetching (RSS-based, no API key)
+// ---------------------------------------------
+export const fetchAnimeNews = action({
+  args: {},
+  handler: async (ctx) => {
+    // Lightweight RSS fetch from known anime sources
+    const sources = [
+      // Anime News Network (RSS)
+      "https://www.animenewsnetwork.com/all/rss.xml",
+      // MyAnimeList news (RSS)
+      "https://myanimelist.net/rss/news.xml"
+    ];
+
+    type NewsItem = {
+      id: string;
+      title: string;
+      link: string;
+      source: string;
+      publishedAt?: number;
+      description?: string;
+      imageUrl?: string;
+    };
+
+    const parseRss = async (xml: string, source: string): Promise<NewsItem[]> => {
+      const items: NewsItem[] = [];
+      try {
+        // Very small XML parsing via regex for common tags; robust enough for these feeds
+        const channelTitleMatch = xml.match(/<title>([^<]+)<\/title>/i);
+        const sourceName = channelTitleMatch?.[1] || source;
+        const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+        let match: RegExpExecArray | null;
+        while ((match = itemRegex.exec(xml))) {
+          const block = match[1];
+          const title = (block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>([\s\S]*?)<\/title>/i)?.[1] ||
+                         block.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ||
+                         "Untitled").trim();
+          const link = (block.match(/<link>([\s\S]*?)<\/link>/i)?.[1] || "").trim();
+          const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1] || "").trim();
+          const description = (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>|<description>([\s\S]*?)<\/description>/i)?.[1] || "").trim();
+          // Try to find an <enclosure url="..."> or first img src in description
+          const enclosure = block.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*>/i)?.[1];
+          const imgInDesc = description.match(/<img[^>]*src=["']([^"']+)["']/i)?.[1];
+          const imageUrl = enclosure || imgInDesc;
+
+          const id = `${sourceName}-${link || title}`;
+          const publishedAt = pubDate ? Date.parse(pubDate) : undefined;
+
+          items.push({ id, title: decodeHtml(title), link, source: sourceName, publishedAt, description: stripHtml(description), imageUrl });
+        }
+      } catch (e) {
+        console.error("[fetchAnimeNews] Failed to parse RSS for", source, e);
+      }
+      return items;
+    };
+
+    const decodeHtml = (text: string) => {
+      return text
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+    };
+
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, "").trim();
+
+    const allItems: NewsItem[] = [];
+    for (const url of sources) {
+      try {
+        const res = await fetchWithTimeout(url, { timeout: 6000 });
+        if (!res.ok) continue;
+        const xml = await res.text();
+        const items = await parseRss(xml, url);
+        allItems.push(...items);
+      } catch (e) {
+        console.error("[fetchAnimeNews] Failed fetching", url, e);
+      }
+    }
+
+    // Deduplicate by link/title and sort by date desc
+    const dedup = new Map<string, NewsItem>();
+    for (const item of allItems) {
+      const key = item.link || item.title;
+      if (!dedup.has(key)) dedup.set(key, item);
+    }
+    const news = Array.from(dedup.values()).sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0)).slice(0, 20);
+
+    return { success: true, news } as any;
+  }
+});
+
+// Lightweight metadata fetcher for article preview (OG tags only)
+export const fetchArticleMetadata = action({
+  args: { url: v.string() },
+  handler: async (_ctx, args) => {
+    try {
+      const res = await fetchWithTimeout(args.url, { timeout: 7000 });
+      if (!res.ok) return { success: false };
+      const html = await res.text();
+
+      const getMeta = (name: string, attr: string = "property") => {
+        const re = new RegExp(`<meta[^>]+${attr}=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i");
+        return html.match(re)?.[1];
+      };
+
+      const rawTitle =
+        getMeta("og:title") ||
+        (html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || "").trim();
+
+      const desc = getMeta("og:description") || getMeta("description", "name");
+      const imageUrl = getMeta("og:image") || getMeta("twitter:image");
+      const siteName = getMeta("og:site_name") || new URL(args.url).hostname.replace(/^www\./, "");
+
+      const strip = (s?: string) => (s ? s.replace(/<[^>]*>/g, "").trim() : undefined);
+      const title = strip(rawTitle);
+      const description = strip(desc)?.slice(0, 300);
+
+      return { success: true, title, description, imageUrl, siteName } as const;
+    } catch (e) {
+      console.error("[fetchArticleMetadata] Failed:", e);
+      return { success: false } as const;
+    }
+  }
+});
+
 // Enhanced timeout and fallback functionality
 const DEFAULT_TIMEOUT_MS = 7000;
 

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import AnimeCard from "./AnimeCard";
 import AdminDashboardPage from "../admin/AdminDashboardPage";
 import ProfileSettingsPage from "./onboarding/ProfileSettingsPage";
+import ProfilePage from "./onboarding/ProfilePage";
 import EnhancedAIAssistantPage from "./AIAssistantPage";
 import BottomNavigationBar from "./BottomNavigationBar";
 import MoodboardPage from "./onboarding/MoodboardPage";
@@ -23,12 +24,15 @@ import MadhousePage from "./MadhousePage";
 import MappaPage from "./MappaPage";
 import BonesPage from "./BonesPage";
 import KyotoAnimationPage from "./KyotoAnimationPage";
+import ReelsPage from "./reels/ReelsPage";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "./shared/PageTransition";
 import Carousel from "./shared/Carousel";
 import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow } from "swiper/modules";
+import AnimeNewsPage from "./AnimeNewsPage";
+// Removed inline news section on dashboard; using a dedicated page instead
 
 
 // ============================================================================
@@ -85,9 +89,9 @@ const ensureCompleteRecommendations = (recommendations: any[]): AnimeRecommendat
 
 export type ValidViewName =
   | "dashboard" | "ai_assistant" | "anime_detail" | "my_list"
-  | "browse" | "admin_dashboard" | "profile_settings"
+  | "browse" | "admin_dashboard" | "profile_settings" | "profile"
   | "custom_lists_overview" | "custom_list_detail" | "moodboard_page"
-  | "character_detail" | "studio_ghibli" | "madhouse" | "mappa" | "bones" | "kyoto_animation"; // NEW: Add character detail view, Studio Ghibli page, Madhouse page, MAPPA page, Bones page, and Kyoto Animation page
+  | "character_detail" | "studio_ghibli" | "madhouse" | "mappa" | "bones" | "kyoto_animation" | "reels" | "anime_news"; // NEW: Add character detail view, Studio Ghibli page, Madhouse page, MAPPA page, Bones page, Kyoto Animation page, Reels, and Anime News
 
 export type CurrentView = ValidViewName;
 
@@ -367,6 +371,9 @@ export default function MainApp() {
   const navigateToMappa = useCallback(() => navigateTo("mappa"), [navigateTo]);
   const navigateToBones = useCallback(() => navigateTo("bones"), [navigateTo]);
   const navigateToKyotoAnimation = useCallback(() => navigateTo("kyoto_animation"), [navigateTo]);
+  const navigateToReels = useCallback(() => navigateTo("reels"), [navigateTo]);
+  const navigateToProfile = useCallback(() => navigateTo("profile"), [navigateTo]);
+  const navigateToAnimeNews = useCallback(() => navigateTo("anime_news"), [navigateTo]);
 
   const handleTabChange = (view: ValidViewName) => {
     // Character detail should not be accessible via bottom tabs
@@ -757,6 +764,22 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
   return truncated + '...';
 };
 
+// Helper: Generate a readable placeholder poster
+const getPosterPlaceholder = (title: string) => {
+  const text = encodeURIComponent(truncateTitle(title || 'Anime', 20));
+  // Soft gray background with dark text for visibility
+  return `https://placehold.co/600x900/EEEEEE/111111/png?text=${text}`;
+};
+
+// Helper: Basic sanity check for external poster URLs
+const sanitizePosterUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === 'about:blank' || trimmed === '#') return undefined;
+  if (!/^https?:\/\//i.test(trimmed)) return undefined;
+  return trimmed;
+};
+
   const renderDashboard = useCallback(() => (
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* ARTISTIC BRUTALIST GRID OVERLAY */}
@@ -845,6 +868,16 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
           </button>
         </div>
 
+        {/* Anime News CTA */}
+        <div className="mt-4">
+          <button
+            onClick={navigateToAnimeNews}
+            className="w-full bg-white text-black p-4 border-4 border-black shadow-[6px_6px_0px_0px_#000] active:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 font-mono text-sm font-black uppercase"
+          >
+            📰 View Anime News
+          </button>
+        </div>
+
         {/* ARTISTIC POPULAR ANIME CAROUSEL */}
         {loopedPopularAnime.length > 0 && (
           <div className="mt-8">
@@ -898,12 +931,20 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                       {/* ARTISTIC CARD EFFECTS */}
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-orange-100/20 to-red-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       
-                      {anime.posterUrl ? (
+                      {sanitizePosterUrl(anime.posterUrl) ? (
                         <div className="relative overflow-hidden">
                           <img
-                            src={anime.posterUrl}
+                            src={sanitizePosterUrl(anime.posterUrl)}
                             alt={anime.title}
-                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const img = e.currentTarget as HTMLImageElement;
+                              img.onerror = null;
+                              img.src = getPosterPlaceholder(anime.title);
+                            }}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                           />
                           {/* ARTISTIC OVERLAY */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
@@ -1046,12 +1087,20 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-pink-100/20 to-rose-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       
-                      {anime.posterUrl ? (
+                      {sanitizePosterUrl(anime.posterUrl) ? (
                         <div className="relative overflow-hidden">
                           <img
-                            src={anime.posterUrl}
+                            src={sanitizePosterUrl(anime.posterUrl)}
                             alt={anime.title}
-                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const img = e.currentTarget as HTMLImageElement;
+                              img.onerror = null;
+                              img.src = getPosterPlaceholder(anime.title);
+                            }}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                         </div>
@@ -1112,17 +1161,26 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                     }}
                   >
                     <div
-                      onClick={() => handleRecommendationClick(anime)}
+                      onClick={() => handleRecommendationClick(anime)
+}
                       className="relative bg-white border-4 border-black shadow-[4px_4px_0px_0px_#F59E0B] cursor-pointer active:shadow-[2px_2px_0px_0px_#F59E0B] active:translate-x-1 active:translate-y-1 transition-all duration-75 overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-yellow-100/20 to-amber-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       
-                      {anime.posterUrl ? (
+                      {sanitizePosterUrl(anime.posterUrl) ? (
                         <div className="relative overflow-hidden">
                           <img
-                            src={anime.posterUrl}
+                            src={sanitizePosterUrl(anime.posterUrl)}
                             alt={anime.title}
-                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const img = e.currentTarget as HTMLImageElement;
+                              img.onerror = null;
+                              img.src = getPosterPlaceholder(anime.title);
+                            }}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                         </div>
@@ -1177,7 +1235,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                 {bingeableAnime.slice(0, 8).map((anime, index) => (
                   <SwiperSlide
                     key={`binge-${index}`}
-                    className="w-[200px] sm:w-[220px]"
+                    className="w-[160px] sm:w-[180px]"
                     style={{
                       height: 'auto',
                     }}
@@ -1188,12 +1246,20 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-100/20 to-cyan-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       
-                      {anime.posterUrl ? (
+                      {sanitizePosterUrl(anime.posterUrl) ? (
                         <div className="relative overflow-hidden">
                           <img
-                            src={anime.posterUrl}
+                            src={sanitizePosterUrl(anime.posterUrl)}
                             alt={anime.title}
-                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const img = e.currentTarget as HTMLImageElement;
+                              img.onerror = null;
+                              img.src = getPosterPlaceholder(anime.title);
+                            }}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                         </div>
@@ -1248,7 +1314,7 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                 {retroClassicAnime.slice(0, 8).map((anime, index) => (
                   <SwiperSlide
                     key={`retro-${index}`}
-                    className="w-[200px] sm:w-[220px]"
+                    className="w-[140px] sm:w-[160px]"
                     style={{
                       height: 'auto',
                     }}
@@ -1259,12 +1325,20 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-transparent via-purple-100/20 to-violet-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       
-                      {anime.posterUrl ? (
+                      {sanitizePosterUrl(anime.posterUrl) ? (
                         <div className="relative overflow-hidden">
                           <img
-                            src={anime.posterUrl}
+                            src={sanitizePosterUrl(anime.posterUrl)}
                             alt={anime.title}
-                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const img = e.currentTarget as HTMLImageElement;
+                              img.onerror = null;
+                              img.src = getPosterPlaceholder(anime.title);
+                            }}
+                            className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                         </div>
@@ -1367,20 +1441,28 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
                         >
                           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-gold-100/20 to-yellow-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                           
-                          {rec.posterUrl ? (
+                          {sanitizePosterUrl(rec.posterUrl) ? (
                             <div className="relative overflow-hidden">
                               <img
-                                src={rec.posterUrl}
+                                src={sanitizePosterUrl(rec.posterUrl)}
                                 alt={rec.title}
-                                className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300"
+                                referrerPolicy="no-referrer"
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => {
+                                  const img = e.currentTarget as HTMLImageElement;
+                                  img.onerror = null; // prevent loop
+                                  img.src = getPosterPlaceholder(rec.title);
+                                }}
+                                className="w-full aspect-[3/4] object-cover border-b-4 border-black group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            </div>
+                            </div>
                           ) : (
                             <div className="w-full aspect-[3/4] bg-gradient-to-br from-brand-accent-gold to-yellow-500 border-b-4 border-black flex items-center justify-center">
                               <span className="text-5xl opacity-80">🎭</span>
-          </div>
-        )}
+                            </div>
+                          )}
 
                           <div className="relative p-3 bg-gradient-to-t from-white to-gray-50">
                             <h3 className="font-black text-xs uppercase leading-tight truncate mb-2">
@@ -1716,6 +1798,13 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
       
       case "profile_settings": 
         return <ProfileSettingsPage onBack={() => navigateTo(previousViewForBack, { replace: true })} />;
+      case "profile":
+        return (
+          <ProfilePage
+            onBack={navigateBack}
+            onOpenSettings={navigateToProfileSettings}
+          />
+        );
       
       case "custom_lists_overview": 
         return renderCustomListsOverview();
@@ -1740,6 +1829,16 @@ const truncateTitle = (title: string, maxLength: number = 25): string => {
             isLoadingMoodBoard={moodboardState.isLoading}
             onLoadingChange={handleMoodboardLoadingChange}
           />
+        );
+      
+      case "reels":
+        return (
+          <ReelsPage onBack={() => navigateTo("dashboard", { replace: true })} />
+        );
+
+      case "anime_news":
+        return (
+          <AnimeNewsPage onBack={navigateBack} />
         );
       
       case "dashboard":

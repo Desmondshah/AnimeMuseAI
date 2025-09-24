@@ -220,14 +220,6 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
                 CUSTOM LISTS
               </button>
             )}
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="bg-white border-4 border-black px-6 py-3 font-black text-black uppercase tracking-wider shadow-brutal hover:bg-gray-200 transition-all active:scale-95"
-              >
-                ← BACK
-              </button>
-            )}
           </div>
         </div>
 
@@ -327,44 +319,7 @@ export default function WatchlistPage({ onViewDetails, onBack, onNavigateToCusto
               })}
             </div>
           </div>
-        ) : (
-          // Empty state with brutal styling
-          <div className="text-center py-16">
-            <div className="bg-black border-4 border-white shadow-brutal-lg p-12 max-w-lg mx-auto">
-              <div className="bg-white border-4 border-black p-8 mb-6">
-                <div className="text-6xl mb-4">
-                  {filterStatus === "All" ? "📚" : statusConfig[filterStatus]?.icon || "📚"}
-                </div>
-                <h3 className="text-2xl font-black text-black uppercase mb-4">
-                  {filterStatus === "All" ? "YOUR COLLECTION AWAITS" : `NO ${filterStatus.toUpperCase()} ANIME`}
-                </h3>
-                <p className="text-black font-bold text-base leading-relaxed">
-                  {filterStatus === "All" 
-                    ? "START BUILDING YOUR PERSONAL ANIME LIBRARY BY DISCOVERING NEW SERIES."
-                    : `YOU HAVEN'T ADDED ANY ANIME TO "${filterStatus.toUpperCase()}" YET. START EXPLORING!`
-                  }
-                </p>
-              </div>
-              
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={() => onBack ? onBack() : (window.location.href = '/')}
-                  className="bg-brand-primary-action border-4 border-black px-4 py-2 font-black text-black uppercase tracking-wider shadow-brutal hover:bg-blue-400 transition-all active:scale-95"
-                >
-                  🔍 DISCOVER ANIME
-                </button>
-                {filterStatus !== "All" && (
-                  <button
-                    onClick={() => setFilterStatus("All")}
-                    className="bg-white border-4 border-black px-4 py-2 font-black text-black uppercase tracking-wider shadow-brutal hover:bg-gray-200 transition-all active:scale-95"
-                  >
-                    VIEW ALL COLLECTION
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+  ) : null}
 
         {/* NOTES MODAL */}
         {editingNotesFor && editingNotesFor.anime && (

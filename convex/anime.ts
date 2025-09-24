@@ -369,7 +369,70 @@ export const getFilteredAnime = query({
     // NEW: If search term is provided, use search index instead of regular query
     if (searchTerm && searchTerm.trim()) {
       console.log(`[Search] Searching for: "${searchTerm}"`);
+      // 1) Try to return ONLY exact title matches (case/spacing/punctuation-insensitive)
+      const cleanTerm = normalizeTitle(searchTerm);
+      // Try direct exact match via index first (case-sensitive exact)
+      const directExact = await ctx.db
+        .query("anime")
+        .withIndex("by_title", (q: any) => q.eq("title", searchTerm))
+        .first();
+
+      if (directExact) {
+        // Return the single exact match immediately
+        return {
+          page: [directExact],
+          isDone: true,
+          continueCursor: null,
+          splitCursor: null,
+          pageStatus: "Exhausted",
+        } as unknown as PaginationResult<Doc<"anime">>;
+      }
+
+      // If not found via index, search and filter down to exact normalized matches
+      const probeResults = await ctx.db
+        .query("anime")
+        .withSearchIndex("search_title", (q: any) => q.search("title", searchTerm))
+        .take(200);
+      const exactNormalizedMatches = probeResults.filter((a: any) => normalizeTitle(a.title) === cleanTerm || (Array.isArray(a.alternateTitles) && a.alternateTitles.some((t: string) => normalizeTitle(t) === cleanTerm)));
+
+      if (exactNormalizedMatches.length > 0) {
+        // Optionally apply filters to exact matches
+        let exactFiltered = exactNormalizedMatches as Doc<"anime">[];
+        if (filters) {
+          exactFiltered = exactFiltered.filter((anime: Doc<"anime">) => {
+            if (filters.yearRange?.min !== undefined && anime.year !== undefined && anime.year < filters.yearRange.min) return false;
+            if (filters.yearRange?.max !== undefined && anime.year !== undefined && anime.year > filters.yearRange.max) return false;
+            if (filters.ratingRange?.min !== undefined && anime.rating !== undefined && anime.rating < filters.ratingRange.min) return false;
+            if (filters.ratingRange?.max !== undefined && anime.rating !== undefined && anime.rating > filters.ratingRange.max) return false;
+            if (filters.userRatingRange?.min !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating < filters.userRatingRange.min) return false;
+            if (filters.userRatingRange?.max !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating > filters.userRatingRange.max) return false;
+            if (filters.minReviews !== undefined && filters.minReviews > 0) {
+              if (!anime.reviewCount || anime.reviewCount < filters.minReviews) return false;
+            } else if (filters.minReviews === 0) {
+              if (anime.reviewCount && anime.reviewCount > 0) return false;
+            }
+            if (filters.genres?.length && (!anime.genres || !filters.genres.every(genre => anime.genres!.includes(genre)))) return false;
+            if (filters.studios?.length && (!anime.studios || !filters.studios.some(studio => anime.studios!.includes(studio)))) return false;
+            if (filters.themes?.length && (!anime.themes || !filters.themes.some(theme => anime.themes!.includes(theme)))) return false;
+            if (filters.emotionalTags?.length && (!anime.emotionalTags || !filters.emotionalTags.some(tag => anime.emotionalTags!.includes(tag)))) return false;
+            return true;
+          });
+        }
+
+        // Sorting exact matches by title if requested, otherwise keep as-is
+        if (sortBy === "title_asc") exactFiltered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        if (sortBy === "title_desc") exactFiltered.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+
+        return {
+          page: exactFiltered,
+          isDone: true,
+          continueCursor: null,
+          splitCursor: null,
+          pageStatus: "Exhausted",
+        } as unknown as PaginationResult<Doc<"anime">>;
+      }
       
+      // 2) No exact match -> Use fuzzy search (existing behavior)
       // Use search index to find matching anime
       const searchResults = await ctx.db
         .query("anime")
@@ -556,7 +619,68 @@ export const getFilteredAnimeInternal = internalQuery({
     // If search term is provided, use search index instead of regular query
     if (searchTerm && searchTerm.trim()) {
       console.log(`[Search] Searching for: "${searchTerm}"`);
+      // 1) Try to return ONLY exact title matches (case/spacing/punctuation-insensitive)
+      const cleanTerm = normalizeTitle(searchTerm);
+      // Try direct exact match via index first (case-sensitive exact)
+      const directExact = await ctx.db
+        .query("anime")
+        .withIndex("by_title", (q: any) => q.eq("title", searchTerm))
+        .first();
+
+      if (directExact) {
+        return {
+          page: [directExact],
+          isDone: true,
+          continueCursor: null,
+          splitCursor: null,
+          pageStatus: "Exhausted",
+        } as unknown as PaginationResult<Doc<"anime">>;
+      }
+
+      // If not found via index, search and filter down to exact normalized matches
+      const probeResults = await ctx.db
+        .query("anime")
+        .withSearchIndex("search_title", (q: any) => q.search("title", searchTerm))
+        .take(200);
+      const exactNormalizedMatches = probeResults.filter((a: any) => normalizeTitle(a.title) === cleanTerm || (Array.isArray(a.alternateTitles) && a.alternateTitles.some((t: string) => normalizeTitle(t) === cleanTerm)));
+
+      if (exactNormalizedMatches.length > 0) {
+        // Optionally apply filters to exact matches
+        let exactFiltered = exactNormalizedMatches as Doc<"anime">[];
+        if (filters) {
+          exactFiltered = exactFiltered.filter((anime: Doc<"anime">) => {
+            if (filters.yearRange?.min !== undefined && anime.year !== undefined && anime.year < filters.yearRange.min) return false;
+            if (filters.yearRange?.max !== undefined && anime.year !== undefined && anime.year > filters.yearRange.max) return false;
+            if (filters.ratingRange?.min !== undefined && anime.rating !== undefined && anime.rating < filters.ratingRange.min) return false;
+            if (filters.ratingRange?.max !== undefined && anime.rating !== undefined && anime.rating > filters.ratingRange.max) return false;
+            if (filters.userRatingRange?.min !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating < filters.userRatingRange.min) return false;
+            if (filters.userRatingRange?.max !== undefined && anime.averageUserRating !== undefined && anime.averageUserRating > filters.userRatingRange.max) return false;
+            if (filters.minReviews !== undefined && filters.minReviews > 0) {
+              if (!anime.reviewCount || anime.reviewCount < filters.minReviews) return false;
+            } else if (filters.minReviews === 0) {
+              if (anime.reviewCount && anime.reviewCount > 0) return false;
+            }
+            if (filters.genres?.length && (!anime.genres || !filters.genres.every(genre => anime.genres!.includes(genre)))) return false;
+            if (filters.studios?.length && (!anime.studios || !filters.studios.some(studio => anime.studios!.includes(studio)))) return false;
+            if (filters.themes?.length && (!anime.themes || !filters.themes.some(theme => anime.themes!.includes(theme)))) return false;
+            if (filters.emotionalTags?.length && (!anime.emotionalTags || !filters.emotionalTags.some(tag => anime.emotionalTags!.includes(tag)))) return false;
+            return true;
+          });
+        }
+
+        if (sortBy === "title_asc") exactFiltered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        if (sortBy === "title_desc") exactFiltered.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+
+        return {
+          page: exactFiltered,
+          isDone: true,
+          continueCursor: null,
+          splitCursor: null,
+          pageStatus: "Exhausted",
+        } as unknown as PaginationResult<Doc<"anime">>;
+      }
       
+      // 2) No exact match -> Use fuzzy search (existing behavior)
       // Use search index to find matching anime
       const searchResults = await ctx.db
         .query("anime")
@@ -772,13 +896,16 @@ export const internalUpdateFilterMetadata = internalMutation({
     const userRatingRange = (minUserRatingDoc?.averageUserRating !== undefined && maxUserRatingDoc?.averageUserRating !== undefined)
                              ? { min: minUserRatingDoc.averageUserRating, max: maxUserRatingDoc.averageUserRating } : null;
 
-    const newMetadataPayload = {
+    const newMetadataPayload: Omit<Doc<"filterMetadata">, "_id" | "_creationTime"> = {
       identifier: FILTER_METADATA_IDENTIFIER,
-      genres: Array.from(genres).sort(),
-      studios: Array.from(studios).sort(),
-      themes: Array.from(themes).sort(),
-      emotionalTags: Array.from(emotionalTags).sort(),
-      yearRange, ratingRange, userRatingRange,
+      // Coerce to string arrays to avoid inferred unknown[]
+      genres: Array.from(genres).map(String).sort(),
+      studios: Array.from(studios).map(String).sort(),
+      themes: Array.from(themes).map(String).sort(),
+      emotionalTags: Array.from(emotionalTags).map(String).sort(),
+      yearRange,
+      ratingRange,
+      userRatingRange,
       lastUpdatedAt: Date.now(),
     };
     const existingMetadata = await ctx.db.query("filterMetadata").withIndex("by_identifier", q => q.eq("identifier", FILTER_METADATA_IDENTIFIER)).unique();

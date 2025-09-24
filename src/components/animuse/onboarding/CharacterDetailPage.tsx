@@ -292,6 +292,126 @@ const AdminEnrichmentButton: React.FC<{
   );
 };
 
+// Admin Cache Tools (reusable across tabs)
+const AdminCacheTools: React.FC<{
+  character: EnhancedCharacter;
+  animeName: string;
+  showRelationsButton?: boolean;
+  showTimelineButton?: boolean;
+}> = ({ character, animeName, showRelationsButton, showTimelineButton }) => {
+  const [isClearingCache, setIsClearingCache] = useState(false);
+  const [isClearingRelations, setIsClearingRelations] = useState(false);
+  const [isClearingTimeline, setIsClearingTimeline] = useState(false);
+  const clearCacheAction = useAction(api.admin.clearCharacterEnrichmentCache);
+  // Use any-cast to avoid type lag before convex codegen updates
+  const clearRelationsAction = useAction((api as any).admin.clearCharacterRelationshipsCache);
+  const clearTimelineAction = useAction((api as any).admin.clearCharacterTimelineCache);
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true);
+    try {
+      toast.info("🗑️ Clearing AI cache...", { duration: 2000 });
+      const result = await clearCacheAction({ characterName: character.name, animeName });
+      if (!result || typeof result !== 'object') throw new Error('Invalid response from cache clearing action');
+      if (result.error) {
+        toast.error(`❌ Failed to clear cache: ${result.error}`);
+        return;
+      }
+      if (result.success) {
+        toast.success(`✅ ${result.message}`, { duration: 4000 });
+      } else {
+        toast.warning(`⚠️ ${result.message || 'Unexpected response from cache clearing action'}`);
+      }
+    } catch (error) {
+      console.error("Clear cache failed:", error);
+      toast.error(`❌ Failed to clear cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsClearingCache(false);
+    }
+  };
+
+  const handleClearRelations = async () => {
+    setIsClearingRelations(true);
+    try {
+      toast.info("🗑️ Clearing relations cache...", { duration: 2000 });
+      const result = await clearRelationsAction({ characterName: character.name, animeName });
+      if (!result || typeof result !== 'object') throw new Error('Invalid response from cache clearing action');
+      if (result.error) {
+        toast.error(`❌ Failed to clear relations: ${result.error}`);
+        return;
+      }
+      toast.success(`✅ ${result.message}`, { duration: 4000 });
+    } catch (error) {
+      console.error("Clear relations cache failed:", error);
+      toast.error(`❌ Failed to clear relations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsClearingRelations(false);
+    }
+  };
+
+  const handleClearTimeline = async () => {
+    setIsClearingTimeline(true);
+    try {
+      toast.info("🗑️ Clearing growth cache...", { duration: 2000 });
+      const result = await clearTimelineAction({ characterName: character.name, animeName });
+      if (!result || typeof result !== 'object') throw new Error('Invalid response from cache clearing action');
+      if (result.error) {
+        toast.error(`❌ Failed to clear growth: ${result.error}`);
+        return;
+      }
+      toast.success(`✅ ${result.message}`, { duration: 4000 });
+    } catch (error) {
+      console.error("Clear growth cache failed:", error);
+      toast.error(`❌ Failed to clear growth: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsClearingTimeline(false);
+    }
+  };
+
+  return (
+    <div className="bg-black border-4 border-white shadow-brutal-lg">
+      <div className="bg-orange-600 border-b-4 border-white p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-black uppercase text-lg">🗑️ CACHE TOOLS</h3>
+          <div className="bg-white text-black px-2 py-1 border-2 border-black">
+            <span className="text-xs font-black uppercase">ADMIN ONLY</span>
+          </div>
+        </div>
+      </div>
+      <div className="p-4 space-y-2">
+        <button
+          onClick={handleClearCache}
+          disabled={isClearingCache}
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 border-4 border-black shadow-brutal p-4 text-white font-black uppercase text-lg transition-all duration-200 disabled:opacity-50"
+        >
+          {isClearingCache ? "🗑️ CLEARING..." : "🗑️ CLEAR ALL AI CACHE"}
+        </button>
+        {showRelationsButton && (
+          <button
+            onClick={handleClearRelations}
+            disabled={isClearingRelations}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 border-4 border-black shadow-brutal p-4 text-white font-black uppercase text-lg transition-all duration-200 disabled:opacity-50"
+          >
+            {isClearingRelations ? "👥 CLEARING..." : "👥 CLEAR RELATIONS CACHE"}
+          </button>
+        )}
+        {showTimelineButton && (
+          <button
+            onClick={handleClearTimeline}
+            disabled={isClearingTimeline}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 border-4 border-black shadow-brutal p-4 text-white font-black uppercase text-lg transition-all duration-200 disabled:opacity-50"
+          >
+            {isClearingTimeline ? "📈 CLEARING..." : "📈 CLEAR GROWTH CACHE"}
+          </button>
+        )}
+        <p className="text-black/70 font-bold text-xs mt-2 text-center">
+          Clear cached AI data to force fresh enrichment
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // Brutalist Tab Navigation - Mobile First
 const BrutalistTabBar: React.FC<{
   activeTab: string;
@@ -838,43 +958,82 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
     if (isLoadingRelationships || relationshipData.length > 0) return;
 
     setIsLoadingRelationships(true);
-    try {
-      const result = await analyzeRelationships({
-        characterName: character.name,
-        animeName: animeName,
-        messageId: `relationships_${Date.now()}`,
-      });
 
-      if (!result.error) {
-        setRelationshipData(result.relationships);
+    const poll = async (attempt = 1, delay = 1500) => {
+      try {
+        const result = await analyzeRelationships({
+          characterName: character.name,
+          animeName: animeName,
+          messageId: `relationships_${Date.now()}`,
+        });
+
+        if (result?.error) {
+          console.error('Relationship analysis error:', result.error);
+          setIsLoadingRelationships(false);
+          return;
+        }
+
+        if (result?.cached && Array.isArray(result.relationships) && result.relationships.length > 0) {
+          setRelationshipData(result.relationships);
+          setIsLoadingRelationships(false);
+          return;
+        }
+
+        // Not cached yet: schedule another poll (max ~10 attempts)
+        if (attempt < 10) {
+          setTimeout(() => poll(attempt + 1, Math.min(delay * 1.5, 5000)), delay);
+        } else {
+          // Stop waiting after max attempts; leave empty data but stop spinner
+          setIsLoadingRelationships(false);
+        }
+      } catch (error) {
+        console.error('Relationship analysis failed:', error);
+        setIsLoadingRelationships(false);
       }
-    } catch (error) {
-      console.error('Relationship analysis failed:', error);
-    } finally {
-      setIsLoadingRelationships(false);
-    }
+    };
+
+    // Kick off first attempt (instant action may return cache-miss)
+    poll();
   };
 
   const loadTimelineData = async () => {
     if (isLoadingTimeline || timelineData.length > 0) return;
 
     setIsLoadingTimeline(true);
-    try {
-      const result = await getTimeline({
-        characterName: character.name,
-        animeName: animeName,
-        includeArcs: true,
-        messageId: `timeline_${Date.now()}`,
-      });
 
-      if (!result.error) {
-        setTimelineData(result.timeline);
+    const poll = async (attempt = 1, delay = 1500) => {
+      try {
+        const result = await getTimeline({
+          characterName: character.name,
+          animeName: animeName,
+          includeArcs: true,
+          messageId: `timeline_${Date.now()}`,
+        });
+
+        if (result?.error) {
+          console.error('Timeline loading error:', result.error);
+          setIsLoadingTimeline(false);
+          return;
+        }
+
+        if (result?.cached && Array.isArray(result.timeline) && result.timeline.length > 0) {
+          setTimelineData(result.timeline);
+          setIsLoadingTimeline(false);
+          return;
+        }
+
+        if (attempt < 10) {
+          setTimeout(() => poll(attempt + 1, Math.min(delay * 1.5, 5000)), delay);
+        } else {
+          setIsLoadingTimeline(false);
+        }
+      } catch (error) {
+        console.error('Timeline loading failed:', error);
+        setIsLoadingTimeline(false);
       }
-    } catch (error) {
-      console.error('Timeline loading failed:', error);
-    } finally {
-      setIsLoadingTimeline(false);
-    }
+    };
+
+    poll();
   };
 
   // Load additional data when switching tabs
@@ -1083,6 +1242,17 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
 
         {activeTab === 'relationships' && (
           <div className="p-4 space-y-4">
+            {/* Admin Tools parity with Overview */}
+            {isAdmin && (
+              <div className="space-y-3">
+                <AdminEnrichmentButton
+                  character={character}
+                  animeName={animeName}
+                  onEnrichmentComplete={handleEnrichmentComplete}
+                />
+                <AdminCacheTools character={character} animeName={animeName} showRelationsButton />
+              </div>
+            )}
             <div className="bg-brand-accent-peach border-4 border-black shadow-brutal-lg">
               <div className="bg-black border-b-4 border-white p-4">
                 <div className="flex items-center justify-between">
@@ -1174,6 +1344,17 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
 
         {activeTab === 'development' && (
           <div className="p-4 space-y-4">
+            {/* Admin Tools parity with Overview */}
+            {isAdmin && (
+              <div className="space-y-3">
+                <AdminEnrichmentButton
+                  character={character}
+                  animeName={animeName}
+                  onEnrichmentComplete={handleEnrichmentComplete}
+                />
+                <AdminCacheTools character={character} animeName={animeName} showTimelineButton />
+              </div>
+            )}
             <div className="bg-brand-secondary-blue border-4 border-black shadow-brutal-lg">
               <div className="bg-black border-b-4 border-white p-4">
                 <div className="flex items-center justify-between">
@@ -1219,24 +1400,70 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
                               )}
                             </div>
                             </div>
-                            
-                            {phase.keyDevelopments && (
-                            <div className="p-4">
-                              <h5 className="text-black font-black uppercase text-sm mb-3">
-                                KEY DEVELOPMENTS
-                              </h5>
-                              <div className="space-y-2">
-                                  {phase.keyDevelopments.map((dev: string, idx: number) => (
-                                  <div key={idx} className="bg-black border-2 border-white shadow-brutal p-3">
-                                    <div className="flex items-start gap-3">
-                                      <span className="text-brand-primary-action font-black text-sm">▶</span>
-                                      <span className="text-white font-medium text-sm leading-relaxed">
-                                        {dev}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  ))}
+                            {/* Phase Overview */}
+                            {phase.description && (
+                              <div className="p-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-2">PHASE OVERVIEW</h5>
+                                <div className="bg-black border-2 border-white shadow-brutal p-3">
+                                  <p className="text-white font-medium text-sm leading-relaxed">{phase.description}</p>
+                                </div>
                               </div>
+                            )}
+
+                            {/* Character State */}
+                            {phase.characterState && (
+                              <div className="px-4 pb-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-2">CHARACTER STATE</h5>
+                                <div className="bg-black border-2 border-white shadow-brutal p-3">
+                                  <p className="text-white font-medium text-sm leading-relaxed">{phase.characterState}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Key Events / Developments (support both shapes) */}
+                            {(phase.keyEvents || phase.keyDevelopments) && (
+                              <div className="px-4 pb-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-3">{phase.keyDevelopments ? 'KEY DEVELOPMENTS' : 'KEY EVENTS'}</h5>
+                                <div className="space-y-2">
+                                  {(phase.keyDevelopments || phase.keyEvents).map((item: string, idx: number) => (
+                                    <div key={idx} className="bg-black border-2 border-white shadow-brutal p-3">
+                                      <div className="flex items-start gap-3">
+                                        <span className="text-brand-primary-action font-black text-sm">▶</span>
+                                        <span className="text-white font-medium text-sm leading-relaxed">{item}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Character Growth */}
+                            {phase.characterGrowth && (
+                              <div className="px-4 pb-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-2">CHARACTER GROWTH</h5>
+                                <div className="bg-black border-2 border-white shadow-brutal p-3">
+                                  <p className="text-white font-medium text-sm leading-relaxed">{phase.characterGrowth}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Challenges */}
+                            {phase.challenges && (
+                              <div className="px-4 pb-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-2">CHALLENGES</h5>
+                                <div className="bg-black border-2 border-white shadow-brutal p-3">
+                                  <p className="text-white font-medium text-sm leading-relaxed">{phase.challenges}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Relationships in this phase */}
+                            {phase.relationships && (
+                              <div className="px-4 pb-4">
+                                <h5 className="text-black font-black uppercase text-sm mb-2">RELATIONSHIPS</h5>
+                                <div className="bg-black border-2 border-white shadow-brutal p-3">
+                                  <p className="text-white font-medium text-sm leading-relaxed">{phase.relationships}</p>
+                                </div>
                               </div>
                             )}
                           </div>

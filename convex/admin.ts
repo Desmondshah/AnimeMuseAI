@@ -1123,8 +1123,8 @@ export const adminManualCharacterEnrichment = action({
       
       const animeId = anime._id;
       
-      // Call the AI enrichment
-      const result = await ctx.runAction(api.ai.fetchComprehensiveCharacterDetails, {
+  // Call the AI enrichment (overview + base fields)
+  const result = await ctx.runAction(api.ai.fetchComprehensiveCharacterDetails, {
         characterName: args.characterName,
         animeName: args.animeName,
         existingData: args.existingData,
@@ -1147,6 +1147,35 @@ export const adminManualCharacterEnrichment = action({
           message: "AI enrichment completed but no data was generated",
           enrichedData: undefined
         };
+      }
+
+      // Also generate relationships and development timeline
+      let advancedRelationships: any[] | undefined = undefined;
+      let developmentTimeline: any[] | undefined = undefined;
+      try {
+        const rel = await ctx.runAction(api.ai.analyzeCharacterRelationships, {
+          characterName: args.characterName,
+          animeName: args.animeName,
+          messageId: `admin_manual_enrich_rel_${Date.now()}`,
+        });
+        if (!rel.error && Array.isArray(rel.relationships) && rel.relationships.length > 0) {
+          advancedRelationships = rel.relationships;
+        }
+      } catch (e) {
+        console.warn(`[Admin Enrich] Relationship generation failed`, e);
+      }
+      try {
+        const tl = await ctx.runAction(api.ai.getCharacterDevelopmentTimeline, {
+          characterName: args.characterName,
+          animeName: args.animeName,
+          includeArcs: true,
+          messageId: `admin_manual_enrich_timeline_${Date.now()}`,
+        });
+        if (!tl.error && Array.isArray(tl.timeline) && tl.timeline.length > 0) {
+          developmentTimeline = tl.timeline;
+        }
+      } catch (e) {
+        console.warn(`[Admin Enrich] Timeline generation failed`, e);
       }
 
       // Update the character with comprehensive data AND mark as manually enriched
@@ -1183,6 +1212,10 @@ export const adminManualCharacterEnrichment = action({
           socialDynamics: result.comprehensiveCharacter.socialDynamics,
           characterArchetype: result.comprehensiveCharacter.characterArchetype,
           characterImpact: result.comprehensiveCharacter.characterImpact,
+
+          // Admin-triggered advanced sections
+          ...(advancedRelationships ? { advancedRelationships } : {}),
+          ...(developmentTimeline ? { developmentTimeline } : {}),
         },
       });
 
@@ -1212,8 +1245,12 @@ export const adminManualCharacterEnrichment = action({
       return {
         error: null,
         success: true,
-        message: `Successfully enriched "${args.characterName}" with comprehensive AI data and enabled permanent protection against automatic override`,
-        enrichedData: result.comprehensiveCharacter // Include the enriched data in the response
+        message: `Successfully enriched "${args.characterName}" with comprehensive AI data (overview, relations, growth) and enabled permanent protection against automatic override`,
+        enrichedData: {
+          ...result.comprehensiveCharacter,
+          ...(advancedRelationships ? { advancedRelationships } : {}),
+          ...(developmentTimeline ? { developmentTimeline } : {}),
+        }
       };
 
     } catch (error: any) {
@@ -1258,13 +1295,38 @@ export const clearCharacterEnrichmentCache = action({
     }
     
     try {
-      const cacheKey = `comprehensive_character:${args.animeName}:${args.characterName}`;
-      await ctx.runMutation(internal.aiCache.invalidateCache, { key: cacheKey });
-      
+      // Clear comprehensive character profile cache
+      const compKey = `comprehensive_character:${args.animeName}:${args.characterName}:groundedV1`;
+      await ctx.runMutation(internal.aiCache.invalidateCache, { key: compKey });
+
+      // Clear per-level enrichment caches (basic/detailed, advanced/basic)
+      const enrichmentPrefixes = [
+        `character_enrichment:${args.animeName}:${args.characterName}:basic:advanced:groundedV1`,
+        `character_enrichment:${args.animeName}:${args.characterName}:basic:basic:groundedV1`,
+        `character_enrichment:${args.animeName}:${args.characterName}:detailed:advanced:groundedV1`,
+        `character_enrichment:${args.animeName}:${args.characterName}:detailed:basic:groundedV1`,
+      ];
+      for (const key of enrichmentPrefixes) {
+        await ctx.runMutation(internal.aiCache.invalidateCache, { key });
+      }
+
+      // Clear relationships cache
+      const relKey = `character_relationships:${args.animeName}:${args.characterName}:groundedV1`;
+      await ctx.runMutation(internal.aiCache.invalidateCache, { key: relKey });
+
+      // Clear timeline caches for both variants
+      const timelineKeys = [
+        `character_timeline:${args.animeName}:${args.characterName}:arcs:groundedV1`,
+        `character_timeline:${args.animeName}:${args.characterName}:basic:groundedV1`,
+      ];
+      for (const key of timelineKeys) {
+        await ctx.runMutation(internal.aiCache.invalidateCache, { key });
+      }
+
       return {
         error: null,
         success: true,
-        message: `Cleared AI cache for "${args.characterName}" from "${args.animeName}". You can now re-run enrichment.`
+        message: `Cleared AI cache for "${args.characterName}" from "${args.animeName}" (overview, relations, growth).`
       };
     } catch (error: any) {
       return {
@@ -1272,6 +1334,71 @@ export const clearCharacterEnrichmentCache = action({
         success: false,
         message: `Failed to clear cache: ${error.message || "Unknown error"}`
       };
+    }
+  },
+});
+
+// Clear ONLY the relationships cache for a character (admin only)
+export const clearCharacterRelationshipsCache = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { error: "User not authenticated", success: false, message: "Authentication required" };
+    }
+    const userProfile = await ctx.runQuery(internal.admin.getUserProfileById, { userId });
+    if (!userProfile?.isAdmin) {
+      return { error: "User is not an admin", success: false, message: "Admin privileges required" };
+    }
+    try {
+      const relKey = `character_relationships:${args.animeName}:${args.characterName}:groundedV1`;
+      await ctx.runMutation(internal.aiCache.invalidateCache, { key: relKey });
+      return { error: null, success: true, message: `Cleared relationships cache for "${args.characterName}"` };
+    } catch (error: any) {
+      return { error: error.message || "Unknown error", success: false, message: `Failed to clear relationships cache: ${error.message || 'Unknown error'}` };
+    }
+  },
+});
+
+// Clear ONLY the development timeline cache for a character (admin only)
+export const clearCharacterTimelineCache = action({
+  args: {
+    characterName: v.string(),
+    animeName: v.string(),
+  },
+  returns: v.object({
+    error: v.union(v.string(), v.null()),
+    success: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { error: "User not authenticated", success: false, message: "Authentication required" };
+    }
+    const userProfile = await ctx.runQuery(internal.admin.getUserProfileById, { userId });
+    if (!userProfile?.isAdmin) {
+      return { error: "User is not an admin", success: false, message: "Admin privileges required" };
+    }
+    try {
+      const timelineKeys = [
+        `character_timeline:${args.animeName}:${args.characterName}:arcs:groundedV1`,
+        `character_timeline:${args.animeName}:${args.characterName}:basic:groundedV1`,
+      ];
+      for (const key of timelineKeys) {
+        await ctx.runMutation(internal.aiCache.invalidateCache, { key });
+      }
+      return { error: null, success: true, message: `Cleared growth timeline cache for "${args.characterName}"` };
+    } catch (error: any) {
+      return { error: error.message || "Unknown error", success: false, message: `Failed to clear growth cache: ${error.message || 'Unknown error'}` };
     }
   },
 });

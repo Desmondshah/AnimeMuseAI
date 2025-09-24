@@ -199,17 +199,7 @@ export default function DiscoverPage({ onViewDetails, onBack }: DiscoverPageProp
             </p>
           </div>
           
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="bg-white border-4 border-black px-6 py-3 font-black text-black uppercase tracking-wider shadow-brutal hover:bg-gray-200 transition-all active:scale-95"
-              >
-                ← BACK
-              </button>
-            )}
-          </div>
+          {/* Action buttons removed */}
         </div>
 
         {/* BRUTAL SEARCH SECTION */}

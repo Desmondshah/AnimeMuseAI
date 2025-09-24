@@ -1,0 +1,295 @@
+/* BRUTALIST ARTISTIC AI CHAT STYLES */
+
+/* Custom animations for brutalist effects */
+@keyframes brutal-pulse {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05) rotate(1deg); 
+    opacity: 0.8;
+  }
+}
+
+@keyframes brutal-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-2px) rotate(-0.5deg); }
+  75% { transform: translateX(2px) rotate(0.5deg); }
+}
+
+@keyframes brutal-glitch {
+  0%, 100% { 
+    transform: translate(0);
+    filter: hue-rotate(0deg);
+  }
+  10% { 
+    transform: translate(-1px, 1px);
+    filter: hue-rotate(90deg);
+  }
+  20% { 
+    transform: translate(1px, -1px);
+    filter: hue-rotate(180deg);
+  }
+  30% { 
+    transform: translate(-1px, -1px);
+    filter: hue-rotate(270deg);
+  }
+  40% { 
+    transform: translate(1px, 1px);
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes brutal-float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-10px) rotate(180deg); 
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-10px) rotate(5deg); 
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Brutalist shadow utilities */
+.shadow-brutal {
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.8);
+}
+
+.shadow-brutal-lg {
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
+}
+
+.shadow-brutal-xl {
+  box-shadow: 12px 12px 0 rgba(0, 0, 0, 1);
+}
+
+/* Brutalist border utilities */
+.border-brutal {
+  border: 4px solid #000000;
+}
+
+.border-brutal-lg {
+  border: 6px solid #000000;
+}
+
+.border-brutal-xl {
+  border: 8px solid #000000;
+}
+
+/* Brutalist text effects */
+.text-brutal {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.text-brutal-glow {
+  text-shadow: 
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    0 0 15px currentColor;
+}
+
+/* Brutalist button effects */
+.btn-brutal {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.btn-brutal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-brutal:hover::before {
+  left: 100%;
+}
+
+.btn-brutal:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Brutalist card effects */
+.card-brutal {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.card-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.8);
+}
+
+.card-brutal::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-brutal:hover::after {
+  opacity: 1;
+}
+
+/* Brutalist input effects */
+.input-brutal {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.input-brutal:focus {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Brutalist loading effects */
+.loading-brutal {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-brutal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: loading-sweep 1.5s infinite;
+}
+
+@keyframes loading-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Brutalist color palette */
+.brutal-red { color: #ff0000; }
+.brutal-yellow { color: #ffff00; }
+.brutal-green { color: #00ff00; }
+.brutal-blue { color: #0000ff; }
+.brutal-purple { color: #800080; }
+.brutal-orange { color: #ffa500; }
+
+.bg-brutal-red { background-color: #ff0000; }
+.bg-brutal-yellow { background-color: #ffff00; }
+.bg-brutal-green { background-color: #00ff00; }
+.bg-brutal-blue { background-color: #0000ff; }
+.bg-brutal-purple { background-color: #800080; }
+.bg-brutal-orange { background-color: #ffa500; }
+
+/* Brutalist glitch effects */
+.glitch {
+  position: relative;
+  animation: brutal-glitch 0.3s infinite;
+}
+
+.glitch:hover {
+  animation: brutal-glitch 0.1s infinite;
+}
+
+/* Brutalist hover effects */
+.hover-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.8);
+}
+
+.hover-brutal-lg:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* Brutalist text effects */
+.text-brutal-shadow {
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.text-brutal-shadow-lg {
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* Brutalist grid background */
+.bg-brutal-grid {
+  background-image: 
+    linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Brutalist noise texture */
+.bg-brutal-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
+/* Brutalist responsive utilities */
+@media (max-width: 768px) {
+  .brutal-mobile {
+    transform: scale(0.95);
+  }
+  
+  .brutal-mobile-text {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+}
+
+/* Brutalist accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .btn-brutal,
+  .card-brutal,
+  .input-brutal {
+    transition: none;
+  }
+  
+  .btn-brutal::before,
+  .card-brutal::after,
+  .loading-brutal::before {
+    animation: none;
+  }
+}
+
+/* Brutalist focus indicators */
+.btn-brutal:focus,
+.input-brutal:focus {
+  outline: 3px solid #ff0000;
+  outline-offset: 2px;
+}
+
+/* Brutalist selection styles */
+::selection {
+  background: #ff0000;
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: #ff0000;
+  color: #ffffff;
+} 

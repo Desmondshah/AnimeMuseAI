@@ -283,6 +283,18 @@ const applicationTables = {
       })))
     }))),
     alternateTitles: v.optional(v.array(v.string())), // NEW: Alternate titles for Japanese names or other variations
+    // ===== Deduplication & Season Consolidation Fields =====
+    consolidated: v.optional(v.boolean()), // set to true if this entry represents a consolidated series
+    seriesKey: v.optional(v.string()), // normalized key to group seasons/parts of same anime
+    parentSeriesId: v.optional(v.id("anime")), // if this is a child season row (optional usage)
+    seasons: v.optional(v.array(v.object({
+      season: v.optional(v.number()), // 1,2,3... if extractable
+      label: v.optional(v.string()), // e.g., "Shippuden", "The Final Season"
+      episodes: v.optional(v.number()),
+      year: v.optional(v.number()),
+      anilistId: v.optional(v.number()),
+      myAnimeListId: v.optional(v.number()),
+    }))),
   })
   .index("by_title", ["title"])
   .index("by_year", ["year"])
@@ -293,6 +305,7 @@ const applicationTables = {
   .index("by_reviewCount", ["reviewCount"])
   .index("by_airingStatus", ["airingStatus"])
   .index("by_anilistId", ["anilistId"])
+  .index("by_seriesKey", ["seriesKey"]) // for grouping related seasons
   .index("by_addedFromRecommendation", ["addedFromRecommendation"])
   .searchIndex("search_title", { searchField: "title", filterFields: ["genres", "year", "rating", "studios"] })
   .searchIndex("search_description", { searchField: "description", filterFields: ["genres", "year", "rating", "studios"] })
@@ -566,6 +579,60 @@ const applicationTables = {
     .index("by_title", ["title"])
     .index("by_anilistId", ["anilistId"])
     .index("by_deletedAt", ["deletedAt"]),
+
+  // ===== Deduplication backups to enable rollback =====
+  deduplicationBackups: defineTable({
+    batchId: v.string(), // unique identifier for this deduplication run
+    groupKey: v.string(), // computed key for duplicate group
+    primaryAnimeId: v.id("anime"),
+    duplicateAnimeIds: v.array(v.id("anime")),
+    // raw snapshots for all affected docs
+    animeSnapshots: v.array(v.object({
+      animeId: v.id("anime"),
+      doc: v.any(),
+    })),
+    watchlistSnapshots: v.array(v.object({
+      _id: v.id("watchlist"),
+      doc: v.any(),
+    })),
+    reviewSnapshots: v.array(v.object({
+      _id: v.id("reviews"),
+      doc: v.any(),
+    })),
+    customListSnapshots: v.array(v.object({
+      _id: v.id("customLists"),
+      doc: v.any(),
+    })),
+    createdAt: v.number(),
+    createdBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+  })
+  .index("by_batchId", ["batchId"]) // for rollback lookups
+  .index("by_groupKey", ["groupKey"]),
+  
+  // User-generated short-form media (Reels)
+  reels: defineTable({
+    userId: v.id("users"),
+    storageId: v.id("_storage"),
+    mediaType: v.union(v.literal("video"), v.literal("image")),
+    caption: v.optional(v.string()),
+    createdAt: v.number(),
+    likesCount: v.optional(v.number()),
+    viewsCount: v.optional(v.number()),
+    aspectRatio: v.optional(v.number()), // width / height
+    durationMs: v.optional(v.number()),
+    thumbnailStorageId: v.optional(v.id("_storage")),
+  })
+    .index("by_createdAt", ["createdAt"]) // for feed
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
+
+  reelLikes: defineTable({
+    reelId: v.id("reels"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_reel_user", ["reelId", "userId"]) // to enforce single like per user
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
 };
 
 export default defineSchema({
