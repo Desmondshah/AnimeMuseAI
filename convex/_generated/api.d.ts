@@ -30,6 +30,7 @@ import type * as deduplication from "../deduplication.js";
 import type * as deduplicationUtils from "../deduplicationUtils.js";
 import type * as emailVerification from "../emailVerification.js";
 import type * as externalApis from "../externalApis.js";
+import type * as homeSections from "../homeSections.js";
 import type * as http from "../http.js";
 import type * as migrations_migrateCharacterEnrichment from "../migrations/migrateCharacterEnrichment.js";
 import type * as migrations from "../migrations.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   deduplicationUtils: typeof deduplicationUtils;
   emailVerification: typeof emailVerification;
   externalApis: typeof externalApis;
+  homeSections: typeof homeSections;
   http: typeof http;
   "migrations/migrateCharacterEnrichment": typeof migrations_migrateCharacterEnrichment;
   migrations: typeof migrations;

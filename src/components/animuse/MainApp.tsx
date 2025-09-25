@@ -1,7 +1,7 @@
 // src/components/animuse/MainApp.tsx - Fixed and Organized Version
 
 import React, { useState, useEffect, useCallback, memo, useRef, useMemo } from "react";
-import { useQuery, useAction, useMutation } from "convex/react";
+import { useQuery, useAction, useMutation, useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import AnimeDetailPage from "./AnimeDetailPage";
@@ -210,12 +210,12 @@ export default function MainApp() {
   const createCustomListMutation = useMutation(api.users.createCustomList);
   const addAnimeByUserMutation = useMutation(api.anime.addAnimeByUser);
   const fetchTrendingAnimeAction = useAction(api.externalApis.fetchTrendingAnime);
-  const fetchTopRatedAnimeAction = useAction(api.externalApis.fetchTopRatedAnime);
-  const fetchPopularAnimeAction = useAction(api.externalApis.fetchPopularAnime);
-  const fetchBingeableAnimeAction = useAction(api.externalApis.fetchBingeableAnime);
-  const fetchRetroClassicAnimeAction = useAction(api.externalApis.fetchRetroClassicAnime);
+  // Curated home sections (override-aware) replaces legacy external fetches for these groups
+  const curatedSections = useQuery(api.homeSections.getHomeSectionsDisplay, { displayCount: 8 });
   const fetchHorrorAnimeAction = useAction(api.externalApis.fetchHorrorAnime);
   const fetchTrueCrimeAnimeAction = useAction(api.externalApis.fetchTrueCrimeAnime);
+  // Low-level Convex client for imperative queries (fuzzy title lookups on click)
+  const convex = useConvex();
 
 
   const { shouldReduceAnimations } = useMobileOptimizations();
@@ -407,24 +407,43 @@ export default function MainApp() {
 
   // Enhanced function to handle recommendation clicks
   const handleRecommendationClick = useCallback(async (recommendation: AnimeRecommendation) => {
-  const existingId = (recommendation as any)._id || (recommendation as any).id;
+    const existingId = (recommendation as any)._id || (recommendation as any).id;
 
     if (existingId) {
       navigateToDetail(existingId as Id<"anime">);
       return;
     }
 
-    const toastId = `add-recommendation-${recommendation.title?.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;
+    const title = recommendation.title?.trim();
+    if (!title) {
+      toast.error('Invalid anime title');
+      return;
+    }
+
+    // 1) Try server-side title lookup (exact + fuzzy) before adding
+    try {
+  // Prefer smart navigation lookup (handles fuzzy + search index + anilistId)
+  const found = await convex.query(api.anime.smartFindAnimeForNavigation, { title, anilistId: (recommendation as any).anilistId });
+      if (found?._id) {
+        console.log('[MainApp] Fuzzy/exact match found prior to add. Navigating.');
+        navigateToDetail(found._id as Id<'anime'>);
+        return;
+      }
+    } catch (e) {
+      console.warn('[MainApp] Title lookup failed, will proceed to add:', (e as any)?.message);
+    }
+
+    const toastId = `add-recommendation-${title.replace(/[^a-zA-Z0-9]/g, '') || 'anime'}`;
     toast.loading('Adding anime to your universe...', { id: toastId });
 
     const animeToAdd = {
-      title: recommendation.title?.trim() || 'Unknown Title',
+      title: title || 'Unknown Title',
       description: recommendation.description?.trim() || 'No description available.',
       posterUrl:
         recommendation.posterUrl && !recommendation.posterUrl.includes('placeholder')
           ? recommendation.posterUrl
           : `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(
-              recommendation.title?.substring(0, 20) || 'Anime',
+              title.substring(0, 20) || 'Anime',
             )}&font=roboto`,
       genres: Array.isArray(recommendation.genres) ? recommendation.genres.filter((g) => g && g.trim()) : [],
       year: typeof recommendation.year === 'number' && recommendation.year > 1900 ? recommendation.year : undefined,
@@ -446,10 +465,25 @@ export default function MainApp() {
       toast.success('Anime added!', { id: toastId });
       navigateToDetail(newAnimeId);
     } catch (error: any) {
+      const msg = error?.message || '';
       console.error('[MainApp] Failed to add recommendation:', error);
-      toast.error(`Failed to add anime: ${error.message || 'Unknown error'}`, { id: toastId });
+      // 2) If blocked due to prior admin deletion or duplicate, perform broader search and navigate if found
+      if (msg.includes('previously deleted') || msg.includes('already exists') || msg.includes('duplicate')) {
+        try {
+          const alt = await convex.query(api.anime.smartFindAnimeForNavigation, { title, anilistId: (recommendation as any).anilistId, allowFuzzy: true });
+          if (alt?._id) {
+            toast.dismiss(toastId);
+            toast.success('Found existing entry');
+            navigateToDetail(alt._id as Id<'anime'>);
+            return;
+          }
+        } catch (inner) {
+          console.warn('[MainApp] Secondary search failed:', (inner as any)?.message);
+        }
+      }
+      toast.error(`Failed to open anime: ${msg || 'Unknown error'}`, { id: toastId });
     }
-  }, [addAnimeByUserMutation, navigateToDetail]);
+  }, [addAnimeByUserMutation, navigateToDetail, convex]);
 
 // Also add a fallback navigation function
 const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
@@ -567,28 +601,11 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
 
   useEffect(() => {
     if (currentView !== "dashboard") return;
-
     const fetchLists = async () => {
       try {
         if (trendingAnime.length === 0) {
           const res = await fetchTrendingAnimeAction({ limit: 10 });
           setTrendingAnime(res.animes || []);
-        }
-        if (topAnime.length === 0) {
-          const res = await fetchTopRatedAnimeAction({ limit: 10 });
-          setTopAnime(res.animes || []);
-        }
-        if (popularAnime.length === 0) {
-          const res = await fetchPopularAnimeAction({ limit: 10 });
-          setPopularAnime(res.animes || []);
-        }
-        if (bingeableAnime.length === 0) {
-          const res = await fetchBingeableAnimeAction({ limit: 10 });
-          setBingeableAnime(res.animes || []);
-        }
-        if (retroClassicAnime.length === 0) {
-          const res = await fetchRetroClassicAnimeAction({ limit: 10 });
-          setRetroClassicAnime(res.animes || []);
         }
         if (horrorAnime.length === 0) {
           const res = await fetchHorrorAnimeAction({ limit: 10 });
@@ -599,12 +616,20 @@ const handleAnimeCardClick = useCallback((animeId: Id<"anime">) => {
           setTrueCrimeAnime(res.animes || []);
         }
       } catch (e) {
-        console.error("[MainApp] Failed fetching anime lists", e);
+        console.error("[MainApp] Failed fetching legacy anime lists", e);
       }
     };
-
     fetchLists();
-  }, [currentView, trendingAnime.length, topAnime.length, popularAnime.length, bingeableAnime.length, retroClassicAnime.length, horrorAnime.length, trueCrimeAnime.length, fetchTrendingAnimeAction, fetchTopRatedAnimeAction, fetchPopularAnimeAction, fetchBingeableAnimeAction, fetchRetroClassicAnimeAction, fetchHorrorAnimeAction, fetchTrueCrimeAnimeAction]);
+  }, [currentView, trendingAnime.length, horrorAnime.length, trueCrimeAnime.length, fetchTrendingAnimeAction, fetchHorrorAnimeAction, fetchTrueCrimeAnimeAction]);
+
+  // Sync curated sections (reactive)
+  useEffect(() => {
+    if (!curatedSections) return;
+    setPopularAnime(curatedSections.popular_now?.anime || []);
+    setTopAnime(curatedSections.top_rated?.anime || []);
+    setBingeableAnime(curatedSections.bingeworthy?.anime || []);
+    setRetroClassicAnime(curatedSections.retro_classics?.anime || []);
+  }, [curatedSections]);
 
 
   // Enhanced useEffect with better duplicate prevention

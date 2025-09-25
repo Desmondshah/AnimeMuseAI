@@ -3,6 +3,7 @@ import React, { useState, memo, useEffect } from "react";
 import StyledButton from "../animuse/shared/StyledButton";
 import UserManagementPage from "./UserManagementPage";
 import EnhancedAnimeManagementPage from "./EnhancedAnimeManagementPage";
+import AdminHomeSectionsManager from "./AdminHomeSectionsManager";
 import ReviewModerationPage from "./ReviewModerationPage";
 import CharacterEnrichmentPage from "./CharacterEnrichmentPage";
 import { useMobileOptimizations } from "../../hooks/useMobileOptimizations";
@@ -11,7 +12,7 @@ interface AdminDashboardPageProps {
   onNavigateBack: () => void;
 }
 
-type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation" | "character_enrichment";
+type AdminView = "overview" | "user_management" | "anime_management" | "review_moderation" | "character_enrichment" | "home_sections";
 
 // FIXED: Proper responsive layout detection
 const useResponsiveLayout = () => {
@@ -268,6 +269,13 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
       shortLabel: "ANIME",
       description: "EDIT DATA"
     },
+    {
+      view: "home_sections" as AdminView,
+      icon: "🏠",
+      label: "HOME SECTIONS",
+      shortLabel: "HOME",
+      description: "CURATE LAYOUT"
+    },
     { 
       view: "character_enrichment" as AdminView, 
       icon: "🤖", 
@@ -471,6 +479,8 @@ const AdminDashboardPageComponent: React.FC<AdminDashboardPageProps> = ({ onNavi
         return <UserManagementPage />;
       case "anime_management":
         return <EnhancedAnimeManagementPage />;
+      case "home_sections":
+        return <AdminHomeSectionsManager />;
       case "character_enrichment":
         return <CharacterEnrichmentPage />;
       case "review_moderation":

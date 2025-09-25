@@ -582,6 +582,40 @@ Focus on providing diverse and relevant choices with accurate information.`;
           isReal: !r.posterUrl?.includes('placehold.co')
         })));
         
+        // Ensure each recommendation exists in DB and attach _id for navigation (idempotent)
+        try {
+          const ensured = await Promise.all(
+            recommendations.map(async (rec: any) => {
+              if (rec._id) return rec;
+              try {
+                const result = await ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+                  title: rec.title,
+                  description: rec.description,
+                  posterUrl: rec.posterUrl,
+                  genres: rec.genres,
+                  year: rec.year,
+                  rating: rec.rating,
+                  emotionalTags: rec.emotionalTags,
+                  trailerUrl: rec.trailerUrl,
+                  studios: rec.studios,
+                  themes: rec.themes,
+                  anilistId: rec.anilistId,
+                  recommendationReasoning: rec.reasoning,
+                  recommendationScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : rec.similarityScore,
+                  sourceAction: 'getAnimeRecommendationWithBetterLogging',
+                });
+                return { ...rec, _id: result.animeId };
+              } catch (e: any) {
+                console.warn('[AI Recommendations] ensureAnimeFromRecommendation failed:', e?.message || e);
+                return rec;
+              }
+            })
+          );
+          recommendations = ensured;
+        } catch (batchErr: any) {
+          console.warn('[AI Recommendations] Batch ensure failed:', batchErr?.message || batchErr);
+        }
+
         console.log(`[AI Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
       } else {
         errorResult = "AI response format error or no recommendations found.";
@@ -1703,10 +1737,18 @@ export const getSimilarAnimeFromDB = action({
             return { recommendations: [], error: aiRecommendations.error };
         }
 
-        const recommendations = (aiRecommendations.recommendations || []).map((anime: any) => ({
+    let recommendations = (aiRecommendations.recommendations || []).map((anime: any) => ({
             ...anime,
             reasoning: anime.reasoning || `Similar to ${targetAnime.title} based on AI analysis`,
-        }));
+    }));
+
+    // Enforce poster validity: drop items with missing/blocked poster URLs
+    const beforeFilter = recommendations.length;
+    recommendations = recommendations.filter((rec: any) => isValidPosterUrl(rec.posterUrl));
+    const removed = beforeFilter - recommendations.length;
+    if (removed > 0) {
+      console.log(`[Similar From DB] Filtered out ${removed} recommendation(s) due to invalid/blocked poster URLs`);
+    }
         
         if (args.messageId) {
             await ctx.runMutation(api.ai.storeAiFeedback, {
@@ -1793,7 +1835,41 @@ The "reasoning" field is crucial for personalization. Make it insightful and spe
                 // Use database-first enhancement
                 console.log(`[Personalized Recommendations] Enhancing ${rawRecommendations.length} recommendations with database-first approach...`);
                 recommendations = await enhanceRecommendationsWithDatabaseFirst(ctx, rawRecommendations);
-                
+
+                // Idempotently ensure each recommendation exists in DB and attach _id for navigation
+                try {
+                  const ensured = await Promise.all(
+                    recommendations.map(async (rec: any) => {
+                      if (rec._id) return rec;
+                      try {
+                        const result = await ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+                          title: rec.title,
+                          description: rec.description,
+                          posterUrl: rec.posterUrl,
+                          genres: rec.genres,
+                          year: rec.year,
+                          rating: rec.rating,
+                          emotionalTags: rec.emotionalTags,
+                          trailerUrl: rec.trailerUrl,
+                          studios: rec.studios,
+                          themes: rec.themes,
+                          anilistId: rec.anilistId,
+                          recommendationReasoning: rec.reasoning,
+                          recommendationScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : rec.similarityScore,
+                          sourceAction: 'getPersonalizedRecommendationsWithDatabaseFirst',
+                        });
+                        return { ...rec, _id: result.animeId };
+                      } catch (e: any) {
+                        console.warn('[Personalized Recommendations] ensureAnimeFromRecommendation failed:', e?.message || e);
+                        return rec;
+                      }
+                    })
+                  );
+                  recommendations = ensured;
+                } catch (batchErr: any) {
+                  console.warn('[Personalized Recommendations] Batch ensure failed:', batchErr?.message || batchErr);
+                }
+
                 console.log(`[Personalized Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
             } else {
                 errorResult = "AI response format error or no recommendations found.";
@@ -1972,7 +2048,49 @@ Provide ${recommendationCount} carefully curated recommendations that create a c
                     moodMatchScore: rec.moodMatchScore || 7 // Default score if AI didn't provide one
                 }));
 
-                recommendations = shuffleArray(recommendations);
+        recommendations = shuffleArray(recommendations);
+
+        // Enforce poster validity: drop items with missing/blocked poster URLs
+        const beforeFilterCount = recommendations.length;
+        recommendations = recommendations.filter((rec: any) => isValidPosterUrl(rec.posterUrl));
+        const filteredOut = beforeFilterCount - recommendations.length;
+        if (filteredOut > 0) {
+          console.log(`[Enhanced Mood AI] Filtered out ${filteredOut} recommendation(s) due to invalid/blocked poster URLs`);
+        }
+        
+        // Ensure each recommendation exists in DB and attach _id for navigation (idempotent)
+        try {
+          const ensured = await Promise.all(
+            recommendations.map(async (rec: any) => {
+              if (rec._id) return rec;
+              try {
+                const result = await ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+                  title: rec.title,
+                  description: rec.description,
+                  posterUrl: rec.posterUrl,
+                  genres: rec.genres,
+                  year: rec.year,
+                  rating: rec.rating,
+                  emotionalTags: rec.emotionalTags,
+                  trailerUrl: rec.trailerUrl,
+                  studios: rec.studios,
+                  themes: rec.themes,
+                  anilistId: rec.anilistId,
+                  recommendationReasoning: rec.reasoning,
+                  recommendationScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : rec.similarityScore,
+                  sourceAction: 'getEnhancedRecommendationsByMoodTheme',
+                });
+                return { ...rec, _id: result.animeId };
+              } catch (e: any) {
+                console.warn('[Enhanced Mood AI] ensureAnimeFromRecommendation failed:', e?.message || e);
+                return rec;
+              }
+            })
+          );
+          recommendations = ensured;
+        } catch (batchErr: any) {
+          console.warn('[Enhanced Mood AI] Batch ensure failed:', batchErr?.message || batchErr);
+        }
                 
                 console.log(`[Enhanced Mood AI] Successfully processed ${recommendations.length} mood recommendations`);
             } else {
@@ -2420,8 +2538,14 @@ For each recommendation, provide:
                     moodMatchScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : (rec.similarityScore || 8),
                     // Database-related fields
                     _id: rec._id, // Set by enhancement process
-                    foundInDatabase: rec.foundInDatabase,
-                })).filter((rec: any) => rec.title && rec.title !== "Unknown Title" && rec.posterUrl);
+          foundInDatabase: rec.foundInDatabase,
+        }))
+        // Drop recommendations with missing or invalid/blocked poster URLs
+        .filter((rec: any) => rec.title && rec.title !== "Unknown Title" && isValidPosterUrl(rec.posterUrl));
+
+        if (!recommendations.length && enhancedRecommendations.length) {
+          console.log(`[Similar Recommendations] All ${enhancedRecommendations.length} item(s) filtered due to invalid/blocked poster URLs`);
+        }
                 
                 console.log(`[Similar Recommendations] Successfully enhanced ${recommendations.length} recommendations`);
 
@@ -2598,8 +2722,39 @@ const enhanceRecommendationsWithAutoAdd = async (
   ).length;
   
   console.log(`[Better Database Matching] ✅ Complete! DB hits: ${dbHits}/${recommendations.length}, Real posters: ${realPostersFound}/${recommendations.length}`);
-  
-  return enhancedRecommendations;
+
+  // Final step: ensure any items without an _id are upserted into DB and get an id
+  const ensured: RecommendationWithDatabase[] = [];
+  for (const rec of enhancedRecommendations) {
+    if (rec._id) {
+      ensured.push(rec);
+      continue;
+    }
+    try {
+      const result = await ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+        title: rec.title,
+        description: rec.description,
+        posterUrl: rec.posterUrl,
+        genres: rec.genres,
+        year: rec.year,
+        rating: rec.rating,
+        emotionalTags: rec.emotionalTags,
+        trailerUrl: rec.trailerUrl,
+        studios: rec.studios,
+        themes: rec.themes,
+        anilistId: rec.anilistId,
+        recommendationReasoning: (rec as any).reasoning,
+        recommendationScore: typeof rec.moodMatchScore === 'number' ? rec.moodMatchScore : (rec as any).similarityScore,
+        sourceAction: 'getSimilarAnimeRecommendationsFixed',
+      });
+      ensured.push({ ...rec, _id: result.animeId });
+    } catch (e: any) {
+      console.warn('[Auto-Add Enhancement] ensureAnimeFromRecommendation failed:', e?.message || e);
+      ensured.push(rec);
+    }
+  }
+
+  return ensured;
 };
 
 // Update the getEnhancedRecommendationsByMoodTheme to use better matching
@@ -3356,7 +3511,8 @@ Be specific, insightful, and provide deep analysis while remaining factual.`;
 });
 
 // --- Comprehensive Character Enrichment Action ---
-export const fetchComprehensiveCharacterDetails = action({
+// NOTE: Cast to any at call-site to avoid TS2589 (excessive type instantiation) on this very large action
+export const fetchComprehensiveCharacterDetails = (action as any)({
   args: {
     characterName: v.string(),
     animeName: v.string(),

@@ -580,6 +580,14 @@ const applicationTables = {
     .index("by_anilistId", ["anilistId"])
     .index("by_deletedAt", ["deletedAt"]),
 
+  // Curated home page section overrides (admin managed)
+  homeSectionOverrides: defineTable({
+    sectionKey: v.string(), // e.g. popular_now, top_rated, bingeworthy, retro_classics
+    animeIds: v.array(v.id("anime")), // ordered list to display
+    updatedAt: v.number(),
+    updatedBy: v.id("users"),
+  }).index("by_sectionKey", ["sectionKey"]),
+
   // ===== Deduplication backups to enable rollback =====
   deduplicationBackups: defineTable({
     batchId: v.string(), // unique identifier for this deduplication run

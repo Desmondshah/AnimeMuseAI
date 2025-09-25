@@ -2440,34 +2440,27 @@ export const fetchTrendingAnime = action({
       const added: string[] = [];
       for (const item of media) {
         const title = item.title?.romaji || 'Unknown';
-        const existing = await ctx.runQuery(internal.anime.getAnimeByTitleInternal, { title });
-        if (existing) continue;
-        
-        // Check if this anime was previously deleted and is protected
-        const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
-          title,
-          anilistId: item.id,
-        });
-        
-        if (isProtected) {
-          console.log(`[Trending Import] Skipping previously deleted anime: "${title}"`);
-          continue;
+        try {
+          const result = await ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+            title,
+            description: item.description || '',
+            posterUrl: item.coverImage?.extraLarge || '',
+            genres: item.genres || [],
+            year: item.startDate?.year || undefined,
+            rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            emotionalTags: [],
+            trailerUrl: '',
+            studios: [],
+            themes: [],
+            anilistId: item.id,
+            recommendationReasoning: 'Trending on AniList',
+            recommendationScore: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            sourceAction: 'fetchTrendingAnime'
+          });
+          if (result.created) added.push(title);
+        } catch (e: any) {
+          console.warn('[fetchTrendingAnime] ensure failed for', title, e?.message || e);
         }
-        
-        await ctx.runMutation(internal.anime.addAnimeInternal, {
-          title,
-          description: item.description || '',
-          posterUrl: item.coverImage?.extraLarge || '',
-          genres: item.genres || [],
-          year: item.startDate?.year || undefined,
-          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
-          emotionalTags: [],
-          trailerUrl: '',
-          studios: [],
-          themes: [],
-          anilistId: item.id
-        });
-        added.push(title);
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       return { imported: added.length, added };
@@ -3820,29 +3813,52 @@ export const fetchPopularAnime = action({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
       });
-      
       if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
-      
       const data = await res.json();
       const media = data?.data?.Page?.media || [];
-      
-      const animes = media.map((item: any) => ({
-        title: item.title?.romaji || 'Unknown',
-        description: item.description || '',
-        posterUrl: item.coverImage?.extraLarge || '',
-        genres: item.genres || [],
-        year: item.startDate?.year || undefined,
-        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
-        emotionalTags: [],
-        trailerUrl: '',
-        studios: [],
-        themes: [],
-        reasoning: `Popular anime with high ratings`,
-        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
-        _id: undefined,
-        foundInDatabase: false
-      })) as AnimeRecommendation[];
-      
+
+      const animes: AnimeRecommendation[] = [] as any;
+      for (const item of media) {
+        const title = item.title?.romaji || 'Unknown';
+        let animeId: Id<'anime'> | undefined = undefined;
+        try {
+          const ensured = await _ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+            title,
+            description: item.description || '',
+            posterUrl: item.coverImage?.extraLarge || '',
+            genres: item.genres || [],
+            year: item.startDate?.year || undefined,
+            rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            emotionalTags: [],
+            trailerUrl: '',
+            studios: [],
+            themes: [],
+            anilistId: item.id,
+            recommendationReasoning: 'Popular on AniList',
+            recommendationScore: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            sourceAction: 'fetchPopularAnime'
+          });
+          animeId = ensured.animeId;
+        } catch (e: any) {
+          console.warn('[fetchPopularAnime] ensure failed', title, e?.message || e);
+        }
+        animes.push({
+          title,
+          description: item.description || '',
+          posterUrl: item.coverImage?.extraLarge || '',
+          genres: item.genres || [],
+          year: item.startDate?.year || undefined,
+          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+          emotionalTags: [],
+          trailerUrl: '',
+          studios: [],
+          themes: [],
+          reasoning: 'Popular anime with high ratings',
+          moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+          _id: animeId,
+          foundInDatabase: !!animeId
+        } as any);
+      }
       return { animes };
     } catch (e: any) {
       return { animes: [], error: e.message };
@@ -3884,29 +3900,52 @@ export const fetchTopRatedAnime = action({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
       });
-      
       if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
-      
       const data = await res.json();
       const media = data?.data?.Page?.media || [];
-      
-      const animes = media.map((item: any) => ({
-        title: item.title?.romaji || 'Unknown',
-        description: item.description || '',
-        posterUrl: item.coverImage?.extraLarge || '',
-        genres: item.genres || [],
-        year: item.startDate?.year || undefined,
-        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
-        emotionalTags: [],
-        trailerUrl: '',
-        studios: [],
-        themes: [],
-        reasoning: `Critically acclaimed top-rated anime`,
-        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
-        _id: undefined,
-        foundInDatabase: false
-      })) as AnimeRecommendation[];
-      
+
+      const animes: AnimeRecommendation[] = [] as any;
+      for (const item of media) {
+        const title = item.title?.romaji || 'Unknown';
+        let animeId: Id<'anime'> | undefined = undefined;
+        try {
+          const ensured = await _ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+            title,
+            description: item.description || '',
+            posterUrl: item.coverImage?.extraLarge || '',
+            genres: item.genres || [],
+            year: item.startDate?.year || undefined,
+            rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            emotionalTags: [],
+            trailerUrl: '',
+            studios: [],
+            themes: [],
+            anilistId: item.id,
+            recommendationReasoning: 'Top rated on AniList',
+            recommendationScore: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            sourceAction: 'fetchTopRatedAnime'
+          });
+          animeId = ensured.animeId;
+        } catch (e: any) {
+          console.warn('[fetchTopRatedAnime] ensure failed', title, e?.message || e);
+        }
+        animes.push({
+          title,
+          description: item.description || '',
+          posterUrl: item.coverImage?.extraLarge || '',
+          genres: item.genres || [],
+          year: item.startDate?.year || undefined,
+          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+          emotionalTags: [],
+          trailerUrl: '',
+          studios: [],
+          themes: [],
+          reasoning: 'Critically acclaimed top-rated anime',
+          moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+          _id: animeId,
+          foundInDatabase: !!animeId
+        } as any);
+      }
       return { animes };
     } catch (e: any) {
       return { animes: [], error: e.message };
@@ -3951,29 +3990,52 @@ export const fetchBingeableAnime = action({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables: { page: 1, perPage: limit } })
       });
-      
       if (!res.ok) return { animes: [], error: `AniList error ${res.status}` };
-      
       const data = await res.json();
       const media = data?.data?.Page?.media || [];
-      
-      const animes = media.map((item: any) => ({
-        title: item.title?.romaji || 'Unknown',
-        description: item.description || '',
-        posterUrl: item.coverImage?.extraLarge || '',
-        genres: item.genres || [],
-        year: item.startDate?.year || undefined,
-        rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
-        emotionalTags: [],
-        trailerUrl: '',
-        studios: [],
-        themes: [],
-        reasoning: `Perfect for binge-watching (${item.episodes || 'Unknown'} episodes)`,
-        moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
-        _id: undefined,
-        foundInDatabase: false
-      })) as AnimeRecommendation[];
-      
+
+      const animes: AnimeRecommendation[] = [] as any;
+      for (const item of media) {
+        const title = item.title?.romaji || 'Unknown';
+        let animeId: Id<'anime'> | undefined = undefined;
+        try {
+          const ensured = await _ctx.runMutation(internal.anime.ensureAnimeFromRecommendation, {
+            title,
+            description: item.description || '',
+            posterUrl: item.coverImage?.extraLarge || '',
+            genres: item.genres || [],
+            year: item.startDate?.year || undefined,
+            rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            emotionalTags: [],
+            trailerUrl: '',
+            studios: [],
+            themes: [],
+            anilistId: item.id,
+            recommendationReasoning: `Great for binge watching (${item.episodes || '?'} eps)`,
+            recommendationScore: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+            sourceAction: 'fetchBingeableAnime'
+          });
+          animeId = ensured.animeId;
+        } catch (e: any) {
+          console.warn('[fetchBingeableAnime] ensure failed', title, e?.message || e);
+        }
+        animes.push({
+          title,
+          description: item.description || '',
+          posterUrl: item.coverImage?.extraLarge || '',
+          genres: item.genres || [],
+          year: item.startDate?.year || undefined,
+          rating: typeof item.averageScore === 'number' ? item.averageScore / 10 : undefined,
+          emotionalTags: [],
+          trailerUrl: '',
+          studios: [],
+          themes: [],
+          reasoning: `Great for binge watching (${item.episodes || '?'} eps)`,
+          moodMatchScore: item.averageScore ? item.averageScore / 10 : 0,
+          _id: animeId,
+          foundInDatabase: !!animeId
+        } as any);
+      }
       return { animes };
     } catch (e: any) {
       return { animes: [], error: e.message };

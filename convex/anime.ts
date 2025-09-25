@@ -362,9 +362,10 @@ export const getFilteredAnime = query({
       v.literal("user_rating_desc"), v.literal("user_rating_asc"),
       v.literal("most_reviewed"), v.literal("least_reviewed")
     )),
+  excludePlaceholders: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<PaginationResult<Doc<"anime">>> => {
-    const { filters, sortBy = "newest", searchTerm } = args;
+  const { filters, sortBy = "newest", searchTerm, excludePlaceholders } = args;
     
     // NEW: If search term is provided, use search index instead of regular query
     if (searchTerm && searchTerm.trim()) {
@@ -580,6 +581,10 @@ export const getFilteredAnime = query({
         if (filters.emotionalTags?.length && (!anime.emotionalTags || !filters.emotionalTags.some(tag => anime.emotionalTags!.includes(tag)))) return false;
         return true;
       });
+    }
+    // Exclude placeholder posters (only when NOT doing a text search) unless explicitly disabled
+    if (!searchTerm && (excludePlaceholders === undefined || excludePlaceholders)) {
+      filteredPage = filteredPage.filter(a => !(a.posterUrl && /placehold\.co|placeholder/i.test(a.posterUrl)));
     }
     if (sortBy === "title_asc" || sortBy === "title_desc") {
       filteredPage.sort((a: Doc<"anime">, b: Doc<"anime">) => (a.title || "").localeCompare(b.title || ""));
@@ -987,19 +992,75 @@ export async function addAnimeByUserHandler(ctx: any, args: {
 }) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("User not authenticated");
+  // Determine admin status
+  let isAdmin = false;
+  try {
+    const profile = await ctx.db.query('userProfiles').withIndex('by_userId', q => q.eq('userId', userId)).unique();
+    isAdmin = !!profile?.isAdmin;
+  } catch (e) {
+    console.warn('[Add Anime] Failed to fetch user profile for admin check:', (e as any)?.message);
+  }
+
+  // Alias normalization reused from smartFindAnimeForNavigation (keep in sync if updated)
+  const normalize = (s: string) => (s || '').toLowerCase().normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/【.*?】/g, '')
+    .replace(/[^a-z0-9]+/g, ' ') // collapse non-alphanumerics
+    .trim();
+  const ALIAS_MAP: Record<string, string[]> = {
+    'attack on titan': ['shingeki no kyojin', '進撃の巨人', 'shingeki  no  kyojin', 'attack-on-titan'],
+    'demon slayer': ['kimetsu no yaiba', '鬼滅の刃'],
+    'my hero academia': ['boku no hero academia', '僕のヒーローアカデミア', 'boku no hero'],
+    'jujutsu kaisen': ['呪術廻戦'],
+    'one piece': ['ワンピース'],
+  };
+  const aliasToCanonical: Record<string, string> = {};
+  for (const canonical in ALIAS_MAP) {
+    const canonNorm = normalize(canonical);
+    aliasToCanonical[canonNorm] = canonNorm;
+    for (const alias of ALIAS_MAP[canonical]) aliasToCanonical[normalize(alias)] = canonNorm;
+  }
+  const inputNorm = normalize(args.title);
+  const canonicalNorm = aliasToCanonical[inputNorm] || inputNorm;
+
+  // Helper to find existing by normalized or alias canonical
+  async function findByNormalizedOrAlias(): Promise<Doc<'anime'> | null> {
+    let cursor: string | null = null;
+    for (let pass = 0; pass < 6; pass++) {
+      const { page, isDone, continueCursor } = await ctx.db.query('anime').paginate({ cursor, numItems: 50 });
+      for (const a of page) {
+        const aNorm = normalize(a.title);
+        if (aNorm === inputNorm || aliasToCanonical[aNorm] === canonicalNorm) return a;
+      }
+      if (isDone) break;
+      cursor = continueCursor;
+    }
+    return null;
+  }
 
   // Check if this anime was previously deleted and is protected
   const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
     title: args.title,
     anilistId: args.anilistId,
   });
-  
+
   if (isProtected) {
-    console.log(`[Add Anime] User ${userId} blocked from re-adding previously deleted anime: "${args.title}"`);
-    throw new Error(`This anime was previously deleted by an admin and cannot be re-added.`);
+    // Attempt alias resolution to existing canonical record instead of blocking
+    const aliasExisting = await findByNormalizedOrAlias();
+    if (aliasExisting) {
+      console.log(`[Add Anime] Protected title '${args.title}' resolved to existing canonical '${aliasExisting.title}' (ID: ${aliasExisting._id}). Returning existing.`);
+      return aliasExisting._id; // Route user to existing anime
+    }
+    if (!isAdmin) {
+      console.log(`[Add Anime] User ${userId} blocked from re-adding previously deleted anime: "${args.title}"`);
+      throw new Error(`This anime was previously deleted by an admin and cannot be re-added.`);
+    }
+    // Admin override – allow re-add but log explicitly
+    console.log(`[Add Anime] ADMIN OVERRIDE: Admin ${userId} re-adding protected anime '${args.title}'.`);
   }
 
-  const existing = await findExistingAnimeByTitle(ctx, args.title);
+  // Existing direct (exact title) check
+  const existing = await findExistingAnimeByTitle(ctx, args.title) || await findByNormalizedOrAlias();
 
   if (existing) {
     console.warn(
@@ -1058,6 +1119,114 @@ export async function addAnimeByUserHandler(ctx: any, args: {
   return animeId;
 }
 
+// Smart navigation lookup: tries exact, normalized, search index, and anilistId
+export const smartFindAnimeForNavigation = query({
+  args: {
+    title: v.string(),
+    anilistId: v.optional(v.number()),
+    allowFuzzy: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const rawTitle = args.title || "";
+    const title = rawTitle.trim();
+    if (!title) return null;
+
+    const normalize = (s: string) => s
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+      .replace(/【.*?】/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+    const normTitle = normalize(title);
+
+    // Alias dictionary for high-profile multi-language titles
+    const ALIAS_MAP: Record<string, string[]> = {
+      'attack on titan': ['shingeki no kyojin', '進撃の巨人', 'shingeki  no  kyojin', 'attack-on-titan'],
+      'demon slayer': ['kimetsu no yaiba', '鬼滅の刃'],
+      'my hero academia': ['boku no hero academia', '僕のヒーローアカデミア', 'boku no hero'],
+      'jujutsu kaisen': ['呪術廻戦'],
+      'one piece': ['ワンピース'],
+    };
+
+    // Reverse alias index
+    const aliasToCanonical: Record<string, string> = {};
+    for (const canonical in ALIAS_MAP) {
+      const canonNorm = normalize(canonical);
+      aliasToCanonical[canonNorm] = canonNorm;
+      for (const alias of ALIAS_MAP[canonical]) {
+        aliasToCanonical[normalize(alias)] = canonNorm;
+      }
+    }
+
+    const canonicalNorm = aliasToCanonical[normTitle] || normTitle;
+
+    // 1. Exact match
+    const exact = await ctx.db.query("anime").filter(q => q.eq(q.field("title"), title)).first();
+    if (exact) return { _id: exact._id, title: exact.title };
+
+    // 2. Either perform a manual scan (non-fuzzy path) OR a search index fuzzy path, but NOT both.
+    //    Convex only allows one paginated query per function execution.
+    let loose: any = null;
+    if (!args.allowFuzzy) {
+      // Manual scan with a single paginated query loop.
+      let cursor: string | null = null;
+      for (let passes = 0; passes < 5 && !loose; passes++) {
+        const { page, isDone, continueCursor } = await ctx.db.query("anime").paginate({ cursor, numItems: 50 });
+        for (const a of page) {
+          const aNorm = normalize(a.title);
+          if (aNorm === normTitle || aliasToCanonical[aNorm] === canonicalNorm) {
+            return { _id: a._id, title: a.title };
+          }
+          if (!loose) {
+            if (
+              aNorm.includes(normTitle) ||
+              normTitle.includes(aNorm) ||
+              (aliasToCanonical[aNorm] && aliasToCanonical[aNorm] === canonicalNorm)
+            ) {
+              loose = { _id: a._id, title: a.title };
+            }
+          }
+        }
+        if (isDone) break;
+        cursor = continueCursor;
+      }
+      if (loose) return loose; // Return early for non-fuzzy path
+    } else {
+      // Fuzzy path: only use search index pagination (single paginated query).
+      try {
+        const { page } = await ctx.db.query("anime")
+          .withSearchIndex("search_title", (q: any) => q.search("title", title))
+          .paginate({ cursor: null, numItems: 20 });
+        const scored = page.map((a: any) => {
+          const na = normalize(a.title);
+          const aliasMatch = aliasToCanonical[na] && aliasToCanonical[na] === canonicalNorm;
+          let score = 0;
+          if (na === normTitle || aliasMatch) score = 100;
+          else if (na.startsWith(normTitle)) score = 90;
+          else if (na.includes(normTitle)) score = 70;
+          else if (normTitle.includes(na)) score = 60;
+          return { a, score };
+        }).filter(r => r.score > 0).sort((a,b)=>b.score-a.score);
+        if (scored[0]) return { _id: scored[0].a._id, title: scored[0].a.title };
+      } catch (e) {
+        console.warn('[smartFindAnimeForNavigation] search index unavailable or failed:', (e as any)?.message);
+      }
+    }
+
+    // 4. anilistId direct match if provided
+    if (args.anilistId) {
+      const byAniList = await ctx.db.query('anime')
+        .withIndex('by_anilistId', q => q.eq('anilistId', args.anilistId!))
+        .unique();
+      if (byAniList) return { _id: byAniList._id, title: byAniList.title };
+    }
+
+    // Fallback to first loose match if found earlier
+    return loose;
+  }
+});
+
 export const addAnimeByUser = mutation({
   args: {
     title: v.string(),
@@ -1110,6 +1279,69 @@ export const addAnimeInternal = internalMutation({
         
         return animeId;
     }
+});
+
+// Idempotent upsert for AI/Discovery recommendations
+// Ensures a recommended anime exists in DB and returns its ID without duplicating entries
+export const ensureAnimeFromRecommendation = internalMutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    posterUrl: v.optional(v.string()),
+    genres: v.optional(v.array(v.string())),
+    year: v.optional(v.number()),
+    rating: v.optional(v.number()),
+    emotionalTags: v.optional(v.array(v.string())),
+    trailerUrl: v.optional(v.string()),
+    studios: v.optional(v.array(v.string())),
+    themes: v.optional(v.array(v.string())),
+    anilistId: v.optional(v.number()),
+    recommendationReasoning: v.optional(v.string()),
+    recommendationScore: v.optional(v.number()),
+    sourceAction: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Deleted protection
+    const isProtected = await ctx.runQuery(internal.anime.checkDeletedAnimeProtection, {
+      title: args.title,
+      anilistId: args.anilistId,
+    });
+    if (isProtected) {
+      throw new Error(`This anime was previously deleted by an admin and cannot be re-added automatically.`);
+    }
+
+    // Try to find an existing anime via multiple criteria
+    const existing = await findExistingAnimeByMultipleCriteria(ctx, {
+      title: args.title,
+      posterUrl: args.posterUrl,
+      year: args.year,
+      anilistId: args.anilistId,
+    });
+    if (existing) {
+      return { animeId: existing._id, created: false };
+    }
+
+    // Insert minimal valid record with recommendation metadata
+    const animeId = await ctx.db.insert("anime", {
+      title: args.title,
+      description: args.description || "No description available.",
+      posterUrl: args.posterUrl || `https://placehold.co/600x900/ECB091/321D0B/png?text=${encodeURIComponent(args.title.substring(0, 30))}&font=roboto`,
+      genres: Array.isArray(args.genres) ? args.genres : [],
+      year: args.year,
+      rating: args.rating,
+      emotionalTags: Array.isArray(args.emotionalTags) ? args.emotionalTags : [],
+      trailerUrl: args.trailerUrl,
+      studios: Array.isArray(args.studios) ? args.studios : [],
+      themes: Array.isArray(args.themes) ? args.themes : [],
+      anilistId: args.anilistId,
+      addedFromRecommendation: true,
+      recommendationReasoning: args.recommendationReasoning,
+      recommendationScore: args.recommendationScore,
+      addedAt: Date.now(),
+    });
+
+    return { animeId, created: true };
+  },
 });
 
 // UPDATED: Enhanced mutation to handle episode data, additional fields, and character data
