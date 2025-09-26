@@ -885,48 +885,36 @@ export default function CharacterDetailPage({ character: initialCharacter, anime
   // Admin check
   const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
 
-  // Fetch latest character data from database if we have animeId
-  const queryArgs = (animeId && animeId !== null) ? {
-    animeId: animeId,
-    characterName: initialCharacter.name,
-  } : "skip";
-  
-  console.log("🔍 Character query args:", { queryArgs, animeId, characterName: initialCharacter.name });
-  
-  const latestCharacterData = useQuery(api.anime.getCharacterFromAnime, queryArgs);
+  // Reactive single-character subscription (new query)
+  const reactiveCharArgs = animeId ? { animeId, characterName: initialCharacter.name } : "skip";
+  const reactiveChar = useQuery(api.characterEnrichment.getCharacterByAnimeAndName, reactiveCharArgs);
 
-  // Update character state when fresh data is available from the database
+  // Keep local state in sync with reactive query
   useEffect(() => {
-    console.log("🔍 Character data effect triggered:", {
-      hasLatestData: !!latestCharacterData,
-      hasCharacter: !!latestCharacterData?.character,
-      animeId,
-      characterName: initialCharacter.name
-    });
-    
-    if (latestCharacterData?.character) {
-      // Only update if the database version has newer enrichment data
-      const dbChar = latestCharacterData.character;
-      const currentChar = character;
-      
-      // Check if database has more recent enrichment
-      const dbEnrichmentTime = dbChar.enrichmentTimestamp || dbChar.manualEnrichmentTimestamp || 0;
-      const currentEnrichmentTime = currentChar.enrichmentTimestamp || currentChar.manualEnrichmentTimestamp || 0;
-      
-      console.log("🔍 Enrichment time comparison:", {
-        dbEnrichmentTime,
-        currentEnrichmentTime,
-        dbStatus: dbChar.enrichmentStatus,
-        currentStatus: currentChar.enrichmentStatus,
-        shouldUpdate: dbEnrichmentTime > currentEnrichmentTime || (dbChar.enrichmentStatus === "success" && currentChar.enrichmentStatus !== "success")
+    if (reactiveChar?.character) {
+      setCharacter((prev) => {
+        // Replace entirely to avoid stale merge issues
+        return reactiveChar.character;
       });
-      
-      if (dbEnrichmentTime > currentEnrichmentTime || (dbChar.enrichmentStatus === "success" && currentChar.enrichmentStatus !== "success")) {
-        console.log("🔄 Updating character with latest enrichment data from database");
-        setCharacter(dbChar);
-      }
     }
-  }, [latestCharacterData]);
+  }, [reactiveChar?.character, reactiveChar?.character?.enrichmentStatus, reactiveChar?.character?.enrichmentTimestamp]);
+
+  // Auto enrichment trigger when character not yet enriched
+  const onDemandEnrich = useAction(api.characterEnrichment.getOrEnrichSingleCharacter);
+  const [autoTriggered, setAutoTriggered] = useState(false);
+  useEffect(() => {
+    if (!animeId || !reactiveChar?.character) return;
+    const c = reactiveChar.character as any;
+    const status = c.enrichmentStatus;
+    if (c.manuallyEnrichedByAdmin) return; // respect manual protection
+    if (status === "success" || status === "pending") return;
+    if (autoTriggered) return;
+    setAutoTriggered(true);
+    onDemandEnrich({ animeId, characterName: c.name }).catch(err => {
+      console.error("Auto enrichment failed", err);
+      setAutoTriggered(false); // allow retry if user revisits
+    });
+  }, [animeId, reactiveChar?.character?.name, reactiveChar?.character?.enrichmentStatus]);
 
 
 
